@@ -63,12 +63,12 @@ class HexagonGrid(Frame):
         :param int size: Hexagon line length
         :param str color: Hexagon fill color
         :param str marked_color: Hexagon fill color when selected
+        :param bg: Background color
         '''
-        Frame.__init__(self, parent, )
+        Frame.__init__(self, parent)
         self.left_offset = size/2
         self.top_offset = 1
         width = size*cols + (cols+1)*size/2
-        height = size*(rows+3) + (rows+1)*size/2
         height = (rows+1/2)*sqrt(3)*size + self.top_offset
         self.can = Canvas(self, width=width, height=height, bg=bg)
         self.can.pack()
@@ -79,7 +79,7 @@ class HexagonGrid(Frame):
         self.hexagons = []
         self.initGrid(cols, rows, size, debug=False)
 
-        self.can.bind("<Button-1>", self.click)
+        self.can.bind("<Button-1>", self.onclick)
 
     def initGrid(self, cols, rows, size, debug):
         for c in range(cols):
@@ -103,7 +103,7 @@ class HexagonGrid(Frame):
                             (r * (size * sqrt(3))) + offset + (size/2),
                             text=coords)
 
-    def click(self, evt):
+    def onclick(self, evt):
         """
         hexagon detection on mouse click
         """
