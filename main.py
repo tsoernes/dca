@@ -12,11 +12,54 @@ state = np.zeros((n, m, n_channels), dtype=bool)
 value = np.zeros((n, m, n_channels+1))
 
 
-def partition_cells(n, m):
+def partition_cells():
     """
     Partition cells into 7 lots such that the minimum distance
     between cells with the same label ([0..6]) is at least 3.
     """
+    labels = np.zeros((n, m))
+
+    def right_up(x, y):
+        x_new = x + 3
+        if x % 2 != 0:
+            # Odd column
+            y_new = y + 1
+        return (x_new, y_new)
+
+    def down_left(x, y):
+        x_new = x - 1
+        if x % 2 == 0:
+            # Even column
+            y_new = y + 3
+        else:
+            # Odd Column
+            y_new = y + 2
+        return (x_new, y_new)
+
+    def label(x, y, l):
+        if (x >= 0 and x < m and y >= 0 and y < n):
+            labels[x][y] = l
+
+    first_row_center_x = 0
+    first_row_center_y = 0
+    c_x = 0  # Center x
+    c_y = 0
+    while c_y <= n:
+        while c_x <= m:
+            # Partition cells 0..6 with given center as 0
+            label(c_x, c_y, 0)
+            for i, (neigh_x, neigh_y) in enumerate(neighbors1(c_x, c_y)):
+                label(neigh_x, neigh_y, i+1)
+            # Move center right-up
+            c_x, c_y = right_up(c_x, c_y)
+        # Move down-left
+        c_x, c_y = down_left(first_row_center_x, first_row_center_y)
+        # Move right until x >= -1
+        while c_x < -1:
+            c_x, c_y = right_up(c_x, c_y)
+        first_row_center_x = c_x
+        first_row_center_y = c_y
+    return labels
 
 
 def neighbors1(row, col):
@@ -164,34 +207,65 @@ for _ in range(n_episodes):
         # Remove call from current state
         state[event[2][0]][event[2][1]][event[3]] = 0
 
+"""
 # Fixed assignment (FA) channel allocation;
-# the set of channels is partitioned, and the partitions are permanently assigned
-# to cells so that all cells can use all the channels assigned to them simultaneously
-# without interference (see Figure 1a). When a call arrives in a cell, if any pre-
-# assigned channel is unused; it is assigned, else the call is blocked. No rearrangement
-# is done when a call terminates. Such a policy is static and cannot take advantage of
-# temporary stochastic variations in demand for service. More ecient are dynamic
-# channel allocation policies, which assign channels to di erent cells, so that every
-# channel is available to every cell on a need basis, unless the channel is used in a
+# the set of channels is partitioned, and the partitions are permanently
+assigned
+# to cells so that all cells can use all the channels assigned to them
+simultaneously
+# without interference (see Figure 1a). When a call arrives in a cell, if any
+pre-
+# assigned channel is unused; it is assigned, else the call is blocked.
+No rearrangement
+# is done when a call terminates. Such a policy is static and cannot take
+advantage of
+# temporary stochastic variations in demand for service. More ecient are
+dynamic
+# channel allocation policies, which assign channels to di erent cells, so that
+every
+# channel is available to every cell on a need basis, unless the channel is
+used in a
 # nearby cell and the reuse constraint is violated.
+"""
 
+"""
 # Borrowing with Directional Channel Locking (BDCL) of Zhang & Yum (1989). It
-# numbers the channels from 1 to N , partitions and assigns them to cells as in FA.
-# The channels assigned to a cell are its nominal channels. If a nominal channel
-# is available when a call arrives in a cell, the smallest numbered such channel is
-# assigned to the call. If no nominal channel is available, then the largest numbered
-# free channel is borrowed from the neighbour with the most free channels. When a
-# channel is borrowed, careful accounting of the directional e ect of which cells can
-# no longer use that channel because of interference is done. The call is blocked if
-# there are no free channels at all. When a call terminates in a cell and the channel
-# so freed is a nominal channel, say numbered i, of that cell, then if there is a call
-# in that cell on a borrowed channel, the call on the smallest numbered borrowed
-# channel is reassigned to i and the borrowed channel is returned to the appropriate
-# cell. If there is no call on a borrowed channel, then if there is a call on a nominal
-# channel numbered larger than i, the call on the highest numbered nominal channel
-# is reassigned to i. If the call just terminated was itself on a borrowed channel, the
-# call on the smallest numbered borrowed channel is reassigned to it and that channel
-# is returned to the cell from which it was borrowed. Notice that when a borrowed
-# channel is returned to its original cell, a nominal channel becomes free in that cell
-# and triggers a reassignment. Thus, in the worst case a call termination in one cell
-# can sequentially cause reassignments in arbitrarily far away cells | making BDCL
+# numbers the channels from 1 to N , partitions and assigns them to cells as in
+FA.
+# The channels assigned to a cell are its nominal channels. If a nominal
+channel
+# is available when a call arrives in a cell, the smallest numbered such
+channel is
+# assigned to the call. If no nominal channel is available, then the largest
+numbered
+# free channel is borrowed from the neighbour with the most free channels.
+When a
+# channel is borrowed, careful accounting of the directional e ect of which
+cells can
+# no longer use that channel because of interference is done. The call is
+blocked if
+# there are no free channels at all. When a call terminates in a cell and the
+channel
+# so freed is a nominal channel, say numbered i, of that cell, then if there
+is a call
+# in that cell on a borrowed channel, the call on the smallest numbered
+borrowed
+# channel is reassigned to i and the borrowed channel is returned to the
+appropriate
+# cell. If there is no call on a borrowed channel, then if there is a call on
+a nominal
+# channel numbered larger than i, the call on the highest numbered nominal
+channel
+# is reassigned to i. If the call just terminated was itself on a borrowed
+channel, the
+# call on the smallest numbered borrowed channel is reassigned to it and that
+channel
+# is returned to the cell from which it was borrowed. Notice that when a
+borrowed
+# channel is returned to its original cell, a nominal channel becomes free in
+that cell
+# and triggers a reassignment. Thus, in the worst case a call termination in
+one cell
+# can sequentially cause reassignments in arbitrarily far away cells | making
+BDCL
+"""
