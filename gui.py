@@ -35,18 +35,7 @@ class Hexagon:
                 coords.append([start_x, start_y])
                 start_x = end_x
                 start_y = end_y
-        self.parent.create_polygon(coords[0][0],
-                                   coords[0][1],
-                                   coords[1][0],
-                                   coords[1][1],
-                                   coords[2][0],
-                                   coords[2][1],
-                                   coords[3][0],
-                                   coords[3][1],
-                                   coords[4][0],
-                                   coords[4][1],
-                                   coords[5][0],
-                                   coords[5][1],
+        self.parent.create_polygon(*coords,
                                    fill=self.color,
                                    outline=self.outline,
                                    tags=self.tags)
@@ -55,6 +44,7 @@ class Hexagon:
 class HexagonGrid(Frame):
     def __init__(self, parent, cols, rows, size=30,
                  color="#a1e2a1", marked_color="#53ca53", bg="#a1e2a1",
+                 debug=False,
                  *args, **kwargs):
         '''
         :param Tk parent
@@ -77,7 +67,7 @@ class HexagonGrid(Frame):
         self.marked_color = marked_color
 
         self.hexagons = []
-        self.initGrid(cols, rows, size, debug=False)
+        self.initGrid(cols, rows, size, debug=debug)
 
         self.can.bind("<Button-1>", self.onclick)
 
@@ -120,5 +110,5 @@ class HexagonGrid(Frame):
 
 if __name__ == '__main__':
     root = Tk()
-    hgrid = HexagonGrid(root, 10, 8).pack()
+    hgrid = HexagonGrid(root, 10, 8, debug=True).pack()
     root.mainloop()
