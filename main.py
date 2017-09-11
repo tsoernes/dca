@@ -12,6 +12,13 @@ state = np.zeros((n, m, n_channels), dtype=bool)
 value = np.zeros((n, m, n_channels+1))
 
 
+def partition_cells(n, m):
+    """
+    Partition cells into 7 lots such that the minimum distance
+    between cells with the same label ([0..6]) is at least 3.
+    """
+
+
 def neighbors1(row, col):
     """
     Returns a list with indexes of neighbors within a radius of 1,
@@ -116,10 +123,10 @@ def event_new(t):
     """
     Generate a new call at random time and cell
     """
-    a_cell_r = np.random.randint(0, n)
-    a_cell_c = np.random.randint(0, m)
-    a_time = np.random.exponential(call_rates[a_cell_r][a_cell_c]) + t
-    return (a_time, CEvent.NEW, (a_cell_r, a_cell_c))
+    cell_r = np.random.randint(0, n)  # Cell row for new call
+    cell_c = np.random.randint(0, m)
+    e_time = np.random.exponential(call_rates[cell_r][cell_c]) + t
+    return (e_time, CEvent.NEW, (cell_r, cell_c))
 
 
 def event_end(t, cell, ch):
@@ -132,7 +139,7 @@ def event_end(t, cell, ch):
 
 class CEvent(Enum):
     NEW = auto()  # Incoming call
-    END = auto()  # Ending call
+    END = auto()  # End a current call
 
 
 call_rates = np.zeros((n, m))  # Mean incoming calls per hour for each cell
@@ -156,3 +163,35 @@ for _ in range(n_episodes):
     elif event[1] == CEvent.END:
         # Remove call from current state
         state[event[2][0]][event[2][1]][event[3]] = 0
+
+# Fixed assignment (FA) channel allocation;
+# the set of channels is partitioned, and the partitions are permanently assigned
+# to cells so that all cells can use all the channels assigned to them simultaneously
+# without interference (see Figure 1a). When a call arrives in a cell, if any pre-
+# assigned channel is unused; it is assigned, else the call is blocked. No rearrangement
+# is done when a call terminates. Such a policy is static and cannot take advantage of
+# temporary stochastic variations in demand for service. More ecient are dynamic
+# channel allocation policies, which assign channels to di erent cells, so that every
+# channel is available to every cell on a need basis, unless the channel is used in a
+# nearby cell and the reuse constraint is violated.
+
+# Borrowing with Directional Channel Locking (BDCL) of Zhang & Yum (1989). It
+# numbers the channels from 1 to N , partitions and assigns them to cells as in FA.
+# The channels assigned to a cell are its nominal channels. If a nominal channel
+# is available when a call arrives in a cell, the smallest numbered such channel is
+# assigned to the call. If no nominal channel is available, then the largest numbered
+# free channel is borrowed from the neighbour with the most free channels. When a
+# channel is borrowed, careful accounting of the directional e ect of which cells can
+# no longer use that channel because of interference is done. The call is blocked if
+# there are no free channels at all. When a call terminates in a cell and the channel
+# so freed is a nominal channel, say numbered i, of that cell, then if there is a call
+# in that cell on a borrowed channel, the call on the smallest numbered borrowed
+# channel is reassigned to i and the borrowed channel is returned to the appropriate
+# cell. If there is no call on a borrowed channel, then if there is a call on a nominal
+# channel numbered larger than i, the call on the highest numbered nominal channel
+# is reassigned to i. If the call just terminated was itself on a borrowed channel, the
+# call on the smallest numbered borrowed channel is reassigned to it and that channel
+# is returned to the cell from which it was borrowed. Notice that when a borrowed
+# channel is returned to its original cell, a nominal channel becomes free in that cell
+# and triggers a reassignment. Thus, in the worst case a call termination in one cell
+# can sequentially cause reassignments in arbitrarily far away cells | making BDCL
