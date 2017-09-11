@@ -112,56 +112,47 @@ n_episodes = 100
 rewards = np.zeros((n_episodes))
 
 
-def event_new(t, call_rate):
+def event_new(t):
     """
     Generate a new call at random time and cell
     """
-    a_time = np.random.exponential(call_rate) + t
     a_cell_r = np.random.randint(0, n)
     a_cell_c = np.random.randint(0, m)
+    a_time = np.random.exponential(call_rates[a_cell_r][a_cell_c]) + t
     return (a_time, CEvent.NEW, (a_cell_r, a_cell_c))
 
 
-def event_end(t, service_rate, cell):
-    e_time = np.random.exponential(service_rate) + t
-    return (e_time, CEvent.END, cell)
-
-
-def event_handoff(t, l_cell):
+def event_end(t, cell, ch):
     """
-    Hand off a call from leaving cell to a neighboring cell
+    Generate end duration for a call
     """
-    neighs = neighbors1(*l_cell)
-    a_cell = neighs[np.random.randint(0, len(neighs))]
-    return (t, CEvent.END, a_cell)
+    e_time = np.random.exponential(call_duration) + t
+    return (e_time, CEvent.END, cell, ch)
 
 
 class CEvent(Enum):
     NEW = auto()  # Incoming call
     END = auto()  # Ending call
-    HANDOFF = auto()  # Transfer call from one cell to another
 
 
-call_rate = 100  # Average incoming calls per minute
-service_rate = 0
+call_rates = np.zeros((n, m))  # Mean incoming calls per hour for each cell
+call_duration = 3/60  # Mean call duration, in hours
 t = 0  # Current time, in minutes
-cevents = []
+cevents = [event_new(t)]
 # Discrete event simulation
 for _ in range(n_episodes):
     event = heappop(cevents)
     t = event[0]
     # Accept incoming call
     if event[1] == CEvent.NEW:
+        # Assign channel to call
+        ch = -1
         # Get call duration for incoming call
-        heappush(cevents, event_end(t, service_rate, event[2]))
+        heappush(cevents, event_end(t, event[2], ch))
         # Generate next incoming call
-        heappush(cevents, event_new(t, call_rate))
+        heappush(cevents, event_new(t))
         # Add incoming call to current state
+        state[event[2][0]][event[2][1]][ch] = 0
     elif event[1] == CEvent.END:
         # Remove call from current state
-        pass
-    elif event[1] == CEvent.HANDOFF:
-        # Move call from one cell to another
-        # TODO: When are these events supposed to be generated?
-        pass
-
+        state[event[2][0]][event[2][1]][event[3]] = 0
