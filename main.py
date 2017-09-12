@@ -12,15 +12,17 @@ state = np.zeros((n, m, n_channels), dtype=bool)
 value = np.zeros((n, m, n_channels+1))
 
 
-def partition_cells():
+def partition_cells(n, m):
     """
     Partition cells into 7 lots such that the minimum distance
-    between cells with the same label ([0..6]) is at least 3.
+    between cells with the same label ([0..6]) is at least 2
+    (which corresponds to a minimum reuse distance of 3).
     """
-    labels = np.zeros((n, m))
+    labels = np.zeros((n, m), dtype=int)
 
     def right_up(x, y):
         x_new = x + 3
+        y_new = y
         if x % 2 != 0:
             # Odd column
             y_new = y + 1
@@ -36,29 +38,31 @@ def partition_cells():
             y_new = y + 2
         return (x_new, y_new)
 
-    def label(x, y, l):
+    def label(l, x, y):
+        # A center and some part of its subgrid may be out of bounds.
         if (x >= 0 and x < m and y >= 0 and y < n):
-            labels[x][y] = l
+            labels[y][x] = l
 
-    first_row_center_x = 0
-    first_row_center_y = 0
-    c_x = 0  # Center x
-    c_y = 0
-    while c_y <= n:
-        while c_x <= m:
-            # Partition cells 0..6 with given center as 0
-            label(c_x, c_y, 0)
-            for i, (neigh_x, neigh_y) in enumerate(neighbors1(c_x, c_y)):
-                label(neigh_x, neigh_y, i+1)
-            # Move center right-up
-            c_x, c_y = right_up(c_x, c_y)
-        # Move down-left
-        c_x, c_y = down_left(first_row_center_x, first_row_center_y)
+    # Center of a 'circular' 7-cell subgrid where each cell has a unique label
+    center = (0, 0)
+    # First center in current row which has neighbors inside grid
+    first_row_center = (0, 0)
+    # Move center down-left until subgrid goes out of bounds
+    while (center[0] >= -1) and (center[1] <= n):
+        # Move center right-up until subgrid goes out of bounds
+        while (center[0] <= m) and (center[1] >= -1):
+            # Label cells 0..6 with given center as 0
+            label(0, *center)
+            # TODO the order of neighbors should be the same regardless of
+            # wheter center is in odd/even col or at boundary edge etc. Is it?
+            for i, neigh in enumerate(neighbors1(*center)):
+                label(i+1, *neigh)
+            center = right_up(*center)
+        center = down_left(*first_row_center)
         # Move right until x >= -1
-        while c_x < -1:
-            c_x, c_y = right_up(c_x, c_y)
-        first_row_center_x = c_x
-        first_row_center_y = c_y
+        while center[0] < -1:
+            center = right_up(*center)
+        first_row_center = center
     return labels
 
 

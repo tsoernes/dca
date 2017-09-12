@@ -1,6 +1,18 @@
 #!/usr/bin/python3
 from tkinter import (Frame, Tk, Canvas)
 from math import cos, sin, sqrt, radians
+from main import partition_cells
+
+
+label_colors = [
+    '#FF2D00',
+    '#FFD800',
+    '#00FFC9',
+    '#00F0FF',
+    '#0059FF',
+    '#A200FF',
+    '#FF009E'
+]
 
 
 class Hexagon:
@@ -42,9 +54,9 @@ class Hexagon:
 
 
 class HexagonGrid(Frame):
-    def __init__(self, parent, cols, rows, size=30,
+    def __init__(self, parent, rows, cols, labels, size=50,
                  color="#a1e2a1", marked_color="#53ca53", bg="#a1e2a1",
-                 debug=False,
+                 show_coords=False,
                  *args, **kwargs):
         '''
         :param Tk parent
@@ -63,52 +75,62 @@ class HexagonGrid(Frame):
         self.can = Canvas(self, width=width, height=height, bg=bg)
         self.can.pack()
 
+        self.labels = labels
         self.color = color
         self.marked_color = marked_color
 
         self.hexagons = []
-        self.initGrid(cols, rows, size, debug=debug)
+        self.initGrid(rows, cols, size, show_coords)
 
         self.can.bind("<Button-1>", self.onclick)
 
-    def initGrid(self, cols, rows, size, debug):
-        for c in range(cols):
-            if c % 2 == 0:
-                offset = size * sqrt(3) / 2
-            else:
-                offset = 0
-            for r in range(rows):
+    def initGrid(self, rows, cols, size, show_coords):
+        for r in range(rows):
+            hxs = []
+            for c in range(cols):
+                if c % 2 == 0:
+                    offset = size * sqrt(3) / 2
+                else:
+                    offset = 0
+                label = self.labels[r][c]
                 h = Hexagon(self.can,
                             c * (size * 1.5) + self.left_offset,
                             (r * (size * sqrt(3))) + offset + self.top_offset,
                             size,
-                            color=self.color,
-                            tags="{}.{}".format(r, c))
-                self.hexagons.append(h)
+                            color=label_colors[label],
+                            tags="{},{}-{}".format(r, c, label))
+                hxs.append(h)
 
-                if debug:
+                if show_coords:
                     coords = "{}, {}".format(r, c)
                     self.can.create_text(
-                            c * (size * 1.5) + (size/2),
-                            (r * (size * sqrt(3))) + offset + (size/2),
+                            c * (size * 1.5) + (size),
+                            (r * (size * sqrt(3))) + offset + (size/3),
                             text=coords)
+            self.hexagons.append(hxs)
 
     def onclick(self, evt):
         """
         hexagon detection on mouse click
         """
         x, y = evt.x, evt.y
-        # Unselect unclicked hexagons and revert to their default color
-        for i in self.hexagons:
-                i.selected = False
-                self.can.itemconfigure(i.tags, fill=i.color)
-        clicked = self.can.find_closest(x, y)[0]  # find closest
-        hexagon = self.hexagons[int(clicked)-1]
-        hexagon.selected = True
-        self.can.itemconfigure(hexagon.tags, fill=self.marked_color)
+        clicked = self.can.find_closest(x, y)  # find closest object
+        if self.can.type(clicked) != "polygon":
+            return
+        # Unselect hexagons and revert to their default color
+        for li in self.hexagons:
+            for h in li:
+                self.can.itemconfigure(h.tags, fill=h.color)
+        self.can.itemconfigure(clicked, fill=self.marked_color)
+        print(self.can.gettags(clicked)[0])
 
 
 if __name__ == '__main__':
     root = Tk()
-    hgrid = HexagonGrid(root, 10, 8, debug=True).pack()
+    rows = 10
+    cols = 8
+    labels = partition_cells(rows, cols)
+    hgrid = HexagonGrid(root, rows, cols, labels, show_coords=True)
+    hgrid.pack()
+    hgrid.can.itemconfigure(hgrid.hexagons[2][3].tags, fill=hgrid.marked_color)
     root.mainloop()
