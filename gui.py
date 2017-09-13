@@ -7,11 +7,11 @@ from main import partition_cells
 label_colors = [
     '#FF2D00',
     '#FFD800',
-    '#00FFC9',
-    '#00F0FF',
+    '#00FF68',
+    '#00FFE4',
     '#0059FF',
     '#A200FF',
-    '#FF009E'
+    '#FF00F7'
 ]
 
 
@@ -55,7 +55,7 @@ class Hexagon:
 
 class HexagonGrid(Frame):
     def __init__(self, parent, rows, cols, labels, size=50,
-                 color="#a1e2a1", marked_color="#53ca53", bg="#a1e2a1",
+                 color="#a1e2a1", marked_color="#D0D0D0", bg="#a1e2a1",
                  show_coords=False,
                  *args, **kwargs):
         '''
@@ -127,10 +127,10 @@ class HexagonGrid(Frame):
 
 if __name__ == '__main__':
     root = Tk()
-    rows = 10
-    cols = 8
+    rows = 12
+    cols = 12
     labels = partition_cells(rows, cols)
     hgrid = HexagonGrid(root, rows, cols, labels, show_coords=True)
     hgrid.pack()
-    hgrid.can.itemconfigure(hgrid.hexagons[2][3].tags, fill=hgrid.marked_color)
+    # hgrid.can.itemconfigure(hgrid.hexagons[2][3].tags, fill=hgrid.marked_color)
     root.mainloop()

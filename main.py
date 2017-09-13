@@ -11,6 +11,7 @@ state = np.zeros((n, m, n_channels), dtype=bool)
 
 value = np.zeros((n, m, n_channels+1))
 
+
 def partition_cells(n, m):
     """
     Partition cells into 7 lots such that the minimum distance
@@ -51,12 +52,9 @@ def partition_cells(n, m):
         # Move center right-up until subgrid goes out of bounds
         while (center[0] <= m) and (center[1] >= -1):
             # Label cells 0..6 with given center as 0
-            print(f"Labeled with center r{center[1]},c{center[0]}")
             label(0, *center)
-            # TODO the order of neighbors should be the same regardless of
-            # wheter center is in odd/even col or at boundary edge etc. Is it?
             for i, neigh in enumerate(
-                    neighbors1(center[1], center[0], n, m, sparse=True)):
+                    neighbors1sparse(center[1], center[0])):
                 label(i+1, neigh[1], neigh[0])
             center = right_up(*center)
         center = down_left(*first_row_center)
@@ -67,35 +65,49 @@ def partition_cells(n, m):
     return labels
 
 
-def neighbors1(row, col, rows=n, cols=m, sparse=False, fill=[0, 0]):
+def neighbors1sparse(row, col):
+    """
+    Not including self. May not be within grid.
+    In clockwise order starting from up-right.
+    """
+    idxs = []
+    if col % 2 == 0:
+        idxs.append((row, col+1))
+        idxs.append((row+1, col+1))
+        idxs.append((row+1, col))
+        idxs.append((row+1, col-1))
+        idxs.append((row, col-1))
+        idxs.append((row-1, col))
+    else:
+        idxs.append((row-1, col+1))
+        idxs.append((row, col+1))
+        idxs.append((row+1, col))
+        idxs.append((row, col-1))
+        idxs.append((row-1, col-1))
+        idxs.append((row-1, col))
+    return idxs
+
+
+def neighbors1(row, col):
     """
     Returns a list with indexes of neighbors within a radius of 1,
     not including self
-    :param int rows: Number of rows in grid
-    :param int cols: Number of cols in grid
-    :param bool sparse: If true, then always returns a 6-element array
-    where neighbors outside bounds are given position @fill@
     """
-    idxs = np.array([fill]*6) if sparse else []
+    idxs = []
     r_low = max(0, row-1)
-    r_hi = min(rows, row+1)
+    r_hi = min(n, row+1)
     c_low = max(0, col-1)
-    c_hi = min(cols, col+1)
+    c_hi = min(m, col+1)
     if col % 2 == 0:
         cross = row-1
     else:
         cross = row+1
-    i = 0
     for r in range(r_low, r_hi+1):
         for c in range(c_low, c_hi+1):
             if not ((r, c) == (cross, col-1) or
                     (r, c) == (cross, col+1) or
                     (r, c) == (row, col)):
-                if sparse:
-                    idxs[i] = [r, c]
-                else:
-                    idxs.append((r, c))
-                i += 1
+                idxs.append((r, c))
     return idxs
 
 
