@@ -11,7 +11,6 @@ state = np.zeros((n, m, n_channels), dtype=bool)
 
 value = np.zeros((n, m, n_channels+1))
 
-
 def partition_cells(n, m):
     """
     Partition cells into 7 lots such that the minimum distance
@@ -25,7 +24,7 @@ def partition_cells(n, m):
         y_new = y
         if x % 2 != 0:
             # Odd column
-            y_new = y + 1
+            y_new = y - 1
         return (x_new, y_new)
 
     def down_left(x, y):
@@ -52,11 +51,13 @@ def partition_cells(n, m):
         # Move center right-up until subgrid goes out of bounds
         while (center[0] <= m) and (center[1] >= -1):
             # Label cells 0..6 with given center as 0
+            print(f"Labeled with center r{center[1]},c{center[0]}")
             label(0, *center)
             # TODO the order of neighbors should be the same regardless of
             # wheter center is in odd/even col or at boundary edge etc. Is it?
-            for i, neigh in enumerate(neighbors1(*center)):
-                label(i+1, *neigh)
+            for i, neigh in enumerate(
+                    neighbors1(center[1], center[0], n, m, sparse=True)):
+                label(i+1, neigh[1], neigh[0])
             center = right_up(*center)
         center = down_left(*first_row_center)
         # Move right until x >= -1
@@ -66,26 +67,35 @@ def partition_cells(n, m):
     return labels
 
 
-def neighbors1(row, col):
+def neighbors1(row, col, rows=n, cols=m, sparse=False, fill=[0, 0]):
     """
     Returns a list with indexes of neighbors within a radius of 1,
     not including self
+    :param int rows: Number of rows in grid
+    :param int cols: Number of cols in grid
+    :param bool sparse: If true, then always returns a 6-element array
+    where neighbors outside bounds are given position @fill@
     """
-    idxs = []
+    idxs = np.array([fill]*6) if sparse else []
     r_low = max(0, row-1)
-    r_hi = min(n, row+1)
+    r_hi = min(rows, row+1)
     c_low = max(0, col-1)
-    c_hi = min(m, col+1)
+    c_hi = min(cols, col+1)
     if col % 2 == 0:
         cross = row-1
     else:
         cross = row+1
+    i = 0
     for r in range(r_low, r_hi+1):
         for c in range(c_low, c_hi+1):
             if not ((r, c) == (cross, col-1) or
                     (r, c) == (cross, col+1) or
                     (r, c) == (row, col)):
-                idxs.append((r, c))
+                if sparse:
+                    idxs[i] = [r, c]
+                else:
+                    idxs.append((r, c))
+                i += 1
     return idxs
 
 
