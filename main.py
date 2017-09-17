@@ -164,21 +164,49 @@ class State:
         In clockwise order starting from up-right.
         """
         idxs = []
-        if col % 2 == 0:
-            idxs.append((row, col+1))
-            idxs.append((row+1, col+1))
-            idxs.append((row+1, col))
-            idxs.append((row+1, col-1))
-            idxs.append((row, col-1))
-            idxs.append((row-1, col))
-        else:
-            idxs.append((row-1, col+1))
-            idxs.append((row, col+1))
-            idxs.append((row+1, col))
-            idxs.append((row, col-1))
-            idxs.append((row-1, col-1))
-            idxs.append((row-1, col))
+        idxs.append(State.move_n(row, col))
+        idxs.append(State.move_ne(row, col))
+        idxs.append(State.move_se(row, col))
+        idxs.append(State.move_s(row, col))
+        idxs.append(State.move_sw(row, col))
+        idxs.append(State.move_nw(row, col))
         return idxs
+
+    @staticmethod
+    def move_n(row, col):
+        return (row-1, col)
+
+    @staticmethod
+    def move_ne(row, col):
+        if col % 2 == 0:
+            return (row, col+1)
+        else:
+            return (row-1, col+1)
+
+    @staticmethod
+    def move_se(row, col):
+        if col % 2 == 0:
+            return (row+1, col+1)
+        else:
+            return (row, col+1)
+
+    @staticmethod
+    def move_s(row, col):
+        return (row+1, col)
+
+    @staticmethod
+    def move_sw(row, col):
+        if col % 2 == 0:
+            return (row+1, col-1)
+        else:
+            return (row, col-1)
+
+    @staticmethod
+    def move_nw(row, col):
+        if col % 2 == 0:
+            return (row, col-1)
+        else:
+            return (row-1, col-1)
 
     def neighbors1(self, row, col):
         """
