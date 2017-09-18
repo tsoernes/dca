@@ -24,13 +24,11 @@ y = 0.95  # Gamma (discount factor)
 
 
 class Strat:
-    def __init__(self, rows, cols, n_channels, call_rates, call_duration,
+    def __init__(self, rows, cols, n_channels,
                  grid, *args, **kwargs):
         self.rows = rows
         self.cols = cols
         self.n_channels = n_channels
-        self.call_rates = call_rates
-        self.call_duration = call_duration
         self.grid = grid
 
     def fn_new(self, row, col):
@@ -57,16 +55,14 @@ class FAStrat(Strat):
     def __init__(self, *args, **kwargs):
         super(FAStrat, self).__init__(*args, **kwargs)
         self.nominal_channels = self.grid.assign_chs()
-        # print(self.grid)
-        # print(self.nominal_channels)
 
     def fn_new(self, row, col):
         # When a call arrives in a cell,
         # if any pre-assigned channel is unused;
         # it is assigned, else the call is blocked.
         ch = -1
-        for idx, is_nom_ch in enumerate(self.nominal_channels[row][col]):
-            if is_nom_ch and self.grid.state[row][col][idx] == 0:
+        for idx, isNom in enumerate(self.nominal_channels[row][col]):
+            if isNom and self.grid.state[row][col][idx] == 0:
                 ch = idx
                 break
         return ch
@@ -221,22 +217,21 @@ def simulate(pp, grid, strat, eventgen, gui=None):
             n_incoming += 1
             # Assign channel to call
             ch = strat.fn_new(row, col)
-            print(f"Assigned {ch} to {row}, {col}")
             # Generate next incoming call
             heappush(cevents, eventgen.event_new(t, row, col))
             if ch == -1:
                 n_rejected += 1
-                print(f"""Rejected call to {row}, {col} when
-                      {np.sum(grid.state[row][col])}
-                      of {pp['n_channels']} in use""")
+                print(f"Rejected call to {row}, {col} when \
+                      {np.sum(grid.state[row][col])} \
+                      of {pp['n_channels']} in use")
                 if gui:
                     gui.hgrid.mark_cell(row, col)
             else:
+                print(f"Assigned {ch} to {row}, {col}")
                 # Generate call duration for incoming call and add event
                 heappush(cevents, eventgen.event_end(t, event[2], ch))
                 # Add incoming call to current state
                 grid.state[row][col][ch] = 1
-
         elif event[1] == CEvent.END:
             strat.fn_end()
             # Remove call from current state
@@ -247,7 +242,7 @@ def simulate(pp, grid, strat, eventgen, gui=None):
             break
         if gui:
             gui.step()
-    print(f"Rejected {n_rejected} calls")
+    print(f"Rejected {n_rejected} of {n_incoming} calls")
     print(f"Blocking probability: {n_rejected/n_incoming}")
     print(f"{np.sum(grid.state)} calls in progress at simulation end")
 
@@ -261,12 +256,18 @@ pp = {
         'n_episodes': 10000
         }
 
-grid = Grid(**pp)
-fa_strat = FAStrat(**pp, grid=grid)
-eventgen = EventGen(**pp)
-gui = Gui(grid)
-# gui.test()
-simulate(pp, grid, fa_strat, eventgen, gui)
+
+def run():
+    grid = Grid(**pp)
+    fa_strat = FAStrat(**pp, grid=grid)
+    eventgen = EventGen(**pp)
+    gui = Gui(grid)
+    # gui.test()
+    simulate(pp, grid, fa_strat, eventgen, gui)
+
+
+if __name__ == '__main__':
+    run()
 
 # TODO: Verify that state[row][col][ch] is
 # NOT used as an index for anything else.
@@ -276,5 +277,3 @@ simulate(pp, grid, fa_strat, eventgen, gui)
 # minus the number of rejected calls should be equal to the number of calls in
 # progress.
 # - Verify that channel reuse constraint is not violated
-
-# TODO: Verify that block prob is the same as Singh for FA on all call rates
