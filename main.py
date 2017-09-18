@@ -25,12 +25,14 @@ class Params:
 
 
 class Strat:
-    def __init__(self, rows, cols, n_channels, call_rates, call_duration):
+    def __init__(self, rows, cols, n_channels, call_rates, call_duration,
+                 grid):
         self.rows = rows
         self.cols = cols
         self.n_channels = n_channels
         self.call_rates = call_rates
         self.call_duration = call_duration
+        self.grid = grid
 
     def fn_new(self, row, col):
         """
@@ -48,16 +50,14 @@ class Strat:
 
 class FAStrat(Strat):
     """
-    Fixed assignment (FA) channel allocation;
-    the set of channels is partitioned, and the partitions are permanently
-    assigned
-    to cells so that all cells can use all the channels assigned to them
-    simultaneously
-    without interference
+    Fixed assignment (FA) channel allocation.
+    The set of channels is partitioned, and the partitions are permanently
+    assigned to cells so that all cells can use all the channels assigned
+    to them simultaneously without interference.
     """
     def __init__(self, *args, **kwargs):
         super(FAStrat, self).__init__(*args, **kwargs)
-        self.nominal_channels = self.assign()
+        self.nominal_channels = self.grid.assign_chs()
 
     def fn_new(self, row, col):
         # When a call arrives in a cell,
@@ -195,14 +195,14 @@ class RLState(Strat):
         pass
 
 
-
-pparams = mk_pparams(
-        rows=7,
-        cols=7,
-        n_channels=49,
-        call_rates=0,
-        call_duration=3/60,
-        n_episodes=100)
+pparams = {
+        'rows': 7,
+        'cols': 7,
+        'n_channels': 49,
+        'call_rates': 150,
+        'call_duration': 3/60,
+        'n_episodes': 100
+        }
 
 fa_state = FAStrat(*pparams)
 eventgen = EventGen(*pparams)
@@ -213,26 +213,32 @@ def simulate(pp, grid, strat, eventgen):
     pp: Problem Parameters
     """
     t = 0  # Current time, in minutes
-    cevents = [eventgen.event_new(t)]
+    cevents = []  # Call events in a min heap, sorted on time
+    # Generate initial call events; one for each cell
+    for r in range(pp.rows):
+        for c in range(pp.cols):
+            heappush(cevents, eventgen.event_new(0, r, c))
     # Discrete event simulation
     for _ in range(pp.n_episodes):
         event = heappop(cevents)
         t = event[0]
+        row = event[2][0]
+        col = event[2][1]
         # Accept incoming call
         if event[1] == CEvent.NEW:
             # Assign channel to call
-            ch = strat.fn_new()
-            # TODO: Handle if there's no available ch
+            ch = strat.fn_new(row, col)
+            # Generate next incoming call
+            heappush(cevents, eventgen.event_new(t, row, col))
             if ch == -1:
+                # TODO: Handle if there's no available ch
                 pass
             else:
                 # Generate call duration for incoming call and add event
                 heappush(cevents, eventgen.event_end(t, event[2], ch))
-                # Generate next incoming call
-                heappush(cevents, eventgen.event_new(t))
                 # Add incoming call to current state
-                grid.state[event[2][0]][event[2][1]][ch] = 0
+                grid.state[row][col][ch] = 1
         elif event[1] == CEvent.END:
             strat.fn_end()
             # Remove call from current state
-            grid.state[event[2][0]][event[2][1]][event[3]] = 0
+            grid.state[row][col][event[3]] = 0
