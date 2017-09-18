@@ -4,15 +4,40 @@ import numpy as np
 
 
 class Grid:
-    def __init__(self, rows, cols, n_channels, call_rates, call_duration):
+    def __init__(self, rows, cols, n_channels,
+                 *args, **kwargs):
         self.rows = rows
         self.cols = cols
         self.n_channels = n_channels
-        self.call_rates = call_rates
-        self.call_duration = call_duration
 
         self.state = np.zeros((self.rows, self.cols, self.n_channels),
                               dtype=bool)
+
+    def validate_reuse_constr(self):
+        """
+        Verify that the channel reuse constraint of 3 is not violated,
+        e.g. that a channel in use in a cell is not in use in its neighbors.
+        Returns True if valid not violated, False otherwise
+        """
+        # TODO: It should be possible to do this more efficiently.
+        # If no neighbors of a cell violate the channel reuse constraint,
+        # then the cell itself does not either.
+        for r in range(self.rows):
+            for c in range(self.cols):
+                neighs = self.neighbors1(r, c)
+                for ch, busy in enumerate(self.state[r][c]):
+                    if busy:
+                        for neigh in neighs:
+                            if neigh[0] >= self.rows:
+                                print(f"row out of range {neigh}")
+                            if neigh[1] >= self.cols:
+                                print(f"row out of range {neigh}")
+                            if self.state[neigh][ch]:
+                                print(f"""Channel Reuse constraint violated
+                                       in Cell {r} {c} channel {ch}
+                                       with neighbor {neigh}""")
+                                return False
+        return True
 
     @staticmethod
     def move_n(row, col):
@@ -73,9 +98,9 @@ class Grid:
         """
         idxs = []
         r_low = max(0, row-1)
-        r_hi = min(self.rows, row+1)
+        r_hi = min(self.rows-1, row+1)
         c_low = max(0, col-1)
-        c_hi = min(self.cols, col+1)
+        c_hi = min(self.cols-1, col+1)
         if col % 2 == 0:
             cross = row-1
         else:
@@ -95,9 +120,9 @@ class Grid:
         """
         idxs = []
         r_low = max(0, row-2)
-        r_hi = min(self.rows, row+2)
+        r_hi = min(self.rows-1, row+2)
         c_low = max(0, col-2)
-        c_hi = min(self.cols, col+2)
+        c_hi = min(self.cols-1, col+2)
         if col % 2 == 0:
             cross1 = row-2
             cross2 = row+2
@@ -116,7 +141,7 @@ class Grid:
                     idxs.append((r, c))
         return idxs
 
-    def _partition_cells(self):
+    def partition_cells(self):
         """
         Partition cells into 7 lots such that the minimum distance
         between cells with the same label ([0..6]) is at least 2
@@ -183,7 +208,7 @@ class Grid:
         """
         if n_channels == 0:
             n_channels = self.n_channels
-        partitions = self._partition_cells()
+        partitions = self.partition_cells()
         channels_per_subgrid_cell = []
         channels_per_subgrid_cell_accu = [0]
         channels_per_cell = n_channels/7
@@ -199,9 +224,10 @@ class Grid:
                 cell_channels = floor
             channels_per_subgrid_cell.append(cell_channels)
             channels_per_subgrid_cell_accu.append(tot)
-        nominal_channels = np.zeros((self.rows, self.cols, n_channels))
-        for r in self.rows:
-            for c in self.cols:
+        nominal_channels = np.zeros((self.rows, self.cols, n_channels),
+                                    dtype=bool)
+        for r in range(self.rows):
+            for c in range(self.cols):
                 label = partitions[r][c]
                 lo = channels_per_subgrid_cell_accu[label]
                 hi = channels_per_subgrid_cell_accu[label+1]

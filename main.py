@@ -1,32 +1,31 @@
 from eventgen import CEvent, EventGen
+from gui import Gui
+from grid import Grid
 
 from heapq import heappush, heappop
 
-import attr
 import numpy as np
-# Implement RL with TD(0) and table lookup
 
 
 lr = 0.8  # Learning rate
 y = 0.95  # Gamma (discount factor)
 
 
-@attr.s(frozen=True)
-class Params:
-    """
-    Problem parameters. Immutable.
-    """
-    rows = attr.ib()
-    cols = attr.ib()
-    n_channels = attr.ib()
-    call_rates = attr.ib()
-    call_duration = attr.ib()
-    n_episodes = attr.ib()
+# class Params:
+#     """
+#     Problem parameters. Immutable.
+#     """
+#     rows = attr.ib()
+#     cols = attr.ib()
+#     n_channels = attr.ib()
+#     call_rates = attr.ib()
+#     call_duration = attr.ib()
+#     n_episodes = attr.ib()
 
 
 class Strat:
     def __init__(self, rows, cols, n_channels, call_rates, call_duration,
-                 grid):
+                 grid, *args, **kwargs):
         self.rows = rows
         self.cols = cols
         self.n_channels = n_channels
@@ -58,6 +57,8 @@ class FAStrat(Strat):
     def __init__(self, *args, **kwargs):
         super(FAStrat, self).__init__(*args, **kwargs)
         self.nominal_channels = self.grid.assign_chs()
+        # print(self.grid)
+        # print(self.nominal_channels)
 
     def fn_new(self, row, col):
         # When a call arrives in a cell,
@@ -65,11 +66,12 @@ class FAStrat(Strat):
         # it is assigned, else the call is blocked.
         ch = -1
         for idx, is_nom_ch in enumerate(self.nominal_channels[row][col]):
-            if is_nom_ch and self.state[row][col][idx]:
+            if is_nom_ch and self.grid.state[row][col][idx] == 0:
                 ch = idx
+                break
         return ch
 
-    def fn_end():
+    def fn_end(self):
         # No rearrangement is done when a call terminates.
         pass
 
@@ -195,50 +197,84 @@ class RLState(Strat):
         pass
 
 
-pparams = {
-        'rows': 7,
-        'cols': 7,
-        'n_channels': 49,
-        'call_rates': 150,
-        'call_duration': 3/60,
-        'n_episodes': 100
-        }
-
-fa_state = FAStrat(*pparams)
-eventgen = EventGen(*pparams)
-
-
-def simulate(pp, grid, strat, eventgen):
+def simulate(pp, grid, strat, eventgen, gui=None):
     """
     pp: Problem Parameters
     """
     t = 0  # Current time, in minutes
+    n_rejected = 0  # Number of rejected calls
+    n_incoming = 0  # Number of incoming (not necessarily accepted) calls
     cevents = []  # Call events in a min heap, sorted on time
     # Generate initial call events; one for each cell
-    for r in range(pp.rows):
-        for c in range(pp.cols):
+    for r in range(pp['rows']):
+        for c in range(pp['cols']):
             heappush(cevents, eventgen.event_new(0, r, c))
     # Discrete event simulation
-    for _ in range(pp.n_episodes):
+    for _ in range(pp['n_episodes']):
         event = heappop(cevents)
+        print(event)
         t = event[0]
         row = event[2][0]
         col = event[2][1]
         # Accept incoming call
         if event[1] == CEvent.NEW:
+            n_incoming += 1
             # Assign channel to call
             ch = strat.fn_new(row, col)
+            print(f"Assigned {ch} to {row}, {col}")
             # Generate next incoming call
             heappush(cevents, eventgen.event_new(t, row, col))
             if ch == -1:
-                # TODO: Handle if there's no available ch
-                pass
+                n_rejected += 1
+                print(f"""Rejected call to {row}, {col} when
+                      {np.sum(grid.state[row][col])}
+                      of {pp['n_channels']} in use""")
+                if gui:
+                    gui.hgrid.mark_cell(row, col)
             else:
                 # Generate call duration for incoming call and add event
                 heappush(cevents, eventgen.event_end(t, event[2], ch))
                 # Add incoming call to current state
                 grid.state[row][col][ch] = 1
+
         elif event[1] == CEvent.END:
             strat.fn_end()
             # Remove call from current state
             grid.state[row][col][event[3]] = 0
+            if gui:
+                gui.hgrid.unmark_cell(row, col)
+        if not grid.validate_reuse_constr():
+            break
+        if gui:
+            gui.step()
+    print(f"Rejected {n_rejected} calls")
+    print(f"Blocking probability: {n_rejected/n_incoming}")
+    print(f"{np.sum(grid.state)} calls in progress at simulation end")
+
+
+pp = {
+        'rows': 7,
+        'cols': 7,
+        'n_channels': 70,
+        'call_rates': 150/60,  # Avg. call rate, in calls per minute
+        'call_duration': 3,  # Avg. call duration in minutes
+        'n_episodes': 10000
+        }
+
+grid = Grid(**pp)
+fa_strat = FAStrat(**pp, grid=grid)
+eventgen = EventGen(**pp)
+gui = Gui(grid)
+# gui.test()
+simulate(pp, grid, fa_strat, eventgen, gui)
+
+# TODO: Verify that state[row][col][ch] is
+# NOT used as an index for anything else.
+
+# TODO: Sanity checks:
+# - The number of accepcted new calls minus the number of ended calls
+# minus the number of rejected calls should be equal to the number of calls in
+# progress.
+# - Verify that channel reuse constraint is not violated
+
+# TODO: Verify that block prob is the same as Singh for FA on all call rates

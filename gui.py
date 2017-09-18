@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 from tkinter import (Frame, Tk, Canvas)
 from math import cos, sin, sqrt, radians
-from main import partition_cells
 
 
 label_colors = [
@@ -55,13 +54,15 @@ class Hexagon:
 
 class HexagonGrid(Frame):
     def __init__(self, parent, rows, cols, labels, size=50,
-                 color="#a1e2a1", marked_color="#D0D0D0", bg="#a1e2a1",
+                 color="#a1e2a1", marked_color="#000000", bg="#a1e2a1",
                  show_coords=False,
                  *args, **kwargs):
         '''
         :param Tk parent
         :param int cols
         :param int rows
+        :param np.array(rows,cols) labels: cell labels. Useful for visualizing
+            channel reuse distance (even for strats that don't partition chs)
         :param int size: Hexagon line length
         :param str color: Hexagon fill color
         :param str marked_color: Hexagon fill color when selected
@@ -124,13 +125,26 @@ class HexagonGrid(Frame):
         self.can.itemconfigure(clicked, fill=self.marked_color)
         print(self.can.gettags(clicked)[0])
 
+    def mark_cell(self, row, col):
+        self.can.itemconfigure(
+                self.hexagons[row][col].tags, fill=self.marked_color)
 
-if __name__ == '__main__':
-    root = Tk()
-    rows = 12
-    cols = 12
-    labels = partition_cells(rows, cols)
-    hgrid = HexagonGrid(root, rows, cols, labels, show_coords=True)
-    hgrid.pack()
-    # hgrid.can.itemconfigure(hgrid.hexagons[2][3].tags, fill=hgrid.marked_color)
-    root.mainloop()
+    def unmark_cell(self, row, col):
+        h = self.hexagons[row][col]
+        self.can.itemconfigure(h.tags, fill=h.color)
+
+
+class Gui:
+    def __init__(self, grid):
+        self.root = Tk()
+        self.hgrid = HexagonGrid(
+                self.root, grid.rows, grid.cols,
+                grid.partition_cells(), show_coords=True)
+        self.hgrid.pack()
+
+    def step(self):
+        self.root.update_idletasks()
+        self.root.update()
+
+    def test(self):
+        self.root.mainloop()
