@@ -269,11 +269,7 @@ def run():
 if __name__ == '__main__':
     run()
 
-# TODO: Verify that state[row][col][ch] is
-# NOT used as an index for anything else.
-
 # TODO: Sanity checks:
 # - The number of accepcted new calls minus the number of ended calls
 # minus the number of rejected calls should be equal to the number of calls in
 # progress.
-# - Verify that channel reuse constraint is not violated
