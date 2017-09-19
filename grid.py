@@ -12,6 +12,8 @@ class Grid:
 
         self.state = np.zeros((self.rows, self.cols, self.n_channels),
                               dtype=bool)
+        self.labels = None  # Label for each cell
+        self.nom_chs = None  # Nominal channels for each cell
 
     def validate_reuse_constr(self):
         """
@@ -194,7 +196,7 @@ class Grid:
             while center[0] < -1:
                 center = right_up(*center)
             first_row_center = center
-        return labels
+        self.labels = labels
 
     def assign_chs(self, n_channels=0):
         """
@@ -208,7 +210,8 @@ class Grid:
         """
         if n_channels == 0:
             n_channels = self.n_channels
-        partitions = self.partition_cells()
+        if self.labels is None:
+            self.partition_cells()
         channels_per_subgrid_cell = []
         channels_per_subgrid_cell_accu = [0]
         channels_per_cell = n_channels/7
@@ -228,8 +231,25 @@ class Grid:
                                     dtype=bool)
         for r in range(self.rows):
             for c in range(self.cols):
-                label = partitions[r][c]
+                label = self.labels[r][c]
                 lo = channels_per_subgrid_cell_accu[label]
                 hi = channels_per_subgrid_cell_accu[label+1]
                 nominal_channels[r][c][lo:hi] = 1
-        return nominal_channels
+        self.nom_chs = nominal_channels
+
+    def cochannel_cells(self, cell_r, cell_c, neigh_r, neigh_c):
+        """
+        A cochannel cell of a cell 'c' given a neighbor 'b'
+        is a cell with the same label as 'c' within a radius
+        of 2 from 'b'.
+        """
+        if self.labels is None:
+            self.partition_cells()
+        neighs = self.neighbors2(neigh_r, neigh_c)
+        coch_cells = []
+        label = self.labels[cell_r][cell_c]
+        for neigh in neighs:
+            if self.labels[neigh] == label and neigh != (cell_r, cell_c):
+                coch_cells.append(neigh)
+        return coch_cells
+
