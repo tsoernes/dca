@@ -241,7 +241,7 @@ class Grid:
         """
         A cochannel cell of a cell 'c' given a neighbor 'b'
         is a cell with the same label as 'c' within a radius
-        of 2 from 'b'.
+        of 2 from 'b' (not including 'c' itself).
         """
         if self.labels is None:
             self.partition_cells()
