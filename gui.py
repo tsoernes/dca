@@ -137,9 +137,10 @@ class HexagonGrid(Frame):
 class Gui:
     def __init__(self, grid):
         self.root = Tk()
+        grid.partition_cells()
         self.hgrid = HexagonGrid(
                 self.root, grid.rows, grid.cols,
-                grid.partition_cells(), show_coords=True)
+                grid.labels, show_coords=True)
         self.hgrid.pack()
 
     def step(self):
