@@ -54,14 +54,14 @@ class FAStrat(Strat):
     """
     def __init__(self, *args, **kwargs):
         super(FAStrat, self).__init__(*args, **kwargs)
-        self.nominal_channels = self.grid.assign_chs()
+        self.grid.assign_chs()
 
     def fn_new(self, row, col):
         # When a call arrives in a cell,
         # if any pre-assigned channel is unused;
         # it is assigned, else the call is blocked.
         ch = -1
-        for idx, isNom in enumerate(self.nominal_channels[row][col]):
+        for idx, isNom in enumerate(self.grid.nom_chs[row][col]):
             if isNom and self.grid.state[row][col][idx] == 0:
                 ch = idx
                 break
@@ -95,12 +95,11 @@ class FCState():
         return frepr
 
 
-class BCDLState(Strat):
+class BDCLStrat(Strat):
     # Borrowing with Directional Channel Locking (BDCL) of Zhang & Yum (1989).
-    def __init__(self):
-        # TODO: Is there any way to call 'super' without having all the args
-        # here
-        self.nominal_chs = self.assign_chs()
+    def __init__(self, *args, **kwargs):
+        super(BDCLStrat, self).__init__(*args, **kwargs)
+        self.grid.assign_chs()
 
     def fn_new(self, row, col):
         """
@@ -109,8 +108,8 @@ class BCDLState(Strat):
         ch = -1
         # If a nominal channel is available when a call arrives in a cell,
         # the smallest numbered such channel is assigned to the call.
-        for idx, is_nom_ch in enumerate(self.nominal_channels[row][col]):
-            if is_nom_ch and self.state[row][col][idx]:
+        for idx, isNom in enumerate(self.grid.nom_chs[row][col]):
+            if isNom and self.state[row][col][idx]:
                 ch = idx
                 break
         if ch != -1:
@@ -262,8 +261,8 @@ def run():
     fa_strat = FAStrat(**pp, grid=grid)
     eventgen = EventGen(**pp)
     gui = Gui(grid)
-    # gui.test()
-    simulate(pp, grid, fa_strat, eventgen, gui)
+    gui.test()
+    # simulate(pp, grid, fa_strat, eventgen, gui)
 
 
 if __name__ == '__main__':
