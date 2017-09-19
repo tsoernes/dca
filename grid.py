@@ -1,6 +1,16 @@
+from enum import Enum
 import math
 
 import numpy as np
+
+
+class Direction(Enum):
+    NE = 0
+    SE = 1
+    S = 2
+    SW = 3
+    NW = 4
+    N = 5
 
 
 class Grid:
@@ -12,8 +22,8 @@ class Grid:
 
         self.state = np.zeros((self.rows, self.cols, self.n_channels),
                               dtype=bool)
-        self.labels = None  # Label for each cell
-        self.nom_chs = None  # Nominal channels for each cell
+        self.labels = np.zeros((self.rows, self.cols), dtype=int)
+        self.partition_cells()
 
     def validate_reuse_constr(self):
         """
@@ -40,6 +50,48 @@ class Grid:
                                        with neighbor {neigh}""")
                                 return False
         return True
+
+    @staticmethod
+    def move(row, col, direction):
+        f = None
+        if direction == Direction.NE:
+            f = Grid.move_n
+        elif direction == Direction.SE:
+            f = Grid.move_se
+        elif direction == Direction.S:
+            f = Grid.move_s
+        elif direction == Direction.SW:
+            f = Grid.move_sw
+        elif direction == Direction.NW:
+            f = Grid.move_nw
+        elif direction == Direction.N:
+            f = Grid.move_n
+        return f(row, col)
+
+    @staticmethod
+    def direction(from_r, from_c, to_r, to_c):
+        if from_r-1 == to_r and from_c == to_c:
+            return Direction.N
+        if from_r+1 == to_r and from_c == to_c:
+            return Direction.S
+        if from_c % 2 == 0:
+            if from_r == to_r and from_c+1 == to_c:
+                return Direction.NE
+            if from_r+1 == to_r and from_c+1 == to_c:
+                return Direction.SE
+            if from_r+1 == to_r and from_c-1 == to_c:
+                return Direction.SW
+            if from_r == to_r and from_c-1 == to_c:
+                return Direction.NW
+        else:
+            if from_r-1 == to_r and from_c+1 == to_c:
+                return Direction.NE
+            if from_r == to_r and from_c+1 == to_c:
+                return Direction.SE
+            if from_r == to_r and from_c-1 == to_c:
+                return Direction.SW
+            if from_r-1 == to_r and from_c-1 == to_c:
+                return Direction.NW
 
     @staticmethod
     def move_n(row, col):
@@ -143,15 +195,13 @@ class Grid:
                     idxs.append((r, c))
         return idxs
 
-    def partition_cells(self):
+    def _partition_cells(self):
         """
         Partition cells into 7 lots such that the minimum distance
         between cells with the same label ([0..6]) is at least 2
         (which corresponds to a minimum reuse distance of 3).
         Returns an n by m array with the label for each cell.
         """
-        labels = np.zeros((self.rows, self.cols), dtype=int)
-
         def right_up(x, y):
             x_new = x + 3
             y_new = y
@@ -174,7 +224,7 @@ class Grid:
             # A center and some part of its subgrid may be out of bounds.
             if (x >= 0 and x < self.cols
                     and y >= 0 and y < self.rows):
-                labels[y][x] = l
+                self.labels[y][x] = l
 
         # Center of a 'circular' 7-cell subgrid where
         # each cell has a unique label
@@ -196,7 +246,14 @@ class Grid:
             while center[0] < -1:
                 center = right_up(*center)
             first_row_center = center
-        self.labels = labels
+
+
+class FixedGrid(Grid):
+    def __init__(self, *args, **kwargs):
+        super(FixedGrid, self).__init__(*args, **kwargs)
+        # Nominal channels for each cell
+        self.nom_chs = np.zeros((self.rows, self.cols, self.n_channels),
+                                dtype=bool)
 
     def assign_chs(self, n_channels=0):
         """
@@ -210,8 +267,6 @@ class Grid:
         """
         if n_channels == 0:
             n_channels = self.n_channels
-        if self.labels is None:
-            self.partition_cells()
         channels_per_subgrid_cell = []
         channels_per_subgrid_cell_accu = [0]
         channels_per_cell = n_channels/7
@@ -227,21 +282,31 @@ class Grid:
                 cell_channels = floor
             channels_per_subgrid_cell.append(cell_channels)
             channels_per_subgrid_cell_accu.append(tot)
-        nominal_channels = np.zeros((self.rows, self.cols, n_channels),
-                                    dtype=bool)
         for r in range(self.rows):
             for c in range(self.cols):
                 label = self.labels[r][c]
                 lo = channels_per_subgrid_cell_accu[label]
                 hi = channels_per_subgrid_cell_accu[label+1]
-                nominal_channels[r][c][lo:hi] = 1
-        self.nom_chs = nominal_channels
+                self.nom_chs[r][c][lo:hi] = 1
+
+
+def BDCLGrid(FixedGrid):
+    def __init__(self, *args, **kwargs):
+        super(BDCLGrid, self).__init__(*args, **kwargs)
+        # For each channel, a direction is locked if entry is True
+        self.locks = np.zeros((self.rows, self.cols, self.n_channels, 7),
+                              dtype=bool)
+        # A cell and a channel is locked by cell coordinates in entry
+        # (-1, -1) if not locked.
+        self.locked_by = np.zeros((self.rows, self.cols, self.n_channels, 2),
+                                  dtype=int)
 
     def cochannel_cells(self, cell_r, cell_c, neigh_r, neigh_c):
         """
         A cochannel cell of a cell 'c' given a neighbor 'b'
         is a cell with the same label as 'c' within a radius
-        of 2 from 'b'.
+        of 2 from 'b', i.e. the cells within the channel reuse distance
+        of 3 when 'b' borrows a channel from 'c'.
         """
         if self.labels is None:
             self.partition_cells()
@@ -253,3 +318,21 @@ class Grid:
                 coch_cells.append(neigh)
         return coch_cells
 
+    def borrow(self, from_r, from_c, to_r, to_c, ch):
+        """
+        Borrow a channel 'ch' from cell 'from' to cell 'to'.
+        """
+        # TODO implementation assumes borrowing is possible
+        coch_cells = self.cochannel_cells(from_r, from_c, to_r, to_c)
+        for ccell in coch_cells:
+            self.locked_by[ccell][ch] = [to_r, to_c]
+        # Cochannel cells with their respective 1-radius neighbors
+        coch_cells_wneighs = zip(coch_cells, map(self.neighbors1, coch_cells))
+        to_cell_neighs = self.neighbors2(to_r, to_c)
+        # Cells that would violate channel reuse constraint unless
+        # locked from borrowing
+        for (cc, ccn) in coch_cells_wneighs:
+            for tcn in to_cell_neighs:
+                if ccn == tcn:
+                    for direction in Grid.directions(*cc, *ccn):
+                        self.locks[cc][ch][direction] = 1
