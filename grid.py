@@ -23,7 +23,7 @@ class Grid:
         self.state = np.zeros((self.rows, self.cols, self.n_channels),
                               dtype=bool)
         self.labels = np.zeros((self.rows, self.cols), dtype=int)
-        self.partition_cells()
+        self._partition_cells()
 
     def validate_reuse_constr(self):
         """
@@ -195,6 +195,20 @@ class Grid:
                     idxs.append((r, c))
         return idxs
 
+    @staticmethod
+    def distance(r1, c1, r2, c2):
+        if c1 % 2 == 0:
+            if c2 % 2 == 0:
+                distance = math.abs()
+            else:
+                pass
+        else:
+            if c2 % 2 == 0:
+                pass
+            else:
+                pass
+        return distance
+
     def _partition_cells(self):
         """
         Partition cells into 7 lots such that the minimum distance
@@ -250,7 +264,7 @@ class Grid:
 
 class FixedGrid(Grid):
     def __init__(self, *args, **kwargs):
-        super(FixedGrid, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # Nominal channels for each cell
         self.nom_chs = np.zeros((self.rows, self.cols, self.n_channels),
                                 dtype=bool)
@@ -290,9 +304,9 @@ class FixedGrid(Grid):
                 self.nom_chs[r][c][lo:hi] = 1
 
 
-def BDCLGrid(FixedGrid):
+class BDCLGrid(FixedGrid):
     def __init__(self, *args, **kwargs):
-        super(BDCLGrid, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # For each channel, a direction is locked if entry is True
         self.locks = np.zeros((self.rows, self.cols, self.n_channels, 7),
                               dtype=bool)
@@ -308,8 +322,6 @@ def BDCLGrid(FixedGrid):
         of 2 from 'b', i.e. the cells within the channel reuse distance
         of 3 when 'b' borrows a channel from 'c'.
         """
-        if self.labels is None:
-            self.partition_cells()
         neighs = self.neighbors2(neigh_r, neigh_c)
         coch_cells = []
         label = self.labels[cell_r][cell_c]
@@ -334,5 +346,5 @@ def BDCLGrid(FixedGrid):
         for (cc, ccn) in coch_cells_wneighs:
             for tcn in to_cell_neighs:
                 if ccn == tcn:
-                    for direction in Grid.directions(*cc, *ccn):
+                    for direction in Grid.direction(*cc, *ccn):
                         self.locks[cc][ch][direction] = 1

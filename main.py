@@ -1,6 +1,6 @@
 from eventgen import CEvent, EventGen
 from gui import Gui
-from grid import Grid
+from grid import Grid, FixedGrid, BDCLGrid
 
 from heapq import heappush, heappop
 
@@ -53,8 +53,7 @@ class FAStrat(Strat):
     to them simultaneously without interference.
     """
     def __init__(self, *args, **kwargs):
-        super(FAStrat, self).__init__(*args, **kwargs)
-        self.grid.assign_chs()
+        super().__init__(*args, **kwargs)
 
     def fn_new(self, row, col):
         # When a call arrives in a cell,
@@ -118,14 +117,38 @@ class BDCLStrat(Strat):
         # If no nominal channel is available, then the largest numbered
         # free channel is borrowed from the neighbour with
         # the most free channels.
-        neigh_idxs = self.neighbors1()
-        best_neigh = None
-        best_n_free = 0
-        for n_idx in neigh_idxs:
-            n_free = self.n_channels - np.sum(self.state[n_idx])
-            if n_free > best_n_free:
-                best_n_free = n_free
-                best_neigh = n_idx
+
+        # If all the nominal channels are busy, search
+        # through all the neighboring cells of P to identify all the free
+        # channels as well as all the “locked” channels but with cell P
+        # in the nonlocking direction. Call this set of channels X . If X
+        # is empty, block the call.
+        neighs = self.neighbors1()
+        x = []
+        for neigh in neighs:
+            for chan, inUse in enumerate(self.grid.state[neigh]):
+                direction = Grid.direction(*neigh, row, col)
+                if not inUse and not self.grid.locks[neigh][ch][direction]:
+                    x.append((neigh, chan))
+        # Select the channels in X which are either
+        # a) free in their two nearby cochannel cells, or
+        # b) being locked but the mini-mum distance between cell P
+        # and the locking cells is at least three cell units apart.
+        # Call the set of selected channels Y .
+        # If Y is empty, block the call.
+        y = []
+        for neigh, chan in x:
+            cooch_cells = self.grid.cochannel_cells(row, col, *neigh)
+
+        # 4) The MTSO assigns the particular channel in Y which is
+        # the last ordered channel from the cell with the maximum num-
+        # ber of free channels. Denote the assigned channel as channel
+        # A.
+        # 5) With channel x assigned, the three nearby cochannel
+        # cells will lock channel x in the appropriate directions. Move
+        # channel x from the FC list to the LC lists of the three cells.
+        # Cell P is also recorded in LC to indicate that it is responsible
+
         # When a channel is borrowed, careful accounting of the directional
         # effect of which cells can no longer use that channel because
         # of interference is done.
@@ -134,7 +157,7 @@ class BDCLStrat(Strat):
         # Changing state (assigning call to cell and ch) to the
         # incoming call should not be done here, only rearrangement
         # of existing calls
-        # TODO: rearrange existing and keep track of borrowed
+        # for locking channel x .
         return ch
 
     def fn_end(self):
@@ -160,7 +183,7 @@ class BDCLStrat(Strat):
         pass
 
 
-class RLState(Strat):
+class RLStrat(Strat):
     def __init__(self):
         self.value = np.zeros((self.rows, self.cols, self.n_channels+1))
 
@@ -169,6 +192,19 @@ class RLState(Strat):
 
     def fn_end(self):
         pass
+
+    def actions_new(self, row, col):
+        """
+        The set of available actions when a new call arrives in a cell.
+        """
+        raise NotImplementedError()
+
+    def actions_end(self, row, col, ch):
+        """
+        The set of available actions when a call on channel 'ch' ends in
+        a cell.
+        """
+        raise NotImplementedError()
 
     def reward(self, state, action, dt):
         """
@@ -183,11 +219,18 @@ class RLState(Strat):
         """
         pass
 
-    def value(self, avail, pack):
+    def value(self):
+        raise NotImplementedError()
+
+
+class SinghStrat(RLStrat):
+    def __init__(self):
+        pass
+
+    def actions_end(self, row, col, ch):
         """
-        avail: The number of available channels per cell.
-        pack: Packing feature.
-              The number of times each channel is used within a 1 cell radius.
+        Reallocate each call in progress to the newly
+        freed channel.
         """
         pass
 
@@ -257,7 +300,8 @@ pp = {
 
 
 def run():
-    grid = Grid(**pp)
+    grid = FixedGrid(**pp)
+    grid.assign_chs()
     fa_strat = FAStrat(**pp, grid=grid)
     eventgen = EventGen(**pp)
     gui = Gui(grid)
