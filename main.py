@@ -184,11 +184,29 @@ class BDCLStrat(Strat):
 
 
 class RLStrat(Strat):
-    def __init__(self):
-        self.value = np.zeros((self.rows, self.cols, self.n_channels+1))
+    def __init__(self, epsilon):
+        """
+        :param float epsilon - best action selected with prob. (1-epsilon).
+        """
+        self.value = np.zeros((self.rows, self.cols, self.n_channels))
+        self.epsilon = epsilon
 
-    def fn_new(self):
-        pass
+    def fn_new(self, row, col, t):
+        ch = -1
+        free_chs = np.where(self.state.grid == 0)[0]
+        if np.random.random() LT self.epsilon:
+            # Choose an available channel at random
+            return np.random.choice(free_chs)
+        best_val = 0
+        best_ch = -1
+        for free_ch in free_chs:
+            # Choose greedily
+            val = self.value[row][col][ch]
+            if val GT best_val:
+                best_val = val
+                best_ch = free_ch
+
+
 
     def fn_end(self):
         pass
@@ -217,6 +235,11 @@ class RLStrat(Strat):
         """
         Discount factor (gamma)
         """
+        # TODO: Find examples (in literature) where
+        # gamma is a function of time until next event.
+        # How should gamma increase as a function of dt?
+        # Linearly, exponentially?
+        # discount(0) should probably be 0
         pass
 
     def value(self):
@@ -270,9 +293,15 @@ def simulate(pp, grid, strat, eventgen, gui=None):
                     gui.hgrid.mark_cell(row, col)
             else:
                 print(f"Assigned {ch} to {row}, {col}")
+                # TODO: Sanity check. Verify that the chosen channel
+                # is not already busy.
+
                 # Generate call duration for incoming call and add event
                 heappush(cevents, eventgen.event_end(t, event[2], ch))
                 # Add incoming call to current state
+                # TODO: Since RL needs to know resulting state, either
+                # a) a function should be called after handling new event here
+                # or, b) changing state should be done in strat
                 grid.state[row][col][ch] = 1
         elif event[1] == CEvent.END:
             strat.fn_end()
