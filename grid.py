@@ -214,7 +214,8 @@ class Grid:
         Partition cells into 7 lots such that the minimum distance
         between cells with the same label ([0..6]) is at least 2
         (which corresponds to a minimum reuse distance of 3).
-        Returns an n by m array with the label for each cell.
+
+        Returns an n*m array with the label for each cell.
         """
         def right_up(x, y):
             x_new = x + 3
@@ -272,10 +273,11 @@ class FixedGrid(Grid):
     def assign_chs(self, n_channels=0):
         """
         Partition the cells and channels up to and including 'n_channels'
-        into 7 lots, and assign the assign
+        into 7 lots, and assign
         the channels to cells such that they will not interfere with each
         other within a channel reuse constraint of 3.
         The channels assigned to a cell are its nominal channels.
+
         Returns a (rows*cols*n_channels) array
         where a channel for a cell has value 1 if nominal, 0 otherwise.
         """
@@ -315,32 +317,33 @@ class BDCLGrid(FixedGrid):
         self.locked_by = np.zeros((self.rows, self.cols, self.n_channels, 2),
                                   dtype=int)
 
-    def cochannel_cells(self, cell_r, cell_c, neigh_r, neigh_c):
+    def cochannel_cells(self, cell, cell_neigh):
         """
         A cochannel cell of a cell 'c' given a neighbor 'b'
         is a cell with the same label as 'c' within a radius
         of 2 from 'b', i.e. the cells within the channel reuse distance
         of 3 when 'b' borrows a channel from 'c'.
         """
-        neighs = self.neighbors2(neigh_r, neigh_c)
+        neighs = self.neighbors2(*cell_neigh)
         coch_cells = []
-        label = self.labels[cell_r][cell_c]
+        label = self.labels[cell]
         for neigh in neighs:
-            if self.labels[neigh] == label and neigh != (cell_r, cell_c):
+            if self.labels[cell_neigh] == label and neigh != cell:
                 coch_cells.append(neigh)
         return coch_cells
 
-    def borrow(self, from_r, from_c, to_r, to_c, ch):
+    def borrow(self, from_cell, to_cell, ch):
         """
         Borrow a channel 'ch' from cell 'from' to cell 'to'.
         """
-        # TODO implementation assumes borrowing is possible
-        coch_cells = self.cochannel_cells(from_r, from_c, to_r, to_c)
+        # TODO implementation assumes borrowing allowed, i.e. does not
+        # break any constraints or invariants
+        coch_cells = self.cochannel_cells(*from_cell, *to_cell)
         for ccell in coch_cells:
-            self.locked_by[ccell][ch] = [to_r, to_c]
+            self.locked_by[ccell][ch] = [*to_cell]
         # Cochannel cells with their respective 1-radius neighbors
         coch_cells_wneighs = zip(coch_cells, map(self.neighbors1, coch_cells))
-        to_cell_neighs = self.neighbors2(to_r, to_c)
+        to_cell_neighs = self.neighbors2(*to_cell)
         # Cells that would violate channel reuse constraint unless
         # locked from borrowing
         for (cc, ccn) in coch_cells_wneighs:

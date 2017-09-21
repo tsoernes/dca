@@ -1,8 +1,9 @@
 from eventgen import CEvent, EventGen
 from gui import Gui
-from grid import Grid, FixedGrid, BDCLGrid
+from grid import FixedGrid
 
 from heapq import heappush, heappop
+import operator
 
 import numpy as np
 
@@ -24,12 +25,16 @@ y = 0.95  # Gamma (discount factor)
 
 
 class Strat:
-    def __init__(self, rows, cols, n_channels,
-                 grid, *args, **kwargs):
-        self.rows = rows
-        self.cols = cols
-        self.n_channels = n_channels
+    def __init__(self, pp, eventgen, grid, gui=None,
+                 *args, **kwargs):
+        self.rows = pp['rows']
+        self.cols = pp['cols']
+        self.n_channels = pp['n_channels']
+        self.n_episodes = pp['n_episodes']
         self.grid = grid
+        self.cevents = []  # Call events
+        self.eventgen = None
+        self.t = 0  # Current time, in minutes
 
     def fn_new(self, row, col):
         """
@@ -71,165 +76,146 @@ class FAStrat(Strat):
         pass
 
 
-class FCState():
-    def __init__(self):
-        pass
-
-    # Fully connected network; attempted replica of Singh
-    def _state_frepr(self, state):
-        """
-        Feature representation of a state
-        """
-        frepr = np.zeros((self.rows, self.cols, self.n_channels+1))
-        # Number of available channels for each cell
-        frepr[:, :, -1] = self.n_channels - np.sum(self.state, axis=2)
-        # The number of times each channel is used within a 1 cell radius,
-        # not including self
-        for i in range(self.rows):
-            for j in range(self.cols):
-                for ch in range(self.n_channels):
-                    neighs = self.neighbors2(i, j)
-                    for neigh in neighs:
-                        frepr[i][j][ch] += self.state[neigh[0]][neigh[1]][ch]
-        return frepr
-
-
-class BDCLStrat(Strat):
-    # Borrowing with Directional Channel Locking (BDCL) of Zhang & Yum (1989).
-    def __init__(self, *args, **kwargs):
-        super(BDCLStrat, self).__init__(*args, **kwargs)
-        self.grid.assign_chs()
-
-    def fn_new(self, row, col):
-        """
-        ON NEW CALL:
-        """
-        ch = -1
-        # If a nominal channel is available when a call arrives in a cell,
-        # the smallest numbered such channel is assigned to the call.
-        for idx, isNom in enumerate(self.grid.nom_chs[row][col]):
-            if isNom and self.state[row][col][idx]:
-                ch = idx
-                break
-        if ch != -1:
-            return ch
-
-        # If no nominal channel is available, then the largest numbered
-        # free channel is borrowed from the neighbour with
-        # the most free channels.
-
-        # If all the nominal channels are busy, search
-        # through all the neighboring cells of P to identify all the free
-        # channels as well as all the “locked” channels but with cell P
-        # in the nonlocking direction. Call this set of channels X . If X
-        # is empty, block the call.
-        neighs = self.neighbors1()
-        x = []
-        for neigh in neighs:
-            for chan, inUse in enumerate(self.grid.state[neigh]):
-                direction = Grid.direction(*neigh, row, col)
-                if not inUse and not self.grid.locks[neigh][ch][direction]:
-                    x.append((neigh, chan))
-        # Select the channels in X which are either
-        # a) free in their two nearby cochannel cells, or
-        # b) being locked but the mini-mum distance between cell P
-        # and the locking cells is at least three cell units apart.
-        # Call the set of selected channels Y .
-        # If Y is empty, block the call.
-        y = []
-        for neigh, chan in x:
-            cooch_cells = self.grid.cochannel_cells(row, col, *neigh)
-
-        # 4) The MTSO assigns the particular channel in Y which is
-        # the last ordered channel from the cell with the maximum num-
-        # ber of free channels. Denote the assigned channel as channel
-        # A.
-        # 5) With channel x assigned, the three nearby cochannel
-        # cells will lock channel x in the appropriate directions. Move
-        # channel x from the FC list to the LC lists of the three cells.
-        # Cell P is also recorded in LC to indicate that it is responsible
-
-        # When a channel is borrowed, careful accounting of the directional
-        # effect of which cells can no longer use that channel because
-        # of interference is done.
-        # The call is blocked if there are no free channels at all.
-
-        # Changing state (assigning call to cell and ch) to the
-        # incoming call should not be done here, only rearrangement
-        # of existing calls
-        # for locking channel x .
-        return ch
-
-    def fn_end(self):
-        """
-        ON CALL TERM:
-        When a call terminates in a cell and the channel so freed is a nominal
-        channel, say numbered i, of that cell, then if there is a call
-        in that cell on a borrowed channel, the call on the smallest numbered
-        borrowed channel is reassigned to i and the borrowed channel
-        is returned to the
-        appropriate cell. If there is no call on a borrowed channel,
-        then if there is a call on a nominal channel numbered larger than i,
-        the call on the highest numbered nominal channel is reassigned to i.
-        If the call just terminated was itself on a borrowed channel, the
-        call on the smallest numbered borrowed channel is reassigned to it
-        and that
-        channel is returned to the cell from which it was borrowed.
-        Notice that when a
-        borrowed channel is returned to its original cell, a nominal
-        channel becomes
-        free in that cell and triggers a reassignment.
-        """
-        pass
-
-
 class RLStrat(Strat):
-    def __init__(self, epsilon):
+    def __init__(self, alpha, epsilon):
         """
-        :param float epsilon - best action selected with prob. (1-epsilon).
+        :param float alpha - learning rate
+        :param float epsilon - best action is selected
+            with probability (1-epsilon)
         """
-        self.value = np.zeros((self.rows, self.cols, self.n_channels))
+        # "qvals[r][c][n][ch] = v"
+        # Assigning channel 'c' to the cell at row 'r', col 'c'
+        # has q-value 'v' given that 'n' channels are already
+        # in use at that cell.
+        self.qvals = np.zeros((self.rows, self.cols,
+                              self.n_channels, self.n_channels))
         self.epsilon = epsilon
+        self.alpha = alpha
 
-    def fn_new(self, row, col, t):
+    def simulate(self):
+        n_rejected = 0  # Number of rejected calls
+        n_incoming = 0  # Number of incoming (not necessarily accepted) calls
+        # Generate initial call events; one for each cell
+        for r in range(self.rows):
+            for c in range(self.cols):
+                heappush(self.cevents, self.eventgen.event_new(0, r, c))
+        prev_cevent = heappop(self.cevents)
+        prev_cell = prev_cevent[2]
+        prev_n_used, prev_ch = self.optimal_ch(prev_cell, prev_cevent[1])
+        # Discrete event simulation
+        for _ in range(self.n_episodes):
+            t = prev_cevent[0]
+            prev_qval = self.qvals[prev_cell][prev_n_used][prev_ch]
+            # Take action A, observe R, S'
+            self.execute_action(prev_cevent, prev_ch)
+            reward = self.reward()
+            if prev_cevent[1] == CEvent.NEW:
+                n_incoming += 1
+                # Generate next incoming call
+                heappush(self.cevents, self.eventgen.event_new(t, prev_cell))
+                if prev_ch == -1:
+                    n_rejected += 1
+                    print(f"Rejected call to {prev_cell} when \
+                          {prev_n_used} \
+                          of {self.n_channels} in use")
+                    if self.gui:
+                        self.gui.hgrid.mark_cell(prev_cell)
+                else:
+                    # Generate call duration for incoming call and add event
+                    heappush(self.cevents,
+                             self.eventgen.event_end(
+                                self.t, prev_cell, prev_ch))
+            cevent = heappop(self.cevents)
+            print(cevent)
+            t = cevent[0]
+            cell = cevent[2]
+
+            if not self.grid.validate_reuse_constr():
+                print("Reuse constraint broken: {self.grid}")
+                raise Exception
+            if self.gui:
+                self.gui.step()
+
+            # Choose A' from S'
+            n_used, ch = self.optimal_ch(cell, cevent[1])
+            qval = self.qvals[cell][n_used][ch]
+            dt = cevent[0] - self.t  # Time until next event
+            td_err = reward + self.discount(dt) * qval - prev_qval
+            self.qvals[prev_cell][prev_n_used][prev_ch] += self.alpha * td_err
+
+        print(f"Rejected {n_rejected} of {n_incoming} calls")
+        print(f"Blocking probability: {n_rejected/n_incoming}")
+        print(f"{np.sum(self.grid.state)} calls in progress at simulation end")
+
+    def execute_action(self, cevent, ch):
+        assert ch != -1
+        cell = cevent[2]
+        if cevent[1] == CEvent.NEW:
+            if self.grid.state[cell][ch]:
+                print("Tried assigning new call {cevent} to \
+                        channel {ch} which is already in use")
+                raise Exception()
+
+            print(f"Assigned {ch} to {cell}")
+            # Add incoming call to current state
+            self.grid.state[cell][ch] = 1
+        else:
+            print(f"Reassigned {ch} to {cevent[3]} in {cell}")
+            # Reassign 'ch' to the channel of the terminating call
+            self.grid.state[cell][cevent[3]] = 1
+            self.grid.state[cell][ch] = 0
+            if self.gui:
+                self.gui.hgrid.unmark_cell(*cell)
+
+    def optimal_ch(self, ce_type, cell):
+        """
+        Select the channel fitting for assignment or termination
+        that has the maximum (op=gt) or minimum (op=lt) value
+        in an epsilon-greedy fasion.
+        Return (n_used, ch) where n_used is the number of used channels
+        in the event cell before any potential action is taken.
+        """
+        if ce_type == CEvent.NEW:
+            # Find the set of channels that's not in use by this cell
+            # or any of its neighbors within a radius of 2.
+            potential_chs = np.where(self.state.grid[cell] == 0)[0]
+            neighs = self.grid.neighbors2(*cell)
+            chs = []  # Channels not in use
+            for pch in potential_chs:
+                in_use = False
+                for neigh in neighs:
+                    if self.grid.state[neigh][pch] == 1:
+                        in_use = True
+                        break
+                if not in_use:
+                    chs.append(pch)
+            n_used = self.n_channels - len(potential_chs)
+            op = operator.gt
+        else:
+            chs = np.nonzero(self.state.grid[cell])[0]  # Channels in use
+            n_used = len(chs)
+            op = operator.lt
+
         ch = -1
-        free_chs = np.where(self.state.grid == 0)[0]
-        if np.random.random() LT self.epsilon:
+        if np.random.random() < self.epsilon:
             # Choose an available channel at random
-            return np.random.choice(free_chs)
-        best_val = 0
-        best_ch = -1
-        for free_ch in free_chs:
+            ch = np.random.choice(chs)
+        else:
             # Choose greedily
-            val = self.value[row][col][ch]
-            if val GT best_val:
-                best_val = val
-                best_ch = free_ch
+            best_val = 0
+            for chan in chs:
+                val = self.value[cell][n_used][chan]
+                if op(val, best_val):
+                    best_val = val
+                    ch = chan
+        return (n_used, ch)
 
-
-
-    def fn_end(self):
-        pass
-
-    def actions_new(self, row, col):
-        """
-        The set of available actions when a new call arrives in a cell.
-        """
-        raise NotImplementedError()
-
-    def actions_end(self, row, col, ch):
-        """
-        The set of available actions when a call on channel 'ch' ends in
-        a cell.
-        """
-        raise NotImplementedError()
-
-    def reward(self, state, action, dt):
+    def reward(self, action, dt):
         """
         Immediate reward
         dt: Time until next event
         """
-        pass
+        return np.sum(self.state.grid)
 
     def discount(self, dt):
         """
@@ -240,82 +226,7 @@ class RLStrat(Strat):
         # How should gamma increase as a function of dt?
         # Linearly, exponentially?
         # discount(0) should probably be 0
-        pass
-
-    def value(self):
-        raise NotImplementedError()
-
-
-class SinghStrat(RLStrat):
-    def __init__(self):
-        pass
-
-    def actions_end(self, row, col, ch):
-        """
-        Reallocate each call in progress to the newly
-        freed channel.
-        """
-        pass
-
-
-def simulate(pp, grid, strat, eventgen, gui=None):
-    """
-    pp: Problem Parameters
-    """
-    t = 0  # Current time, in minutes
-    n_rejected = 0  # Number of rejected calls
-    n_incoming = 0  # Number of incoming (not necessarily accepted) calls
-    cevents = []  # Call events in a min heap, sorted on time
-    # Generate initial call events; one for each cell
-    for r in range(pp['rows']):
-        for c in range(pp['cols']):
-            heappush(cevents, eventgen.event_new(0, r, c))
-    # Discrete event simulation
-    for _ in range(pp['n_episodes']):
-        event = heappop(cevents)
-        print(event)
-        t = event[0]
-        row = event[2][0]
-        col = event[2][1]
-        # Accept incoming call
-        if event[1] == CEvent.NEW:
-            n_incoming += 1
-            # Assign channel to call
-            ch = strat.fn_new(row, col)
-            # Generate next incoming call
-            heappush(cevents, eventgen.event_new(t, row, col))
-            if ch == -1:
-                n_rejected += 1
-                print(f"Rejected call to {row}, {col} when \
-                      {np.sum(grid.state[row][col])} \
-                      of {pp['n_channels']} in use")
-                if gui:
-                    gui.hgrid.mark_cell(row, col)
-            else:
-                print(f"Assigned {ch} to {row}, {col}")
-                # TODO: Sanity check. Verify that the chosen channel
-                # is not already busy.
-
-                # Generate call duration for incoming call and add event
-                heappush(cevents, eventgen.event_end(t, event[2], ch))
-                # Add incoming call to current state
-                # TODO: Since RL needs to know resulting state, either
-                # a) a function should be called after handling new event here
-                # or, b) changing state should be done in strat
-                grid.state[row][col][ch] = 1
-        elif event[1] == CEvent.END:
-            strat.fn_end()
-            # Remove call from current state
-            grid.state[row][col][event[3]] = 0
-            if gui:
-                gui.hgrid.unmark_cell(row, col)
-        if not grid.validate_reuse_constr():
-            break
-        if gui:
-            gui.step()
-    print(f"Rejected {n_rejected} of {n_incoming} calls")
-    print(f"Blocking probability: {n_rejected/n_incoming}")
-    print(f"{np.sum(grid.state)} calls in progress at simulation end")
+        return 0.8
 
 
 pp = {
@@ -328,14 +239,19 @@ pp = {
         }
 
 
+def show():
+    grid = FixedGrid(**pp)
+    gui = Gui(grid)
+    gui.test()
+
+
 def run():
     grid = FixedGrid(**pp)
     grid.assign_chs()
-    fa_strat = FAStrat(**pp, grid=grid)
     eventgen = EventGen(**pp)
     gui = Gui(grid)
-    gui.test()
-    # simulate(pp, grid, fa_strat, eventgen, gui)
+    fa_strat = FAStrat(pp, grid=grid, gui=gui, eventgen=eventgen)
+    fa_strat.simulate(pp, grid, fa_strat, eventgen, gui)
 
 
 if __name__ == '__main__':

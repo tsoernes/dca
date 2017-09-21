@@ -6,6 +6,7 @@ import numpy as np
 class CEvent(Enum):
     NEW = auto()  # Incoming call
     END = auto()  # End a current call
+    HOFF = auto()  # Handoff a call from one cell to another
 
 
 class EventGen:
@@ -14,12 +15,14 @@ class EventGen:
         self.rows = rows
         self.cols = cols
         if type(call_rates) != np.ndarray:
+            # Use uniform call rates through grid
             self.call_rates = np.ones((rows, cols)) * call_rates
         else:
             self.call_rates = call_rates
         # Avg. time between arriving calls
         self.call_intertimes = 1/self.call_rates
         self.call_duration = call_duration
+        self.handoff_call_duration = None
 
     def event_new(self, t, cell_row, cell_col):
         """
@@ -35,3 +38,18 @@ class EventGen:
         """
         e_time = np.random.exponential(self.call_duration) + t
         return (e_time, CEvent.END, cell, ch)
+
+    def event_handoff(self, t, from_cell, neighs, ch):
+        """
+        Pick a neighbor of cell randomly and hand off call.
+        :param 1D ndarray neighs - indices of neighbors
+
+        How should this be integrated?
+        Should newly accepted calls generate a handoff event
+        with some probability instead of an end event?
+        If so, they will have an average duration in total
+        that's longer than normal calls.
+        """
+        neigh = np.random.choice(neighs)
+        e_time = np.random.exponential(self.handoff_call_duration) + t
+        return (e_time, CEvent.HOFF, from_cell, neigh)
