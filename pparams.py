@@ -13,9 +13,7 @@ def mk_pparams(rows=7,
     """
     Call rates in calls per minute
     Call duration in minutes
-    gamma: discount factor
-    epsilon: prob choosing random
-    alpha: learning rate
+    gamma:
     """
     # erlangs = call_rate * duration
     # 10 erlangs = 200cr, 3cd

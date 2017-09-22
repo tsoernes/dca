@@ -101,6 +101,7 @@ class RLStrat(Strat):
         n_incoming = 0  # Number of incoming (not necessarily accepted) calls
         # Number of channels in progress at a cell when call is blocked
         n_inuse_rej = 0
+
         # Generate initial call events; one for each cell
         for r in range(self.rows):
             for c in range(self.cols):
@@ -175,10 +176,6 @@ class RLStrat(Strat):
             print(f"Assigned {ch} to {cell}")
             # Add incoming call to current state
             self.grid.state[cell][ch] = 1
-            # if not self.grid.validate_reuse_constr():
-            #     print("Reuse constraint broken just after assigning \
-            #             ch {ch} to cell {cell}")
-            #     raise Exception
         else:
             # How does this work if
             # a) there's no channels to reassign, i.e. the end event
@@ -194,17 +191,13 @@ class RLStrat(Strat):
     def optimal_ch(self, ce_type, cell):
         """
         Select the channel fitting for assignment or termination
-        that has the maximum (op=gt) or minimum (op=lt) value
+        that has the maximum (new) or minimum (end) value
         in an epsilon-greedy fasion.
         Return (n_used, ch) where n_used is the number of used channels
         in the event cell before any potential action is taken.
         'ch' is -1 if no channel is eligeble for (re)assignment
 
         TODO: Compare value to the value of no reassignment at all
-        TODO: It's not the channel selected for reassignment that's
-        in violated the reuse constraint, rather the channel reassigned to.
-        How did that happen? The channel reassigned to should not violate
-        the constraint in the first place.
         """
         if ce_type == CEvent.NEW:
             # Free channels at cell
