@@ -1,6 +1,7 @@
 from eventgen import CEvent, EventGen
 from gui import Gui
 from grid import FixedGrid, Grid
+from pparams import mk_pparams
 
 from heapq import heappush, heappop
 import operator
@@ -25,7 +26,7 @@ y = 0.95  # Gamma (discount factor)
 
 
 class Strat:
-    def __init__(self, pp, eventgen, grid, gui=None,
+    def __init__(self, pp, eventgen, grid, gui=None, sanity_check=True,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
@@ -35,6 +36,7 @@ class Strat:
         self.cevents = []  # Call events
         self.eventgen = eventgen
         self.gui = gui
+        self.sanity_check = sanity_check
 
     def fn_new(self, row, col):
         """
@@ -92,6 +94,7 @@ class RLStrat(Strat):
                               self.n_channels, self.n_channels))
         self.epsilon = pp['epsilon']
         self.alpha = pp['alpha']
+        self.gamma = pp['gamma']
 
     def simulate(self):
         n_rejected = 0  # Number of rejected calls
@@ -112,7 +115,7 @@ class RLStrat(Strat):
             # Take action A, observe R, S'
             self.execute_action(prev_cevent, prev_ch)
 
-            if not self.grid.validate_reuse_constr():
+            if self.sanity_check and not self.grid.validate_reuse_constr():
                 print("Reuse constraint broken: {self.grid}")
                 raise Exception
             if self.gui:
@@ -265,19 +268,10 @@ class RLStrat(Strat):
         # How should gamma increase as a function of dt?
         # Linearly, exponentially?
         # discount(0) should probably be 0
-        return 0.8
+        return self.gamma
 
 
-pp = {
-        'rows': 7,
-        'cols': 7,
-        'n_channels': 70,
-        'call_rates': 200/60,  # Avg. call rate, in calls per minute
-        'call_duration': 3,  # Avg. call duration in minutes
-        'n_episodes': 100000,
-        'epsilon': 0.1,
-        'alpha': 0.01
-        }
+pp = mk_pparams()
 
 
 def show():
@@ -311,5 +305,7 @@ if __name__ == '__main__':
 # minus the number of rejected calls should be equal to the number of calls in
 # progress.
 
-# a) END time is dt, not t
-# b) which is probably the cause for events cycling new->end->new->..
+# todo: plot block-rate over time to determine
+# if if rl system actually improves over time
+
+# todo: gracefull quitting: print stats
