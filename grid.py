@@ -36,14 +36,10 @@ class Grid:
         # then the cell itself does not either.
         for r in range(self.rows):
             for c in range(self.cols):
-                neighs = self.neighbors1(r, c)
+                neighs = self.neighbors2(r, c)
                 for ch, busy in enumerate(self.state[r][c]):
                     if busy:
                         for neigh in neighs:
-                            if neigh[0] >= self.rows:
-                                print(f"row out of range {neigh}")
-                            if neigh[1] >= self.cols:
-                                print(f"row out of range {neigh}")
                             if self.state[neigh][ch]:
                                 print(f"""Channel Reuse constraint violated
                                        in Cell {r} {c} channel {ch}

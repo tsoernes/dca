@@ -24,13 +24,13 @@ class EventGen:
         self.call_duration = call_duration
         self.handoff_call_duration = None
 
-    def event_new(self, t, cell_row, cell_col):
+    def event_new(self, t, cell):
         """
         Generate a new call event at the given cell at an
         exponentially distributed time dt from t.
         """
-        dt = np.random.exponential(self.call_intertimes[cell_row][cell_col])
-        return (dt + t, CEvent.NEW, (cell_row, cell_col))
+        dt = np.random.exponential(self.call_intertimes[cell])
+        return (dt + t, CEvent.NEW, cell)
 
     def event_end(self, t, cell, ch):
         """
