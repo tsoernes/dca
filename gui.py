@@ -140,12 +140,8 @@ class Gui:
         self.hgrid = HexagonGrid(
                 self.root, grid.rows, grid.cols,
                 grid.labels, show_coords=True)
-        self.hgrid.bind("<KeyPress>", self.keydown2)
+        self.root.bind("q", keydown)
         self.hgrid.pack()
-
-    def keydown2(self, e):
-        print("y")
-        raise Exception
 
     def step(self):
         self.root.update_idletasks()

@@ -5,6 +5,7 @@ from pparams import mk_pparams
 
 from heapq import heappush, heappop
 import operator
+import sys
 
 import numpy as np
 
@@ -290,18 +291,15 @@ class Runner:
         grid = Grid(**pp)
         eventgen = EventGen(**pp)
         gui = Gui(grid, self.end_sim)
-        strat = RLStrat(pp, grid=grid, gui=gui, eventgen=eventgen)
-        strat.simulate()
+        self.strat = RLStrat(pp, grid=grid, gui=gui, eventgen=eventgen)
+        self.strat.simulate()
 
     def end_sim(self, e):
         """
         Listen for key events from Tkinter and quit
         simulation gracefully on 'q'-key
         """
-        print(e)
-        raise Exception
-        if e.char == 'q' or e.char == 'Q':
-            self.strat.quit_sim = True
+        self.strat.quit_sim = True
 
 
 def run_fa():
