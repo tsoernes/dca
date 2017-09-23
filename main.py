@@ -37,6 +37,7 @@ class Strat:
         self.eventgen = eventgen
         self.gui = gui
         self.sanity_check = sanity_check
+        self.quit_sim = False
 
     def fn_new(self, row, col):
         """
@@ -112,6 +113,9 @@ class RLStrat(Strat):
         prev_qval = 0
         # Discrete event simulation
         for _ in range(self.n_episodes):
+            if self.quit_sim:
+                break
+
             t = prev_cevent[0]
             # Take action A, observe R, S'
             self.execute_action(prev_cevent, prev_ch)
@@ -131,7 +135,7 @@ class RLStrat(Strat):
                     n_rejected += 1
                     n_inuse_rej += prev_n_used
                     print(f"Rejected call to {prev_cell} when {prev_n_used}"
-                          "of {self.n_channels} channels in use")
+                          f" of {self.n_channels} channels in use")
                     if self.gui:
                         self.gui.hgrid.mark_cell(*prev_cell)
                 else:
@@ -139,14 +143,19 @@ class RLStrat(Strat):
                     heappush(self.cevents,
                              self.eventgen.event_end(t, prev_cell, prev_ch))
             cevent = heappop(self.cevents)
-            print(cevent)
             t = cevent[0]
+            e_type = cevent[1]
             cell = cevent[2]
+            print(f"{t:4.4}: {e_type.name}, {cevent[2:]}")
 
             # Choose A' from S'
-            n_used, ch = self.optimal_ch(cevent[1], cell)
+            n_used, ch = self.optimal_ch(e_type, cell)
             # Update q-values with one-step lookahead
-            qval = self.qvals[cell][n_used][ch]
+            try:
+                qval = self.qvals[cell][n_used][ch]
+            except:
+                print(cell, n_used, ch)
+                raise Exception
             dt = -1  # how to calculate this?
             td_err = reward + self.discount(dt) * qval - prev_qval
             self.qvals[prev_cell][prev_n_used][prev_ch] += self.alpha * td_err
@@ -159,8 +168,8 @@ class RLStrat(Strat):
 
         print(f"Rejected {n_rejected} of {n_incoming} calls")
         print(f"Blocking probability: {n_rejected/n_incoming}")
-        print(f"Average number of calls in progress when blocking"
-              "{n_inuse_rej/n_rejected}")
+        print(f"Average number of calls in progress when blocking: "
+              f"{n_inuse_rej/n_rejected}")
         print(f"{np.sum(self.grid.state)} calls in progress at simulation end")
 
     def execute_action(self, cevent, ch):
@@ -273,12 +282,26 @@ def show():
     gui.test()
 
 
-def run():
-    grid = Grid(**pp)
-    eventgen = EventGen(**pp)
-    gui = Gui(grid)
-    strat = RLStrat(pp, grid=grid, gui=gui, eventgen=eventgen)
-    strat.simulate()
+class Runner:
+    def __init__(self):
+        pass
+
+    def run(self):
+        grid = Grid(**pp)
+        eventgen = EventGen(**pp)
+        gui = Gui(grid, self.end_sim)
+        strat = RLStrat(pp, grid=grid, gui=gui, eventgen=eventgen)
+        strat.simulate()
+
+    def end_sim(self, e):
+        """
+        Listen for key events from Tkinter and quit
+        simulation gracefully on 'q'-key
+        """
+        print(e)
+        raise Exception
+        if e.char == 'q' or e.char == 'Q':
+            self.strat.quit_sim = True
 
 
 def run_fa():
@@ -291,7 +314,8 @@ def run_fa():
 
 
 if __name__ == '__main__':
-    run()
+    r = Runner()
+    r.run()
 
 # TODO: Sanity checks:
 # - The number of accepcted new calls minus the number of ended calls
@@ -301,4 +325,3 @@ if __name__ == '__main__':
 # todo: plot block-rate over time to determine
 # if if rl system actually improves over time
 
-# todo: gracefull quitting: print stats

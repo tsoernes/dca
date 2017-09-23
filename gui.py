@@ -135,12 +135,17 @@ class HexagonGrid(Frame):
 
 
 class Gui:
-    def __init__(self, grid):
+    def __init__(self, grid, keydown):
         self.root = Tk()
         self.hgrid = HexagonGrid(
                 self.root, grid.rows, grid.cols,
                 grid.labels, show_coords=True)
+        self.hgrid.bind("<KeyPress>", self.keydown2)
         self.hgrid.pack()
+
+    def keydown2(self, e):
+        print("y")
+        raise Exception
 
     def step(self):
         self.root.update_idletasks()

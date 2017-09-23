@@ -3,7 +3,7 @@
 def mk_pparams(rows=7,
                cols=7,
                n_channels=7,
-               erlangs=8,
+               erlangs=5,
                call_rates=None,
                call_duration=3,
                n_episodes=10000,
