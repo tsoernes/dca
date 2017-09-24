@@ -2,11 +2,11 @@
 
 def mk_pparams(rows=7,
                cols=7,
-               n_channels=7,
-               erlangs=5,
+               n_channels=70,
+               erlangs=8,
                call_rates=None,
                call_duration=3,
-               n_episodes=10000,
+               n_episodes=50000,
                epsilon=0.1,
                alpha=0.01,
                gamma=0.9):

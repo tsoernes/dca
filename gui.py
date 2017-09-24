@@ -2,6 +2,8 @@
 from tkinter import (Frame, Tk, Canvas)
 from math import cos, sin, sqrt, radians
 
+from grid import Grid
+
 
 label_colors = [
     '#FF2D00',
@@ -33,6 +35,7 @@ class Hexagon:
         self.tags = tags
         self.selected = False
 
+        self.shape = None
         self.draw()
 
     def draw(self):
@@ -46,10 +49,11 @@ class Hexagon:
                 coords.append([start_x, start_y])
                 start_x = end_x
                 start_y = end_y
-        self.parent.create_polygon(*coords,
-                                   fill=self.color,
-                                   outline=self.outline,
-                                   tags=self.tags)
+        self.shape = self.parent.create_polygon(
+                *coords,
+                fill=self.color,
+                outline=self.outline,
+                tags=self.tags)
 
 
 class HexagonGrid(Frame):
@@ -123,7 +127,7 @@ class HexagonGrid(Frame):
             for h in li:
                 self.can.itemconfigure(h.tags, fill=h.color)
         self.can.itemconfigure(clicked, fill=self.marked_color)
-        print(self.can.gettags(clicked)[0])
+        # print(self.can.gettags(clicked)[0])
 
     def mark_cell(self, row, col):
         self.can.itemconfigure(
@@ -136,6 +140,7 @@ class HexagonGrid(Frame):
 
 class Gui:
     def __init__(self, grid, keydown):
+        self.grid = grid
         self.root = Tk()
         self.hgrid = HexagonGrid(
                 self.root, grid.rows, grid.cols,
@@ -149,3 +154,29 @@ class Gui:
 
     def test(self):
         self.root.mainloop()
+
+    def neighs(self, radius=1, grayscale=False):
+        x, y = 4, 4
+        neighs = [(x, y)]
+        if radius == 1:
+            neighs += self.grid.neighbors1(x, y)
+        else:
+            neighs += self.grid.neighbors2(x, y)
+        for r, li in enumerate(self.hgrid.hexagons):
+            for c, h in enumerate(li):
+                if (r, c) not in neighs:
+                    self.hgrid.can.delete(h.shape)
+        if grayscale:
+            for neigh in self.grid.neighbors1(x, y):
+                h = self.hgrid.hexagons[neigh[0]][neigh[1]]
+                self.hgrid.can.itemconfigure(h.tags, fill="")
+            for neigh in self.grid.neighbors2(x, y):
+                h = self.hgrid.hexagons[neigh[0]][neigh[1]]
+                self.hgrid.can.itemconfigure(h.tags, fill="")
+
+
+if __name__ == '__main__':
+    g = Grid(7, 7, 70)
+    gui = Gui(g, None)
+    gui.neighs(1)
+    gui.test()

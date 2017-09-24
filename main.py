@@ -120,6 +120,7 @@ class RLStrat(Strat):
             t = prev_cevent[0]
             # Take action A, observe R, S'
             self.execute_action(prev_cevent, prev_ch)
+            reward = self.reward()
 
             if self.sanity_check and not self.grid.validate_reuse_constr():
                 print("Reuse constraint broken: {self.grid}")
@@ -127,7 +128,6 @@ class RLStrat(Strat):
             if self.gui:
                 self.gui.step()
 
-            reward = self.reward()
             if prev_cevent[1] == CEvent.NEW:
                 n_incoming += 1
                 # Generate next incoming call
@@ -140,23 +140,18 @@ class RLStrat(Strat):
                     if self.gui:
                         self.gui.hgrid.mark_cell(*prev_cell)
                 else:
-                    # Generate call duration for incoming call and add event
+                    # Generate call duration for call and add end event
                     heappush(self.cevents,
                              self.eventgen.event_end(t, prev_cell, prev_ch))
+
             cevent = heappop(self.cevents)
-            t = cevent[0]
-            e_type = cevent[1]
-            cell = cevent[2]
-            print(f"{t:4.4}: {e_type.name}, {cevent[2:]}")
+            t, e_type, cell = cevent[0], cevent[1], cevent[2]
+            print(f"{t:4.4}: {e_type.name} {cevent[2:]}")
 
             # Choose A' from S'
             n_used, ch = self.optimal_ch(e_type, cell)
             # Update q-values with one-step lookahead
-            try:
-                qval = self.qvals[cell][n_used][ch]
-            except:
-                print(cell, n_used, ch)
-                raise Exception
+            qval = self.qvals[cell][n_used][ch]
             dt = -1  # how to calculate this?
             td_err = reward + self.discount(dt) * qval - prev_qval
             self.qvals[prev_cell][prev_n_used][prev_ch] += self.alpha * td_err
@@ -183,7 +178,7 @@ class RLStrat(Strat):
                         channel {ch} which is already in use")
                 raise Exception()
 
-            print(f"Assigned {ch} to {cell}")
+            print(f"Assigned ch {ch} to cell {cell}")
             # Add incoming call to current state
             self.grid.state[cell][ch] = 1
         else:
@@ -213,7 +208,7 @@ class RLStrat(Strat):
             # Free channels at cell
             potential_chs = np.where(self.grid.state[cell] == 0)[0]
             neighs = self.grid.neighbors2(*cell)
-            chs = []  # Channels eligeble for assignment
+            chs = []  # Channels eligible for assignment
             # Exclude channels in use in neighboring cells
             for pch in potential_chs:
                 in_use = False
