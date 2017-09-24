@@ -3,6 +3,7 @@ from gui import Gui
 from grid import FixedGrid, Grid
 from pparams import mk_pparams
 
+import cProfile
 from heapq import heappush, heappop
 import operator
 import sys
@@ -28,6 +29,7 @@ y = 0.95  # Gamma (discount factor)
 
 class Strat:
     def __init__(self, pp, eventgen, grid, gui=None, sanity_check=True,
+                 log=True,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
@@ -39,6 +41,7 @@ class Strat:
         self.gui = gui
         self.sanity_check = sanity_check
         self.quit_sim = False
+        self.log = log
 
     def fn_new(self, row, col):
         """
@@ -135,8 +138,9 @@ class RLStrat(Strat):
                 if prev_ch == -1:
                     n_rejected += 1
                     n_inuse_rej += prev_n_used
-                    print(f"Rejected call to {prev_cell} when {prev_n_used}"
-                          f" of {self.n_channels} channels in use")
+                    if self.log:
+                        print(f"Rejected call to {prev_cell} when {prev_n_used}"
+                              f" of {self.n_channels} channels in use")
                     if self.gui:
                         self.gui.hgrid.mark_cell(*prev_cell)
                 else:
@@ -146,7 +150,8 @@ class RLStrat(Strat):
 
             cevent = heappop(self.cevents)
             t, e_type, cell = cevent[0], cevent[1], cevent[2]
-            print(f"{t:4.4}: {e_type.name} {cevent[2:]}")
+            if self.log:
+                print(f"{t:4.4}: {e_type.name} {cevent[2:]}")
 
             # Choose A' from S'
             n_used, ch = self.optimal_ch(e_type, cell)
@@ -162,13 +167,16 @@ class RLStrat(Strat):
             prev_ch = ch
             prev_qval = qval
 
-        print(f"Rejected {n_rejected} of {n_incoming} calls")
+        print(f"\nRejected {n_rejected} of {n_incoming} calls")
         print(f"Blocking probability: {n_rejected/n_incoming}")
         print(f"Average number of calls in progress when blocking: "
               f"{n_inuse_rej/n_rejected}")
         print(f"{np.sum(self.grid.state)} calls in progress at simulation end")
 
     def execute_action(self, cevent, ch):
+        """
+        Change the grid state according to the given action
+        """
         if ch == -1:
             return
         cell = cevent[2]
@@ -178,15 +186,13 @@ class RLStrat(Strat):
                         channel {ch} which is already in use")
                 raise Exception()
 
-            print(f"Assigned ch {ch} to cell {cell}")
+            if self.log:
+                print(f"Assigned ch {ch} to cell {cell}")
             # Add incoming call to current state
             self.grid.state[cell][ch] = 1
         else:
-            # How does this work if
-            # a) there's no channels to reassign, i.e. the end event
-            # is for the only in-use channel in the cell
-            # b) no channel should be reassigned
-            print(f"Reassigned ch {cevent[3]} to ch {ch} in cell {cell}")
+            if self.log:
+                print(f"Reassigned ch {cevent[3]} to ch {ch} in cell {cell}")
             # Reassign 'ch' to the channel of the terminating call
             self.grid.state[cell][ch] = 1
             self.grid.state[cell][cevent[3]] = 0
@@ -198,11 +204,10 @@ class RLStrat(Strat):
         Select the channel fitting for assignment or termination
         that has the maximum (new) or minimum (end) value
         in an epsilon-greedy fasion.
-        Return (n_used, ch) where n_used is the number of used channels
-        in the event cell before any potential action is taken.
-        'ch' is -1 if no channel is eligeble for (re)assignment
 
-        TODO: Compare value to the value of no reassignment at all
+        Return (n_used, ch) where 'n_used' is the number of channels in
+        use before any potential action is taken.
+        'ch' is -1 if no channel is eligeble for assignment
         """
         if ce_type == CEvent.NEW:
             # Free channels at cell
@@ -222,11 +227,10 @@ class RLStrat(Strat):
             op = operator.gt
             best_val = float("-inf")
         else:
-            # The channel being reassigned does not need to be
-            # available in neighboring cells,
-            # because it's being reassigned to a channel
-            # that's (supposed to) already be available there.
-            # Channels in use at cell
+            # Channels in use at cell, including channel scheduled
+            # for termination. The latter is included because it might
+            # be the least valueable channel, in which case no
+            # reassignment is done on call termination.
             chs = np.nonzero(self.grid.state[cell])[0]
             n_used = len(chs)
             op = operator.lt
@@ -237,6 +241,8 @@ class RLStrat(Strat):
             # or no channels in use to reassign
             return (n_used, -1)
 
+        # Might do Greedy in the LImit of Exploration (GLIE) here,
+        # like Boltzmann Exploration with decaying temperature.
         if np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
@@ -255,6 +261,7 @@ class RLStrat(Strat):
         Immediate reward
         dt: Time until next event
         """
+        # Number of calls currently in progress
         return np.sum(self.grid.state)
 
     def discount(self, dt):
@@ -269,46 +276,45 @@ class RLStrat(Strat):
         return self.gamma
 
 
-pp = mk_pparams()
-
-
-def show():
-    grid = FixedGrid(**pp)
-    gui = Gui(grid)
-    gui.test()
-
-
 class Runner:
     def __init__(self):
-        pass
+        self.pp = mk_pparams()
 
     def run(self):
-        grid = Grid(**pp)
-        eventgen = EventGen(**pp)
-        gui = Gui(grid, self.end_sim)
-        self.strat = RLStrat(pp, grid=grid, gui=gui, eventgen=eventgen)
+        grid = Grid(**self.pp)
+        eventgen = EventGen(**self.pp)
+        # gui = Gui(grid, self.end_sim)
+        self.strat = RLStrat(
+                # self.pp, grid=grid, gui=gui, eventgen=eventgen,
+                self.pp, grid=grid, eventgen=eventgen, log=False,
+                sanity_check=False)
         self.strat.simulate()
 
     def end_sim(self, e):
         """
-        Listen for key events from Tkinter and quit
+        Handle key events from Tkinter and quit
         simulation gracefully on 'q'-key
         """
         self.strat.quit_sim = True
 
+    def show(self):
+        grid = FixedGrid(**self.pp)
+        gui = Gui(grid)
+        gui.test()
 
-def run_fa():
-    grid = FixedGrid(**pp)
-    grid.assign_chs()
-    eventgen = EventGen(**pp)
-    gui = Gui(grid)
-    fa_strat = FAStrat(pp, grid=grid, gui=gui, eventgen=eventgen)
-    fa_strat.simulate(pp, grid, fa_strat, eventgen, gui)
+    def run_fa(self):
+        grid = FixedGrid(**self.pp)
+        grid.assign_chs()
+        eventgen = EventGen(**self.pp)
+        gui = Gui(grid)
+        fa_strat = FAStrat(self.pp, grid=grid, gui=gui, eventgen=eventgen)
+        fa_strat.simulate(self.pp, grid, fa_strat, eventgen, gui)
 
 
 if __name__ == '__main__':
     r = Runner()
-    r.run()
+    cProfile.run('r.run()')
+    # r.run(True)
 
 # TODO: Sanity checks:
 # - The number of accepcted new calls minus the number of ended calls

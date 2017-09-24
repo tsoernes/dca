@@ -163,12 +163,20 @@ class Grid:
                     idxs.append((r, c))
         return idxs
 
-    def neighbors2(self, row, col):
+    def neighbors2(self, row, col, separate=False):
         """
+        If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...])
+        else return [(r1, c1), (r2, c2), ...]
+
         Returns a list with indexes of neighbors within a radius of 2,
         not including self
         """
-        idxs = []
+        if separate:
+            rs = []
+            cs = []
+        else:
+            idxs = []
+
         r_low = max(0, row-2)
         r_hi = min(self.rows-1, row+2)
         c_low = max(0, col-2)
@@ -188,8 +196,15 @@ class Grid:
                         (r, c) == (cross1, col+2) or
                         (r, c) == (cross2, col-2) or
                         (r, c) == (cross2, col+2)):
-                    idxs.append((r, c))
-        return idxs
+                    if separate:
+                        rs.append(r)
+                        cs.append(c)
+                    else:
+                        idxs.append((r, c))
+        if separate:
+            return (rs, cs)
+        else:
+            return idxs
 
     @staticmethod
     def distance(r1, c1, r2, c2):
