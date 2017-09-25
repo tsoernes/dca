@@ -94,6 +94,7 @@ class RLStrat(Strat):
         """
         super().__init__(pp, *args, **kwargs)
         self.epsilon = pp['epsilon']
+        self.epsilon_decay = pp['epsilon_decay']
         self.alpha = pp['alpha']
         self.gamma = pp['gamma']
         # "qvals[r][c][n][ch] = v"
@@ -189,6 +190,8 @@ class RLStrat(Strat):
                 self.logger.info(
                         f"\n{t:.2f}: Blocking probability last 100000 events:"
                         f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
+                self.logger.info(
+                        f"Epsilon: {self.epsilon}")
                 n_curr_rejected = 0
                 n_curr_incoming = 0
 
@@ -204,7 +207,7 @@ class RLStrat(Strat):
             f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
 
     def update_qval_trimmed(self, cell, n_used, ch, td_err):
-        self.qvals[cell][max(30, n_used)][ch] += self.alpha * td_err
+        self.qvals[cell][max(29, n_used)][ch] += self.alpha * td_err
 
     def update_qval_full(self, cell, n_used, ch, td_err):
         self.qvals[cell][n_used][ch] += self.alpha * td_err
@@ -213,7 +216,7 @@ class RLStrat(Strat):
         self.qvals[cell][ch] += self.alpha * td_err
 
     def qval_trimmed(self, cell, n_used, ch):
-        return self.qvals[cell][max(30, n_used)][ch]
+        return self.qvals[cell][max(29, n_used)][ch]
 
     def qval_full(self, cell, n_used, ch):
         return self.qvals[cell][n_used][ch]
@@ -305,6 +308,8 @@ class RLStrat(Strat):
                     best_val = val
                     ch = chan
         # print(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        # Epsilon decay
+        self.epsilon *= self.epsilon_decay
         return (n_used, ch)
 
     def reward(self):
@@ -329,9 +334,10 @@ class RLStrat(Strat):
 
 class Runner:
     def __init__(self):
-        self.pp = mk_pparams()
         logging.basicConfig(level=logging.INFO, format='%(message)s')
         self.logger = logging.getLogger('')
+        self.pp = mk_pparams()
+        self.logger.info(f"Starting simulation with params {self.pp}")
 
     def run(self, show_gui=False):
         grid = Grid(logger=self.logger, **self.pp)
@@ -342,7 +348,7 @@ class Runner:
             gui = None
         self.strat = RLStrat(
                 self.pp, grid=grid, gui=gui, eventgen=eventgen,
-                version='reduced',
+                version='trimmed',
                 sanity_check=False, logger=self.logger)
         self.strat.simulate()
 

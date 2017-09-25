@@ -6,10 +6,11 @@ def mk_pparams(rows=7,
                erlangs=8,
                call_rates=None,
                call_duration=3,
-               n_episodes=100000,
+               n_episodes=10000000,
                n_hours=2,
-               epsilon=0.1,
-               alpha=0.01,
+               epsilon=0.2,
+               epsilon_decay=0.999999,
+               alpha=0.005,
                gamma=0.9):
     """
     n_hours: If n_episodes is not specified, run simulation for n_hours
@@ -33,6 +34,7 @@ def mk_pparams(rows=7,
             'n_episodes': n_episodes,
             'n_hours': n_hours,
             'epsilon': epsilon,
+            'epsilon_decay': epsilon_decay,
             'alpha': alpha,
             'gamma': gamma
            }
