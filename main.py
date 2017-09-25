@@ -1,13 +1,10 @@
 from eventgen import CEvent, EventGen
 from gui import Gui
 from grid import FixedGrid, Grid
-from pparams import mk_pparams
 
-import cProfile
 from heapq import heappush, heappop
 import operator
 import time
-import logging
 
 import numpy as np
 import matplotlib as plt
@@ -322,56 +319,6 @@ class RLStrat(Strat):
         # Linearly, exponentially?
         # discount(0) should probably be 0
         return self.gamma
-
-
-class Runner:
-    def __init__(self):
-        logging.basicConfig(level=logging.INFO, format='%(message)s')
-        self.logger = logging.getLogger('')
-        fh = logging.FileHandler('out.log')
-        fh.setLevel(logging.INFO)
-        self.logger.addHandler(fh)
-        self.pp = mk_pparams()
-        self.logger.info(f"Starting simulation with params {self.pp}")
-
-    def run(self, show_gui=False):
-        grid = Grid(logger=self.logger, **self.pp)
-        eventgen = EventGen(**self.pp)
-        if show_gui:
-            gui = Gui(grid, self.end_sim)
-        else:
-            gui = None
-        self.strat = RLStrat(
-                self.pp, grid=grid, gui=gui, eventgen=eventgen,
-                version='trimmed',
-                sanity_check=False, logger=self.logger)
-        self.strat.simulate()
-
-    def end_sim(self, e):
-        """
-        Handle key events from Tkinter and quit
-        simulation gracefully on 'q'-key
-        """
-        self.strat.quit_sim = True
-
-    def show(self):
-        grid = FixedGrid(**self.pp)
-        gui = Gui(grid)
-        gui.test()
-
-    def run_fa(self):
-        grid = FixedGrid(**self.pp)
-        grid.assign_chs()
-        eventgen = EventGen(**self.pp)
-        gui = Gui(grid)
-        fa_strat = FAStrat(self.pp, grid=grid, gui=gui, eventgen=eventgen)
-        fa_strat.simulate(self.pp, grid, fa_strat, eventgen, gui)
-
-
-if __name__ == '__main__':
-    r = Runner()
-    cProfile.run('r.run()')
-    # r.run()
 
 # TODO: Sanity checks:
 # - The number of accepcted new calls minus the number of ended calls
