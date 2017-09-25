@@ -14,11 +14,12 @@ class Direction(Enum):
 
 
 class Grid:
-    def __init__(self, rows, cols, n_channels,
+    def __init__(self, rows, cols, n_channels, logger,
                  *args, **kwargs):
         self.rows = rows
         self.cols = cols
         self.n_channels = n_channels
+        self.logger = logger
 
         self.state = np.zeros((self.rows, self.cols, self.n_channels),
                               dtype=bool)
@@ -41,9 +42,10 @@ class Grid:
                     if busy:
                         for neigh in neighs:
                             if self.state[neigh][ch]:
-                                print(f"""Channel Reuse constraint violated
-                                       in Cell {r} {c} channel {ch}
-                                       with neighbor {neigh}""")
+                                self.logger.error(
+                                    "Channel Reuse constraint violated"
+                                    f" in Cell {r} {c} channel {ch}"
+                                    f" with neighbor {neigh}")
                                 return False
         return True
 
@@ -132,13 +134,13 @@ class Grid:
         not including self. The indexes may not be within grid.
         In clockwise order starting from up-right.
         """
-        idxs = []
-        idxs.append(Grid.move_n(row, col))
-        idxs.append(Grid.move_ne(row, col))
-        idxs.append(Grid.move_se(row, col))
-        idxs.append(Grid.move_s(row, col))
-        idxs.append(Grid.move_sw(row, col))
-        idxs.append(Grid.move_nw(row, col))
+        idxs = [
+            Grid.move_n(row, col),
+            Grid.move_ne(row, col),
+            Grid.move_se(row, col),
+            Grid.move_s(row, col),
+            Grid.move_sw(row, col),
+            Grid.move_nw(row, col)]
         return idxs
 
     def neighbors1(self, row, col):
@@ -208,6 +210,7 @@ class Grid:
 
     @staticmethod
     def distance(r1, c1, r2, c2):
+        raise NotImplementedError
         if c1 % 2 == 0:
             if c2 % 2 == 0:
                 distance = math.abs()
@@ -335,6 +338,7 @@ class BDCLGrid(FixedGrid):
         of 2 from 'b', i.e. the cells within the channel reuse distance
         of 3 when 'b' borrows a channel from 'c'.
         """
+        raise NotImplementedError  # not implemented correctly
         neighs = self.neighbors2(*cell_neigh)
         coch_cells = []
         label = self.labels[cell]
