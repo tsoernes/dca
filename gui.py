@@ -167,6 +167,7 @@ class Gui:
                 if (r, c) not in neighs:
                     self.hgrid.can.delete(h.shape)
         if grayscale:
+            # TODO Find colors
             for neigh in self.grid.neighbors1(x, y):
                 h = self.hgrid.hexagons[neigh[0]][neigh[1]]
                 self.hgrid.can.itemconfigure(h.tags, fill="")
@@ -175,6 +176,8 @@ class Gui:
                 self.hgrid.can.itemconfigure(h.tags, fill="")
 
 
+# TODO: Use a gradient color scheme for cells; i.e.
+# the more busy a cell is, the darker/denser its color
 if __name__ == '__main__':
     g = Grid(7, 7, 70)
     gui = Gui(g, None)

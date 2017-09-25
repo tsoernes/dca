@@ -1,13 +1,15 @@
-from grid import Grid
+from grid import Grid, BDCLGrid, FixedGrid
 
 import unittest
+import logging
 
 import numpy as np
 
 
-class TestNeighbors(unittest.TestCase):
+class TestGrid(unittest.TestCase):
     def setUp(self):
-        self.grid = Grid(rows=7, cols=7, n_channels=70)
+        self.grid = Grid(rows=7, cols=7, n_channels=70,
+                         logger=logging.getLogger(""))
 
     def test_neighbors1(self):
         neighs = self.grid.neighbors1
@@ -67,35 +69,23 @@ class TestNeighbors(unittest.TestCase):
     def _li_set_eq(self, targ, act):
         self.assertSetEqual(set(targ), set(act))
 
-    def test_cochannel_cells(self):
-        self.grid.partition_cells()
-        self._li_set_eq(
-                self.grid.cochannel_cells(*(3, 2), *(3, 3)),
-                [(1, 3), (3, 5)])
-        self._li_set_eq(
-                self.grid.cochannel_cells(*(3, 2), *(4, 3)),
-                [(3, 5), (5, 4)])
-        self._li_set_eq(
-                self.grid.cochannel_cells(*(3, 2), *(4, 2)),
-                [(5, 4), (6, 1)])
-        self._li_set_eq(
-                self.grid.cochannel_cells(*(3, 2), *(4, 1)),
-                [(6, 1)])
-        self._li_set_eq(
-                self.grid.cochannel_cells(*(3, 2), *(3, 1)),
-                [(1, 0)])
-        self._li_set_eq(
-                self.grid.cochannel_cells(*(3, 2), *(2, 2)),
-                [(1, 0), (1, 3)])
-
     def test_partition_cells(self):
-        self.grid.partition_cells()
+        self.grid._partition_cells()
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
                 l = self.grid.labels[r][c]
                 neighs = self.grid.neighbors2(r, c)
                 for neigh in neighs:
                     self.assertNotEqual(l, self.grid.labels[neigh])
+
+
+class TestFixedGrid(unittest.TestCase):
+    def setUp(self):
+        self.grid = FixedGrid(rows=7, cols=7, n_channels=70,
+                              logger=logging.getLogger(""))
+
+    def _li_set_eq(self, targ, act):
+        self.assertSetEqual(set(targ), set(act))
 
     def test_assign_chs(self):
         self.grid.assign_chs()
@@ -107,6 +97,37 @@ class TestNeighbors(unittest.TestCase):
                     if isNom:
                         for neigh in neighs:
                             self.assertFalse(self.grid.nom_chs[neigh][ch])
+
+
+class TestBDCLGrid(unittest.TestCase):
+    def setUp(self):
+        self.grid = BDCLGrid(rows=7, cols=7, n_channels=70,
+                             logger=logging.getLogger(""))
+
+    def _li_set_eq(self, targ, act):
+        self.assertSetEqual(set(targ), set(act))
+
+    def test_cochannel_cells(self):
+        raise NotImplementedError  # not implemented correctly
+        self.grid._partition_cells()
+        self._li_set_eq(
+                self.grid.cochannel_cells((3, 2), (3, 3)),
+                [(1, 3), (3, 5)])
+        self._li_set_eq(
+                self.grid.cochannel_cells((3, 2), (4, 3)),
+                [(3, 5), (5, 4)])
+        self._li_set_eq(
+                self.grid.cochannel_cells((3, 2), (4, 2)),
+                [(5, 4), (6, 1)])
+        self._li_set_eq(
+                self.grid.cochannel_cells((3, 2), (4, 1)),
+                [(6, 1)])
+        self._li_set_eq(
+                self.grid.cochannel_cells((3, 2), (3, 1)),
+                [(1, 0)])
+        self._li_set_eq(
+                self.grid.cochannel_cells((3, 2), (2, 2)),
+                [(1, 0), (1, 3)])
 
 
 if __name__ == '__main__':
