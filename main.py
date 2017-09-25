@@ -190,10 +190,10 @@ class RLStrat(Strat):
 
             if i > 0 and i % 100000 == 0:
                 self.logger.info(
-                        f"\n{t:.2f}: Blocking probability last 100000 events:"
+                        f"\nt{t:.2f}: Blocking probability last 100000 events:"
                         f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
                 self.logger.info(
-                        f"Epsilon: {self.epsilon:.5f},"
+                        f"n{i} Epsilon: {self.epsilon:.5f},"
                         f" Alpha: {self.alpha:.5f}")
                 n_curr_rejected = 0
                 n_curr_incoming = 0
@@ -339,6 +339,9 @@ class Runner:
     def __init__(self):
         logging.basicConfig(level=logging.INFO, format='%(message)s')
         self.logger = logging.getLogger('')
+        fh = logging.FileHandler('out.log')
+        fh.setLevel(logging.INFO)
+        self.logger.addHandler(fh)
         self.pp = mk_pparams()
         self.logger.info(f"Starting simulation with params {self.pp}")
 
