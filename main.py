@@ -17,18 +17,6 @@ lr = 0.8  # Learning rate
 y = 0.95  # Gamma (discount factor)
 
 
-# class Params:
-#     """
-#     Problem parameters. Immutable.
-#     """
-#     rows = attr.ib()
-#     cols = attr.ib()
-#     n_channels = attr.ib()
-#     call_rates = attr.ib()
-#     call_duration = attr.ib()
-#     n_episodes = attr.ib()
-
-
 class Strat:
     def __init__(self, pp, eventgen, grid, logger, gui=None,
                  sanity_check=True,
