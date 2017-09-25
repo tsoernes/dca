@@ -108,6 +108,7 @@ class RLStrat(Strat):
             self.qval = self.qval_full
             self.update_qval = self.update_qval_full
         elif version == 'trimmed':
+            # consistent low 7%, sometimes 6% block prob
             self.qvals = np.zeros((self.rows, self.cols,
                                   30, self.n_channels))
             self.qval = self.qval_trimmed
