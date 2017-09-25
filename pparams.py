@@ -8,10 +8,10 @@ def mk_pparams(rows=7,
                call_duration=3,
                n_episodes=2000000,
                n_hours=2,
-               epsilon=0.25,
+               epsilon=0.2,
                epsilon_decay=0.999999,
                alpha=0.05,
-               alpha_decay=0.9999999,
+               alpha_decay=0.999999,
                gamma=0.9):
     """
     n_hours: If n_episodes is not specified, run simulation for n_hours

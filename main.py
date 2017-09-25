@@ -193,7 +193,7 @@ class RLStrat(Strat):
                         f"\nt{t:.2f}: Blocking probability last 100000 events:"
                         f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
                 self.logger.info(
-                        f"n{i} Epsilon: {self.epsilon:.5f},"
+                        f"n{i}: Epsilon: {self.epsilon:.5f},"
                         f" Alpha: {self.alpha:.5f}")
                 n_curr_rejected = 0
                 n_curr_incoming = 0
@@ -381,8 +381,8 @@ class Runner:
 
 if __name__ == '__main__':
     r = Runner()
-    # cProfile.run('r.run()')
-    r.run()
+    cProfile.run('r.run()')
+    # r.run()
 
 # TODO: Sanity checks:
 # - The number of accepcted new calls minus the number of ended calls
