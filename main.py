@@ -6,9 +6,11 @@ from pparams import mk_pparams
 import cProfile
 from heapq import heappush, heappop
 import operator
-import sys
+import time
+import logging
 
 import numpy as np
+import matplotlib as plt
 
 
 lr = 0.8  # Learning rate
@@ -28,8 +30,8 @@ y = 0.95  # Gamma (discount factor)
 
 
 class Strat:
-    def __init__(self, pp, eventgen, grid, gui=None, sanity_check=True,
-                 log=True,
+    def __init__(self, pp, eventgen, grid, logger, gui=None,
+                 sanity_check=True,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
@@ -41,7 +43,7 @@ class Strat:
         self.gui = gui
         self.sanity_check = sanity_check
         self.quit_sim = False
-        self.log = log
+        self.logger = logger
 
     def fn_new(self, row, col):
         """
@@ -84,28 +86,44 @@ class FAStrat(Strat):
 
 
 class RLStrat(Strat):
-    def __init__(self, pp, *args, **kwargs):
+    def __init__(self, pp, version='full', *args, **kwargs):
         """
         :param float alpha - learning rate
         :param float epsilon - best action is selected
             with probability (1-epsilon)
         """
         super().__init__(pp, *args, **kwargs)
+        self.epsilon = pp['epsilon']
+        self.alpha = pp['alpha']
+        self.gamma = pp['gamma']
         # "qvals[r][c][n][ch] = v"
         # Assigning channel 'c' to the cell at row 'r', col 'c'
         # has q-value 'v' given that 'n' channels are already
         # in use at that cell.
-        self.qvals = np.zeros((self.rows, self.cols,
-                              self.n_channels, self.n_channels))
-        self.epsilon = pp['epsilon']
-        self.alpha = pp['alpha']
-        self.gamma = pp['gamma']
+        if version == 'full':
+            self.qvals = np.zeros((self.rows, self.cols,
+                                  self.n_channels, self.n_channels))
+            self.qval = self.qval_full
+            self.update_qval = self.update_qval_full
+        elif version == 'trimmed':
+            self.qvals = np.zeros((self.rows, self.cols,
+                                  30, self.n_channels))
+            self.qval = self.qval_trimmed
+            self.update_qval = self.update_qval_trimmed
+        elif version == 'reduced':
+            self.qvals = np.zeros((self.rows, self.cols,
+                                   self.n_channels))
+            self.qval = self.qval_reduced
+            self.update_qval = self.update_qval_reduced
 
     def simulate(self):
+        start_time = time.time()
         n_rejected = 0  # Number of rejected calls
         n_incoming = 0  # Number of incoming (not necessarily accepted) calls
         # Number of channels in progress at a cell when call is blocked
         n_inuse_rej = 0
+        n_curr_rejected = 0  # Number of rejected calls last 100 episodes
+        n_curr_incoming = 0  # Number of incoming calls last 100 episodes
 
         # Generate initial call events; one for each cell
         for r in range(self.rows):
@@ -116,31 +134,32 @@ class RLStrat(Strat):
         prev_n_used, prev_ch = self.optimal_ch(prev_cevent[1], prev_cell)
         prev_qval = 0
         # Discrete event simulation
-        for _ in range(self.n_episodes):
+        for i in range(self.n_episodes):
             if self.quit_sim:
-                break
+                break  # Gracefully quit to print stats
 
             t = prev_cevent[0]
-            # Take action A, observe R, S'
             self.execute_action(prev_cevent, prev_ch)
             reward = self.reward()
 
             if self.sanity_check and not self.grid.validate_reuse_constr():
-                print("Reuse constraint broken: {self.grid}")
+                self.logger.error(f"Reuse constraint broken: {self.grid}")
                 raise Exception
             if self.gui:
                 self.gui.step()
 
             if prev_cevent[1] == CEvent.NEW:
                 n_incoming += 1
+                n_curr_incoming += 1
                 # Generate next incoming call
                 heappush(self.cevents, self.eventgen.event_new(t, prev_cell))
                 if prev_ch == -1:
                     n_rejected += 1
+                    n_curr_rejected += 1
                     n_inuse_rej += prev_n_used
-                    if self.log:
-                        print(f"Rejected call to {prev_cell} when {prev_n_used}"
-                              f" of {self.n_channels} channels in use")
+                    self.logger.debug(
+                            f"Rejected call to {prev_cell} when {prev_n_used}"
+                            f" of {self.n_channels} channels in use")
                     if self.gui:
                         self.gui.hgrid.mark_cell(*prev_cell)
                 else:
@@ -150,16 +169,15 @@ class RLStrat(Strat):
 
             cevent = heappop(self.cevents)
             t, e_type, cell = cevent[0], cevent[1], cevent[2]
-            if self.log:
-                print(f"{t:4.4}: {e_type.name} {cevent[2:]}")
+            self.logger.debug(f"{t:.2f}: {e_type.name} {cevent[2:]}")
 
             # Choose A' from S'
             n_used, ch = self.optimal_ch(e_type, cell)
             # Update q-values with one-step lookahead
-            qval = self.qvals[cell][n_used][ch]
+            qval = self.qval(cell, n_used, ch)
             dt = -1  # how to calculate this?
             td_err = reward + self.discount(dt) * qval - prev_qval
-            self.qvals[prev_cell][prev_n_used][prev_ch] += self.alpha * td_err
+            self.update_qval(prev_cell, prev_n_used, prev_ch, td_err)
 
             prev_cell = cell
             prev_cevent = cevent
@@ -167,11 +185,41 @@ class RLStrat(Strat):
             prev_ch = ch
             prev_qval = qval
 
-        print(f"\nRejected {n_rejected} of {n_incoming} calls")
-        print(f"Blocking probability: {n_rejected/n_incoming}")
-        print(f"Average number of calls in progress when blocking: "
-              f"{n_inuse_rej/n_rejected}")
-        print(f"{np.sum(self.grid.state)} calls in progress at simulation end")
+            if i > 0 and i % 100000 == 0:
+                self.logger.info(
+                        f"\n{t:.2f}: Blocking probability last 100000 events:"
+                        f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
+                n_curr_rejected = 0
+                n_curr_incoming = 0
+
+        self.logger.warn(
+            f"\nSimulation duration: {t/24:.2f} hours?,"
+            f" {self.n_episodes} episodes"
+            f" at {self.n_episodes/(time.time()-start_time):.0f}"
+            " episodes/second"
+            f"\nRejected {n_rejected} of {n_incoming} calls"
+            f"\nBlocking probability: {n_rejected/n_incoming:.4f}"
+            f"\nAverage number of calls in progress when blocking: "
+            f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
+            f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
+
+    def update_qval_trimmed(self, cell, n_used, ch, td_err):
+        self.qvals[cell][max(30, n_used)][ch] += self.alpha * td_err
+
+    def update_qval_full(self, cell, n_used, ch, td_err):
+        self.qvals[cell][n_used][ch] += self.alpha * td_err
+
+    def update_qval_reduced(self, cell, n_used, ch, td_err):
+        self.qvals[cell][ch] += self.alpha * td_err
+
+    def qval_trimmed(self, cell, n_used, ch):
+        return self.qvals[cell][max(30, n_used)][ch]
+
+    def qval_full(self, cell, n_used, ch):
+        return self.qvals[cell][n_used][ch]
+
+    def qval_reduced(self, cell, n_used, ch):
+        return self.qvals[cell][ch]
 
     def execute_action(self, cevent, ch):
         """
@@ -182,17 +230,17 @@ class RLStrat(Strat):
         cell = cevent[2]
         if cevent[1] == CEvent.NEW:
             if self.grid.state[cell][ch]:
-                print("Tried assigning new call {cevent} to \
-                        channel {ch} which is already in use")
+                self.logger.error(
+                    f"Tried assigning new call {cevent} to"
+                    f"channel {ch} which is already in use")
                 raise Exception()
 
-            if self.log:
-                print(f"Assigned ch {ch} to cell {cell}")
+            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
             # Add incoming call to current state
             self.grid.state[cell][ch] = 1
         else:
-            if self.log:
-                print(f"Reassigned ch {cevent[3]} to ch {ch} in cell {cell}")
+            self.logger.debug(
+                    f"Reassigned ch {cevent[3]} to ch {ch} in cell {cell}")
             # Reassign 'ch' to the channel of the terminating call
             self.grid.state[cell][ch] = 1
             self.grid.state[cell][cevent[3]] = 0
@@ -243,13 +291,16 @@ class RLStrat(Strat):
 
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
+
+        # TODO Reduce epsilon. When and by how much?
         if np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
         else:
             # Choose greedily
             for chan in chs:
-                val = self.qvals[cell][n_used][chan]
+                # val = self.qvals[cell][n_used][chan]
+                val = self.qval(cell, n_used, chan)
                 if op(val, best_val):
                     best_val = val
                     ch = chan
@@ -279,15 +330,20 @@ class RLStrat(Strat):
 class Runner:
     def __init__(self):
         self.pp = mk_pparams()
+        logging.basicConfig(level=logging.INFO, format='%(message)s')
+        self.logger = logging.getLogger('')
 
-    def run(self):
-        grid = Grid(**self.pp)
+    def run(self, show_gui=False):
+        grid = Grid(logger=self.logger, **self.pp)
         eventgen = EventGen(**self.pp)
-        # gui = Gui(grid, self.end_sim)
+        if show_gui:
+            gui = Gui(grid, self.end_sim)
+        else:
+            gui = None
         self.strat = RLStrat(
-                # self.pp, grid=grid, gui=gui, eventgen=eventgen,
-                self.pp, grid=grid, eventgen=eventgen, log=False,
-                sanity_check=False)
+                self.pp, grid=grid, gui=gui, eventgen=eventgen,
+                version='reduced',
+                sanity_check=False, logger=self.logger)
         self.strat.simulate()
 
     def end_sim(self, e):
@@ -313,8 +369,8 @@ class Runner:
 
 if __name__ == '__main__':
     r = Runner()
-    cProfile.run('r.run()')
-    # r.run(True)
+    # cProfile.run('r.run()')
+    r.run()
 
 # TODO: Sanity checks:
 # - The number of accepcted new calls minus the number of ended calls
