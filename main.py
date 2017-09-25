@@ -96,6 +96,7 @@ class RLStrat(Strat):
         self.epsilon = pp['epsilon']
         self.epsilon_decay = pp['epsilon_decay']
         self.alpha = pp['alpha']
+        self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
         # "qvals[r][c][n][ch] = v"
         # Assigning channel 'c' to the cell at row 'r', col 'c'
@@ -179,6 +180,7 @@ class RLStrat(Strat):
             dt = -1  # how to calculate this?
             td_err = reward + self.discount(dt) * qval - prev_qval
             self.update_qval(prev_cell, prev_n_used, prev_ch, td_err)
+            self.alpha *= self.alpha_decay
 
             prev_cell = cell
             prev_cevent = cevent
@@ -191,7 +193,8 @@ class RLStrat(Strat):
                         f"\n{t:.2f}: Blocking probability last 100000 events:"
                         f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
                 self.logger.info(
-                        f"Epsilon: {self.epsilon}")
+                        f"Epsilon: {self.epsilon:.5f},"
+                        f" Alpha: {self.alpha:.5f}")
                 n_curr_rejected = 0
                 n_curr_incoming = 0
 
