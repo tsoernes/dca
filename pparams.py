@@ -1,4 +1,4 @@
-from main import RLStrat, FAStrat
+from main import RLStrat, FAStrat, SARSAStrat, TTSARSAStrat, RSSARSAStrat
 from gui import Gui
 from grid import Grid, FixedGrid
 from eventgen import EventGen
@@ -79,6 +79,13 @@ class Runner:
         self.pp = get_pparams()
         self.logger.info(f"Starting simulation with params {self.pp}")
 
+    def test_params(self):
+        alpha_range = [0.01, 0.2]
+        alpha_decay_range = [0.9999, 0.9999999]
+        epsilon_range = [0.05, 0.4]
+        epsilon_decay_range = [0.9999, 0.9999999]
+        # TODO check karpathy lecs on how to sample
+
     def run(self, show_gui=False):
         grid = Grid(logger=self.logger, **self.pp)
         eventgen = EventGen(**self.pp)
@@ -86,9 +93,8 @@ class Runner:
             gui = Gui(grid, self.end_sim)
         else:
             gui = None
-        self.strat = RLStrat(
+        self.strat = TTSARSAStrat(
                 self.pp, grid=grid, gui=gui, eventgen=eventgen,
-                version='trimmed',
                 sanity_check=False, logger=self.logger)
         self.strat.simulate()
 

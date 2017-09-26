@@ -1,6 +1,4 @@
-from eventgen import CEvent, EventGen
-from gui import Gui
-from grid import FixedGrid, Grid
+from eventgen import CEvent
 
 from heapq import heappush, heappop
 import operator
@@ -71,7 +69,7 @@ class FAStrat(Strat):
 
 
 class RLStrat(Strat):
-    def __init__(self, pp, version='full', *args, **kwargs):
+    def __init__(self, pp, *args, **kwargs):
         """
         :param float alpha - learning rate
         :param float epsilon - best action is selected
@@ -83,26 +81,6 @@ class RLStrat(Strat):
         self.alpha = pp['alpha']
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
-        # "qvals[r][c][n][ch] = v"
-        # Assigning channel 'c' to the cell at row 'r', col 'c'
-        # has q-value 'v' given that 'n' channels are already
-        # in use at that cell.
-        if version == 'full':
-            self.qvals = np.zeros((self.rows, self.cols,
-                                  self.n_channels, self.n_channels))
-            self.qval = self.qval_full
-            self.update_qval = self.update_qval_full
-        elif version == 'trimmed':
-            # consistent low 7%, sometimes 6% block prob
-            self.qvals = np.zeros((self.rows, self.cols,
-                                  30, self.n_channels))
-            self.qval = self.qval_trimmed
-            self.update_qval = self.update_qval_trimmed
-        elif version == 'reduced':
-            self.qvals = np.zeros((self.rows, self.cols,
-                                   self.n_channels))
-            self.qval = self.qval_reduced
-            self.update_qval = self.update_qval_reduced
 
     def simulate(self):
         start_time = time.time()
@@ -195,23 +173,11 @@ class RLStrat(Strat):
             f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
             f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
 
-    def update_qval_trimmed(self, cell, n_used, ch, td_err):
-        self.qvals[cell][max(29, n_used)][ch] += self.alpha * td_err
+    def update_qval():
+        raise NotImplementedError
 
-    def update_qval_full(self, cell, n_used, ch, td_err):
-        self.qvals[cell][n_used][ch] += self.alpha * td_err
-
-    def update_qval_reduced(self, cell, n_used, ch, td_err):
-        self.qvals[cell][ch] += self.alpha * td_err
-
-    def qval_trimmed(self, cell, n_used, ch):
-        return self.qvals[cell][max(29, n_used)][ch]
-
-    def qval_full(self, cell, n_used, ch):
-        return self.qvals[cell][n_used][ch]
-
-    def qval_reduced(self, cell, n_used, ch):
-        return self.qvals[cell][ch]
+    def get_qval():
+        raise NotImplementedError
 
     def execute_action(self, cevent, ch):
         """
@@ -319,6 +285,53 @@ class RLStrat(Strat):
         # Linearly, exponentially?
         # discount(0) should probably be 0
         return self.gamma
+
+
+class SARSAStrat(RLStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # "qvals[r][c][n][ch] = v"
+        # Assigning channel 'c' to the cell at row 'r', col 'c'
+        # has q-value 'v' given that 'n' channels are already
+        # in use at that cell.
+        self.qvals = np.zeros((self.rows, self.cols,
+                              self.n_channels, self.n_channels))
+
+    def get_qval(self, cell, n_used, ch):
+        return self.qvals[cell][n_used][ch]
+
+    def update_qval(self, cell, n_used, ch, td_err):
+        self.qvals[cell][n_used][ch] += self.alpha * td_err
+
+
+class TTSARSAStrat(RLStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # consistent low 7%, sometimes 6% block prob
+        # Maximum Number of used channels in a cell in the table.
+        # If the actual number is higher, it gets 'merged' to k.
+        self.k = 30
+        self.qvals = np.zeros((self.rows, self.cols,
+                              self.k, self.n_channels))
+
+    def get_qval(self, cell, n_used, ch):
+        return self.qvals[cell][max(self.k-1, n_used)][ch]
+
+    def update_qval(self, cell, n_used, ch, td_err):
+        self.qvals[cell][max(self.k-1, n_used)][ch] += self.alpha * td_err
+
+
+class RSSARSAStrat(RLStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.qvals = np.zeros((self.rows, self.cols,
+                               self.n_channels))
+
+    def qval_reduced(self, cell, n_used, ch):
+        return self.qvals[cell][ch]
+
+    def update_qval_reduced(self, cell, n_used, ch, td_err):
+        self.qvals[cell][ch] += self.alpha * td_err
 
 # TODO: Sanity checks:
 # - The number of accepcted new calls minus the number of ended calls
