@@ -146,11 +146,8 @@ class RLStrat(Strat):
             self.update_qval(prev_cell, prev_n_used, prev_ch, td_err)
             self.alpha *= self.alpha_decay
 
-            prev_cell = cell
-            prev_cevent = cevent
-            prev_n_used = n_used
-            prev_ch = ch
-            prev_qval = qval
+            prev_cell, prev_cevent, prev_n_used = cell, cevent, n_used
+            prev_ch, prev_qval = ch, qval
 
             if i > 0 and i % 100000 == 0:
                 self.logger.info(
@@ -250,7 +247,6 @@ class RLStrat(Strat):
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
 
-        # TODO Reduce epsilon. When and by how much?
         if np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
@@ -311,21 +307,19 @@ class TTSARSAStrat(RLStrat):
         # Maximum Number of used channels in a cell in the table.
         # If the actual number is higher, it gets 'merged' to k.
         self.k = 30
-        self.qvals = np.zeros((self.rows, self.cols,
-                              self.k, self.n_channels))
+        self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
 
     def get_qval(self, cell, n_used, ch):
-        return self.qvals[cell][max(self.k-1, n_used)][ch]
+        return self.qvals[cell][min(self.k-1, n_used)][ch]
 
     def update_qval(self, cell, n_used, ch, td_err):
-        self.qvals[cell][max(self.k-1, n_used)][ch] += self.alpha * td_err
+        self.qvals[cell][min(self.k-1, n_used)][ch] += self.alpha * td_err
 
 
 class RSSARSAStrat(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.qvals = np.zeros((self.rows, self.cols,
-                               self.n_channels))
+        self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
 
     def qval_reduced(self, cell, n_used, ch):
         return self.qvals[cell][ch]
