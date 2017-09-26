@@ -53,3 +53,10 @@ class EventGen:
         neigh = np.random.choice(neighs)
         e_time = np.random.exponential(self.handoff_call_duration) + t
         return (e_time, CEvent.HOFF, from_cell, neigh)
+
+
+def ce_str(cevent):
+    string = f"{cevent[0]:.3f}: {cevent[1].name} {cevent[2]}"
+    if cevent[1] == CEvent.END:
+        string += f" ch{cevent[3]}"
+    return string

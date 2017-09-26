@@ -1,4 +1,4 @@
-from eventgen import CEvent
+from eventgen import CEvent, ce_str
 
 from heapq import heappush, heappop
 import operator
@@ -43,7 +43,7 @@ class Strat:
                 heappush(self.cevents, self.eventgen.event_new(0, (r, c)))
 
         cevent = heappop(self.cevents)
-        ch = self.fn_after()
+        ch = self.fn_init(cevent)
 
         # Discrete event simulation
         for i in range(self.n_episodes):
@@ -54,7 +54,7 @@ class Strat:
             self.logger.debug(f"{t:.2f}: {cevent[1].name} {cevent[2:]}")
 
             self.execute_action(cevent, ch)
-            n_used = np.sum(self.state.grid[ch])
+            n_used = np.sum(self.grid.state[cell])
 
             if self.sanity_check and not self.grid.validate_reuse_constr():
                 self.logger.error(f"Reuse constraint broken: {self.grid}")
@@ -106,17 +106,13 @@ class Strat:
             f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
             f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
 
-    def fn_new(self, row, col):
-        """
-        Assign incoming call in cell in row @row@ column @col@ to a channel.
-        Return the channel assigned; -1 if unable to assign a channel.
-        """
+    def fn_init(self):
         raise NotImplementedError()
 
-    def fn_end(self):
-        """
-        Possibly reassign current calls
-        """
+    def fn_after(self):
+        raise NotImplementedError()
+
+    def execute_action(self):
         raise NotImplementedError()
 
 
@@ -146,12 +142,12 @@ class FAStrat(Strat):
             # No rearrangement is done when a call terminates.
             return next_cevent[3]
 
-    def execute_action(self, prev_cevent, prev_ch):
-        cell = prev_cevent[2]
-        if prev_cevent[1] == CEvent.NEW:
-            self.grid.state[cell][prev_ch] = 1
+    def execute_action(self, cevent, ch):
+        cell = cevent[2]
+        if cevent[1] == CEvent.NEW:
+            self.grid.state[cell][ch] = 1
         else:
-            self.grid.state[cell][prev_ch] = 0
+            self.grid.state[cell][ch] = 0
 
 
 class RLStrat(Strat):
@@ -168,7 +164,10 @@ class RLStrat(Strat):
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
 
-    def simulate(self):
+        self.n_used = 0
+        self.qval = 0
+
+    def _simulate(self):
         start_time = time.time()
         n_rejected = 0  # Number of rejected calls
         n_incoming = 0  # Number of incoming (not necessarily accepted) calls
@@ -256,25 +255,29 @@ class RLStrat(Strat):
             f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
             f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
 
+    def fn_init(self, cevent):
+        _, ch = self.optimal_ch(cevent[1], cevent[2])
+        return ch
+
     def fn_after(self, next_cevent, cell, ch):
         """
         Return a channel to be (re)assigned for the 'next_cevent'.
         'cell' and 'ch' specify the previous channel (re)assignment.
         """
         # Observe reward from previous action
-        self.reward = self.reward()
+        reward = self.reward()
         next_cell = next_cevent[2]
         # Choose A' from S'
-        n_used, next_ch = self.optimal_ch(next_cevent[1], next_cell)
+        next_n_used, next_ch = self.optimal_ch(next_cevent[1], next_cell)
         # Update q-values with one-step lookahead
-        qval = self.qval(next_cell, n_used, next_ch)
+        next_qval = self.get_qval(next_cell, next_n_used, next_ch)
         dt = -1  # how to calculate this?
-        td_err = self.reward + self.discount(dt) * qval - self.prev_qval
+        td_err = reward + self.discount(dt) * next_qval - self.qval
         # self.prev_n_used = 0 on first iter
-        self.update_qval(cell, self.prev_n_used, ch, td_err)
+        self.update_qval(cell, self.n_used, ch, td_err)
         self.alpha *= self.alpha_decay
 
-        self.prev_n_used, self.prev_qval = n_used, qval
+        self.n_used, self.qval = next_n_used, next_qval
         return ch
 
     def update_qval():
@@ -293,8 +296,8 @@ class RLStrat(Strat):
         if cevent[1] == CEvent.NEW:
             if self.grid.state[cell][ch]:
                 self.logger.error(
-                    f"Tried assigning new call {cevent} to"
-                    f"channel {ch} which is already in use")
+                    f"Tried assigning new call {ce_str(cevent)} to"
+                    f" channel {ch} which is already in use")
                 raise Exception()
 
             self.logger.debug(f"Assigned ch {ch} to cell {cell}")
@@ -360,8 +363,7 @@ class RLStrat(Strat):
         else:
             # Choose greedily
             for chan in chs:
-                # val = self.qvals[cell][n_used][chan]
-                val = self.qval(cell, n_used, chan)
+                val = self.get_qval(cell, n_used, chan)
                 if op(val, best_val):
                     best_val = val
                     ch = chan
