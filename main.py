@@ -28,6 +28,84 @@ class Strat:
         self.quit_sim = False
         self.logger = logger
 
+    def simulate(self):
+        start_time = time.time()
+        n_rejected = 0  # Number of rejected calls
+        n_incoming = 0  # Number of incoming (not necessarily accepted) calls
+        # Number of channels in progress at a cell when call is blocked
+        n_inuse_rej = 0
+        n_curr_rejected = 0  # Number of rejected calls last 100 episodes
+        n_curr_incoming = 0  # Number of incoming calls last 100 episodes
+
+        # Generate initial call events; one for each cell
+        for r in range(self.rows):
+            for c in range(self.cols):
+                heappush(self.cevents, self.eventgen.event_new(0, (r, c)))
+
+        cevent = heappop(self.cevents)
+        ch = self.fn_after()
+
+        # Discrete event simulation
+        for i in range(self.n_episodes):
+            if self.quit_sim:
+                break  # Gracefully quit to print stats
+
+            t, ce_type, cell = cevent[0], cevent[1], cevent[2]
+            self.logger.debug(f"{t:.2f}: {cevent[1].name} {cevent[2:]}")
+
+            self.execute_action(cevent, ch)
+            n_used = np.sum(self.state.grid[ch])
+
+            if self.sanity_check and not self.grid.validate_reuse_constr():
+                self.logger.error(f"Reuse constraint broken: {self.grid}")
+                raise Exception
+            if self.gui:
+                self.gui.step()
+
+            if ce_type == CEvent.NEW:
+                n_incoming += 1
+                n_curr_incoming += 1
+                # Generate next incoming call
+                heappush(self.cevents, self.eventgen.event_new(t, cell))
+                if ch == -1:
+                    n_rejected += 1
+                    n_curr_rejected += 1
+                    n_inuse_rej += n_used
+                    self.logger.debug(
+                            f"Rejected call to {cell} when {n_used}"
+                            f" of {self.n_channels} channels in use")
+                    if self.gui:
+                        self.gui.hgrid.mark_cell(*cell)
+                else:
+                    # Generate call duration for call and add end event
+                    heappush(self.cevents,
+                             self.eventgen.event_end(t, cell, ch))
+
+            next_cevent = heappop(self.cevents)
+            next_ch = self.fn_after(next_cevent, cell, ch)
+            ch, cevent = next_ch, next_cevent
+
+            if i > 0 and i % 100000 == 0:
+                self.logger.info(
+                        f"\nt{t:.2f}: Blocking probability last 100000 events:"
+                        f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
+                self.logger.info(
+                        f"n{i}: Epsilon: {self.epsilon:.5f},"
+                        f" Alpha: {self.alpha:.5f}")
+                n_curr_rejected = 0
+                n_curr_incoming = 0
+
+        self.logger.warn(
+            f"\nSimulation duration: {t/24:.2f} hours?,"
+            f" {self.n_episodes} episodes"
+            f" at {self.n_episodes/(time.time()-start_time):.0f}"
+            " episodes/second"
+            f"\nRejected {n_rejected} of {n_incoming} calls"
+            f"\nBlocking probability: {n_rejected/n_incoming:.4f}"
+            f"\nAverage number of calls in progress when blocking: "
+            f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
+            f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
+
     def fn_new(self, row, col):
         """
         Assign incoming call in cell in row @row@ column @col@ to a channel.
@@ -52,20 +130,28 @@ class FAStrat(Strat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def fn_new(self, row, col):
-        # When a call arrives in a cell,
-        # if any pre-assigned channel is unused;
-        # it is assigned, else the call is blocked.
-        ch = -1
-        for idx, isNom in enumerate(self.grid.nom_chs[row][col]):
-            if isNom and self.grid.state[row][col][idx] == 0:
-                ch = idx
-                break
-        return ch
+    def fn_after(self, next_cevent, cell, ch):
+        next_cell = next_cevent[2]
+        if next_cevent[1] == CEvent.NEW:
+            # When a call arrives in a cell,
+            # if any pre-assigned channel is unused;
+            # it is assigned, else the call is blocked.
+            ch = -1
+            for idx, isNom in enumerate(self.grid.nom_chs[next_cell]):
+                if isNom and self.grid.state[next_cell][idx] == 0:
+                    ch = idx
+                    break
+            return ch
+        else:
+            # No rearrangement is done when a call terminates.
+            return next_cevent[3]
 
-    def fn_end(self):
-        # No rearrangement is done when a call terminates.
-        pass
+    def execute_action(self, prev_cevent, prev_ch):
+        cell = prev_cevent[2]
+        if prev_cevent[1] == CEvent.NEW:
+            self.grid.state[cell][prev_ch] = 1
+        else:
+            self.grid.state[cell][prev_ch] = 0
 
 
 class RLStrat(Strat):
@@ -106,7 +192,6 @@ class RLStrat(Strat):
 
             t = prev_cevent[0]
             self.execute_action(prev_cevent, prev_ch)
-            reward = self.reward()
 
             if self.sanity_check and not self.grid.validate_reuse_constr():
                 self.logger.error(f"Reuse constraint broken: {self.grid}")
@@ -123,7 +208,7 @@ class RLStrat(Strat):
                     n_rejected += 1
                     n_curr_rejected += 1
                     n_inuse_rej += prev_n_used
-                    self.logger.debug(
+                    self.logger.debug(  # Reward for last action excuted
                             f"Rejected call to {prev_cell} when {prev_n_used}"
                             f" of {self.n_channels} channels in use")
                     if self.gui:
@@ -142,6 +227,7 @@ class RLStrat(Strat):
             # Update q-values with one-step lookahead
             qval = self.qval(cell, n_used, ch)
             dt = -1  # how to calculate this?
+            reward = self.reward()  # Reward for last action excuted
             td_err = reward + self.discount(dt) * qval - prev_qval
             self.update_qval(prev_cell, prev_n_used, prev_ch, td_err)
             self.alpha *= self.alpha_decay
@@ -169,6 +255,27 @@ class RLStrat(Strat):
             f"\nAverage number of calls in progress when blocking: "
             f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
             f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
+
+    def fn_after(self, next_cevent, cell, ch):
+        """
+        Return a channel to be (re)assigned for the 'next_cevent'.
+        'cell' and 'ch' specify the previous channel (re)assignment.
+        """
+        # Observe reward from previous action
+        self.reward = self.reward()
+        next_cell = next_cevent[2]
+        # Choose A' from S'
+        n_used, next_ch = self.optimal_ch(next_cevent[1], next_cell)
+        # Update q-values with one-step lookahead
+        qval = self.qval(next_cell, n_used, next_ch)
+        dt = -1  # how to calculate this?
+        td_err = self.reward + self.discount(dt) * qval - self.prev_qval
+        # self.prev_n_used = 0 on first iter
+        self.update_qval(cell, self.prev_n_used, ch, td_err)
+        self.alpha *= self.alpha_decay
+
+        self.prev_n_used, self.prev_qval = n_used, qval
+        return ch
 
     def update_qval():
         raise NotImplementedError
