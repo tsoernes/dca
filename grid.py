@@ -62,10 +62,8 @@ class Grid:
         # then the cell itself does not either.
         for r in range(self.rows):
             for c in range(self.cols):
-                neighs = self.neighbors2(r, c)
-                inuse = self.state[neighs[0]]
-                for i in range(1, len(neighs)):
-                    inuse = np.bitwise_or(inuse, self.state[neighs[i]])
+                neighs = self.neighbors2(r, c, True)
+                inuse = np.bitwise_or.reduce(self.state[neighs])
                 if np.any(np.bitwise_and(self.state[r][c], inuse)):
                     self.logger.error(
                         "Channel Reuse constraint violated"

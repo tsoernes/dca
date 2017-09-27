@@ -167,93 +167,11 @@ class RLStrat(Strat):
         self.n_used = 0
         self.qval = 0
 
-    def _simulate(self):
-        start_time = time.time()
-        n_rejected = 0  # Number of rejected calls
-        n_incoming = 0  # Number of incoming (not necessarily accepted) calls
-        # Number of channels in progress at a cell when call is blocked
-        n_inuse_rej = 0
-        n_curr_rejected = 0  # Number of rejected calls last 100 episodes
-        n_curr_incoming = 0  # Number of incoming calls last 100 episodes
+    def update_qval():
+        raise NotImplementedError
 
-        # Generate initial call events; one for each cell
-        for r in range(self.rows):
-            for c in range(self.cols):
-                heappush(self.cevents, self.eventgen.event_new(0, (r, c)))
-        prev_cevent = heappop(self.cevents)
-        prev_cell = prev_cevent[2]
-        prev_n_used, prev_ch = self.optimal_ch(prev_cevent[1], prev_cell)
-        prev_qval = 0
-        # Discrete event simulation
-        for i in range(self.n_episodes):
-            if self.quit_sim:
-                break  # Gracefully quit to print stats
-
-            t = prev_cevent[0]
-            self.execute_action(prev_cevent, prev_ch)
-
-            if self.sanity_check and not self.grid.validate_reuse_constr():
-                self.logger.error(f"Reuse constraint broken: {self.grid}")
-                raise Exception
-            if self.gui:
-                self.gui.step()
-
-            if prev_cevent[1] == CEvent.NEW:
-                n_incoming += 1
-                n_curr_incoming += 1
-                # Generate next incoming call
-                heappush(self.cevents, self.eventgen.event_new(t, prev_cell))
-                if prev_ch == -1:
-                    n_rejected += 1
-                    n_curr_rejected += 1
-                    n_inuse_rej += prev_n_used
-                    self.logger.debug(  # Reward for last action excuted
-                            f"Rejected call to {prev_cell} when {prev_n_used}"
-                            f" of {self.n_channels} channels in use")
-                    if self.gui:
-                        self.gui.hgrid.mark_cell(*prev_cell)
-                else:
-                    # Generate call duration for call and add end event
-                    heappush(self.cevents,
-                             self.eventgen.event_end(t, prev_cell, prev_ch))
-
-            cevent = heappop(self.cevents)
-            t, e_type, cell = cevent[0], cevent[1], cevent[2]
-            self.logger.debug(f"{t:.2f}: {e_type.name} {cevent[2:]}")
-
-            # Choose A' from S'
-            n_used, ch = self.optimal_ch(e_type, cell)
-            # Update q-values with one-step lookahead
-            qval = self.qval(cell, n_used, ch)
-            dt = -1  # how to calculate this?
-            reward = self.reward()  # Reward for last action excuted
-            td_err = reward + self.discount(dt) * qval - prev_qval
-            self.update_qval(prev_cell, prev_n_used, prev_ch, td_err)
-            self.alpha *= self.alpha_decay
-
-            prev_cell, prev_cevent, prev_n_used = cell, cevent, n_used
-            prev_ch, prev_qval = ch, qval
-
-            if i > 0 and i % 100000 == 0:
-                self.logger.info(
-                        f"\nt{t:.2f}: Blocking probability last 100000 events:"
-                        f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
-                self.logger.info(
-                        f"n{i}: Epsilon: {self.epsilon:.5f},"
-                        f" Alpha: {self.alpha:.5f}")
-                n_curr_rejected = 0
-                n_curr_incoming = 0
-
-        self.logger.warn(
-            f"\nSimulation duration: {t/24:.2f} hours?,"
-            f" {self.n_episodes} episodes"
-            f" at {self.n_episodes/(time.time()-start_time):.0f}"
-            " episodes/second"
-            f"\nRejected {n_rejected} of {n_incoming} calls"
-            f"\nBlocking probability: {n_rejected/n_incoming:.4f}"
-            f"\nAverage number of calls in progress when blocking: "
-            f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
-            f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
+    def get_qval():
+        raise NotImplementedError
 
     def fn_init(self, cevent):
         _, ch = self.optimal_ch(cevent[1], cevent[2])
@@ -279,12 +197,6 @@ class RLStrat(Strat):
 
         self.n_used, self.qval = next_n_used, next_qval
         return next_ch
-
-    def update_qval():
-        raise NotImplementedError
-
-    def get_qval():
-        raise NotImplementedError
 
     def execute_action(self, cevent, ch):
         """
@@ -437,4 +349,3 @@ class RSSARSAStrat(RLStrat):
 
 # todo: plot block-rate over time to determine
 # if if rl system actually improves over time
-

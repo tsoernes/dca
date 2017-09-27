@@ -15,7 +15,7 @@ def def_pparams(
         erlangs=8,
         call_rates=None,
         call_duration=3,
-        n_episodes=10000,
+        n_episodes=50000,
         n_hours=2,
         epsilon=0.2,
         epsilon_decay=0.999999,
@@ -47,12 +47,15 @@ def def_pparams(
             'epsilon_decay': epsilon_decay,
             'alpha': alpha,
             'alpha_decay': alpha_decay,
-            'gamma': gamma
+            'gamma': gamma,
+            'profile': True
            }
 
 
 def get_pparams():
     parser = argparse.ArgumentParser(description='DCA')
+    parser.add_argument('--profile', dest='profile', type=bool,
+                        help='profile)')
     parser.add_argument('--eps', dest='epsilon', type=float,
                         help='epsilon)')
     parser.add_argument('--epsdec', dest='epsilon_decay', type=float,
@@ -97,7 +100,11 @@ class Runner:
         self.strat = TTSARSAStrat(
                 self.pp, grid=grid, gui=gui, eventgen=eventgen,
                 sanity_check=True, logger=self.logger)
-        self.strat.simulate()
+
+        if self.pp['profile']:
+            cProfile.runctx('self.strat.simulate()', globals(), locals())
+        else:
+            self.strat.simulate()
 
     def end_sim(self, e):
         """
@@ -122,5 +129,4 @@ class Runner:
 
 if __name__ == '__main__':
     r = Runner()
-    cProfile.run('r.run()')
-    # r.run()
+    r.run()
