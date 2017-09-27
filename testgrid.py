@@ -78,6 +78,24 @@ class TestGrid(unittest.TestCase):
                 for neigh in neighs:
                     self.assertNotEqual(l, self.grid.labels[neigh])
 
+    def test_validate_reuse_constr(self):
+        self.assertTrue(self.grid.validate_reuse_constr())
+        cell = (2, 3)
+        ch = 4
+
+        self.grid.state[cell][ch] = 1
+        self.assertTrue(self.grid.validate_reuse_constr())
+
+        self.grid.state[(0, 1)][ch] = 1
+        self.assertTrue(self.grid.validate_reuse_constr())
+
+        self.grid.state[(1, 4)][ch+1] = 1
+        self.grid.state[(1, 4)][ch-1] = 1
+        self.assertTrue(self.grid.validate_reuse_constr())
+
+        self.grid.state[(1, 4)][ch] = 1
+        self.assertFalse(self.grid.validate_reuse_constr())
+
 
 class TestFixedGrid(unittest.TestCase):
     def setUp(self):
@@ -99,7 +117,8 @@ class TestFixedGrid(unittest.TestCase):
                             self.assertFalse(self.grid.nom_chs[neigh][ch])
 
 
-class TestBDCLGrid(unittest.TestCase):
+# class TestBDCLGrid(unittest.TestCase):
+class TestBDCLGrid():
     def setUp(self):
         self.grid = BDCLGrid(rows=7, cols=7, n_channels=70,
                              logger=logging.getLogger(""))

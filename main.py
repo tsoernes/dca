@@ -31,6 +31,7 @@ class Strat:
     def simulate(self):
         start_time = time.time()
         n_rejected = 0  # Number of rejected calls
+        n_ended = 0  # Number of ended calls
         n_incoming = 0  # Number of incoming (not necessarily accepted) calls
         # Number of channels in progress at a cell when call is blocked
         n_inuse_rej = 0
@@ -80,6 +81,8 @@ class Strat:
                     # Generate call duration for call and add end event
                     heappush(self.cevents,
                              self.eventgen.event_end(t, cell, ch))
+            else:
+                n_ended += 1
 
             next_cevent = heappop(self.cevents)
             next_ch = self.fn_after(next_cevent, cell, ch)
@@ -95,6 +98,12 @@ class Strat:
                 n_curr_rejected = 0
                 n_curr_incoming = 0
 
+        n_inprogress = np.sum(self.grid.state)
+        if (n_incoming - n_ended - n_rejected) != n_inprogress:
+            self.logger.error(
+                    f"Some calls were lost."
+                    f" accepted: {n_incoming}, ended: {n_ended}"
+                    f" rejected: {n_rejected}, in progress: {n_inprogress}")
         self.logger.warn(
             f"\nSimulation duration: {t/24:.2f} hours?,"
             f" {self.n_episodes} episodes"
@@ -104,7 +113,7 @@ class Strat:
             f"\nBlocking probability: {n_rejected/n_incoming:.4f}"
             f"\nAverage number of calls in progress when blocking: "
             f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
-            f"\n{np.sum(self.grid.state)} calls in progress at simulation end")
+            f"\n{n_inprogress} calls in progress at simulation end")
 
     def fn_init(self):
         raise NotImplementedError()
@@ -126,7 +135,10 @@ class FAStrat(Strat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def fn_after(self, next_cevent, cell, ch):
+    def fn_init(self, cevent):
+        return self.fn_after(cevent)
+
+    def fn_after(self, next_cevent, *args):
         next_cell = next_cevent[2]
         if next_cevent[1] == CEvent.NEW:
             # When a call arrives in a cell,
@@ -144,10 +156,11 @@ class FAStrat(Strat):
 
     def execute_action(self, cevent, ch):
         cell = cevent[2]
-        if cevent[1] == CEvent.NEW:
-            self.grid.state[cell][ch] = 1
-        else:
-            self.grid.state[cell][ch] = 0
+        if ch != -1:
+            if cevent[1] == CEvent.NEW:
+                self.grid.state[cell][ch] = 1
+            else:
+                self.grid.state[cell][ch] = 0
 
 
 class RLStrat(Strat):
@@ -343,9 +356,6 @@ class RSSARSAStrat(RLStrat):
         self.qvals[cell][ch] += self.alpha * td_err
 
 # TODO: Sanity checks:
-# - The number of accepcted new calls minus the number of ended calls
-# minus the number of rejected calls should be equal to the number of calls in
-# progress.
 
 # todo: plot block-rate over time to determine
 # if if rl system actually improves over time

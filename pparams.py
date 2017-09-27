@@ -15,7 +15,7 @@ def def_pparams(
         erlangs=8,
         call_rates=None,
         call_duration=3,
-        n_episodes=50000,
+        n_episodes=100000,
         n_hours=2,
         epsilon=0.2,
         epsilon_decay=0.999999,
@@ -48,7 +48,10 @@ def def_pparams(
             'alpha': alpha,
             'alpha_decay': alpha_decay,
             'gamma': gamma,
-            'profile': True
+            'sanity_check': False,
+            'profile': True,
+            'show_gui': False,
+            'log_level': logging.INFO
            }
 
 
@@ -74,12 +77,14 @@ def get_pparams():
 
 class Runner:
     def __init__(self):
-        logging.basicConfig(level=logging.INFO, format='%(message)s')
-        self.logger = logging.getLogger('')
-        fh = logging.FileHandler('out.log')
-        fh.setLevel(logging.INFO)
-        self.logger.addHandler(fh)
         self.pp = get_pparams()
+
+        logging.basicConfig(
+                level=self.pp['log_level'], format='%(message)s')
+        self.logger = logging.getLogger('')
+        # fh = logging.FileHandler('out.log')
+        # fh.setLevel(logging.INFO)
+        # self.logger.addHandler(fh)
         self.logger.info(f"Starting simulation with params {self.pp}")
 
     def test_params(self):
@@ -90,17 +95,32 @@ class Runner:
         # epsilon_decay_range = [0.9999, 0.9999999]
         # TODO check karpathy lecs on how to sample
 
-    def run(self, show_gui=False):
-        grid = Grid(logger=self.logger, **self.pp)
-        eventgen = EventGen(**self.pp)
-        if show_gui:
-            gui = Gui(grid, self.end_sim)
+    def setup(self, grid):
+        self.eventgen = EventGen(**self.pp)
+        if self.pp['show_gui']:
+            self.gui = Gui(grid, self.end_sim)
         else:
-            gui = None
-        self.strat = TTSARSAStrat(
-                self.pp, grid=grid, gui=gui, eventgen=eventgen,
-                sanity_check=True, logger=self.logger)
+            self.gui = None
 
+    def runFA(self):
+        grid = FixedGrid(logger=self.logger, **self.pp)
+        self.setup(grid)
+        self.strat = FAStrat(
+                self.pp, grid=grid, gui=self.gui,
+                eventgen=self.eventgen,
+                sanity_check=True, logger=self.logger)
+        self.run(grid)
+
+    def runTTSARSA(self):
+        grid = Grid(logger=self.logger, **self.pp)
+        self.setup(grid)
+        self.strat = TTSARSAStrat(
+                self.pp, grid=grid, gui=self.gui,
+                eventgen=self.eventgen,
+                sanity_check=self.pp['sanity_check'], logger=self.logger)
+        self.run(grid)
+
+    def run(self, grid):
         if self.pp['profile']:
             cProfile.runctx('self.strat.simulate()', globals(), locals())
         else:
@@ -118,15 +138,7 @@ class Runner:
         gui = Gui(grid)
         gui.test()
 
-    def run_fa(self):
-        grid = FixedGrid(**self.pp)
-        grid.assign_chs()
-        eventgen = EventGen(**self.pp)
-        gui = Gui(grid)
-        fa_strat = FAStrat(self.pp, grid=grid, gui=gui, eventgen=eventgen)
-        fa_strat.simulate(self.pp, grid, fa_strat, eventgen, gui)
-
 
 if __name__ == '__main__':
     r = Runner()
-    r.run()
+    r.runTTSARSA()

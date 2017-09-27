@@ -35,31 +35,8 @@ class Grid:
         """
         # TODO: It should be possible to do this more efficiently.
         # If no neighbors of a cell violate the channel reuse constraint,
-        # then the cell itself does not either.
-        for r in range(self.rows):
-            for c in range(self.cols):
-                neighs = self.neighbors2(r, c)
-                for ch, busy in enumerate(self.state[r][c]):
-                    if busy:
-                        for neigh in neighs:
-                            if self.state[neigh][ch]:
-                                self.logger.error(
-                                    "Channel Reuse constraint violated"
-                                    f" in Cell {r} {c} channel {ch}"
-                                    f" with neighbor {neigh}")
-                                return False
-        return True
-
-    def validate_reuse_constr2(self):
-        """
-        Verify that the channel reuse constraint of 3 is not violated,
-        e.g. that a channel in use in a cell is not in use in its neighbors.
-        Returns True if valid not violated, False otherwise
-        """
-        # NOTE Untested if it works correctly.
-        # TODO: It should be possible to do this more efficiently.
-        # If no neighbors of a cell violate the channel reuse constraint,
-        # then the cell itself does not either.
+        # then the cell itself does not either, so it should be possible
+        # to skip checking some cells.
         for r in range(self.rows):
             for c in range(self.cols):
                 neighs = self.neighbors2(r, c, True)
@@ -305,13 +282,14 @@ class Grid:
 
 
 class FixedGrid(Grid):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, n_nom_channels=0, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Nominal channels for each cell
         self.nom_chs = np.zeros((self.rows, self.cols, self.n_channels),
                                 dtype=bool)
+        self.assign_chs(n_nom_channels)
 
-    def assign_chs(self, n_channels=0):
+    def assign_chs(self, n_nom_channels=0):
         """
         Partition the cells and channels up to and including 'n_channels'
         into 7 lots, and assign
@@ -322,7 +300,7 @@ class FixedGrid(Grid):
         Returns a (rows*cols*n_channels) array
         where a channel for a cell has value 1 if nominal, 0 otherwise.
         """
-        if n_channels == 0:
+        if n_nom_channels == 0:
             n_channels = self.n_channels
         channels_per_subgrid_cell = []
         channels_per_subgrid_cell_accu = [0]
