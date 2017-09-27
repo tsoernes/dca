@@ -15,7 +15,7 @@ def def_pparams(
         erlangs=8,
         call_rates=None,
         call_duration=3,
-        n_episodes=2000000,
+        n_episodes=10000,
         n_hours=2,
         epsilon=0.2,
         epsilon_decay=0.999999,
@@ -80,10 +80,11 @@ class Runner:
         self.logger.info(f"Starting simulation with params {self.pp}")
 
     def test_params(self):
-        alpha_range = [0.01, 0.2]
-        alpha_decay_range = [0.9999, 0.9999999]
-        epsilon_range = [0.05, 0.4]
-        epsilon_decay_range = [0.9999, 0.9999999]
+        pass
+        # alpha_range = [0.01, 0.2]
+        # alpha_decay_range = [0.9999, 0.9999999]
+        # epsilon_range = [0.05, 0.4]
+        # epsilon_decay_range = [0.9999, 0.9999999]
         # TODO check karpathy lecs on how to sample
 
     def run(self, show_gui=False):
@@ -95,7 +96,7 @@ class Runner:
             gui = None
         self.strat = TTSARSAStrat(
                 self.pp, grid=grid, gui=gui, eventgen=eventgen,
-                sanity_check=False, logger=self.logger)
+                sanity_check=True, logger=self.logger)
         self.strat.simulate()
 
     def end_sim(self, e):
@@ -121,5 +122,5 @@ class Runner:
 
 if __name__ == '__main__':
     r = Runner()
-    # cProfile.run('r.run()')
-    r.run()
+    cProfile.run('r.run()')
+    # r.run()

@@ -1,5 +1,6 @@
 from enum import Enum
 import math
+import functools
 
 import numpy as np
 
@@ -49,8 +50,32 @@ class Grid:
                                 return False
         return True
 
+    def validate_reuse_constr2(self):
+        """
+        Verify that the channel reuse constraint of 3 is not violated,
+        e.g. that a channel in use in a cell is not in use in its neighbors.
+        Returns True if valid not violated, False otherwise
+        """
+        # NOTE Untested if it works correctly.
+        # TODO: It should be possible to do this more efficiently.
+        # If no neighbors of a cell violate the channel reuse constraint,
+        # then the cell itself does not either.
+        for r in range(self.rows):
+            for c in range(self.cols):
+                neighs = self.neighbors2(r, c)
+                inuse = self.state[neighs[0]]
+                for i in range(1, len(neighs)):
+                    inuse = np.bitwise_or(inuse, self.state[neighs[i]])
+                if np.any(np.bitwise_and(self.state[r][c], inuse)):
+                    self.logger.error(
+                        "Channel Reuse constraint violated"
+                        f" in Cell {r} {c}")
+                    return False
+        return True
+
     @staticmethod
     def move(row, col, direction):
+        raise NotImplementedError
         f = None
         if direction == Direction.NE:
             f = Grid.move_n
@@ -68,6 +93,7 @@ class Grid:
 
     @staticmethod
     def direction(from_r, from_c, to_r, to_c):
+        raise NotImplementedError
         if from_r-1 == to_r and from_c == to_c:
             return Direction.N
         if from_r+1 == to_r and from_c == to_c:
@@ -128,6 +154,7 @@ class Grid:
             return (row-1, col-1)
 
     @staticmethod
+    @functools.lru_cache(maxsize=None)
     def neighbors1sparse(row, col):
         """
         Returns a list with indexes of neighbors within a radius of 1,
@@ -143,6 +170,7 @@ class Grid:
             Grid.move_nw(row, col)]
         return idxs
 
+    @functools.lru_cache(maxsize=None)
     def neighbors1(self, row, col):
         """
         Returns a list with indexes of neighbors within a radius of 1,
@@ -165,6 +193,7 @@ class Grid:
                     idxs.append((r, c))
         return idxs
 
+    @functools.lru_cache(maxsize=None)
     def neighbors2(self, row, col, separate=False):
         """
         If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...])

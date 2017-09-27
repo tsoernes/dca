@@ -278,7 +278,7 @@ class RLStrat(Strat):
         self.alpha *= self.alpha_decay
 
         self.n_used, self.qval = next_n_used, next_qval
-        return ch
+        return next_ch
 
     def update_qval():
         raise NotImplementedError
@@ -322,21 +322,16 @@ class RLStrat(Strat):
         use before any potential action is taken.
         'ch' is -1 if no channel is eligeble for assignment
         """
+        inuse = np.nonzero(self.grid.state[cell])[0]
+        n_used = len(inuse)
+
         if ce_type == CEvent.NEW:
-            # Free channels at cell
-            potential_chs = np.where(self.grid.state[cell] == 0)[0]
             neighs = self.grid.neighbors2(*cell)
-            chs = []  # Channels eligible for assignment
-            # Exclude channels in use in neighboring cells
-            for pch in potential_chs:
-                in_use = False
-                for neigh in neighs:
-                    if self.grid.state[neigh][pch]:
-                        in_use = True
-                        break
-                if not in_use:
-                    chs.append(pch)
-            n_used = self.n_channels - len(potential_chs)
+            inuse_neigh = np.bitwise_or(
+                    self.grid.state[cell], self.grid.state[neighs[0]])
+            for n in neighs[1:]:
+                inuse_neigh = np.bitwise_or(inuse_neigh, self.grid.state[n])
+            chs = np.where(inuse_neigh == 0)[0]
             op = operator.gt
             best_val = float("-inf")
         else:
@@ -344,8 +339,7 @@ class RLStrat(Strat):
             # for termination. The latter is included because it might
             # be the least valueable channel, in which case no
             # reassignment is done on call termination.
-            chs = np.nonzero(self.grid.state[cell])[0]
-            n_used = len(chs)
+            chs = inuse
             op = operator.lt
             best_val = float("inf")
 
