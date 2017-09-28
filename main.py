@@ -14,7 +14,7 @@ y = 0.95  # Gamma (discount factor)
 
 class Strat:
     def __init__(self, pp, eventgen, grid, logger, gui=None,
-                 sanity_check=True,
+                 sanity_check,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
@@ -26,8 +26,8 @@ class Strat:
         self.eventgen = eventgen
         self.gui = gui
         self.sanity_check = sanity_check
-        self.quit_sim = False
         self.logger = logger
+        self.quit_sim = False
 
     def simulate(self):
         start_time = time.time()
@@ -52,10 +52,11 @@ class Strat:
             if self.quit_sim:
                 break  # Gracefully quit to print stats
 
-            t, ce_type, cell = cevent[0], cevent[1], cevent[2]
+            t, ce_type, cell = cevent[0:3]
             self.logger.debug(f"{t:.2f}: {cevent[1].name} {cevent[2:]}")
 
-            self.execute_action(cevent, ch)
+            if ch != -1:
+                self.execute_action(cevent, ch)
             n_used = np.sum(self.grid.state[cell])
 
             if self.sanity_check and not self.grid.validate_reuse_constr():
@@ -64,7 +65,7 @@ class Strat:
             if self.gui:
                 self.gui.step()
 
-            if ce_type == CEvent.NEW:  # or ce_type == CEvent.HOFF:
+            if ce_type == CEvent.NEW:
                 n_incoming += 1
                 n_curr_incoming += 1
                 # Generate next incoming call
@@ -90,7 +91,7 @@ class Strat:
                         # Generate call duration for call and add end event
                         heappush(self.cevents,
                                  self.eventgen.event_end(t, cell, ch))
-            else:
+            elif ce_type == CEvent.END:
                 n_ended += 1
 
             next_cevent = heappop(self.cevents)
@@ -148,8 +149,8 @@ class FAStrat(Strat):
         return self.fn_after(cevent)
 
     def fn_after(self, next_cevent, *args):
-        next_cell = next_cevent[2]
-        if next_cevent[1] == CEvent.NEW:
+        ce_type, next_cell = next_cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             # When a call arrives in a cell,
             # if any pre-assigned channel is unused;
             # it is assigned, else the call is blocked.
@@ -159,17 +160,16 @@ class FAStrat(Strat):
                     ch = idx
                     break
             return ch
-        else:
+        elif ce_type == CEvent.END:
             # No rearrangement is done when a call terminates.
             return next_cevent[3]
 
     def execute_action(self, cevent, ch):
-        cell = cevent[2]
-        if ch != -1:
-            if cevent[1] == CEvent.NEW:
-                self.grid.state[cell][ch] = 1
-            else:
-                self.grid.state[cell][ch] = 0
+        ce_type, next_cell = next_cevent[1:3]
+        if cevent[1] == CEvent.NEW:
+            self.grid.state[cell][ch] = 1
+        else:
+            self.grid.state[cell][ch] = 0
 
 
 class RLStrat(Strat):
@@ -213,7 +213,6 @@ class RLStrat(Strat):
         next_qval = self.get_qval(next_cell, next_n_used, next_ch)
         dt = -1  # how to calculate this?
         td_err = reward + self.discount(dt) * next_qval - self.qval
-        # self.prev_n_used = 0 on first iter
         self.update_qval(cell, self.n_used, ch, td_err)
         self.alpha *= self.alpha_decay
 
@@ -224,10 +223,8 @@ class RLStrat(Strat):
         """
         Change the grid state according to the given action
         """
-        if ch == -1:
-            return
-        cell = cevent[2]
-        if cevent[1] == CEvent.NEW:
+        ce_type, cell = cevent[1:3]
+        if ce_type == CEvent.NEW:
             if self.grid.state[cell][ch]:
                 self.logger.error(
                     f"Tried assigning new call {ce_str(cevent)} to"
@@ -259,7 +256,7 @@ class RLStrat(Strat):
         inuse = np.nonzero(self.grid.state[cell])[0]
         n_used = len(inuse)
 
-        if ce_type == CEvent.NEW:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             neighs = self.grid.neighbors2(*cell)
             inuse_neigh = np.bitwise_or(
                     self.grid.state[cell], self.grid.state[neighs[0]])
@@ -284,7 +281,6 @@ class RLStrat(Strat):
 
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
-
         if np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
@@ -296,8 +292,7 @@ class RLStrat(Strat):
                     best_val = val
                     ch = chan
         # print(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
-        # Epsilon decay
-        self.epsilon *= self.epsilon_decay
+        self.epsilon *= self.epsilon_decay  # Epsilon decay
         return (n_used, ch)
 
     def reward(self):
@@ -363,8 +358,6 @@ class RSSARSAStrat(RLStrat):
 
     def update_qval_reduced(self, cell, n_used, ch, td_err):
         self.qvals[cell][ch] += self.alpha * td_err
-
-# TODO: Sanity checks:
 
 # todo: plot block-rate over time to determine
 # if if rl system actually improves over time
