@@ -13,8 +13,8 @@ y = 0.95  # Gamma (discount factor)
 
 
 class Strat:
-    def __init__(self, pp, eventgen, grid, logger, gui=None,
-                 sanity_check,
+    def __init__(self, pp, eventgen, grid, logger, sanity_check,
+                 gui=None,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
@@ -165,7 +165,7 @@ class FAStrat(Strat):
             return next_cevent[3]
 
     def execute_action(self, cevent, ch):
-        ce_type, next_cell = next_cevent[1:3]
+        ce_type, cell = cevent[1:3]
         if cevent[1] == CEvent.NEW:
             self.grid.state[cell][ch] = 1
         else:
@@ -274,7 +274,7 @@ class RLStrat(Strat):
             op = operator.lt
             best_val = float("inf")
 
-        if len(chs) == 0:
+        if not chs:
             # No channels available for assignment,
             # or no channels in use to reassign
             return (n_used, -1)
@@ -291,7 +291,8 @@ class RLStrat(Strat):
                 if op(val, best_val):
                     best_val = val
                     ch = chan
-        # print(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        self.logger.debug(
+                f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
         return (n_used, ch)
 
