@@ -8,70 +8,69 @@ import cProfile
 import logging
 
 
-def def_pparams(
-        rows=7,
-        cols=7,
-        n_channels=70,
-        erlangs=8,
-        call_rates=None,
-        call_duration=3,
-        n_episodes=100000,
-        n_hours=2,
-        epsilon=0.2,
-        epsilon_decay=0.999999,
-        alpha=0.05,
-        alpha_decay=0.999999,
-        gamma=0.9):
+def get_pparams():
     """
-    n_hours: If n_episodes is not specified, run simulation for n_hours
-        of simulation time
-    Call rates in calls per minute
-    Call duration in minutes
-    gamma:
-    """
-    # erlangs = call_rate * duration
-    # 10 erlangs = 200cr, 3cd
+    Problem parameters
+    # 10 erlangs = 200 call rate, 3 call duration
     # 7.5 erlangs = 150cr, 3cd
     # 5 erlangs = 100cr, 3cd
-    if not call_rates:
-        call_rates = erlangs / call_duration
-    return {
-            'rows': rows,
-            'cols': cols,
-            'n_channels': n_channels,
-            'call_rates': call_rates,  # Avg. call rate, in calls per minute
-            'call_duration': call_duration,  # Avg. call duration in minutes
-            'n_episodes': n_episodes,
-            'n_hours': n_hours,
-            'epsilon': epsilon,
-            'epsilon_decay': epsilon_decay,
-            'alpha': alpha,
-            'alpha_decay': alpha_decay,
-            'gamma': gamma,
-            'sanity_check': False,
-            'profile': True,
-            'show_gui': False,
-            'log_level': logging.INFO
-           }
-
-
-def get_pparams():
+    """
     parser = argparse.ArgumentParser(description='DCA')
-    parser.add_argument('--profile', dest='profile', type=bool,
-                        help='profile)')
-    parser.add_argument('--eps', dest='epsilon', type=float,
-                        help='epsilon)')
-    parser.add_argument('--epsdec', dest='epsilon_decay', type=float,
-                        help='epsilon decay)')
-    parser.add_argument('--alpha', dest='alpha', type=float)
-    parser.add_argument('--alpha_dec', dest='alpha_decay', type=float,
-                        help='alpa decay')
+
+    parser.add_argument('--rows', type=int,
+                        default=7)
+    parser.add_argument('--cols', type=int,
+                        default=7)
+    parser.add_argument('--n_channels', type=int,
+                        default=70)
+    parser.add_argument('--erlangs', type=int,
+                        help="erlangs = call_rate * call_duration",
+                        default=10)
+    parser.add_argument('--call_rates', type=int, help="in calls per minute",
+                        default=None)
+    parser.add_argument('--call_duration', type=int, help="in minutes",
+                        default=3)
+    parser.add_argument('--p_handoff', type=float, help="handoff probability",
+                        default=0.15)
+    parser.add_argument('--hoff_call_duration', type=int,
+                        help="handoff call duration, in minutes",
+                        default=1)
+    parser.add_argument('--n_episodes', type=int,
+                        help="number of events to simulate",
+                        default=100000)
+    parser.add_argument('--n_hours', type=int,
+                        help="number hours in simulation time to run",
+                        default=2)
+    parser.add_argument('--alpha', type=float, help="learning rate",
+                        default=0.05)
+    parser.add_argument('--alpha_decay', type=float,
+                        help="factor by which alpha is multiplied each iter",
+                        default=0.999999)
+    parser.add_argument('--epsilon', type=float,
+                        help="probability of choosing random action",
+                        default=0.2)
+    parser.add_argument('--epsilon_decay', type=float,
+                        help="factor by which epsilon is multiplied each iter",
+                        default=0.999999)
+    parser.add_argument('--gamma', type=float,
+                        help="discount factor",
+                        default=0.9)
+    parser.add_argument('--profiling', type=bool,
+                        help="run performance profiling",
+                        default=True)
+    parser.add_argument('--show_gui', type=bool,
+                        default=False)
+    parser.add_argument('--sanity_check', type=bool,
+                        help="verify reuse constraint each iteration",
+                        default=False)
+    parser.add_argument('--log_level', type=int,
+                        default=logging.INFO)
+
     args = parser.parse_args()
-    present = dict()
-    for k, v in vars(args).items():
-        if v:
-            present[k] = v
-    params = def_pparams(**present)
+    params = vars(args)
+
+    if not params['call_rates']:
+        params['call_rates'] = params['erlangs'] / params['call_duration']
     return params
 
 
@@ -121,7 +120,7 @@ class Runner:
         self.run(grid)
 
     def run(self, grid):
-        if self.pp['profile']:
+        if self.pp['profiling']:
             cProfile.runctx('self.strat.simulate()', globals(), locals())
         else:
             self.strat.simulate()

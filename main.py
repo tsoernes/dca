@@ -20,6 +20,7 @@ class Strat:
         self.cols = pp['cols']
         self.n_channels = pp['n_channels']
         self.n_episodes = pp['n_episodes']
+        self.p_handoff = pp['p_handoff']
         self.grid = grid
         self.cevents = []  # Call events
         self.eventgen = eventgen
@@ -63,7 +64,7 @@ class Strat:
             if self.gui:
                 self.gui.step()
 
-            if ce_type == CEvent.NEW:
+            if ce_type == CEvent.NEW:  # or ce_type == CEvent.HOFF:
                 n_incoming += 1
                 n_curr_incoming += 1
                 # Generate next incoming call
@@ -78,9 +79,17 @@ class Strat:
                     if self.gui:
                         self.gui.hgrid.mark_cell(*cell)
                 else:
-                    # Generate call duration for call and add end event
-                    heappush(self.cevents,
-                             self.eventgen.event_end(t, cell, ch))
+                    # With some probability, generate a handoff-event
+                    # instead of ending the call
+                    if np.random.random() < self.p_handoff:
+                        # Generate handoff event
+                        hevent = self.eventgen.event_handoff(
+                                     t, cell, self.grid.neighbors1(*cell), ch)
+                        heappush(self.cevents, hevent)
+                    else:
+                        # Generate call duration for call and add end event
+                        heappush(self.cevents,
+                                 self.eventgen.event_end(t, cell, ch))
             else:
                 n_ended += 1
 

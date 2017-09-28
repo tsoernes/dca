@@ -11,6 +11,7 @@ class CEvent(Enum):
 
 class EventGen:
     def __init__(self, rows, cols, call_rates, call_duration,
+                 hoff_call_duration,
                  *args, **kwargs):
         self.rows = rows
         self.cols = cols
@@ -22,7 +23,7 @@ class EventGen:
         # Avg. time between arriving calls
         self.call_intertimes = 1/self.call_rates
         self.call_duration = call_duration
-        self.handoff_call_duration = None
+        self.handoff_call_duration = hoff_call_duration
 
     def event_new(self, t, cell):
         """
@@ -39,7 +40,7 @@ class EventGen:
         e_time = np.random.exponential(self.call_duration) + t
         return (e_time, CEvent.END, cell, ch)
 
-    def event_handoff(self, t, from_cell, neighs, ch):
+    def event_handoff(self, t, cell, neighs, ch):
         """
         Pick a neighbor of cell randomly and hand off call.
         :param 1D ndarray neighs - indices of neighbors
@@ -50,9 +51,9 @@ class EventGen:
         If so, they will have an average duration in total
         that's longer than normal calls.
         """
-        neigh = np.random.choice(neighs)
+        neigh = np.random.randint(0, len(neighs))
         e_time = np.random.exponential(self.handoff_call_duration) + t
-        return (e_time, CEvent.HOFF, from_cell, neigh)
+        return (e_time, CEvent.HOFF, neighs[neigh], ch)
 
 
 def ce_str(cevent):
