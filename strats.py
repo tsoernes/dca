@@ -45,7 +45,7 @@ class Strat:
                 heappush(self.cevents, self.eventgen.event_new(0, (r, c)))
 
         cevent = heappop(self.cevents)
-        ch = self.fn_init(cevent)
+        ch = self.get_init_action(cevent)
 
         # Discrete event simulation
         for i in range(self.n_episodes):
@@ -55,7 +55,7 @@ class Strat:
             t, ce_type, cell = cevent[0:3]
             self.logger.debug(f"{t:.2f}: {cevent[1].name} {cevent[2:]}")
 
-            if ch != -1:
+            if ch:
                 self.execute_action(cevent, ch)
             n_used = np.sum(self.grid.state[cell])
 
@@ -70,7 +70,7 @@ class Strat:
                 n_curr_incoming += 1
                 # Generate next incoming call
                 heappush(self.cevents, self.eventgen.event_new(t, cell))
-                if ch == -1:
+                if not ch:
                     n_rejected += 1
                     n_curr_rejected += 1
                     n_inuse_rej += n_used
@@ -95,7 +95,7 @@ class Strat:
                 n_ended += 1
 
             next_cevent = heappop(self.cevents)
-            next_ch = self.fn_after(next_cevent, cell, ch)
+            next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
 
             if i > 0 and i % 100000 == 0:
@@ -125,10 +125,10 @@ class Strat:
             f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
             f"\n{n_inprogress} calls in progress at simulation end")
 
-    def fn_init(self):
+    def get_init_action(self):
         raise NotImplementedError()
 
-    def fn_after(self):
+    def get_action(self):
         raise NotImplementedError()
 
     def execute_action(self):
@@ -145,16 +145,16 @@ class FAStrat(Strat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def fn_init(self, cevent):
+    def get_init_action(self, cevent):
         return self.fn_after(cevent)
 
-    def fn_after(self, next_cevent, *args):
+    def get_action(self, next_cevent, *args):
         ce_type, next_cell = next_cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             # When a call arrives in a cell,
             # if any pre-assigned channel is unused;
             # it is assigned, else the call is blocked.
-            ch = -1
+            ch = None
             for idx, isNom in enumerate(self.grid.nom_chs[next_cell]):
                 if isNom and self.grid.state[next_cell][idx] == 0:
                     ch = idx
@@ -166,7 +166,7 @@ class FAStrat(Strat):
 
     def execute_action(self, cevent, ch):
         ce_type, cell = cevent[1:3]
-        if cevent[1] == CEvent.NEW:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             self.grid.state[cell][ch] = 1
         else:
             self.grid.state[cell][ch] = 0
@@ -195,13 +195,13 @@ class RLStrat(Strat):
     def get_qval():
         raise NotImplementedError
 
-    def fn_init(self, cevent):
-        _, ch = self.optimal_ch(cevent[1], cevent[2])
+    def get_init_action(self, cevent):
+        _, ch = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def fn_after(self, next_cevent, cell, ch):
+    def get_action(self, next_cevent, cell, ch):
         """
-        Return a channel to be (re)assigned for the 'next_cevent'.
+        Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previous channel (re)assignment.
         """
         # Observe reward from previous action
@@ -274,10 +274,10 @@ class RLStrat(Strat):
             op = operator.lt
             best_val = float("inf")
 
-        if not chs:
+        if len(chs) == 0:
             # No channels available for assignment,
             # or no channels in use to reassign
-            return (n_used, -1)
+            return (n_used, None)
 
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
