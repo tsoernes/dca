@@ -302,6 +302,7 @@ class RLStrat(Strat):
         dt: Time until next event
         """
         # Number of calls currently in progress
+        # TODO try +1 for accepted and -1 for rejected instead
         return np.sum(self.grid.state)
 
     def discount(self, dt):
@@ -362,3 +363,6 @@ class RSSARSAStrat(RLStrat):
 
 # todo: plot block-rate over time to determine
 # if if rl system actually improves over time
+
+# TODO verify the rl sim loop. is it correct?
+# can it be simplified, e.g. remove fn_init?
