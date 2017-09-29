@@ -1,0 +1,2 @@
+To run the tests, cd to root directory (dir above 'tests' folder)
+and run 'python3 -m unittest tests/sometest.py'

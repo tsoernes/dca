@@ -1,4 +1,4 @@
-from main import RLStrat, FAStrat, SARSAStrat, TTSARSAStrat, RSSARSAStrat
+from strats import RLStrat, FAStrat, SARSAStrat, TTSARSAStrat, RSSARSAStrat
 from gui import Gui
 from grid import Grid, FixedGrid
 from eventgen import EventGen

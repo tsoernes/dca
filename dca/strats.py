@@ -1,4 +1,4 @@
-from eventgen import CEvent, ce_str
+from dca.eventgen import CEvent, ce_str
 
 from heapq import heappush, heappop
 import operator

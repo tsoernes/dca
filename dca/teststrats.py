@@ -1,5 +1,5 @@
 from grid import Grid
-from main import FAStrat
+from strats import FAStrat
 
 import unittest
 
