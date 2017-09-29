@@ -106,7 +106,6 @@ class TestFixedGrid(unittest.TestCase):
         self.assertSetEqual(set(targ), set(act))
 
     def test_assign_chs(self):
-        self.grid.assign_chs()
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
                 self.assertGreater(np.sum(self.grid.nom_chs[r][c]), 0)
@@ -115,6 +114,36 @@ class TestFixedGrid(unittest.TestCase):
                     if isNom:
                         for neigh in neighs:
                             self.assertFalse(self.grid.nom_chs[neigh][ch])
+
+    def _test_max_utilization(self):
+        """
+        Verify that when all the nominal channels for each cell
+        are in use, no channel can be assigned in any cell without
+        breaking the reuse constraint.
+        THIS WILL NOT BE THE CASE FOR A SQUARE GRID. CORNER CELLS
+        DOES NOT HAVE 6 UNIQUELY LABELED NEIGHBORS WITHIN A RADIUS
+        OF 2, BUT 5.
+        """
+        for r in range(self.grid.rows):
+            for c in range(self.grid.cols):
+                for ch, isNom in enumerate(self.grid.nom_chs[r][c]):
+                    if isNom:
+                        self.grid.state[r][c][ch] = 1
+        self.assertTrue(self.grid.validate_reuse_constr())
+        for r in range(self.grid.rows):
+            for c in range(self.grid.cols):
+                neighs = self.grid.neighbors2(r, c)
+                f = np.bitwise_or(
+                        self.grid.state[r][c], self.grid.state[neighs[0]])
+                for n in neighs[1:]:
+                    f = np.bitwise_or(f, self.grid.state[n])
+                # There should not be any channels that are free
+                # in the cell (r, c) and all of its neighbors
+                if np.any(f == 0):
+                    self.grid.print_neighs2(r, c)
+                    self.assertTrue(
+                            False,
+                            "Grid not maximum utilized under FA")
 
 
 # class TestBDCLGrid(unittest.TestCase):

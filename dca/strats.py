@@ -1,4 +1,4 @@
-from dca.eventgen import CEvent, ce_str
+from eventgen import CEvent, ce_str
 
 from heapq import heappush, heappop
 import operator
@@ -13,7 +13,7 @@ y = 0.95  # Gamma (discount factor)
 
 
 class Strat:
-    def __init__(self, pp, eventgen, grid, logger, sanity_check,
+    def __init__(self, pp, eventgen, grid, logger,
                  gui=None,
                  *args, **kwargs):
         self.rows = pp['rows']
@@ -21,18 +21,22 @@ class Strat:
         self.n_channels = pp['n_channels']
         self.n_episodes = pp['n_episodes']
         self.p_handoff = pp['p_handoff']
+        self.sanity_check = pp['sanity_check']
+        self.log_iter = pp['log_iter']
         self.grid = grid
-        self.cevents = []  # Call events
         self.eventgen = eventgen
         self.gui = gui
-        self.sanity_check = sanity_check
         self.logger = logger
+
+        self.cevents = []  # Call events
         self.quit_sim = False
 
     def simulate(self):
         start_time = time.time()
         n_rejected = 0  # Number of rejected calls
         n_ended = 0  # Number of ended calls
+        n_handoffs = 0  # Number of handoff events
+        n_handoffs_rejected = 0  # Number of rejected handoff calls
         n_incoming = 0  # Number of incoming (not necessarily accepted) calls
         # Number of channels in progress at a cell when call is blocked
         n_inuse_rej = 0
@@ -84,13 +88,22 @@ class Strat:
                     # instead of ending the call
                     if np.random.random() < self.p_handoff:
                         # Generate handoff event
-                        hevent = self.eventgen.event_handoff(
+                        (end, hoff) = self.eventgen.event_new_handoff(
                                      t, cell, self.grid.neighbors1(*cell), ch)
-                        heappush(self.cevents, hevent)
+                        heappush(self.cevents, end)
+                        heappush(self.cevents, hoff)
                     else:
                         # Generate call duration for call and add end event
                         heappush(self.cevents,
                                  self.eventgen.event_end(t, cell, ch))
+            elif ce_type == CEvent.HOFF:
+                n_handoffs += 1
+                if not ch:
+                    n_handoffs_rejected += 1
+                else:
+                    # Generate call duration for call and add end event
+                    heappush(self.cevents,
+                             self.eventgen.event_end_handoff(t, cell, ch))
             elif ce_type == CEvent.END:
                 n_ended += 1
 
@@ -98,20 +111,23 @@ class Strat:
             next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
 
-            if i > 0 and i % 100000 == 0:
+            if i > 0 and i % self.log_iter == 0:
                 self.logger.info(
-                        f"\nt{t:.2f}: Blocking probability last 100000 events:"
+                        f"\nt{t:.2f}: Blocking probability events"
+                        f" {i-self.log_iter}-{self.log_iter}:"
                         f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
-                self.logger.info(
-                        f"n{i}: Epsilon: {self.epsilon:.5f},"
+                if hasattr(self, 'epsilon'):
+                    self.logger.info(
+                        f"\nn{i}: Epsilon: {self.epsilon:.5f},"
                         f" Alpha: {self.alpha:.5f}")
                 n_curr_rejected = 0
                 n_curr_incoming = 0
 
         n_inprogress = np.sum(self.grid.state)
-        if (n_incoming - n_ended - n_rejected) != n_inprogress:
+        if (n_incoming + n_handoffs - n_ended - n_rejected
+                - n_handoffs_rejected) != n_inprogress:
             self.logger.error(
-                    f"Some calls were lost."
+                    f"\nSome calls were lost."
                     f" accepted: {n_incoming}, ended: {n_ended}"
                     f" rejected: {n_rejected}, in progress: {n_inprogress}")
         self.logger.warn(
@@ -119,11 +135,13 @@ class Strat:
             f" {self.n_episodes} episodes"
             f" at {self.n_episodes/(time.time()-start_time):.0f}"
             " episodes/second"
-            f"\nRejected {n_rejected} of {n_incoming} calls"
-            f"\nBlocking probability: {n_rejected/n_incoming:.4f}"
+            f"\nRejected {n_rejected} of {n_incoming} new calls,"
+            f" {n_handoffs_rejected} of {n_handoffs} handoffs"
+            f"\nBlocking probability: {n_rejected/n_incoming:.4f} new calls,"
+            f" {n_handoffs_rejected/n_handoffs:.4f} for handoffs"
             f"\nAverage number of calls in progress when blocking: "
             f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
-            f"\n{n_inprogress} calls in progress at simulation end")
+            f"\n{n_inprogress} calls in progress at simulation end\n")
 
     def get_init_action(self):
         raise NotImplementedError()
@@ -144,9 +162,7 @@ class FAStrat(Strat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-    def get_init_action(self, cevent):
-        return self.fn_after(cevent)
+        self.get_init_action = self.get_action
 
     def get_action(self, next_cevent, *args):
         ce_type, next_cell = next_cevent[1:3]

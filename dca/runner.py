@@ -15,13 +15,18 @@ def get_pparams():
     # 7.5 erlangs = 150cr, 3cd
     # 5 erlangs = 100cr, 3cd
     """
-    parser = argparse.ArgumentParser(description='DCA')
+    parser = argparse.ArgumentParser(
+            description='DCA',
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--rows', type=int,
+                        help="number of rows in grid",
                         default=7)
     parser.add_argument('--cols', type=int,
+                        help="number of cols in grid",
                         default=7)
     parser.add_argument('--n_channels', type=int,
+                        help="number of channels",
                         default=70)
     parser.add_argument('--erlangs', type=int,
                         help="erlangs = call_rate * call_duration",
@@ -55,16 +60,20 @@ def get_pparams():
     parser.add_argument('--gamma', type=float,
                         help="discount factor",
                         default=0.9)
-    parser.add_argument('--profiling', type=bool,
-                        help="run performance profiling",
+    parser.add_argument('--noprof', dest='profiling', action='store_false',
+                        help="disable performance profiling",
                         default=True)
-    parser.add_argument('--show_gui', type=bool,
+    parser.add_argument('--show_gui', action='store_true',
                         default=False)
-    parser.add_argument('--sanity_check', type=bool,
+    parser.add_argument('--sanity_check', action='store_true',
                         help="verify reuse constraint each iteration",
                         default=False)
     parser.add_argument('--log_level', type=int,
+                        help="10: Debug, 20: Info, 30: Warning",
                         default=logging.INFO)
+    parser.add_argument('--log_iter', type=int,
+                        help="Show block probability every n iteration",
+                        default=100000)
 
     args = parser.parse_args()
     params = vars(args)
@@ -94,36 +103,32 @@ class Runner:
         # epsilon_decay_range = [0.9999, 0.9999999]
         # TODO check karpathy lecs on how to sample
 
-    def setup(self, grid):
+    def runFA(self):
+        self.run(FixedGrid, FAStrat)
+
+    def runSARSA(self):
+        self.run(Grid, SARSAStrat)
+
+    def runTTSARSA(self):
+        self.run(Grid, TTSARSAStrat)
+
+    def runSSSARSA(self):
+        self.run(Grid, RSSARSAStrat)
+
+    def run(self, gridclass, stratclass):
+        grid = gridclass(logger=self.logger, **self.pp)
         self.eventgen = EventGen(**self.pp)
         if self.pp['show_gui']:
             self.gui = Gui(grid, self.end_sim)
         else:
             self.gui = None
-
-    def runFA(self):
-        grid = FixedGrid(logger=self.logger, **self.pp)
-        self.setup(grid)
-        self.strat = FAStrat(
-                self.pp, grid=grid, gui=self.gui,
-                eventgen=self.eventgen,
-                sanity_check=True, logger=self.logger)
-        self.run(grid)
-
-    def runTTSARSA(self):
-        grid = Grid(logger=self.logger, **self.pp)
-        self.setup(grid)
-        self.strat = TTSARSAStrat(
-                self.pp, grid=grid, gui=self.gui,
-                eventgen=self.eventgen,
-                sanity_check=self.pp['sanity_check'], logger=self.logger)
-        self.run(grid)
-
-    def run(self, grid):
+        strat = stratclass(
+                    self.pp, grid=grid, gui=self.gui,
+                    eventgen=self.eventgen, logger=self.logger)
         if self.pp['profiling']:
-            cProfile.runctx('self.strat.simulate()', globals(), locals())
+            cProfile.runctx('strat.simulate()', globals(), locals())
         else:
-            self.strat.simulate()
+            strat.simulate()
 
     def end_sim(self, e):
         """
@@ -134,10 +139,13 @@ class Runner:
 
     def show(self):
         grid = FixedGrid(**self.pp)
-        gui = Gui(grid)
+        gui = Gui(grid, self.logger)
         gui.test()
 
 
 if __name__ == '__main__':
     r = Runner()
-    r.runTTSARSA()
+    r.runFA()
+    #r.runSARSA()
+    #r.runTTSARSA()
+    #r.runRSSARSA()

@@ -27,6 +27,15 @@ class Grid:
         self.labels = np.zeros((self.rows, self.cols), dtype=int)
         self._partition_cells()
 
+    def print_neighs2(self, row, col):
+        """
+        Show all the channels for the given cell and its neighbors
+        """
+        print(f"\n{row}, {col}: {np.where(self.state[row][col]==1)}")
+        for neigh in self.neighbors2(row, col):
+            print(
+                f"\n{neigh}: {np.where(self.state[neigh]==1)}")
+
     def validate_reuse_constr(self):
         """
         Verify that the channel reuse constraint of 3 is not violated,
