@@ -1,8 +1,8 @@
 from eventgen import CEvent, ce_str
+from stats import Stats
 
 from heapq import heappush, heappop
 import operator
-import time
 
 import numpy as np
 import matplotlib as plt
@@ -28,21 +28,15 @@ class Strat:
         self.gui = gui
         self.logger = logger
 
+        self.epsilon = None  # Not applicable for all strats
+        self.alpha = None
+
         self.cevents = []  # Call events
         self.quit_sim = False
 
     def simulate(self):
-        start_time = time.time()
-        n_rejected = 0  # Number of rejected calls
-        n_ended = 0  # Number of ended calls
-        n_handoffs = 0  # Number of handoff events
-        n_handoffs_rejected = 0  # Number of rejected handoff calls
-        n_incoming = 0  # Number of incoming (not necessarily accepted) calls
-        # Number of channels in progress at a cell when call is blocked
-        n_inuse_rej = 0
-        n_curr_rejected = 0  # Number of rejected calls last 100 episodes
-        n_curr_incoming = 0  # Number of incoming calls last 100 episodes
-
+        stats = Stats(
+                self.logger, self.n_channels, self.log_iter, self.n_episodes)
         # Generate initial call events; one for each cell
         for r in range(self.rows):
             for c in range(self.cols):
@@ -57,37 +51,30 @@ class Strat:
                 break  # Gracefully quit to print stats
 
             t, ce_type, cell = cevent[0:3]
-            self.logger.debug(f"{t:.2f}: {cevent[1].name} {cevent[2:]}")
+            self.logger.debug(ce_str(cevent))
 
             if ch:
                 self.execute_action(cevent, ch)
             n_used = np.sum(self.grid.state[cell])
 
             if self.sanity_check and not self.grid.validate_reuse_constr():
-                self.logger.error(f"Reuse constraint broken: {self.grid}")
+                self.logger.error(f"Reuse constraint broken")
                 raise Exception
             if self.gui:
                 self.gui.step()
 
             if ce_type == CEvent.NEW:
-                n_incoming += 1
-                n_curr_incoming += 1
+                stats.new()
                 # Generate next incoming call
                 heappush(self.cevents, self.eventgen.event_new(t, cell))
                 if not ch:
-                    n_rejected += 1
-                    n_curr_rejected += 1
-                    n_inuse_rej += n_used
-                    self.logger.debug(
-                            f"Rejected call to {cell} when {n_used}"
-                            f" of {self.n_channels} channels in use")
+                    stats.new_rej(cell, n_used)
                     if self.gui:
                         self.gui.hgrid.mark_cell(*cell)
                 else:
                     # With some probability, generate a handoff-event
                     # instead of ending the call
                     if np.random.random() < self.p_handoff:
-                        # Generate handoff event
                         (end, hoff) = self.eventgen.event_new_handoff(
                                      t, cell, self.grid.neighbors1(*cell), ch)
                         heappush(self.cevents, end)
@@ -97,51 +84,28 @@ class Strat:
                         heappush(self.cevents,
                                  self.eventgen.event_end(t, cell, ch))
             elif ce_type == CEvent.HOFF:
-                n_handoffs += 1
+                stats.hoff_new()
                 if not ch:
-                    n_handoffs_rejected += 1
+                    stats.hoff_rej(cell, n_used)
+                    if self.gui:
+                        self.gui.hgrid.mark_cell(*cell)
                 else:
                     # Generate call duration for call and add end event
                     heappush(self.cevents,
                              self.eventgen.event_end_handoff(t, cell, ch))
             elif ce_type == CEvent.END:
-                n_ended += 1
+                stats.end()
+                if self.gui:
+                    self.gui.hgrid.unmark_cell(*cell)
 
             next_cevent = heappop(self.cevents)
             next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
 
             if i > 0 and i % self.log_iter == 0:
-                self.logger.info(
-                        f"\nt{t:.2f}: Blocking probability events"
-                        f" {i-self.log_iter}-{self.log_iter}:"
-                        f" {n_curr_rejected/(n_curr_incoming+1):.4f}")
-                if hasattr(self, 'epsilon'):
-                    self.logger.info(
-                        f"\nn{i}: Epsilon: {self.epsilon:.5f},"
-                        f" Alpha: {self.alpha:.5f}")
-                n_curr_rejected = 0
-                n_curr_incoming = 0
+                stats.iter(t, i, self.epsilon, self.alpha)
 
-        n_inprogress = np.sum(self.grid.state)
-        if (n_incoming + n_handoffs - n_ended - n_rejected
-                - n_handoffs_rejected) != n_inprogress:
-            self.logger.error(
-                    f"\nSome calls were lost."
-                    f" accepted: {n_incoming}, ended: {n_ended}"
-                    f" rejected: {n_rejected}, in progress: {n_inprogress}")
-        self.logger.warn(
-            f"\nSimulation duration: {t/24:.2f} hours?,"
-            f" {self.n_episodes} episodes"
-            f" at {self.n_episodes/(time.time()-start_time):.0f}"
-            " episodes/second"
-            f"\nRejected {n_rejected} of {n_incoming} new calls,"
-            f" {n_handoffs_rejected} of {n_handoffs} handoffs"
-            f"\nBlocking probability: {n_rejected/n_incoming:.4f} new calls,"
-            f" {n_handoffs_rejected/n_handoffs:.4f} for handoffs"
-            f"\nAverage number of calls in progress when blocking: "
-            f"{n_inuse_rej/(n_rejected+1):.2f}"  # avoid zero division
-            f"\n{n_inprogress} calls in progress at simulation end\n")
+        stats.endsim(t, i, np.sum(self.grid.state))
 
     def get_init_action(self):
         raise NotImplementedError()
@@ -153,7 +117,7 @@ class Strat:
         raise NotImplementedError()
 
 
-class FAStrat(Strat):
+class FixedAss(Strat):
     """
     Fixed assignment (FA) channel allocation.
     The set of channels is partitioned, and the partitions are permanently
@@ -256,8 +220,6 @@ class RLStrat(Strat):
             # Reassign 'ch' to the channel of the terminating call
             self.grid.state[cell][ch] = 1
             self.grid.state[cell][cevent[3]] = 0
-            if self.gui:
-                self.gui.hgrid.unmark_cell(*cell)
 
     def optimal_ch(self, ce_type, cell):
         """
@@ -333,7 +295,7 @@ class RLStrat(Strat):
         return self.gamma
 
 
-class SARSAStrat(RLStrat):
+class SARSA(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # "qvals[r][c][n][ch] = v"
@@ -350,7 +312,7 @@ class SARSAStrat(RLStrat):
         self.qvals[cell][n_used][ch] += self.alpha * td_err
 
 
-class TTSARSAStrat(RLStrat):
+class TT_SARSA(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # consistent low 7%, sometimes 6% block prob
@@ -366,7 +328,7 @@ class TTSARSAStrat(RLStrat):
         self.qvals[cell][min(self.k-1, n_used)][ch] += self.alpha * td_err
 
 
-class RSSARSAStrat(RLStrat):
+class RS_SARSA(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))

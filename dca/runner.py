@@ -1,4 +1,4 @@
-from strats import RLStrat, FAStrat, SARSAStrat, TTSARSAStrat, RSSARSAStrat
+from strats import FixedAss, SARSA, TT_SARSA, RS_SARSA
 from gui import Gui
 from grid import Grid, FixedGrid
 from eventgen import EventGen
@@ -104,16 +104,16 @@ class Runner:
         # TODO check karpathy lecs on how to sample
 
     def runFA(self):
-        self.run(FixedGrid, FAStrat)
+        self.run(FixedGrid, FixedAss)
 
     def runSARSA(self):
-        self.run(Grid, SARSAStrat)
+        self.run(Grid, SARSA)
 
     def runTTSARSA(self):
-        self.run(Grid, TTSARSAStrat)
+        self.run(Grid, TT_SARSA)
 
     def runSSSARSA(self):
-        self.run(Grid, RSSARSAStrat)
+        self.run(Grid, RS_SARSA)
 
     def run(self, gridclass, stratclass):
         grid = gridclass(logger=self.logger, **self.pp)
@@ -122,13 +122,13 @@ class Runner:
             self.gui = Gui(grid, self.end_sim)
         else:
             self.gui = None
-        strat = stratclass(
+        self.strat = stratclass(
                     self.pp, grid=grid, gui=self.gui,
                     eventgen=self.eventgen, logger=self.logger)
         if self.pp['profiling']:
-            cProfile.runctx('strat.simulate()', globals(), locals())
+            cProfile.runctx('self.strat.simulate()', globals(), locals())
         else:
-            strat.simulate()
+            self.strat.simulate()
 
     def end_sim(self, e):
         """
