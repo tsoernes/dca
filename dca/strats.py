@@ -339,8 +339,11 @@ class RS_SARSA(RLStrat):
     def update_qval_reduced(self, cell, n_used, ch, td_err):
         self.qvals[cell][ch] += self.alpha * td_err
 
-# todo: plot block-rate over time to determine
+# TODO: plot block-rate over time to determine
 # if if rl system actually improves over time
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?
+
+# TODO NOTE Handoffs or something is not working correctly.
+# Calls are rejected when no chs are in use.
