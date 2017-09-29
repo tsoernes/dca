@@ -63,7 +63,7 @@ def get_pparams():
     parser.add_argument('--noprof', dest='profiling', action='store_false',
                         help="disable performance profiling",
                         default=True)
-    parser.add_argument('--show_gui', action='store_true',
+    parser.add_argument('--gui', action='store_true',
                         default=False)
     parser.add_argument('--sanity_check', action='store_true',
                         help="verify reuse constraint each iteration",
@@ -117,14 +117,14 @@ class Runner:
 
     def run(self, gridclass, stratclass):
         grid = gridclass(logger=self.logger, **self.pp)
-        self.eventgen = EventGen(**self.pp)
-        if self.pp['show_gui']:
-            self.gui = Gui(grid, self.end_sim)
+        eventgen = EventGen(**self.pp)
+        if self.pp['gui']:
+            gui = Gui(grid, self.end_sim)
         else:
-            self.gui = None
+            gui = None
         self.strat = stratclass(
-                    self.pp, grid=grid, gui=self.gui,
-                    eventgen=self.eventgen, logger=self.logger)
+                    self.pp, grid=grid, gui=gui,
+                    eventgen=eventgen, logger=self.logger)
         if self.pp['profiling']:
             cProfile.runctx('self.strat.simulate()', globals(), locals())
         else:

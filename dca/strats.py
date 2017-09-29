@@ -8,10 +8,6 @@ import numpy as np
 import matplotlib as plt
 
 
-lr = 0.8  # Learning rate
-y = 0.95  # Gamma (discount factor)
-
-
 class Strat:
     def __init__(self, pp, eventgen, grid, logger,
                  gui=None,
@@ -63,6 +59,8 @@ class Strat:
             if self.gui:
                 self.gui.step()
 
+            # TODO Something seems off here. Why is the event checked
+            # after it's executed? n_used has changed?
             if ce_type == CEvent.NEW:
                 stats.new()
                 # Generate next incoming call
@@ -74,14 +72,14 @@ class Strat:
                 else:
                     # With some probability, generate a handoff-event
                     # instead of ending the call
-                    if np.random.random() < self.p_handoff:
-                        (end, hoff) = self.eventgen.event_new_handoff(
-                                     t, cell, self.grid.neighbors1(*cell), ch)
-                        heappush(self.cevents, end)
-                        heappush(self.cevents, hoff)
-                    else:
+                    # if np.random.random() < self.p_handoff:
+                    #     (end, hoff) = self.eventgen.event_new_handoff(
+                    #                  t, cell, self.grid.neighbors1(*cell), ch)
+                    #     heappush(self.cevents, end)
+                    #     heappush(self.cevents, hoff)
+                    # else:
                         # Generate call duration for call and add end event
-                        heappush(self.cevents,
+                    heappush(self.cevents,
                                  self.eventgen.event_end(t, cell, ch))
             elif ce_type == CEvent.HOFF:
                 stats.hoff_new()
@@ -95,6 +93,8 @@ class Strat:
                              self.eventgen.event_end_handoff(t, cell, ch))
             elif ce_type == CEvent.END:
                 stats.end()
+                if not ch:
+                    self.logger.warn("No channel assigned for end event")
                 if self.gui:
                     self.gui.hgrid.unmark_cell(*cell)
 
@@ -132,7 +132,7 @@ class FixedAss(Strat):
         ce_type, next_cell = next_cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             # When a call arrives in a cell,
-            # if any pre-assigned channel is unused;
+            # if any nominal channel is unused;
             # it is assigned, else the call is blocked.
             ch = None
             for idx, isNom in enumerate(self.grid.nom_chs[next_cell]):
