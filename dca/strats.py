@@ -146,7 +146,7 @@ class FixedAss(Strat):
         ce_type, next_cell = next_cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             # When a call arrives in a cell,
-            # if any nominal channel is unused;
+            # if any pre-assigned channel is unused;
             # it is assigned, else the call is blocked.
             for ch, isNom in enumerate(self.grid.nom_chs[next_cell]):
                 if isNom and self.grid.state[next_cell][ch] == 0:
@@ -315,9 +315,9 @@ class RLStrat(Strat):
 class SARSA(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # "qvals[r][c][n][ch] = v"
+        # "qvals[r][c][n_used][ch] = v"
         # Assigning channel 'c' to the cell at row 'r', col 'c'
-        # has q-value 'v' given that 'n' channels are already
+        # has q-value 'v' given that 'n_used' channels are already
         # in use at that cell.
         self.qvals = np.zeros((self.rows, self.cols,
                               self.n_channels, self.n_channels))
