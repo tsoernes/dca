@@ -19,6 +19,9 @@ def get_pparams():
             description='DCA',
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    parser.add_argument('--strat',
+                        choices=['fixed', 'sarsa', 'tt_sarsa', 'rs_sarsa'],
+                        default='fixed')
     parser.add_argument('--rows', type=int,
                         help="number of rows in grid",
                         default=7)
@@ -46,23 +49,24 @@ def get_pparams():
     parser.add_argument('--n_hours', type=int,
                         help="number hours in simulation time to run",
                         default=2)
-    parser.add_argument('--alpha', type=float, help="learning rate",
+    parser.add_argument('--alpha', type=float,
+                        help="(RL) learning rate",
                         default=0.05)
     parser.add_argument('--alpha_decay', type=float,
-                        help="factor by which alpha is multiplied each iter",
+                        help="(RL) factor by which alpha is multiplied each iter",  # noqa
                         default=0.999999)
     parser.add_argument('--epsilon', type=float,
-                        help="probability of choosing random action",
+                        help="(RL) probability of choosing random action",  # noqa
                         default=0.2)
     parser.add_argument('--epsilon_decay', type=float,
-                        help="factor by which epsilon is multiplied each iter",
+                        help="(RL) factor by which epsilon is multiplied each iter",  # noqa
                         default=0.999999)
     parser.add_argument('--gamma', type=float,
-                        help="discount factor",
+                        help="(RL) discount factor",
                         default=0.9)
-    parser.add_argument('--noprof', dest='profiling', action='store_false',
-                        help="disable performance profiling",
-                        default=True)
+    parser.add_argument('--prof', dest='profiling', action='store_true',
+                        help="performance profiling",
+                        default=False)
     parser.add_argument('--gui', action='store_true',
                         default=False)
     parser.add_argument('--sanity_check', action='store_true',
@@ -71,8 +75,9 @@ def get_pparams():
     parser.add_argument('--log_level', type=int,
                         help="10: Debug, 20: Info, 30: Warning",
                         default=logging.INFO)
+    parser.add_argument('--log_file', type=str)
     parser.add_argument('--log_iter', type=int,
-                        help="Show block probability every n iteration",
+                        help="Show blocking probability for the last n iterations",   # noqa
                         default=100000)
 
     args = parser.parse_args()
@@ -90,9 +95,10 @@ class Runner:
         logging.basicConfig(
                 level=self.pp['log_level'], format='%(message)s')
         self.logger = logging.getLogger('')
-        # fh = logging.FileHandler('out.log')
-        # fh.setLevel(logging.INFO)
-        # self.logger.addHandler(fh)
+        if self.pp['log_file']:
+            fh = logging.FileHandler(self.pp['log_file'])
+            fh.setLevel(logging.INFO)
+            self.logger.addHandler(fh)
         self.logger.info(f"Starting simulation with params {self.pp}")
 
     def test_params(self):
@@ -103,19 +109,18 @@ class Runner:
         # epsilon_decay_range = [0.9999, 0.9999999]
         # TODO check karpathy lecs on how to sample
 
-    def runFA(self):
-        self.run(FixedGrid, FixedAss)
+    def run(self):
+        s = self.pp['strat']
+        if s == 'fixed':
+            self.run_strat(FixedGrid, FixedAss)
+        elif s == 'sarsa':
+            self.run_strat(Grid, SARSA)
+        elif s == 'tt_sarsa':
+            self.run_strat(Grid, TT_SARSA)
+        elif s == 'rs_sarsa':
+            self.run_strat(Grid, RS_SARSA)
 
-    def runSARSA(self):
-        self.run(Grid, SARSA)
-
-    def runTTSARSA(self):
-        self.run(Grid, TT_SARSA)
-
-    def runSSSARSA(self):
-        self.run(Grid, RS_SARSA)
-
-    def run(self, gridclass, stratclass):
+    def run_strat(self, gridclass, stratclass):
         grid = gridclass(logger=self.logger, **self.pp)
         eventgen = EventGen(**self.pp)
         if self.pp['gui']:
@@ -126,9 +131,9 @@ class Runner:
                     self.pp, grid=grid, gui=gui,
                     eventgen=eventgen, logger=self.logger)
         if self.pp['profiling']:
-            cProfile.runctx('self.strat.simulate()', globals(), locals())
+            cProfile.runctx('self.strat.init_sim()', globals(), locals())
         else:
-            self.strat.simulate()
+            self.strat.init_sim()
 
     def end_sim(self, e):
         """
@@ -145,7 +150,4 @@ class Runner:
 
 if __name__ == '__main__':
     r = Runner()
-    r.runFA()
-    #r.runSARSA()
-    #r.runTTSARSA()
-    #r.runRSSARSA()
+    r.run()

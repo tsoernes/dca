@@ -1,11 +1,13 @@
 from eventgen import CEvent, ce_str
 from stats import Stats
 
+from functools import partial
 from heapq import heappush, heappop
 import operator
+import signal
+import sys
 
 import numpy as np
-import matplotlib as plt
 
 
 class Strat:
@@ -30,24 +32,35 @@ class Strat:
         self.cevents = []  # Call events
         self.quit_sim = False
 
-    def simulate(self):
+    def exit_handler(self, sig, frame, stats):
+        """
+        Print stats on ctrl-c exit from command line
+        """
+        self.logger.warn("\nPremature exit")
+        stats.endsim(np.sum(self.grid.state))
+        sys.exit(0)
+
+    def init_sim(self):
         stats = Stats(
                 self.logger, self.n_channels, self.log_iter, self.n_episodes)
+        signal.signal(signal.SIGINT, partial(self.exit_handler, stats=stats))
         # Generate initial call events; one for each cell
         for r in range(self.rows):
             for c in range(self.cols):
                 heappush(self.cevents, self.eventgen.event_new(0, (r, c)))
+        self._simulate(stats)
 
+    def _simulate(self, stats):
         cevent = heappop(self.cevents)
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
         for i in range(self.n_episodes):
             if self.quit_sim:
-                break  # Gracefully quit to print stats
+                break  # Gracefully exit from gui to print stats
 
             t, ce_type, cell = cevent[0:3]
-            self.logger.debug(ce_str(cevent))
+            stats.iter(t, i, cevent)
 
             if ch:
                 self.execute_action(cevent, ch)
@@ -72,14 +85,14 @@ class Strat:
                 else:
                     # With some probability, generate a handoff-event
                     # instead of ending the call
-                    # if np.random.random() < self.p_handoff:
-                    #     (end, hoff) = self.eventgen.event_new_handoff(
-                    #                  t, cell, self.grid.neighbors1(*cell), ch)
-                    #     heappush(self.cevents, end)
-                    #     heappush(self.cevents, hoff)
-                    # else:
+                    if np.random.random() < self.p_handoff:
+                        (end, hoff) = self.eventgen.event_new_handoff(
+                                     t, cell, self.grid.neighbors1(*cell), ch)
+                        heappush(self.cevents, end)
+                        heappush(self.cevents, hoff)
+                    else:
                         # Generate call duration for call and add end event
-                    heappush(self.cevents,
+                        heappush(self.cevents,
                                  self.eventgen.event_end(t, cell, ch))
             elif ce_type == CEvent.HOFF:
                 stats.hoff_new()
@@ -103,9 +116,9 @@ class Strat:
             ch, cevent = next_ch, next_cevent
 
             if i > 0 and i % self.log_iter == 0:
-                stats.iter(t, i, self.epsilon, self.alpha)
+                stats.n_iter(self.epsilon, self.alpha)
 
-        stats.endsim(t, i, np.sum(self.grid.state))
+        stats.endsim(np.sum(self.grid.state))
 
     def get_init_action(self):
         raise NotImplementedError()
@@ -120,9 +133,10 @@ class Strat:
 class FixedAss(Strat):
     """
     Fixed assignment (FA) channel allocation.
+
     The set of channels is partitioned, and the partitions are permanently
-    assigned to cells so that all cells can use all the channels assigned
-    to them simultaneously without interference.
+    assigned to cells so that every cell can use all of its channels
+    simultanously without interference.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -134,12 +148,10 @@ class FixedAss(Strat):
             # When a call arrives in a cell,
             # if any nominal channel is unused;
             # it is assigned, else the call is blocked.
-            ch = None
-            for idx, isNom in enumerate(self.grid.nom_chs[next_cell]):
-                if isNom and self.grid.state[next_cell][idx] == 0:
-                    ch = idx
-                    break
-            return ch
+            for ch, isNom in enumerate(self.grid.nom_chs[next_cell]):
+                if isNom and self.grid.state[next_cell][ch] == 0:
+                    return ch
+            return None
         elif ce_type == CEvent.END:
             # No rearrangement is done when a call terminates.
             return next_cevent[3]
@@ -147,6 +159,11 @@ class FixedAss(Strat):
     def execute_action(self, cevent, ch):
         ce_type, cell = cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            if self.grid.state[cell][ch]:
+                self.logger.error(
+                    f"Tried assigning new call {ce_str(cevent)} to"
+                    f" channel {ch} which is already in use")
+                raise Exception()
             self.grid.state[cell][ch] = 1
         else:
             self.grid.state[cell][ch] = 0

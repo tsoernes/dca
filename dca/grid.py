@@ -42,7 +42,7 @@ class Grid:
         e.g. that a channel in use in a cell is not in use in its neighbors.
         Returns True if valid not violated, False otherwise
         """
-        # TODO: It should be possible to do this more efficiently.
+        # TODO: It might be possible to do this more efficiently.
         # If no neighbors of a cell violate the channel reuse constraint,
         # then the cell itself does not either, so it should be possible
         # to skip checking some cells.
@@ -180,10 +180,10 @@ class Grid:
     @functools.lru_cache(maxsize=None)
     def neighbors2(self, row, col, separate=False):
         """
-        If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...])
+        If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),
         else return [(r1, c1), (r2, c2), ...]
 
-        Returns a list with indexes of neighbors within a radius of 2,
+        Returns a list with indices of neighbors within a radius of 2,
         not including self
         """
         if separate:
@@ -268,7 +268,7 @@ class Grid:
                     and y >= 0 and y < self.rows):
                 self.labels[y][x] = l
 
-        # Center of a 'circular' 7-cell subgrid where
+        # Center of a 'circular' 7-cell subgrid in which
         # each cell has a unique label
         center = (0, 0)
         # First center in current row which has neighbors inside grid
@@ -336,6 +336,7 @@ class FixedGrid(Grid):
 
 class BDCLGrid(FixedGrid):
     def __init__(self, *args, **kwargs):
+        raise NotImplementedError()
         super().__init__(*args, **kwargs)
         # For each channel, a direction is locked if entry is True
         self.locks = np.zeros((self.rows, self.cols, self.n_channels, 7),
