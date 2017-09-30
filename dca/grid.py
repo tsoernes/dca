@@ -352,7 +352,7 @@ class BDCLGrid(FixedGrid):
         of 2 from 'b', i.e. the cells within the channel reuse distance
         of 3 when 'b' borrows a channel from 'c'.
         """
-        raise NotImplementedError  # not implemented correctly
+        raise NotImplementedError  # perhaps not implemented correctly
         neighs = self.neighbors2(*cell_neigh)
         coch_cells = []
         label = self.labels[cell]
