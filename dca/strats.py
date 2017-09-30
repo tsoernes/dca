@@ -64,7 +64,7 @@ class Strat:
             stats.iter(t, i, cevent)
 
             n_used = np.sum(self.grid.state[cell])
-            if ch:
+            if ch is not None:
                 self.execute_action(cevent, ch)
 
             if self.sanity_check and not self.grid.validate_reuse_constr():
@@ -79,7 +79,7 @@ class Strat:
                 stats.new()
                 # Generate next incoming call
                 heappush(self.cevents, self.eventgen.event_new(t, cell))
-                if not ch:
+                if ch is None:
                     stats.new_rej(cell, n_used)
                     if self.gui:
                         self.gui.hgrid.mark_cell(*cell)
@@ -97,7 +97,7 @@ class Strat:
                                  self.eventgen.event_end(t, cell, ch))
             elif ce_type == CEvent.HOFF:
                 stats.hoff_new()
-                if not ch:
+                if ch is None:
                     stats.hoff_rej(cell, n_used)
                     if self.gui:
                         self.gui.hgrid.mark_cell(*cell)
@@ -107,7 +107,7 @@ class Strat:
                              self.eventgen.event_end_handoff(t, cell, ch))
             elif ce_type == CEvent.END:
                 stats.end()
-                if not ch:
+                if ch is None:
                     self.logger.error("No channel assigned for end event")
                 if self.gui:
                     self.gui.hgrid.unmark_cell(*cell)

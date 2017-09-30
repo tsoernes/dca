@@ -36,14 +36,7 @@ class Stats:
         self.n_rejected += 1
         self.n_curr_rejected += 1
         self.n_inuse_rej += n_used
-        if n_used == 0:
-            lgger = self.logger.warn
-        else:
-            lgger = self.logger.debug
-        lgger(
-                f"Rejected call to {cell} when {n_used}"
-                f" of {self.n_channels} channels in use")
-        # self.rej(cell, n_used)
+        self.rej(cell, n_used)
 
     def end(self):
         self.n_ended += 1
@@ -53,23 +46,15 @@ class Stats:
 
     def hoff_rej(self, cell, n_used):
         self.n_handoffs_rejected += 1
-        if n_used == 0:
-            lgger = self.logger.warn
-        else:
-            lgger = self.logger.debug
-        lgger(
-                f"Rejected handoff to {cell} when {n_used}"
-                f" of {self.n_channels} channels in use")
-        # self.rej(cell, n_used)
+        self.rej(cell, n_used)
 
     def rej(self, cell, n_used):
         if n_used == 0:
             lgger = self.logger.warn
         else:
             lgger = self.logger.debug
-        lgger(
-                f"Rejected call to {cell} when {n_used}"
-                f" of {self.n_channels} channels in use")
+        lgger(f"Rejected call to {cell} when {n_used}"
+              f" of {self.n_channels} channels in use")
 
     def iter(self, t, i, cevent):
         self.t = t
@@ -89,14 +74,17 @@ class Stats:
         self.n_curr_incoming = 0
 
     def endsim(self, n_inprogress):
-        if (self.n_incoming + self.n_handoffs -
-                self.n_ended - self.n_rejected -
-                self.n_handoffs_rejected) != n_inprogress:
+        delta = self.n_incoming + self.n_handoffs \
+                - self.n_rejected - self.n_handoffs_rejected - self.n_ended
+        if delta != n_inprogress:
             self.logger.error(
-                    f"\nSome calls were lost."
-                    f" accepted: {self.n_incoming}, ended: {self.n_ended}"
-                    f" rejected: {self.n_rejected},"
-                    f" in progress: {n_inprogress}")
+                    f"\nSome calls were lost. Counted in progress {delta}. "
+                    f" Actual in progress: {n_inprogress}"
+                    f"\nIncoming: {self.n_incoming}"
+                    f"\nIncoming handoffs: {self.n_handoffs}"
+                    f"\nRejected: {self.n_rejected}"
+                    f"\nRejected handoffs: {self.n_handoffs_rejected}"
+                    f"\nEnded: {self.n_ended}")
         # Avoid zero divisions by adding 1 do dividers
         self.logger.warn(
             f"\nSimulation duration: {self.t/24:.2f} sim hours(?),"
