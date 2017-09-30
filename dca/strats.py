@@ -29,7 +29,8 @@ class Strat:
         self.epsilon = None  # Not applicable for all strats
         self.alpha = None
 
-        self.cevents = []  # Call events
+        # A min-heap of call events; sorted first on time then event type
+        self.cevents = []
         self.quit_sim = False
 
     def exit_handler(self, sig, frame, stats):
@@ -62,9 +63,9 @@ class Strat:
             t, ce_type, cell = cevent[0:3]
             stats.iter(t, i, cevent)
 
+            n_used = np.sum(self.grid.state[cell])
             if ch:
                 self.execute_action(cevent, ch)
-            n_used = np.sum(self.grid.state[cell])
 
             if self.sanity_check and not self.grid.validate_reuse_constr():
                 self.logger.error(f"Reuse constraint broken")
@@ -107,7 +108,7 @@ class Strat:
             elif ce_type == CEvent.END:
                 stats.end()
                 if not ch:
-                    self.logger.warn("No channel assigned for end event")
+                    self.logger.error("No channel assigned for end event")
                 if self.gui:
                     self.gui.hgrid.unmark_cell(*cell)
 

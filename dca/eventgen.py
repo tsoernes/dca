@@ -41,14 +41,14 @@ class EventGen:
         exponentially distributed time dt from t.
         """
         dt = np.random.exponential(self.call_intertimes[cell])
-        return (dt + t, CEvent.NEW, cell)
+        return (t + dt, CEvent.NEW, cell)
 
     def event_end(self, t, cell, ch):
         """
         Generate end event for a call
         """
-        e_time = np.random.exponential(self.call_duration) + t
-        return (e_time, CEvent.END, cell, ch)
+        dt = np.random.exponential(self.call_duration)
+        return (t + dt, CEvent.END, cell, ch)
 
     def event_new_handoff(self, t, cell, neighs, ch):
         """
@@ -58,8 +58,9 @@ class EventGen:
         A new call is handed off instead of terminated with
         some probability, in which case it generates
         an end event at the leaving cell and a hoff event
-        at the entering cell, both with the same event time.
-        The end event, having lower Enum(1) than the handoff
+        at the entering cell, both with the same event time
+        some time dt from now.
+        The end event, having lower Enum (1) than the handoff
         event (2), is handled first due to minheap sorting,
         and keeping handoff events
         separate from new events makes it possible to reward
@@ -71,13 +72,14 @@ class EventGen:
         - end call in neighboring cell
         """
         neigh = np.random.randint(0, len(neighs))
-        end_event = (t, CEvent.END, cell, ch)
-        new_event = (t, CEvent.HOFF, neighs[neigh])
+        end_event = self.event_end(t, cell, ch)
+        # end_event = (t, CEvent.END, cell, ch)
+        new_event = (end_event[0], CEvent.HOFF, neighs[neigh])
         return (end_event, new_event)
 
     def event_end_handoff(self, t, cell, ch):
-        e_time = np.random.exponential(self.handoff_call_duration) + t
-        return (e_time, CEvent.END, cell, ch)
+        dt = np.random.exponential(self.handoff_call_duration)
+        return (t + dt, CEvent.END, cell, ch)
 
 
 def ce_str(cevent):

@@ -138,12 +138,11 @@ class Grid:
             return (row-1, col-1)
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
     def neighbors1sparse(row, col):
         """
         Returns a list with indexes of neighbors within a radius of 1,
         not including self. The indexes may not be within grid.
-        In clockwise order starting from up-right.
+        In clockwise order starting from north.
         """
         idxs = [
             Grid.move_n(row, col),

@@ -20,7 +20,8 @@ def get_pparams():
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--strat',
-                        choices=['fixed', 'sarsa', 'tt_sarsa', 'rs_sarsa'],
+                        choices=['none', 'fixed', 'sarsa', 'tt_sarsa', 'rs_sarsa'],  # noqa
+                        help="none: just show gui",
                         default='fixed')
     parser.add_argument('--rows', type=int,
                         help="number of rows in grid",
@@ -119,6 +120,8 @@ class Runner:
             self.run_strat(Grid, TT_SARSA)
         elif s == 'rs_sarsa':
             self.run_strat(Grid, RS_SARSA)
+        elif s == 'none':
+            self.show()
 
     def run_strat(self, gridclass, stratclass):
         grid = gridclass(logger=self.logger, **self.pp)
@@ -143,7 +146,7 @@ class Runner:
         self.strat.quit_sim = True
 
     def show(self):
-        grid = FixedGrid(**self.pp)
+        grid = FixedGrid(logger=self.logger, **self.pp)
         gui = Gui(grid, self.logger)
         gui.test()
 

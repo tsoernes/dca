@@ -36,7 +36,14 @@ class Stats:
         self.n_rejected += 1
         self.n_curr_rejected += 1
         self.n_inuse_rej += n_used
-        self.rej(cell, n_used)
+        if n_used == 0:
+            lgger = self.logger.warn
+        else:
+            lgger = self.logger.debug
+        lgger(
+                f"Rejected call to {cell} when {n_used}"
+                f" of {self.n_channels} channels in use")
+        # self.rej(cell, n_used)
 
     def end(self):
         self.n_ended += 1
@@ -46,7 +53,14 @@ class Stats:
 
     def hoff_rej(self, cell, n_used):
         self.n_handoffs_rejected += 1
-        self.rej(cell, n_used)
+        if n_used == 0:
+            lgger = self.logger.warn
+        else:
+            lgger = self.logger.debug
+        lgger(
+                f"Rejected handoff to {cell} when {n_used}"
+                f" of {self.n_channels} channels in use")
+        # self.rej(cell, n_used)
 
     def rej(self, cell, n_used):
         if n_used == 0:
