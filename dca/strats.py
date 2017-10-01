@@ -16,13 +16,13 @@ class Strat:
         self.n_channels = pp['n_channels']
         self.n_episodes = pp['n_episodes']
         self.p_handoff = pp['p_handoff']
-        self.sanity_check = pp['sanity_check']
+        self.verify_grid = pp['verify_grid']
         self.log_iter = pp['log_iter']
         self.grid = grid
         self.eventgen = eventgen
-        self.gui = None
         self.logger = logger
 
+        self.gui = None
         self.epsilon = None  # Not applicable for all strats
         self.alpha = None
 
@@ -36,8 +36,6 @@ class Strat:
         """
         self.logger.warn("\nPremature exit")
         self.quit_sim = True
-        # stats.endsim(np.sum(self.grid.state))
-        # sys.exit(0)
 
     def init_sim(self):
         stats = Stats(
@@ -56,7 +54,7 @@ class Strat:
         # Discrete event simulation
         for i in range(self.n_episodes):
             if self.quit_sim:
-                break  # Gracefully exit from gui to print stats
+                break  # Gracefully exit to print stats
 
             t, ce_type, cell = cevent[0:3]
             stats.iter(t, i, cevent)
@@ -65,7 +63,7 @@ class Strat:
             if ch is not None:
                 self.execute_action(cevent, ch)
 
-            if self.sanity_check and not self.grid.validate_reuse_constr():
+            if self.verify_grid and not self.grid.validate_reuse_constr():
                 self.logger.error(f"Reuse constraint broken")
                 raise Exception
             if self.gui:
@@ -107,6 +105,7 @@ class Strat:
                 stats.end()
                 if ch is None:
                     self.logger.error("No channel assigned for end event")
+                    raise Exception
                 if self.gui:
                     self.gui.hgrid.unmark_cell(*cell)
 
@@ -125,8 +124,18 @@ class Strat:
     def get_action(self):
         raise NotImplementedError()
 
-    def execute_action(self):
-        raise NotImplementedError()
+    def execute_action(self, cevent, ch):
+        ce_type, cell = cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            if self.grid.state[cell][ch]:
+                self.logger.error(
+                    f"Tried assigning new call {ce_str(cevent)} to"
+                    f" channel {ch} which is already in use")
+                raise Exception()
+            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
+            self.grid.state[cell][ch] = 1
+        else:
+            self.grid.state[cell][cevent[3]] = 0
 
 
 class FixedAss(Strat):
@@ -156,16 +165,7 @@ class FixedAss(Strat):
             return next_cevent[3]
 
     def execute_action(self, cevent, ch):
-        ce_type, cell = cevent[1:3]
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            if self.grid.state[cell][ch]:
-                self.logger.error(
-                    f"Tried assigning new call {ce_str(cevent)} to"
-                    f" channel {ch} which is already in use")
-                raise Exception()
-            self.grid.state[cell][ch] = 1
-        else:
-            self.grid.state[cell][ch] = 0
+        super().execute_action(cevent, ch)
 
 
 class RLStrat(Strat):
@@ -205,14 +205,16 @@ class RLStrat(Strat):
         next_cell = next_cevent[2]
         # Choose A' from S'
         next_n_used, next_ch = self.optimal_ch(next_cevent[1], next_cell)
-        # Update q-values with one-step lookahead
-        next_qval = self.get_qval(next_cell, next_n_used, next_ch)
-        dt = -1  # how to calculate this?
-        td_err = reward + self.discount(dt) * next_qval - self.qval
-        self.update_qval(cell, self.n_used, ch, td_err)
-        self.alpha *= self.alpha_decay
-
-        self.n_used, self.qval = next_n_used, next_qval
+        # If there's no action to take, don't update q at all
+        if next_ch is not None:
+            # Update q-values with one-step lookahead
+            next_qval = self.get_qval(next_cell, next_n_used, next_ch)
+            dt = -1  # how to calculate this?
+            td_err = reward + self.discount(dt) * next_qval - self.qval
+            self.update_qval(cell, self.n_used, ch, td_err)
+            self.alpha *= self.alpha_decay
+            # n_used doesn't change if there's no action to take
+            self.n_used, self.qval = next_n_used, next_qval
         return next_ch
 
     def execute_action(self, cevent, ch):
@@ -220,22 +222,11 @@ class RLStrat(Strat):
         Change the grid state according to the given action
         """
         ce_type, cell = cevent[1:3]
-        if ce_type == CEvent.NEW:
-            if self.grid.state[cell][ch]:
-                self.logger.error(
-                    f"Tried assigning new call {ce_str(cevent)} to"
-                    f" channel {ch} which is already in use")
-                raise Exception()
-
-            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
-            # Add incoming call to current state
-            self.grid.state[cell][ch] = 1
-        else:
+        if ce_type == CEvent.END:
             self.logger.debug(
                     f"Reassigned ch {cevent[3]} to ch {ch} in cell {cell}")
-            # Reassign 'ch' to the channel of the terminating call
             self.grid.state[cell][ch] = 1
-            self.grid.state[cell][cevent[3]] = 0
+        super().execute_action(cevent, ch)
 
     def optimal_ch(self, ce_type, cell):
         """
@@ -245,18 +236,20 @@ class RLStrat(Strat):
 
         Return (n_used, ch) where 'n_used' is the number of channels in
         use before any potential action is taken.
-        'ch' is -1 if no channel is eligeble for assignment
+        'ch' is None if no channel is eligeble for assignment
         """
         inuse = np.nonzero(self.grid.state[cell])[0]
         n_used = len(inuse)
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             neighs = self.grid.neighbors2(*cell)
-            inuse_neigh = np.bitwise_or(
+            # Find the channels that are free in 'cell' and all of
+            # its neighbors by bitwise ORing all their allocation maps
+            alloc_map = np.bitwise_or(
                     self.grid.state[cell], self.grid.state[neighs[0]])
             for n in neighs[1:]:
-                inuse_neigh = np.bitwise_or(inuse_neigh, self.grid.state[n])
-            chs = np.where(inuse_neigh == 0)[0]
+                alloc_map = np.bitwise_or(alloc_map, self.grid.state[n])
+            chs = np.where(alloc_map == 0)[0]
             op = operator.gt
             best_val = float("-inf")
         else:
@@ -360,6 +353,3 @@ class RS_SARSA(RLStrat):
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?
-
-# TODO NOTE Handoffs or something is not working correctly.
-# Calls are rejected when no chs are in use.

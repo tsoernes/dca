@@ -70,7 +70,7 @@ def get_pparams():
                         default=False)
     parser.add_argument('--gui', action='store_true',
                         default=False)
-    parser.add_argument('--sanity_check', action='store_true',
+    parser.add_argument('--verify_grid', action='store_true',
                         help="verify reuse constraint each iteration",
                         default=False)
     parser.add_argument('--log_level', type=int,
