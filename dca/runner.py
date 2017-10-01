@@ -126,13 +126,12 @@ class Runner:
     def run_strat(self, gridclass, stratclass):
         grid = gridclass(logger=self.logger, **self.pp)
         eventgen = EventGen(**self.pp)
-        if self.pp['gui']:
-            gui = Gui(grid, self.end_sim)
-        else:
-            gui = None
         self.strat = stratclass(
-                    self.pp, grid=grid, gui=gui,
+                    self.pp, grid=grid,
                     eventgen=eventgen, logger=self.logger)
+        if self.pp['gui']:
+            gui = Gui(grid, self.strat.exit_handler)
+            self.strat.gui = gui
         if self.pp['profiling']:
             cProfile.runctx('self.strat.init_sim()', globals(), locals())
         else:

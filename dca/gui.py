@@ -145,7 +145,10 @@ class Gui:
         self.hgrid = HexagonGrid(
                 self.root, grid.rows, grid.cols,
                 grid.labels, show_coords=True)
+        # Call 'keydown' func for graceful exit on 'q' key
+        # or on window close
         self.root.bind("q", keydown)
+        self.root.protocol("WM_DELETE_WINDOW", keydown)
         self.hgrid.pack()
 
     def step(self):

@@ -1,18 +1,15 @@
 from eventgen import CEvent, ce_str
 from stats import Stats
 
-from functools import partial
 from heapq import heappush, heappop
 import operator
 import signal
-import sys
 
 import numpy as np
 
 
 class Strat:
     def __init__(self, pp, eventgen, grid, logger,
-                 gui=None,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
@@ -23,7 +20,7 @@ class Strat:
         self.log_iter = pp['log_iter']
         self.grid = grid
         self.eventgen = eventgen
-        self.gui = gui
+        self.gui = None
         self.logger = logger
 
         self.epsilon = None  # Not applicable for all strats
@@ -33,18 +30,19 @@ class Strat:
         self.cevents = []
         self.quit_sim = False
 
-    def exit_handler(self, sig, frame, stats):
+    def exit_handler(self, *args):
         """
         Print stats on ctrl-c exit from command line
         """
         self.logger.warn("\nPremature exit")
-        stats.endsim(np.sum(self.grid.state))
-        sys.exit(0)
+        self.quit_sim = True
+        # stats.endsim(np.sum(self.grid.state))
+        # sys.exit(0)
 
     def init_sim(self):
         stats = Stats(
                 self.logger, self.n_channels, self.log_iter, self.n_episodes)
-        signal.signal(signal.SIGINT, partial(self.exit_handler, stats=stats))
+        signal.signal(signal.SIGINT, self.exit_handler)
         # Generate initial call events; one for each cell
         for r in range(self.rows):
             for c in range(self.cols):
