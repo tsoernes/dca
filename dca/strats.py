@@ -138,7 +138,7 @@ class Strat:
             self.grid.state[cell][cevent[3]] = 0
 
 
-class FixedAss(Strat):
+class FixedAssign(Strat):
     """
     Fixed assignment (FA) channel allocation.
 
@@ -205,7 +205,7 @@ class RLStrat(Strat):
         next_cell = next_cevent[2]
         # Choose A' from S'
         next_n_used, next_ch = self.optimal_ch(next_cevent[1], next_cell)
-        # If there's no action to take, don't update q at all
+        # If there's no action to take, don't update q-value at all
         if next_ch is not None:
             # Update q-values with one-step lookahead
             next_qval = self.get_qval(next_cell, next_n_used, next_ch)
@@ -296,7 +296,7 @@ class RLStrat(Strat):
         """
         Discount factor (gamma)
         """
-        # TODO: Find examples (in literature) where
+        # TODO: Find examples where
         # gamma is a function of time until next event.
         # How should gamma increase as a function of dt?
         # Linearly, exponentially?
@@ -305,10 +305,13 @@ class RLStrat(Strat):
 
 
 class SARSA(RLStrat):
+    """
+    State consists of coordinates + number of used channels.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # "qvals[r][c][n_used][ch] = v"
-        # Assigning channel 'c' to the cell at row 'r', col 'c'
+        # Assigning channel 'ch' to the cell at row 'r', col 'c'
         # has q-value 'v' given that 'n_used' channels are already
         # in use at that cell.
         self.qvals = np.zeros((self.rows, self.cols,
@@ -322,11 +325,14 @@ class SARSA(RLStrat):
 
 
 class TT_SARSA(RLStrat):
+    """
+    State consists of coordinates + the number of used channels.
+    If the number of used channels exceeds 'k', their values are
+    aggregated to 'k'.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # consistent low 7%, sometimes 6% block prob
-        # Maximum Number of used channels in a cell in the table.
-        # If the actual number is higher, it gets 'merged' to k.
+        # If the actual number is higher, it gets aggregated to k.
         self.k = 30
         self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
 
@@ -338,6 +344,10 @@ class TT_SARSA(RLStrat):
 
 
 class RS_SARSA(RLStrat):
+    """
+    State consists of coordinates only
+    @TODO how is this different from TD(0)???
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))

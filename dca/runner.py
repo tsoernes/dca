@@ -1,4 +1,4 @@
-from strats import FixedAss, SARSA, TT_SARSA, RS_SARSA
+from strats import FixedAssign, SARSA, TT_SARSA, RS_SARSA
 from gui import Gui
 from grid import Grid, FixedGrid
 from eventgen import EventGen
@@ -113,7 +113,7 @@ class Runner:
     def run(self):
         s = self.pp['strat']
         if s == 'fixed':
-            self.run_strat(FixedGrid, FixedAss)
+            self.run_strat(FixedGrid, FixedAssign)
         elif s == 'sarsa':
             self.run_strat(Grid, SARSA)
         elif s == 'tt_sarsa':
