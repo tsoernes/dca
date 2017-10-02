@@ -1,7 +1,6 @@
-from eventgen import CEvent, ce_str
+from eventgen import EventGen, CEvent, ce_str
 from stats import Stats
 
-from heapq import heappush, heappop
 import operator
 import signal
 
@@ -9,7 +8,7 @@ import numpy as np
 
 
 class Strat:
-    def __init__(self, pp, eventgen, grid, logger,
+    def __init__(self, pp, grid, logger,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
@@ -19,7 +18,6 @@ class Strat:
         self.verify_grid = pp['verify_grid']
         self.log_iter = pp['log_iter']
         self.grid = grid
-        self.eventgen = eventgen
         self.logger = logger
 
         self.gui = None
@@ -27,8 +25,9 @@ class Strat:
         self.alpha = None
 
         # A min-heap of call events; sorted first on time then event type
-        self.cevents = []
         self.quit_sim = False
+        self.stats = Stats(logger=logger, **pp)
+        self.eventgen = EventGen(**pp)
 
     def exit_handler(self, *args):
         """
@@ -38,17 +37,15 @@ class Strat:
         self.quit_sim = True
 
     def init_sim(self):
-        stats = Stats(
-                self.logger, self.n_channels, self.log_iter, self.n_episodes)
         signal.signal(signal.SIGINT, self.exit_handler)
         # Generate initial call events; one for each cell
         for r in range(self.rows):
             for c in range(self.cols):
-                heappush(self.cevents, self.eventgen.event_new(0, (r, c)))
-        self._simulate(stats)
+                self.eventgen.event_new(0, (r, c))
+        self._simulate()
 
-    def _simulate(self, stats):
-        cevent = heappop(self.cevents)
+    def _simulate(self):
+        cevent = self.eventgen.pop()
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
@@ -57,66 +54,63 @@ class Strat:
                 break  # Gracefully exit to print stats
 
             t, ce_type, cell = cevent[0:3]
-            stats.iter(t, i, cevent)
+            self.stats.iter(t, i, cevent)
 
             n_used = np.sum(self.grid.state[cell])
             if ch is not None:
                 self.execute_action(cevent, ch)
 
-            if self.verify_grid and not self.grid.validate_reuse_constr():
-                self.logger.error(f"Reuse constraint broken")
-                raise Exception
+                if self.verify_grid and not self.grid.validate_reuse_constr():
+                    self.logger.error(f"Reuse constraint broken")
+                    raise Exception
             if self.gui:
                 self.gui.step()
 
             # TODO Something seems off here. Why is the event checked
             # after it's executed? n_used has changed?
             if ce_type == CEvent.NEW:
-                stats.new()
+                self.stats.new()
                 # Generate next incoming call
-                heappush(self.cevents, self.eventgen.event_new(t, cell))
+                self.eventgen.event_new(t, cell)
                 if ch is None:
-                    stats.new_rej(cell, n_used)
+                    self.stats.new_rej(cell, n_used)
                     if self.gui:
                         self.gui.hgrid.mark_cell(*cell)
                 else:
                     # With some probability, generate a handoff-event
                     # instead of ending the call
                     if np.random.random() < self.p_handoff:
-                        (end, hoff) = self.eventgen.event_new_handoff(
-                                     t, cell, self.grid.neighbors1(*cell), ch)
-                        heappush(self.cevents, end)
-                        heappush(self.cevents, hoff)
+                        self.eventgen.event_new_handoff(
+                                t, cell, self.grid.neighbors1(*cell), ch)
                     else:
                         # Generate call duration for call and add end event
-                        heappush(self.cevents,
-                                 self.eventgen.event_end(t, cell, ch))
+                        self.eventgen.event_end(t, cell, ch)
             elif ce_type == CEvent.HOFF:
-                stats.hoff_new()
+                self.stats.hoff_new()
                 if ch is None:
-                    stats.hoff_rej(cell, n_used)
+                    self.stats.hoff_rej(cell, n_used)
                     if self.gui:
                         self.gui.hgrid.mark_cell(*cell)
                 else:
                     # Generate call duration for call and add end event
-                    heappush(self.cevents,
-                             self.eventgen.event_end_handoff(t, cell, ch))
+                    self.eventgen.event_end_handoff(t, cell, ch)
             elif ce_type == CEvent.END:
-                stats.end()
+                self.stats.end()
                 if ch is None:
                     self.logger.error("No channel assigned for end event")
                     raise Exception
                 if self.gui:
                     self.gui.hgrid.unmark_cell(*cell)
 
-            next_cevent = heappop(self.cevents)
+            next_cevent = self.eventgen.pop()
             next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
 
             if i > 0 and i % self.log_iter == 0:
-                stats.n_iter(self.epsilon, self.alpha)
+                # print(self.grid)
+                self.stats.n_iter(self.epsilon, self.alpha)
 
-        stats.endsim(np.sum(self.grid.state))
+        self.stats.endsim(np.sum(self.grid.state))
 
     def get_init_action(self):
         raise NotImplementedError()
@@ -200,13 +194,13 @@ class RLStrat(Strat):
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previous channel (re)assignment.
         """
-        # Observe reward from previous action
-        reward = self.reward()
-        next_cell = next_cevent[2]
+        next_ce_type, next_cell = next_cevent[1], next_cevent[2]
         # Choose A' from S'
-        next_n_used, next_ch = self.optimal_ch(next_cevent[1], next_cell)
+        next_n_used, next_ch = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, don't update q-value at all
-        if next_ch is not None:
+        if next_ce_type != CEvent.END and next_ch is not None:
+            # Observe reward from previous action
+            reward = self.reward()
             # Update q-values with one-step lookahead
             next_qval = self.get_qval(next_cell, next_n_used, next_ch)
             dt = -1  # how to calculate this?
@@ -215,24 +209,40 @@ class RLStrat(Strat):
             self.alpha *= self.alpha_decay
             # n_used doesn't change if there's no action to take
             self.n_used, self.qval = next_n_used, next_qval
+        if next_ce_type == CEvent.END and next_ch is None:
+            self.logger.error(
+                    "'None' channel for end event"
+                    f" {ce_str(next_cevent)}"
+                    f" {np.where(self.grid.state[next_cell] == 1)}")
+            raise Exception
         return next_ch
 
     def execute_action(self, cevent, ch):
         """
-        Change the grid state according to the given action
+        Change the grid state according to the given action.
         """
         ce_type, cell = cevent[1:3]
-        if ce_type == CEvent.END:
-            self.logger.debug(
-                    f"Reassigned ch {cevent[3]} to ch {ch} in cell {cell}")
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            if self.grid.state[cell][ch]:
+                self.logger.error(
+                    f"Tried assigning new call {ce_str(cevent)} to"
+                    f" channel {ch} which is already in use")
+                raise Exception()
+            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
             self.grid.state[cell][ch] = 1
-        super().execute_action(cevent, ch)
+        else:
+            end_ch = cevent[3]
+            self.eventgen.reassign(cevent[0], ch)
+            assert self.grid.state[end_ch] == 1
+            assert self.grid.state[ch] == 1
+            self.grid.state[ch] = 0
 
     def optimal_ch(self, ce_type, cell):
         """
-        Select the channel fitting for assignment or termination
-        that has the maximum (new) or minimum (end) value
-        in an epsilon-greedy fasion.
+        Select the channel fitting for assignment that
+        that has the maximum q-value in an epsilon-greedy fasion,
+        or select the channel for termination that has the minimum
+        q-value in a greedy fashion.
 
         Return (n_used, ch) where 'n_used' is the number of channels in
         use before any potential action is taken.
@@ -268,7 +278,7 @@ class RLStrat(Strat):
 
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
-        if np.random.random() < self.epsilon:
+        if ce_type != CEvent.END and np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
         else:
@@ -352,10 +362,10 @@ class RS_SARSA(RLStrat):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
 
-    def qval_reduced(self, cell, n_used, ch):
+    def get_qval(self, cell, n_used, ch):
         return self.qvals[cell][ch]
 
-    def update_qval_reduced(self, cell, n_used, ch, td_err):
+    def update_qval(self, cell, n_used, ch, td_err):
         self.qvals[cell][ch] += self.alpha * td_err
 
 # TODO: plot block-rate over time to determine
@@ -363,3 +373,4 @@ class RS_SARSA(RLStrat):
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?
+# TODO rs sarsa not better than random choice!?

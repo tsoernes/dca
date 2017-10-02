@@ -52,7 +52,7 @@ def get_pparams():
                         default=2)
     parser.add_argument('--alpha', type=float,
                         help="(RL) learning rate",
-                        default=0.05)
+                        default=0.1)
     parser.add_argument('--alpha_decay', type=float,
                         help="(RL) factor by which alpha is multiplied each iter",  # noqa
                         default=0.999999)
@@ -65,13 +65,15 @@ def get_pparams():
     parser.add_argument('--gamma', type=float,
                         help="(RL) discount factor",
                         default=0.9)
+    parser.add_argument('--verify_grid', action='store_true',
+                        help="verify reuse constraint each iteration",
+                        default=False)
     parser.add_argument('--prof', dest='profiling', action='store_true',
                         help="performance profiling",
                         default=False)
     parser.add_argument('--gui', action='store_true',
                         default=False)
-    parser.add_argument('--verify_grid', action='store_true',
-                        help="verify reuse constraint each iteration",
+    parser.add_argument('--plot', action='store_true', dest='do_plot',
                         default=False)
     parser.add_argument('--log_level', type=int,
                         help="10: Debug, 20: Info, 30: Warning",
@@ -81,6 +83,8 @@ def get_pparams():
                         help="Show blocking probability for the last n iterations",   # noqa
                         default=100000)
 
+    # iterations can be approximated from hours with:
+    # iters = 7821* hours - 2015
     args = parser.parse_args()
     params = vars(args)
 
@@ -125,10 +129,9 @@ class Runner:
 
     def run_strat(self, gridclass, stratclass):
         grid = gridclass(logger=self.logger, **self.pp)
-        eventgen = EventGen(**self.pp)
         self.strat = stratclass(
                     self.pp, grid=grid,
-                    eventgen=eventgen, logger=self.logger)
+                    logger=self.logger)
         if self.pp['gui']:
             gui = Gui(grid, self.strat.exit_handler)
             self.strat.gui = gui

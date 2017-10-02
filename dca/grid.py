@@ -36,6 +36,14 @@ class Grid:
             print(
                 f"\n{neigh}: {np.where(self.state[neigh]==1)}")
 
+    def __str__(self):
+        strstate = ""
+        for r in range(self.rows):
+            for c in range(self.cols):
+                inuse = np.where(self.state[r][c] == 1)
+                strstate += f"\n({r},{c}): {len(inuse)} used - {inuse}"
+        return strstate
+
     def validate_reuse_constr(self):
         """
         Verify that the channel reuse constraint of 3 is not violated,
@@ -49,11 +57,16 @@ class Grid:
         for r in range(self.rows):
             for c in range(self.cols):
                 neighs = self.neighbors2(r, c, True)
+                # Channels in use at neighbors
                 inuse = np.bitwise_or.reduce(self.state[neighs])
-                if np.any(np.bitwise_and(self.state[r][c], inuse)):
+                # Channels in use at a neigh and cell
+                inuse_both = np.bitwise_and(self.state[r][c], inuse)
+                viols = np.where(inuse_both == 1)[0]
+                if len(viols) > 0:
                     self.logger.error(
                         "Channel Reuse constraint violated"
-                        f" in Cell {r} {c}")
+                        f" in Cell {(r, c) }"
+                        f" at channels {viols}")
                     return False
         return True
 

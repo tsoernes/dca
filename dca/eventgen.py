@@ -1,5 +1,8 @@
 from enum import Enum
 from functools import total_ordering
+from heapq import heappush, heappop
+import sys
+
 import numpy as np
 
 
@@ -30,10 +33,11 @@ class EventGen:
         self.call_intertimes = 1/self.call_rates
         self.call_duration = call_duration
         self.handoff_call_duration = hoff_call_duration
-        # TODO Could possible simplify eventgen implementation,
-        # by generating end events simultaneously,
-        # and handling handoff generation here instead
-        # of in strats
+
+        self.pq = []  # min-heap of event times
+        # mapping of event time to events
+        self.cevents = {}
+        self.event_id = 0
 
     def event_new(self, t, cell):
         """
@@ -41,14 +45,14 @@ class EventGen:
         exponentially distributed time dt from t.
         """
         dt = np.random.exponential(self.call_intertimes[cell])
-        return (t + dt, CEvent.NEW, cell)
+        self._push((t + dt, CEvent.NEW, cell))
 
     def event_end(self, t, cell, ch):
         """
         Generate end event for a call
         """
         dt = np.random.exponential(self.call_duration)
-        return (t + dt, CEvent.END, cell, ch)
+        self._push((t + dt, CEvent.END, cell, ch))
 
     def event_new_handoff(self, t, cell, neighs, ch):
         """
@@ -73,13 +77,48 @@ class EventGen:
         """
         neigh = np.random.randint(0, len(neighs))
         end_event = self.event_end(t, cell, ch)
-        # end_event = (t, CEvent.END, cell, ch)
-        new_event = (end_event[0], CEvent.HOFF, neighs[neigh])
-        return (end_event, new_event)
+        # make hoff event infinitesimally later than end event
+        new_event = (end_event[0]+sys.float_info.epsilon,
+                     CEvent.HOFF, neighs[neigh])
+        self._push(end_event)
+        self._push(new_event)
 
     def event_end_handoff(self, t, cell, ch):
         dt = np.random.exponential(self.handoff_call_duration)
-        return (t + dt, CEvent.END, cell, ch)
+        self._push((t + dt, CEvent.END, cell, ch))
+
+    def reassign(self, cell, from_ch, to_ch):
+        """
+        Reassign the event at time 't' to channel 'ch'
+        """
+        key = (*cell, from_ch)
+        try:
+            cevent = self.cevents[key]
+        except KeyError:
+            print(self.cevents)
+            raise
+        assert cevent[1] == CEvent.END
+        self.cevents[key] = (cevent[0], cevent[1], cevent[2], to_ch)
+
+    def _push(self, cevent):
+        # TODO need a way to find and change an event in the
+        # heapq with a given cell and channel (for it to be
+        # reassigned to another ch).
+        # problem: new-events don't have channel, can't sort on it
+        # only store end events?
+
+        self.event_id += 1
+        eid =
+        self.cevents[t] = (*cevent, self.event_id)
+        heappush(self.pq, t)
+
+    def pop(self):
+        if self.pq:
+            t = heappop(self.pq)
+            cevent = self.cevents[t]
+            del self.cevents[t]
+            return cevent
+        raise KeyError('pop from an empty priority queue')
 
 
 def ce_str(cevent):
