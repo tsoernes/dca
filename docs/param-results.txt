@@ -1,4 +1,9 @@
+initial tests for tt-sarsa without decay or handoffs, at 8 erlangs: ~7% block prob
+epsilon=0.1,
+alpha=0.01
+gamma=0.9
 
+----------
 
 sarsa_version = 'trimmed'
 rows=7,
