@@ -35,8 +35,10 @@ class EventGen:
         self.handoff_call_duration = hoff_call_duration
 
         self.pq = []  # min-heap of event times
-        # mapping of event time to events
-        self.cevents = {}
+        # mapping from time to events
+        self.events = {}
+        # mapping from (cell_r, cell_c, ch) to end event timestamps
+        self.end_events = {}
         self.event_id = 0
 
     def event_new(self, t, cell):
@@ -52,7 +54,9 @@ class EventGen:
         Generate end event for a call
         """
         dt = np.random.exponential(self.call_duration)
-        self._push((t + dt, CEvent.END, cell, ch))
+        event = (t + dt, CEvent.END, cell, ch)
+        self._push(event)
+        return event
 
     def event_new_handoff(self, t, cell, neighs, ch):
         """
@@ -78,7 +82,7 @@ class EventGen:
         neigh = np.random.randint(0, len(neighs))
         end_event = self.event_end(t, cell, ch)
         # make hoff event infinitesimally later than end event
-        new_event = (end_event[0]+sys.float_info.epsilon,
+        new_event = (end_event[0]+0.1,  #+sys.float_info.epsilon,
                      CEvent.HOFF, neighs[neigh])
         self._push(end_event)
         self._push(new_event)
@@ -93,31 +97,35 @@ class EventGen:
         """
         key = (*cell, from_ch)
         try:
-            cevent = self.cevents[key]
+            t = self.end_events[key]
         except KeyError:
-            print(self.cevents)
+            print(self.events)
             raise
-        assert cevent[1] == CEvent.END
-        self.cevents[key] = (cevent[0], cevent[1], cevent[2], to_ch)
+        event = self.events[t]
+        self.events[t] = (event[0], event[1], event[2], to_ch)
+        del self.end_events[key]
+        self.end_events[(*cell, to_ch)] = t
 
-    def _push(self, cevent):
-        # TODO need a way to find and change an event in the
-        # heapq with a given cell and channel (for it to be
-        # reassigned to another ch).
-        # problem: new-events don't have channel, can't sort on it
-        # only store end events?
-
-        self.event_id += 1
-        eid =
-        self.cevents[t] = (*cevent, self.event_id)
+    def _push(self, event):
+        t = event[0]
+        self.events[t] = event
+        if event[1] == CEvent.END:
+            self.end_events[(*event[2], event[3])] = t
         heappush(self.pq, t)
 
     def pop(self):
         if self.pq:
             t = heappop(self.pq)
-            cevent = self.cevents[t]
-            del self.cevents[t]
-            return cevent
+            try:
+                event = self.events[t]
+            except KeyError:
+                print(t)
+                print(self.events)
+                raise
+            if event[1] == CEvent.END:
+                del self.end_events[(*event[2], event[3])]
+            del self.events[t]
+            return event
         raise KeyError('pop from an empty priority queue')
 
 

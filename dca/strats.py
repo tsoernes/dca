@@ -231,8 +231,9 @@ class RLStrat(Strat):
             self.logger.debug(f"Assigned ch {ch} to cell {cell}")
             self.grid.state[cell][ch] = 1
         else:
+            print("reassigned")
             end_ch = cevent[3]
-            self.eventgen.reassign(cevent[0], ch)
+            self.eventgen.reassign(cevent[2], ch, end_ch)
             assert self.grid.state[end_ch] == 1
             assert self.grid.state[ch] == 1
             self.grid.state[ch] = 0
