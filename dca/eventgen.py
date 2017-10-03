@@ -9,7 +9,8 @@ import numpy as np
 class CEvent(Enum):
     NEW = 0  # Incoming call
     END = 1  # End a current call
-    HOFF = 2  # Handoff a call from one cell to another
+    # Denotes the incoming part to the receiving cell of a handoff event
+    HOFF = 2
 
     def __lt__(self, other):
         if self.__class__ is other.__class__:
@@ -19,7 +20,7 @@ class CEvent(Enum):
 
 class EventGen:
     def __init__(self, rows, cols, call_rates, call_duration,
-                 hoff_call_duration,
+                 hoff_call_duration, logger,
                  *args, **kwargs):
         self.rows = rows
         self.cols = cols
@@ -32,13 +33,13 @@ class EventGen:
         self.call_intertimes = 1/self.call_rates
         self.call_duration = call_duration
         self.handoff_call_duration = hoff_call_duration
+        self.logger = logger
 
-        self.pq = []  # min-heap of event times
-        # mapping from time to events
+        self.pq = []  # min-heap of event timestamps
+        # mapping from timestamps to events
         self.events = {}
         # mapping from (cell_r, cell_c, ch) to end event timestamps
         self.end_events = {}
-        self.event_id = 0
 
     def event_new(self, t, cell):
         """
@@ -67,11 +68,6 @@ class EventGen:
         an end event at the leaving cell and a hoff event
         at the entering cell, both with the same event time
         some time dt from now.
-        The end event, having lower Enum (1) than the handoff
-        event (2), is handled first due to minheap sorting,
-        and keeping handoff events
-        separate from new events makes it possible to reward
-        handoff acceptance/rejectance different from new calls.
 
         In total, a handoff generates 3 events:
         - end call in current cell
@@ -80,11 +76,15 @@ class EventGen:
         """
         neigh = np.random.randint(0, len(neighs))
         end_event = self.event_end(t, cell, ch)
-        # make hoff event infinitesimally later than end event
-        new_event = (end_event[0],  # +sys.float_info.epsilon,
-                     CEvent.HOFF, neighs[neigh])
-        # print(f"Created handoff event for cell {cell} ch {ch}"
-              # f" to cell {neighs[neigh]} scheduled for {end_event[0]}")
+        # The end event, having lower Enum (1) than the handoff
+        # event (2), is handled first due to minheap sorting
+        # on second tuple element if the first is equal.
+        # Keeping handoff events separate from new events makes it possible
+        # to reward handoff acceptance/rejectance different from new calls.
+        new_event = (end_event[0], CEvent.HOFF, neighs[neigh])
+        self.logger.debug(
+                f"Created handoff event for cell {cell} ch {ch}"
+                f" to cell {neighs[neigh]} scheduled for {end_event[0]}")
         self._push(new_event)
 
     def event_end_handoff(self, t, cell, ch):
@@ -103,10 +103,11 @@ class EventGen:
         end_key = (*cell, from_ch)
         try:
             key = self.end_events[end_key]
+            event = self.events[key]
         except KeyError:
-            print(self.events)
+            self.logger.error(self.events)
+            self.logger.error(self.end_events)
             raise
-        event = self.events[key]
         self.events[key] = (event[0], event[1], event[2], to_ch)
         del self.end_events[end_key]
         self.end_events[(*cell, to_ch)] = key

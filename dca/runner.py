@@ -132,7 +132,7 @@ class Runner:
                     self.pp, grid=grid,
                     logger=self.logger)
         if self.pp['gui']:
-            gui = Gui(grid, self.strat.exit_handler)
+            gui = Gui(grid, self.strat.exit_handler, grid.print_cell)
             self.strat.gui = gui
         if self.pp['profiling']:
             cProfile.runctx('self.strat.init_sim()', globals(), locals())

@@ -57,7 +57,7 @@ class Hexagon:
 
 
 class HexagonGrid(Frame):
-    def __init__(self, parent, rows, cols, labels, size=50,
+    def __init__(self, parent, rows, cols, labels, cell_printer, size=80,
                  color="#a1e2a1", marked_color="#000000", bg="#a1e2a1",
                  show_coords=False,
                  *args, **kwargs):
@@ -83,6 +83,7 @@ class HexagonGrid(Frame):
         self.labels = labels
         self.color = color
         self.marked_color = marked_color
+        self.cell_printer = cell_printer
 
         self.hexagons = []
         self.initGrid(rows, cols, size, show_coords)
@@ -127,7 +128,10 @@ class HexagonGrid(Frame):
             for h in li:
                 self.can.itemconfigure(h.tags, fill=h.color)
         self.can.itemconfigure(clicked, fill=self.marked_color)
-        # print(self.can.gettags(clicked)[0])
+        tags = self.can.gettags(clicked)[0]
+        # TODO find row, col of clicked hexagon
+        self.cell_printer(int(tags[0]), int(tags[2]))
+        # print(tags)
 
     def mark_cell(self, row, col):
         self.can.itemconfigure(
@@ -139,16 +143,16 @@ class HexagonGrid(Frame):
 
 
 class Gui:
-    def __init__(self, grid, keydown):
+    def __init__(self, grid, exit_handler, cell_printer):
         self.grid = grid
         self.root = Tk()
         self.hgrid = HexagonGrid(
                 self.root, grid.rows, grid.cols,
-                grid.labels, show_coords=True)
+                grid.labels, cell_printer, show_coords=True)
         # Call 'keydown' func for graceful exit on 'q' key
         # or on window close
-        self.root.bind("q", keydown)
-        self.root.protocol("WM_DELETE_WINDOW", keydown)
+        self.root.bind("q", exit_handler)
+        self.root.protocol("WM_DELETE_WINDOW", exit_handler)
         self.hgrid.pack()
 
     def step(self):

@@ -27,6 +27,9 @@ class Grid:
         self.labels = np.zeros((self.rows, self.cols), dtype=int)
         self._partition_cells()
 
+    def print_cell(self, r, c):
+        print(np.where(self.state[r][c] == 1))
+
     def print_neighs2(self, row, col):
         """
         Show all the channels for the given cell and its neighbors

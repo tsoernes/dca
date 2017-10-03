@@ -27,7 +27,7 @@ class Strat:
         # A min-heap of call events; sorted first on time then event type
         self.quit_sim = False
         self.stats = Stats(logger=logger, **pp)
-        self.eventgen = EventGen(**pp)
+        self.eventgen = EventGen(logger=logger, **pp)
 
     def exit_handler(self, *args):
         """
