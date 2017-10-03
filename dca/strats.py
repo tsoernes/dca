@@ -107,10 +107,9 @@ class Strat:
             ch, cevent = next_ch, next_cevent
 
             if i > 0 and i % self.log_iter == 0:
-                # print(self.grid)
                 self.stats.n_iter(self.epsilon, self.alpha)
 
-        self.stats.endsim(np.sum(self.grid.state))
+        self.stats.endsim(np.sum(self.grid.state), self.epsilon, self.alpha)
 
     def get_init_action(self):
         raise NotImplementedError()
@@ -119,17 +118,7 @@ class Strat:
         raise NotImplementedError()
 
     def execute_action(self, cevent, ch):
-        ce_type, cell = cevent[1:3]
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            if self.grid.state[cell][ch]:
-                self.logger.error(
-                    f"Tried assigning new call {ce_str(cevent)} to"
-                    f" channel {ch} which is already in use")
-                raise Exception()
-            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
-            self.grid.state[cell][ch] = 1
-        else:
-            self.grid.state[cell][cevent[3]] = 0
+        raise NotImplementedError()
 
 
 class FixedAssign(Strat):
@@ -159,7 +148,17 @@ class FixedAssign(Strat):
             return next_cevent[3]
 
     def execute_action(self, cevent, ch):
-        super().execute_action(cevent, ch)
+        ce_type, cell = cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            if self.grid.state[cell][ch]:
+                self.logger.error(
+                    f"Tried assigning new call {ce_str(cevent)} to"
+                    f" channel {ch} which is already in use")
+                raise Exception()
+            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
+            self.grid.state[cell][ch] = 1
+        else:
+            self.grid.state[cell][cevent[3]] = 0
 
 
 class RLStrat(Strat):
@@ -376,4 +375,3 @@ class RS_SARSA(RLStrat):
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?
-# TODO rs sarsa not better than random choice!?

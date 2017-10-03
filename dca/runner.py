@@ -4,7 +4,11 @@ from grid import Grid, FixedGrid
 
 import argparse
 import cProfile
+import datetime
 import logging
+
+
+LOG_FILE = 'out.log'
 
 
 def get_pparams():
@@ -49,6 +53,7 @@ def get_pparams():
     parser.add_argument('--n_hours', type=int,
                         help="number hours in simulation time to run",
                         default=2)
+
     parser.add_argument('--alpha', type=float,
                         help="(RL) learning rate",
                         default=0.1)
@@ -64,6 +69,7 @@ def get_pparams():
     parser.add_argument('--gamma', type=float,
                         help="(RL) discount factor",
                         default=0.9)
+
     parser.add_argument('--verify_grid', action='store_true',
                         help="verify reuse constraint each iteration",
                         default=False)
@@ -77,7 +83,8 @@ def get_pparams():
     parser.add_argument('--log_level', type=int,
                         help="10: Debug, 20: Info, 30: Warning",
                         default=logging.INFO)
-    parser.add_argument('--log_file', type=str)
+    parser.add_argument('--log_file', action='store_true',
+                        default=False)
     parser.add_argument('--log_iter', type=int,
                         help="Show blocking probability for the last n iterations",   # noqa
                         default=100000)
@@ -100,10 +107,12 @@ class Runner:
                 level=self.pp['log_level'], format='%(message)s')
         self.logger = logging.getLogger('')
         if self.pp['log_file']:
-            fh = logging.FileHandler(self.pp['log_file'])
+            fh = logging.FileHandler(LOG_FILE)
             fh.setLevel(self.pp['log_level'])
             self.logger.addHandler(fh)
-        self.logger.info(f"Starting simulation with params {self.pp}")
+        self.logger.warning(
+                f"Starting simulation at {datetime.datetime.now()}"
+                f" with params:\n{self.pp}")
 
     def test_params(self):
         pass

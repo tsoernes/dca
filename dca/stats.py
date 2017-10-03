@@ -57,11 +57,9 @@ class Stats:
 
     def rej(self, cell, n_used):
         if n_used == 0:
-            lgger = self.logger.info
-        else:
-            lgger = self.logger.debug
-        lgger(f"Rejected call to {cell} when {n_used}"
-              f" of {self.n_channels} channels in use")
+            self.logger.debug(
+                f"Rejected call to {cell} when {n_used}"
+                f" of {self.n_channels} channels in use")
 
     def iter(self, t, i, cevent):
         self.t = t
@@ -72,10 +70,10 @@ class Stats:
         # NOTE excluding handoffs
         block_prob = self.n_curr_rejected/(self.n_curr_incoming+1)
         self.block_probs.append(block_prob)
-        # self.logger.info(
-        #         f"\n{self.t:.2f}-{self.i}: Blocking probability events"
-        #         f" {self.i-self.log_iter}-{self.log_iter}:"
-        #         f" {block_prob:.4f}")
+        self.logger.info(
+                f"\n{self.t:.2f}-{self.i}: Blocking probability events"
+                f" {self.i-self.log_iter}-{self.log_iter}:"
+                f" {block_prob:.4f}")
         if epsilon:
             self.alphas.append(alpha)
             self.epsilons.append(epsilon)
@@ -85,7 +83,7 @@ class Stats:
         self.n_curr_rejected = 0
         self.n_curr_incoming = 0
 
-    def endsim(self, n_inprogress):
+    def endsim(self, n_inprogress, epsilon, alpha):
         delta = self.n_incoming + self.n_handoffs \
                 - self.n_rejected - self.n_handoffs_rejected - self.n_ended
         if delta != n_inprogress:
@@ -115,6 +113,8 @@ class Stats:
             f"{self.n_inuse_rej/(self.n_rejected+1):.2f}"
 
             f"\n{n_inprogress} calls in progress at simulation end\n")
+        if epsilon:
+            self.logger.warn(f"\nEnd epsilon: {epsilon}\nEnd alpha: {alpha}")
         if self.do_plot:
             self.plot()
 
