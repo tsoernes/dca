@@ -1,7 +1,6 @@
 from enum import Enum
 from functools import total_ordering
 from heapq import heappush, heappop
-import sys
 
 import numpy as np
 
@@ -58,7 +57,7 @@ class EventGen:
         self._push(event)
         return event
 
-    def event_new_handoff(self, t, cell, neighs, ch):
+    def event_new_handoff(self, t, cell, ch, neighs):
         """
         Pick a neighbor of cell randomly and hand off call.
         :param 1D ndarray neighs - indices of neighbors
@@ -82,9 +81,10 @@ class EventGen:
         neigh = np.random.randint(0, len(neighs))
         end_event = self.event_end(t, cell, ch)
         # make hoff event infinitesimally later than end event
-        new_event = (end_event[0]+0.1,  #+sys.float_info.epsilon,
+        new_event = (end_event[0],  # +sys.float_info.epsilon,
                      CEvent.HOFF, neighs[neigh])
-        self._push(end_event)
+        # print(f"Created handoff event for cell {cell} ch {ch}"
+              # f" to cell {neighs[neigh]} scheduled for {end_event[0]}")
         self._push(new_event)
 
     def event_end_handoff(self, t, cell, ch):
@@ -95,36 +95,40 @@ class EventGen:
         """
         Reassign the event at time 't' to channel 'ch'
         """
-        key = (*cell, from_ch)
+        # If the channels are equal, that means that
+        # 'to_ch' belongs to a call (end_event) that's
+        # already popped from the heapq, which means
+        # that it will trigger a key-error.
+        assert from_ch != to_ch
+        end_key = (*cell, from_ch)
         try:
-            t = self.end_events[key]
+            key = self.end_events[end_key]
         except KeyError:
             print(self.events)
             raise
-        event = self.events[t]
-        self.events[t] = (event[0], event[1], event[2], to_ch)
-        del self.end_events[key]
-        self.end_events[(*cell, to_ch)] = t
+        event = self.events[key]
+        self.events[key] = (event[0], event[1], event[2], to_ch)
+        del self.end_events[end_key]
+        self.end_events[(*cell, to_ch)] = key
 
     def _push(self, event):
-        t = event[0]
-        self.events[t] = event
+        key = event[0], event[1]
+        self.events[key] = event
         if event[1] == CEvent.END:
-            self.end_events[(*event[2], event[3])] = t
-        heappush(self.pq, t)
+            self.end_events[(*event[2], event[3])] = key
+        heappush(self.pq, key)
 
     def pop(self):
         if self.pq:
-            t = heappop(self.pq)
+            key = heappop(self.pq)
             try:
-                event = self.events[t]
+                event = self.events[key]
             except KeyError:
-                print(t)
                 print(self.events)
                 raise
             if event[1] == CEvent.END:
                 del self.end_events[(*event[2], event[3])]
-            del self.events[t]
+            del self.events[key]
             return event
         raise KeyError('pop from an empty priority queue')
 

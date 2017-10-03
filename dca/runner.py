@@ -1,7 +1,6 @@
 from strats import FixedAssign, SARSA, TT_SARSA, RS_SARSA
 from gui import Gui
 from grid import Grid, FixedGrid
-from eventgen import EventGen
 
 import argparse
 import cProfile
@@ -102,7 +101,7 @@ class Runner:
         self.logger = logging.getLogger('')
         if self.pp['log_file']:
             fh = logging.FileHandler(self.pp['log_file'])
-            fh.setLevel(logging.INFO)
+            fh.setLevel(self.pp['log_level'])
             self.logger.addHandler(fh)
         self.logger.info(f"Starting simulation with params {self.pp}")
 

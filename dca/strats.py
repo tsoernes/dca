@@ -81,7 +81,7 @@ class Strat:
                     # instead of ending the call
                     if np.random.random() < self.p_handoff:
                         self.eventgen.event_new_handoff(
-                                t, cell, self.grid.neighbors1(*cell), ch)
+                                t, cell, ch, self.grid.neighbors1(*cell))
                     else:
                         # Generate call duration for call and add end event
                         self.eventgen.event_end(t, cell, ch)
@@ -231,12 +231,14 @@ class RLStrat(Strat):
             self.logger.debug(f"Assigned ch {ch} to cell {cell}")
             self.grid.state[cell][ch] = 1
         else:
-            print("reassigned")
             end_ch = cevent[3]
-            self.eventgen.reassign(cevent[2], ch, end_ch)
-            assert self.grid.state[end_ch] == 1
-            assert self.grid.state[ch] == 1
-            self.grid.state[ch] = 0
+            self.logger.debug(
+                    f"Reassigned cell {cell} ch {ch} to ch {end_ch}")
+            assert self.grid.state[cell][end_ch] == 1
+            assert self.grid.state[cell][ch] == 1
+            if end_ch != ch:
+                self.eventgen.reassign(cevent[2], ch, end_ch)
+            self.grid.state[cell][ch] = 0
 
     def optimal_ch(self, ce_type, cell):
         """
