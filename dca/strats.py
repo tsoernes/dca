@@ -344,7 +344,6 @@ class TT_SARSA(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # If the actual number is higher, it gets aggregated to k.
         self.k = 30
         self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
 
@@ -358,7 +357,6 @@ class TT_SARSA(RLStrat):
 class RS_SARSA(RLStrat):
     """
     State consists of coordinates only
-    @TODO how is this different from TD(0)???
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
