@@ -17,6 +17,7 @@ class Strat:
         self.p_handoff = pp['p_handoff']
         self.verify_grid = pp['verify_grid']
         self.log_iter = pp['log_iter']
+        self.pp = pp
         self.grid = grid
         self.logger = logger
 
@@ -37,6 +38,7 @@ class Strat:
         self.quit_sim = True
 
     def init_sim(self):
+        # if not self.pp['test_params']:
         signal.signal(signal.SIGINT, self.exit_handler)
         # Generate initial call events; one for each cell
         for r in range(self.rows):

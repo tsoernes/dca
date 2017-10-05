@@ -6,9 +6,9 @@ import argparse
 import cProfile
 import datetime
 import logging
+from multiprocessing import Process
 
-
-LOG_FILE = 'out.log'
+import numpy as np
 
 
 def get_pparams():
@@ -49,7 +49,7 @@ def get_pparams():
                         default=1)
     parser.add_argument('--n_episodes', type=int,
                         help="number of events to simulate",
-                        default=100000)
+                        default=200000)
     parser.add_argument('--n_hours', type=int,
                         help="number hours in simulation time to run",
                         default=2)
@@ -69,6 +69,10 @@ def get_pparams():
     parser.add_argument('--gamma', type=float,
                         help="(RL) discount factor",
                         default=0.9)
+    parser.add_argument('--test_params', action='store_true',
+                        help="(RL) override default params by sampling in logspace"  # noqa
+                        "store results to logfile 'paramtest-MM.DD-hh.mm'.",
+                        default=False)
 
     parser.add_argument('--verify_grid', action='store_true',
                         help="verify reuse constraint each iteration",
@@ -83,8 +87,7 @@ def get_pparams():
     parser.add_argument('--log_level', type=int,
                         help="10: Debug,\n20: Info,\n30: Warning",
                         default=logging.INFO)
-    parser.add_argument('--log_file', action='store_true',
-                        default=False)
+    parser.add_argument('--log_file', type=str)
     parser.add_argument('--log_iter', type=int,
                         help="Show blocking probability every n iterations",   # noqa
                         default=100000)
@@ -96,6 +99,16 @@ def get_pparams():
 
     if not params['call_rates']:
         params['call_rates'] = params['erlangs'] / params['call_duration']
+    if params['test_params']:
+        params['log_level'] = logging.WARN
+        params['gui'] = False
+        params['plot'] = False
+        params['log_iter'] = 1000
+        now = datetime.datetime.now()
+        date = now.date()
+        time = now.time()
+        params['log_file'] = f"paramtest-{date.month}.{date.day}-" \
+                             f"{time.hour}.{time.minute}.log"
     return params
 
 
@@ -107,33 +120,79 @@ class Runner:
                 level=self.pp['log_level'], format='%(message)s')
         self.logger = logging.getLogger('')
         if self.pp['log_file']:
-            fh = logging.FileHandler(LOG_FILE)
+            fh = logging.FileHandler("logs/" + self.pp['log_file'])
             fh.setLevel(self.pp['log_level'])
             self.logger.addHandler(fh)
         self.logger.warning(
                 f"Starting simulation at {datetime.datetime.now()}"
                 f" with params:\n{self.pp}")
 
-    def test_params(self):
-        # alpha_range = [0.01, 0.2]
-        # alpha_decay_range = [0.9999, 0.9999999]
-        # epsilon_range = [0.05, 0.4]
-        # epsilon_decay_range = [0.9999, 0.9999999]
-        # TODO check karpathy lecs on how to sample
+        if self.pp['test_params']:
+            self.test_params()
+        else:
+            self.run()
 
+    @staticmethod
+    def sample_params(pp):
+        """
+        Sample parameters randomly,
+        return copy of dict
+        """
+        # it's best to optimize in log space:
+        # lr = 10**uniform(low, high)
+        # if some of the good results are close to the bounds,
+        # the bounds should be changed.
+
+        # alpha_range = [0.01, 0.2]
+        alpha = 10**np.random.uniform(-2, -0.6)
+        # alpha_decay_range = [0.9999, 0.9999999]
+        alpha_decay = 10**np.random.uniform(-0.00001, -0.00000001)
+        # epsilon_range = [0.05, 0.4]
+        epsilon = 10**np.random.uniform(-1.3, -0.1)
+        # epsilon_decay_range = [0.9999, 0.9999999]
+        epsilon_decay = 10**np.random.uniform(-0.00001, -0.00000001)
+        pp['alpha'] = alpha
+        pp['alpha_decay'] = alpha_decay
+        pp['epsilon'] = epsilon
+        pp['epsilon_decay'] = epsilon_decay
+        return dict(pp)
+
+    def test_params(self):
+        gridclass, stratclass = self.get_class(self.pp)
+        for i in range(8):
+            pp = self.sample_params(self.pp)
+            self.logger.warning(
+                    f"Thread {i} using params:"
+                    f" alpha {pp['alpha']}, alphadec {pp['alpha_decay']} "
+                    f"epsilon {pp['epsilon']}, epsilondec {pp['alpha_decay']}")
+            p = Process(target=sim_proc, args=(gridclass, stratclass, pp, i))
+            p.start()
+        p.join()
+        # coalesce logs
+        main_file = self.pp['log_file']
+        with open(main_file, 'w') as outfile:
+            for i in range(8):
+                with open(main_file + f"p{i}") as infile:
+                    for line in infile:
+                        outfile.write(line)
 
     def run(self):
-        s = self.pp['strat']
+        gridclass, stratclass = self.get_class(self.pp)
+        self.run_strat(gridclass, stratclass)
+
+    @staticmethod
+    def get_class(pp):
+        s = pp['strat']
         if s == 'fixed':
-            self.run_strat(FixedGrid, FixedAssign)
+            return (FixedGrid, FixedAssign)
         elif s == 'sarsa':
-            self.run_strat(Grid, SARSA)
+            return(Grid, SARSA)
         elif s == 'tt_sarsa':
-            self.run_strat(Grid, TT_SARSA)
+            return (Grid, TT_SARSA)
         elif s == 'rs_sarsa':
-            self.run_strat(Grid, RS_SARSA)
-        elif s == 'none':
-            self.show()
+            return (Grid, RS_SARSA)
+        # elif s == 'none':
+        #    self.show()
 
     def run_strat(self, gridclass, stratclass):
         grid = gridclass(logger=self.logger, **self.pp)
@@ -161,6 +220,18 @@ class Runner:
         gui.test()
 
 
+def sim_proc(gridclass, stratclass, pp, proc_id):
+    logging.basicConfig(
+            level=pp['log_level'], format='%(message)s')
+    logger = logging.getLogger('')
+    fh = logging.FileHandler("logs/" + pp['log_file'] + f"-p{proc_id}")
+    fh.setLevel(pp['log_level'])
+    logger.addHandler(fh)
+    grid = gridclass(logger=logger, **pp)
+    strat = stratclass(pp, grid=grid, logger=logger)
+    strat.init_sim()
+
+
 if __name__ == '__main__':
     r = Runner()
-    r.run()
+    # r.run()
