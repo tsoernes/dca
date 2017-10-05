@@ -6,7 +6,6 @@ import argparse
 import cProfile
 import datetime
 import logging
-import os
 from multiprocessing import Process
 
 import numpy as np
@@ -57,16 +56,16 @@ def get_pparams():
 
     parser.add_argument('--alpha', type=float,
                         help="(RL) learning rate",
-                        default=0.1)
+                        default=0.02)
     parser.add_argument('--alpha_decay', type=float,
                         help="(RL) factor by which alpha is multiplied each iter",  # noqa
-                        default=0.999999)
+                        default=0.99999)
     parser.add_argument('--epsilon', type=float,
                         help="(RL) probability of choosing random action",  # noqa
-                        default=0.2)
+                        default=0.3)
     parser.add_argument('--epsilon_decay', type=float,
                         help="(RL) factor by which epsilon is multiplied each iter",  # noqa
-                        default=0.999999)
+                        default=0.99999)
     parser.add_argument('--gamma', type=float,
                         help="(RL) discount factor",
                         default=0.9)
@@ -138,6 +137,13 @@ class Runner:
             self.run()
 
     @staticmethod
+    def sample_gamma(pp):
+        npp = dict(pp)
+        gamma = np.random.uniform()
+        npp['gamma'] = gamma
+        return npp
+
+    @staticmethod
     def sample_params(pp):
         """
         Sample parameters randomly,
@@ -156,33 +162,27 @@ class Runner:
         epsilon = 10**np.random.uniform(-1.3, -0.1)
         # epsilon_decay_range = [0.9999, 0.9999999]
         epsilon_decay = 10**np.random.uniform(-0.0001, -0.00000001)
-        pp['alpha'] = alpha
-        pp['alpha_decay'] = alpha_decay
-        pp['epsilon'] = epsilon
-        pp['epsilon_decay'] = epsilon_decay
-        return dict(pp)
+        npp = dict(pp)
+        npp['alpha'] = alpha
+        npp['alpha_decay'] = alpha_decay
+        npp['epsilon'] = epsilon
+        npp['epsilon_decay'] = epsilon_decay
+        return npp
 
     def test_params(self):
+        # TODO verify episodes/seconds
         gridclass, stratclass = self.get_class(self.pp)
         for i in range(1, self.pp['param_iters']+1):
-            for j in range(14):
+            self.logger.error(f"Starting iter {i}")
+            for j in range(1, 14+1):
                 k = j * i
-                pp = self.sample_params(self.pp)
+                pp = self.sample_gamma(self.pp)
+                # pp = self.sample_params(self.pp)
                 p = Process(
                         target=sim_proc, args=(gridclass, stratclass, pp, k))
                 p.start()
             p.join()
         p.join()
-        # coalesce logs
-        # main_fname = self.pp['log_file']
-        # with open(main_fname, 'a') as outfile:
-        #     for i in range(self.pp['params_iter']*14):
-        #         # outfile.write(params[i])
-        #         in_fname = main_fname + f"-p{i}"
-        #         with open(in_fname) as infile:
-        #             for line in infile:
-        #                 outfile.write(line)
-        #         #  os.remove(in_fname)
 
     @staticmethod
     def get_class(pp):
@@ -227,12 +227,7 @@ class Runner:
 
 
 def sim_proc(gridclass, stratclass, pp, pid):
-    # logging.basicConfig(
-    #         level=pp['log_level'], format='%(threadName)s %(message)s')
     logger = logging.getLogger('')
-    # fh = logging.FileHandler(pp['log_file'] + f"-p{pid}")
-    # fh.setLevel(pp['log_level'])
-    # logger.addHandler(fh)
     grid = gridclass(logger=logger, **pp)
     strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
     strat.init_sim()
