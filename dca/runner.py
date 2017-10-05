@@ -21,8 +21,8 @@ def get_pparams():
 
     parser.add_argument(
         '--strat',
-        choices=['none', 'fixed', 'sarsa', 'tt_sarsa', 'rs_sarsa'],  # noqa
-        help="none: just show gui",
+        choices=['show', 'fixed', 'sarsa', 'tt_sarsa', 'rs_sarsa'],
+        help="show: just show gui",
         default='fixed')
     parser.add_argument(
         '--rows', type=int, help="number of rows in grid", default=7)
@@ -61,24 +61,26 @@ def get_pparams():
         default=2)
 
     parser.add_argument(
-        '--alpha', type=float, help="(RL) learning rate", default=0.02)
+        '--alpha', type=float, help="(RL) learning rate",
+        default=0.02)
     parser.add_argument(
         '--alpha_decay',
         type=float,
-        help="(RL) factor by which alpha is multiplied each iter",  # noqa
+        help="(RL) factor by which alpha is multiplied each iter",
         default=0.99999)
     parser.add_argument(
         '--epsilon',
         type=float,
-        help="(RL) probability of choosing random action",  # noqa
+        help="(RL) probability of choosing random action",
         default=0.3)
     parser.add_argument(
         '--epsilon_decay',
         type=float,
-        help="(RL) factor by which epsilon is multiplied each iter",  # noqa
+        help="(RL) factor by which epsilon is multiplied each iter",
         default=0.99999)
     parser.add_argument(
-        '--gamma', type=float, help="(RL) discount factor", default=0.9)
+        '--gamma', type=float, help="(RL) discount factor",
+        default=0.9)
     parser.add_argument(
         '--test_params',
         action='store_true',
@@ -110,7 +112,9 @@ def get_pparams():
         type=int,
         help="10: Debug,\n20: Info,\n30: Warning",
         default=logging.INFO)
-    parser.add_argument('--log_file', type=str)
+    parser.add_argument(
+        '--log_file', type=str,
+        help="enable logging to file by entering file name")
     parser.add_argument(
         '--log_iter',
         type=int,
@@ -152,14 +156,15 @@ class Runner:
 
         if self.pp['test_params']:
             self.test_params()
+        elif self.pp['strat'] == 'show':
+            self.show()
         else:
             self.run()
 
     @staticmethod
     def sample_gamma(pp):
         npp = dict(pp)
-        gamma = np.random.uniform()
-        npp['gamma'] = gamma
+        npp['gamma'] = np.random.uniform()
         return npp
 
     @staticmethod
@@ -168,37 +173,25 @@ class Runner:
         Sample parameters randomly,
         return copy of dict
         """
-        # it's best to optimize in log space:
-        # lr = 10**uniform(low, high)
-        # if some of the good results are close to the bounds,
-        # the bounds should be changed.
-
-        # alpha_range = [0.01, 0.2]
-        alpha = 10**np.random.uniform(-2, -0.1)
-        # alpha_decay_range = [0.9999, 0.9999999]
-        alpha_decay = 10**np.random.uniform(-0.0001, -0.00000001)
-        # epsilon_range = [0.05, 0.4]
-        epsilon = 10**np.random.uniform(-1.3, -0.1)
-        # epsilon_decay_range = [0.9999, 0.9999999]
-        epsilon_decay = 10**np.random.uniform(-0.0001, -0.00000001)
+        # It's best to optimize in log space
         npp = dict(pp)
-        npp['alpha'] = alpha
-        npp['alpha_decay'] = alpha_decay
-        npp['epsilon'] = epsilon
-        npp['epsilon_decay'] = epsilon_decay
+        npp['alpha'] = 10**np.random.uniform(-2, -0.3)
+        npp['alpha_decay'] = 10**np.random.uniform(-0.0001, -0.00000001)
+        npp['epsilon'] = 10**np.random.uniform(-1.3, -0.1)
+        npp['epsilon_decay'] = 10**np.random.uniform(-0.0001, -0.00000001)
         return npp
 
     def test_params(self):
-        # TODO verify episodes/seconds
+        n = 14  # number of concurrent processes
         gridclass, stratclass = self.get_class(self.pp)
         for i in range(1, self.pp['param_iters'] + 1):
-            self.logger.error(f"Starting iter {i}")
-            for j in range(1, 14 + 1):
+            self.logger.error(f"Starting iters {i}-{i+n}")
+            for j in range(1, n + 1):
                 k = j * i
                 pp = self.sample_gamma(self.pp)
                 # pp = self.sample_params(self.pp)
                 p = Process(
-                    target=sim_proc, args=(gridclass, stratclass, pp, k))
+                    target=self.sim_proc, args=(gridclass, stratclass, pp, k))
                 p.start()
             p.join()
         p.join()
@@ -214,8 +207,6 @@ class Runner:
             return (Grid, TT_SARSA)
         elif s == 'rs_sarsa':
             return (Grid, RS_SARSA)
-        # elif s == 'none':
-        #    self.show()
 
     def run(self):
         gridclass, stratclass = self.get_class(self.pp)
@@ -242,12 +233,12 @@ class Runner:
         gui = Gui(grid, self.logger)
         gui.test()
 
-
-def sim_proc(gridclass, stratclass, pp, pid):
-    logger = logging.getLogger('')
-    grid = gridclass(logger=logger, **pp)
-    strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
-    strat.init_sim()
+    @staticmethod
+    def sim_proc(gridclass, stratclass, pp, pid):
+        logger = logging.getLogger('')
+        grid = gridclass(logger=logger, **pp)
+        strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
+        strat.init_sim()
 
 
 if __name__ == '__main__':
