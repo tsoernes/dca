@@ -55,9 +55,8 @@ class Stats:
 
     def rej(self, cell, n_used):
         if n_used == 0:
-            self.logger.debug(
-                f"Rejected call to {cell} when {n_used}"
-                f" of {self.pp['n_channels']} channels in use")
+            self.logger.debug(f"Rejected call to {cell} when {n_used}"
+                              f" of {self.pp['n_channels']} channels in use")
 
     def iter(self, t, i, cevent):
         self.t = t
@@ -66,18 +65,16 @@ class Stats:
 
     def n_iter(self, epsilon, alpha):
         # NOTE excluding handoffs
-        block_prob = self.n_curr_rejected/(self.n_curr_incoming+1)
+        block_prob = self.n_curr_rejected / (self.n_curr_incoming + 1)
         self.block_probs.append(block_prob)
         self.logger.info(
-                f"\n{self.t:.2f}-{self.i}: Blocking probability events"
-                f" {self.i-self.pp['log_iter']}-{self.pp['log_iter']}:"
-                f" {block_prob:.4f}")
+            f"\n{self.t:.2f}-{self.i}: Blocking probability events"
+            f" {self.i-self.pp['log_iter']}-{self.pp['log_iter']}:"
+            f" {block_prob:.4f}")
         if epsilon:
             self.alphas.append(alpha)
             self.epsilons.append(epsilon)
-            self.logger.info(
-                f"Epsilon: {epsilon:.5f},"
-                f" Alpha: {alpha:.5f}")
+            self.logger.info(f"Epsilon: {epsilon:.5f}," f" Alpha: {alpha:.5f}")
         self.n_curr_rejected = 0
         self.n_curr_incoming = 0
 
@@ -86,13 +83,13 @@ class Stats:
                 - self.n_rejected - self.n_handoffs_rejected - self.n_ended
         if delta != n_inprogress:
             self.logger.error(
-                    f"\nSome calls were lost. Counted in progress {delta}. "
-                    f" Actual in progress: {n_inprogress}"
-                    f"\nIncoming: {self.n_incoming}"
-                    f"\nIncoming handoffs: {self.n_handoffs}"
-                    f"\nRejected: {self.n_rejected}"
-                    f"\nRejected handoffs: {self.n_handoffs_rejected}"
-                    f"\nEnded: {self.n_ended}")
+                f"\nSome calls were lost. Counted in progress {delta}. "
+                f" Actual in progress: {n_inprogress}"
+                f"\nIncoming: {self.n_incoming}"
+                f"\nIncoming handoffs: {self.n_handoffs}"
+                f"\nRejected: {self.n_rejected}"
+                f"\nRejected handoffs: {self.n_handoffs_rejected}"
+                f"\nEnded: {self.n_ended}")
         # Avoid zero divisions by adding 1 do dividers
         self.logger.warn(
             f"\nSimulation duration: {self.t/24:.2f} sim hours(?),"
@@ -103,13 +100,12 @@ class Stats:
             f"\nRejected {self.n_rejected} of {self.n_incoming} new calls,"
             f" {self.n_handoffs_rejected} of {self.n_handoffs} handoffs")
         if self.pid is not "":
-            self.logger.error(
-                    f"\nT{self.pid} Using params:"
-                    f" gamma {self.pp['gamma']:.6f},"
-                    f" alpha {self.pp['alpha']:.8f},"
-                    f" alphadec {self.pp['alpha_decay']:.8f}"
-                    f" epsilon {self.pp['epsilon']:.8f},"
-                    f" epsilondec {self.pp['alpha_decay']:.8f}")
+            self.logger.error(f"\nT{self.pid} Using params:"
+                              f" gamma {self.pp['gamma']:.6f},"
+                              f" alpha {self.pp['alpha']:.8f},"
+                              f" alphadec {self.pp['alpha_decay']:.8f}"
+                              f" epsilon {self.pp['epsilon']:.8f},"
+                              f" epsilondec {self.pp['alpha_decay']:.8f}")
         self.logger.error(
             f"\nT{self.pid} Blocking probability:"
             f" {self.n_rejected/(self.n_incoming+1):.4f} for new calls, "

@@ -6,13 +6,7 @@ from grid import Grid
 
 
 label_colors = [
-    '#FF2D00',
-    '#FFD800',
-    '#00FF68',
-    '#00FFE4',
-    '#0059FF',
-    '#A200FF',
-    '#FF00F7'
+    '#FF2D00', '#FFD800', '#00FF68', '#00FFE4', '#0059FF', '#A200FF', '#FF00F7'
 ]
 
 
@@ -44,21 +38,26 @@ class Hexagon:
         angle = 60
         coords = []
         for i in range(6):
-                end_x = start_x + self.length * cos(radians(angle * i))
-                end_y = start_y + self.length * sin(radians(angle * i))
-                coords.append([start_x, start_y])
-                start_x = end_x
-                start_y = end_y
+            end_x = start_x + self.length * cos(radians(angle * i))
+            end_y = start_y + self.length * sin(radians(angle * i))
+            coords.append([start_x, start_y])
+            start_x = end_x
+            start_y = end_y
         self.shape = self.parent.create_polygon(
-                *coords,
-                fill=self.color,
-                outline=self.outline,
-                tags=self.tags)
+            *coords, fill=self.color, outline=self.outline, tags=self.tags)
 
 
 class HexagonGrid(Frame):
-    def __init__(self, parent, rows, cols, labels, cell_printer, size=80,
-                 color="#a1e2a1", marked_color="#000000", bg="#a1e2a1",
+    def __init__(self,
+                 parent,
+                 rows,
+                 cols,
+                 labels,
+                 cell_printer,
+                 size=80,
+                 color="#a1e2a1",
+                 marked_color="#000000",
+                 bg="#a1e2a1",
                  show_coords=False,
                  *args, **kwargs):
         '''
@@ -73,10 +72,10 @@ class HexagonGrid(Frame):
         :param bg: Background color
         '''
         Frame.__init__(self, parent)
-        self.left_offset = size/2
+        self.left_offset = size / 2
         self.top_offset = 1
-        width = size*cols + (cols+1)*size/2
-        height = (rows+1/2)*sqrt(3)*size + self.top_offset
+        width = size * cols + (cols + 1) * size / 2
+        height = (rows + 1 / 2) * sqrt(3) * size + self.top_offset
         self.can = Canvas(self, width=width, height=height, bg=bg)
         self.can.pack()
 
@@ -99,20 +98,21 @@ class HexagonGrid(Frame):
                 else:
                     offset = 0
                 label = self.labels[r][c]
-                h = Hexagon(self.can,
-                            c * (size * 1.5) + self.left_offset,
-                            (r * (size * sqrt(3))) + offset + self.top_offset,
-                            size,
-                            color=label_colors[label],
-                            tags="{},{}-{}".format(r, c, label))
+                h = Hexagon(
+                    self.can,
+                    c * (size * 1.5) + self.left_offset,
+                    (r * (size * sqrt(3))) + offset + self.top_offset,
+                    size,
+                    color=label_colors[label],
+                    tags="{},{}-{}".format(r, c, label))
                 hxs.append(h)
 
                 if show_coords:
                     coords = "{}, {}".format(r, c)
                     self.can.create_text(
-                            c * (size * 1.5) + (size),
-                            (r * (size * sqrt(3))) + offset + (size/3),
-                            text=coords)
+                        c * (size * 1.5) + (size),
+                        (r * (size * sqrt(3))) + offset + (size / 3),
+                        text=coords)
             self.hexagons.append(hxs)
 
     def onclick(self, evt):
@@ -135,7 +135,7 @@ class HexagonGrid(Frame):
 
     def mark_cell(self, row, col):
         self.can.itemconfigure(
-                self.hexagons[row][col].tags, fill=self.marked_color)
+            self.hexagons[row][col].tags, fill=self.marked_color)
 
     def unmark_cell(self, row, col):
         h = self.hexagons[row][col]
