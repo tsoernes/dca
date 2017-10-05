@@ -202,8 +202,7 @@ class RLStrat(Strat):
             reward = self.reward()
             # Update q-values with one-step lookahead
             next_qval = self.get_qval(next_cell, next_n_used, next_ch)
-            dt = -1  # how to calculate this?
-            td_err = reward + self.discount(dt) * next_qval - self.qval
+            td_err = reward + self.discount() * next_qval - self.qval
             self.update_qval(cell, self.n_used, ch, td_err)
             self.alpha *= self.alpha_decay
             # n_used doesn't change if there's no action to take
@@ -304,7 +303,7 @@ class RLStrat(Strat):
         # TODO try +1 for accepted and -1 for rejected instead
         return np.sum(self.grid.state)
 
-    def discount(self, dt):
+    def discount(self):
         """
         Discount factor (gamma)
         """
@@ -368,6 +367,27 @@ class RS_SARSA(RLStrat):
     def update_qval(self, cell, n_used, ch, td_err):
         self.qvals[cell][ch] += self.alpha * td_err
 
+
+class SARSAValNet(RLStrat):
+    """
+    State consists of coordinates + number of used channels.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from net import RSValNet
+        self.net = RSValNet(self.logger)
+
+    def get_qval(self, cell, n_used, ch):
+        """
+        Two options:
+        a) Temporarily execute all legal actions, one by one,
+        observe the resulting states, run them through the net,
+        obs
+        """
+        pass
+
+    def update_qval(self, cell, n_used, ch, td_err):
+        self.qvals[cell][n_used][ch] += self.alpha * td_err
 # TODO: plot block-rate over time to determine
 # if if rl system actually improves over time
 

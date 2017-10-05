@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 # Neighbors2
 # (3,3)
@@ -24,7 +25,9 @@ import numpy as np
 
 
 class Net:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, logger,
+                 *args, **kwargs):
+        self.logger = logger
         # Use ADAM, not rmsprop or sdg
         # learning rate decay not critical (but possible)
         # to do with adam.
@@ -33,8 +36,6 @@ class Net:
 
         # possible data prep: set unused channels to -1,
         # OR make it unit gaussian
-
-        pass
 
     def weight_init(self):
         inp = None
