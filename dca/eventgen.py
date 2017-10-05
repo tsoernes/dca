@@ -30,7 +30,7 @@ class EventGen:
         else:
             self.call_rates = call_rates
         # Avg. time between arriving calls
-        self.call_intertimes = 1/self.call_rates
+        self.call_intertimes = 1 / self.call_rates
         self.call_duration = call_duration
         self.handoff_call_duration = hoff_call_duration
         self.logger = logger
@@ -83,8 +83,8 @@ class EventGen:
         # to reward handoff acceptance/rejectance different from new calls.
         new_event = (end_event[0], CEvent.HOFF, neighs[neigh])
         self.logger.debug(
-                f"Created handoff event for cell {cell} ch {ch}"
-                f" to cell {neighs[neigh]} scheduled for {end_event[0]}")
+            f"Created handoff event for cell {cell} ch {ch}"
+            f" to cell {neighs[neigh]} scheduled for {end_event[0]}")
         self._push(new_event)
 
     def event_end_handoff(self, t, cell, ch):

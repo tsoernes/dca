@@ -22,8 +22,8 @@ class Grid:
         self.n_channels = n_channels
         self.logger = logger
 
-        self.state = np.zeros((self.rows, self.cols, self.n_channels),
-                              dtype=bool)
+        self.state = np.zeros(
+            (self.rows, self.cols, self.n_channels), dtype=bool)
         self.labels = np.zeros((self.rows, self.cols), dtype=int)
         self._partition_cells()
 
@@ -66,10 +66,9 @@ class Grid:
                 inuse_both = np.bitwise_and(self.state[r][c], inuse)
                 viols = np.where(inuse_both == 1)[0]
                 if len(viols) > 0:
-                    self.logger.error(
-                        "Channel Reuse constraint violated"
-                        f" in Cell {(r, c) }"
-                        f" at channels {viols}")
+                    self.logger.error("Channel Reuse constraint violated"
+                                      f" in Cell {(r, c) }"
+                                      f" at channels {viols}")
                     return False
         return True
 
@@ -94,64 +93,64 @@ class Grid:
     @staticmethod
     def direction(from_r, from_c, to_r, to_c):
         raise NotImplementedError
-        if from_r-1 == to_r and from_c == to_c:
+        if from_r - 1 == to_r and from_c == to_c:
             return Direction.N
-        if from_r+1 == to_r and from_c == to_c:
+        if from_r + 1 == to_r and from_c == to_c:
             return Direction.S
         if from_c % 2 == 0:
-            if from_r == to_r and from_c+1 == to_c:
+            if from_r == to_r and from_c + 1 == to_c:
                 return Direction.NE
-            if from_r+1 == to_r and from_c+1 == to_c:
+            if from_r + 1 == to_r and from_c + 1 == to_c:
                 return Direction.SE
-            if from_r+1 == to_r and from_c-1 == to_c:
+            if from_r + 1 == to_r and from_c - 1 == to_c:
                 return Direction.SW
-            if from_r == to_r and from_c-1 == to_c:
+            if from_r == to_r and from_c - 1 == to_c:
                 return Direction.NW
         else:
-            if from_r-1 == to_r and from_c+1 == to_c:
+            if from_r - 1 == to_r and from_c + 1 == to_c:
                 return Direction.NE
-            if from_r == to_r and from_c+1 == to_c:
+            if from_r == to_r and from_c + 1 == to_c:
                 return Direction.SE
-            if from_r == to_r and from_c-1 == to_c:
+            if from_r == to_r and from_c - 1 == to_c:
                 return Direction.SW
-            if from_r-1 == to_r and from_c-1 == to_c:
+            if from_r - 1 == to_r and from_c - 1 == to_c:
                 return Direction.NW
 
     @staticmethod
     def move_n(row, col):
-        return (row-1, col)
+        return (row - 1, col)
 
     @staticmethod
     def move_ne(row, col):
         if col % 2 == 0:
-            return (row, col+1)
+            return (row, col + 1)
         else:
-            return (row-1, col+1)
+            return (row - 1, col + 1)
 
     @staticmethod
     def move_se(row, col):
         if col % 2 == 0:
-            return (row+1, col+1)
+            return (row + 1, col + 1)
         else:
-            return (row, col+1)
+            return (row, col + 1)
 
     @staticmethod
     def move_s(row, col):
-        return (row+1, col)
+        return (row + 1, col)
 
     @staticmethod
     def move_sw(row, col):
         if col % 2 == 0:
-            return (row+1, col-1)
+            return (row + 1, col - 1)
         else:
-            return (row, col-1)
+            return (row, col - 1)
 
     @staticmethod
     def move_nw(row, col):
         if col % 2 == 0:
-            return (row, col-1)
+            return (row, col - 1)
         else:
-            return (row-1, col-1)
+            return (row - 1, col - 1)
 
     @staticmethod
     def neighbors1sparse(row, col):
@@ -166,7 +165,8 @@ class Grid:
             Grid.move_se(row, col),
             Grid.move_s(row, col),
             Grid.move_sw(row, col),
-            Grid.move_nw(row, col)]
+            Grid.move_nw(row, col)
+        ]
         return idxs
 
     @functools.lru_cache(maxsize=None)
@@ -176,19 +176,18 @@ class Grid:
         not including self
         """
         idxs = []
-        r_low = max(0, row-1)
-        r_hi = min(self.rows-1, row+1)
-        c_low = max(0, col-1)
-        c_hi = min(self.cols-1, col+1)
+        r_low = max(0, row - 1)
+        r_hi = min(self.rows - 1, row + 1)
+        c_low = max(0, col - 1)
+        c_hi = min(self.cols - 1, col + 1)
         if col % 2 == 0:
-            cross = row-1
+            cross = row - 1
         else:
-            cross = row+1
-        for r in range(r_low, r_hi+1):
-            for c in range(c_low, c_hi+1):
-                if not ((r, c) == (cross, col-1) or
-                        (r, c) == (cross, col+1) or
-                        (r, c) == (row, col)):
+            cross = row + 1
+        for r in range(r_low, r_hi + 1):
+            for c in range(c_low, c_hi + 1):
+                if not ((r, c) == (cross, col - 1) or
+                        (r, c) == (cross, col + 1) or (r, c) == (row, col)):
                     idxs.append((r, c))
         return idxs
 
@@ -207,25 +206,24 @@ class Grid:
         else:
             idxs = []
 
-        r_low = max(0, row-2)
-        r_hi = min(self.rows-1, row+2)
-        c_low = max(0, col-2)
-        c_hi = min(self.cols-1, col+2)
+        r_low = max(0, row - 2)
+        r_hi = min(self.rows - 1, row + 2)
+        c_low = max(0, col - 2)
+        c_hi = min(self.cols - 1, col + 2)
         if col % 2 == 0:
-            cross1 = row-2
-            cross2 = row+2
+            cross1 = row - 2
+            cross2 = row + 2
         else:
-            cross1 = row+2
-            cross2 = row-2
-        for r in range(r_low, r_hi+1):
-            for c in range(c_low, c_hi+1):
-                if not ((r, c) == (row, col) or
-                        (r, c) == (cross1, col-2) or
-                        (r, c) == (cross1, col-1) or
-                        (r, c) == (cross1, col+1) or
-                        (r, c) == (cross1, col+2) or
-                        (r, c) == (cross2, col-2) or
-                        (r, c) == (cross2, col+2)):
+            cross1 = row + 2
+            cross2 = row - 2
+        for r in range(r_low, r_hi + 1):
+            for c in range(c_low, c_hi + 1):
+                if not ((r, c) == (row, col) or (r, c) == (cross1, col - 2) or
+                        (r, c) == (cross1, col - 1) or
+                        (r, c) == (cross1, col + 1) or
+                        (r, c) == (cross1, col + 2) or
+                        (r, c) == (cross2, col - 2) or
+                        (r, c) == (cross2, col + 2)):
                     if separate:
                         rs.append(r)
                         cs.append(c)
@@ -259,6 +257,7 @@ class Grid:
 
         Returns an n*m array with the label for each cell.
         """
+
         def right_up(x, y):
             x_new = x + 3
             y_new = y
@@ -279,8 +278,7 @@ class Grid:
 
         def label(l, x, y):
             # A center and some part of its subgrid may be out of bounds.
-            if (x >= 0 and x < self.cols
-                    and y >= 0 and y < self.rows):
+            if (x >= 0 and x < self.cols and y >= 0 and y < self.rows):
                 self.labels[y][x] = l
 
         # Center of a 'circular' 7-cell subgrid in which
@@ -296,7 +294,7 @@ class Grid:
                 label(0, *center)
                 for i, neigh in enumerate(
                         self.neighbors1sparse(center[1], center[0])):
-                    label(i+1, neigh[1], neigh[0])
+                    label(i + 1, neigh[1], neigh[0])
                 center = right_up(*center)
             center = down_left(*first_row_center)
             # Move right until x >= -1
@@ -309,8 +307,8 @@ class FixedGrid(Grid):
     def __init__(self, n_nom_channels=0, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Nominal channels for each cell
-        self.nom_chs = np.zeros((self.rows, self.cols, self.n_channels),
-                                dtype=bool)
+        self.nom_chs = np.zeros(
+            (self.rows, self.cols, self.n_channels), dtype=bool)
         self.assign_chs(n_nom_channels)
 
     def assign_chs(self, n_nom_channels=0):
@@ -328,12 +326,12 @@ class FixedGrid(Grid):
             n_channels = self.n_channels
         channels_per_subgrid_cell = []
         channels_per_subgrid_cell_accu = [0]
-        channels_per_cell = n_channels/7
+        channels_per_cell = n_channels / 7
         ceil = math.ceil(channels_per_cell)
         floor = math.floor(channels_per_cell)
         tot = 0
         for i in range(7):
-            if tot + ceil + (6-i) * floor > n_channels:
+            if tot + ceil + (6 - i) * floor > n_channels:
                 tot += ceil
                 cell_channels = ceil
             else:
@@ -345,7 +343,7 @@ class FixedGrid(Grid):
             for c in range(self.cols):
                 label = self.labels[r][c]
                 lo = channels_per_subgrid_cell_accu[label]
-                hi = channels_per_subgrid_cell_accu[label+1]
+                hi = channels_per_subgrid_cell_accu[label + 1]
                 self.nom_chs[r][c][lo:hi] = 1
 
 
@@ -354,12 +352,12 @@ class BDCLGrid(FixedGrid):
         raise NotImplementedError()
         super().__init__(*args, **kwargs)
         # For each channel, a direction is locked if entry is True
-        self.locks = np.zeros((self.rows, self.cols, self.n_channels, 7),
-                              dtype=bool)
+        self.locks = np.zeros(
+            (self.rows, self.cols, self.n_channels, 7), dtype=bool)
         # A cell and a channel is locked by cell coordinates in entry
         # (-1, -1) if not locked.
-        self.locked_by = np.zeros((self.rows, self.cols, self.n_channels, 2),
-                                  dtype=int)
+        self.locked_by = np.zeros(
+            (self.rows, self.cols, self.n_channels, 2), dtype=int)
 
     def cochannel_cells(self, cell, cell_neigh):
         """
