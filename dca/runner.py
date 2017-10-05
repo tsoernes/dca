@@ -14,9 +14,6 @@ LOG_FILE = 'out.log'
 def get_pparams():
     """
     Problem parameters
-    # 10 erlangs = 200 call rate, 3 call duration
-    # 7.5 erlangs = 150cr, 3cd
-    # 5 erlangs = 100cr, 3cd
     """
     parser = argparse.ArgumentParser(
             description='DCA',
@@ -36,7 +33,10 @@ def get_pparams():
                         help="number of channels",
                         default=70)
     parser.add_argument('--erlangs', type=int,
-                        help="erlangs = call_rate * call_duration",
+                        help="erlangs = call_rate * call_duration"
+                        "\n 10 erlangs = 200 call rate, given 3 call duration"
+                        "\n 7.5 erlangs = 150cr, 3cd"
+                        "\n 5 erlangs = 100cr, 3cd",
                         default=10)
     parser.add_argument('--call_rates', type=int, help="in calls per minute",
                         default=None)
@@ -81,12 +81,12 @@ def get_pparams():
     parser.add_argument('--plot', action='store_true', dest='do_plot',
                         default=False)
     parser.add_argument('--log_level', type=int,
-                        help="10: Debug, 20: Info, 30: Warning",
+                        help="10: Debug,\n20: Info,\n30: Warning",
                         default=logging.INFO)
     parser.add_argument('--log_file', action='store_true',
                         default=False)
     parser.add_argument('--log_iter', type=int,
-                        help="Show blocking probability for the last n iterations",   # noqa
+                        help="Show blocking probability every n iterations",   # noqa
                         default=100000)
 
     # iterations can be approximated from hours with:
@@ -115,12 +115,12 @@ class Runner:
                 f" with params:\n{self.pp}")
 
     def test_params(self):
-        pass
         # alpha_range = [0.01, 0.2]
         # alpha_decay_range = [0.9999, 0.9999999]
         # epsilon_range = [0.05, 0.4]
         # epsilon_decay_range = [0.9999, 0.9999999]
         # TODO check karpathy lecs on how to sample
+
 
     def run(self):
         s = self.pp['strat']

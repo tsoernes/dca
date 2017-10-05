@@ -1,3 +1,5 @@
+import numpy as np
+
 # Neighbors2
 # (3,3)
 # min row: 1
@@ -23,7 +25,28 @@
 
 class Net:
     def __init__(self, *args, **kwargs):
+        # Use ADAM, not rmsprop or sdg
+        # learning rate decay not critical (but possible)
+        # to do with adam.
+
+        # consider batch norm
+
+        # possible data prep: set unused channels to -1,
+        # OR make it unit gaussian
+
         pass
+
+    def weight_init(self):
+        inp = None
+        hidden_layer_sizes = [0]
+        Hs = {}
+        for i in range(hidden_layer_sizes):
+            X = inp if i == 0 else Hs[i-1]
+            fan_in = X.shape[1]
+            fan_out = hidden_layer_sizes[i]
+            # init according to [He et al. 2015]
+            # fan_in: number input
+            W = np.random.randn(fan_in, fan_out) / np.sqrt(fan_in/2)
 
     def forward(self, inp):
         """
@@ -47,7 +70,7 @@ class Net:
 
 class RSValNet(Net):
     """
-    Input is a grid with the number of used channels for each cell.
+    Input is coordinates and number of used channels.
     Output is a state value.
     """
     def __init__(self, *args, **kwargs):
@@ -56,7 +79,7 @@ class RSValNet(Net):
 
 class RSPolicyNet(Net):
     """
-    Input is a grid with the number of used channels for each cell.
+    Input is coordinates and number of used channels.
     Output is a vector with probability for each channel.
     """
     def __init__(self, *args, **kwargs):
