@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 # Neighbors2
 # (3,3)
 # min row: 1
@@ -22,8 +24,9 @@
 
 
 class Net:
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, logger,
+                 *args, **kwargs):
+        self.logger = logger
 
     def forward(self, inp):
         """
