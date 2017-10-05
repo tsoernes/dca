@@ -6,6 +6,7 @@ import argparse
 import cProfile
 import datetime
 import logging
+import os
 from multiprocessing import Process
 
 import numpy as np
@@ -73,6 +74,9 @@ def get_pparams():
                         help="(RL) override default params by sampling in logspace"  # noqa
                         "store results to logfile 'paramtest-MM.DD-hh.mm'.",
                         default=False)
+    parser.add_argument('--param_iters', type=int,
+                        help="number of parameter iterations",
+                        default=1)
 
     parser.add_argument('--verify_grid', action='store_true',
                         help="verify reuse constraint each iteration",
@@ -100,14 +104,14 @@ def get_pparams():
     if not params['call_rates']:
         params['call_rates'] = params['erlangs'] / params['call_duration']
     if params['test_params']:
-        params['log_level'] = logging.WARN
+        params['log_level'] = logging.ERROR
         params['gui'] = False
         params['plot'] = False
         params['log_iter'] = 1000
         now = datetime.datetime.now()
         date = now.date()
         time = now.time()
-        params['log_file'] = f"paramtest-{date.month}.{date.day}-" \
+        params['log_file'] = f"logs/paramtest-{date.month}.{date.day}-" \
                              f"{time.hour}.{time.minute}.log"
     return params
 
@@ -117,13 +121,14 @@ class Runner:
         self.pp = get_pparams()
 
         logging.basicConfig(
-                level=self.pp['log_level'], format='%(message)s')
+                level=self.pp['log_level'],
+                format='%(message)s')
         self.logger = logging.getLogger('')
         if self.pp['log_file']:
-            fh = logging.FileHandler("logs/" + self.pp['log_file'])
+            fh = logging.FileHandler(self.pp['log_file'])
             fh.setLevel(self.pp['log_level'])
             self.logger.addHandler(fh)
-        self.logger.warning(
+        self.logger.error(
                 f"Starting simulation at {datetime.datetime.now()}"
                 f" with params:\n{self.pp}")
 
@@ -144,13 +149,13 @@ class Runner:
         # the bounds should be changed.
 
         # alpha_range = [0.01, 0.2]
-        alpha = 10**np.random.uniform(-2, -0.6)
+        alpha = 10**np.random.uniform(-2, -0.1)
         # alpha_decay_range = [0.9999, 0.9999999]
-        alpha_decay = 10**np.random.uniform(-0.00001, -0.00000001)
+        alpha_decay = 10**np.random.uniform(-0.0001, -0.00000001)
         # epsilon_range = [0.05, 0.4]
         epsilon = 10**np.random.uniform(-1.3, -0.1)
         # epsilon_decay_range = [0.9999, 0.9999999]
-        epsilon_decay = 10**np.random.uniform(-0.00001, -0.00000001)
+        epsilon_decay = 10**np.random.uniform(-0.0001, -0.00000001)
         pp['alpha'] = alpha
         pp['alpha_decay'] = alpha_decay
         pp['epsilon'] = epsilon
@@ -159,26 +164,25 @@ class Runner:
 
     def test_params(self):
         gridclass, stratclass = self.get_class(self.pp)
-        for i in range(8):
-            pp = self.sample_params(self.pp)
-            self.logger.warning(
-                    f"Thread {i} using params:"
-                    f" alpha {pp['alpha']}, alphadec {pp['alpha_decay']} "
-                    f"epsilon {pp['epsilon']}, epsilondec {pp['alpha_decay']}")
-            p = Process(target=sim_proc, args=(gridclass, stratclass, pp, i))
-            p.start()
+        for i in range(1, self.pp['param_iters']+1):
+            for j in range(14):
+                k = j * i
+                pp = self.sample_params(self.pp)
+                p = Process(
+                        target=sim_proc, args=(gridclass, stratclass, pp, k))
+                p.start()
+            p.join()
         p.join()
         # coalesce logs
-        main_file = self.pp['log_file']
-        with open(main_file, 'w') as outfile:
-            for i in range(8):
-                with open(main_file + f"p{i}") as infile:
-                    for line in infile:
-                        outfile.write(line)
-
-    def run(self):
-        gridclass, stratclass = self.get_class(self.pp)
-        self.run_strat(gridclass, stratclass)
+        # main_fname = self.pp['log_file']
+        # with open(main_fname, 'a') as outfile:
+        #     for i in range(self.pp['params_iter']*14):
+        #         # outfile.write(params[i])
+        #         in_fname = main_fname + f"-p{i}"
+        #         with open(in_fname) as infile:
+        #             for line in infile:
+        #                 outfile.write(line)
+        #         #  os.remove(in_fname)
 
     @staticmethod
     def get_class(pp):
@@ -194,7 +198,8 @@ class Runner:
         # elif s == 'none':
         #    self.show()
 
-    def run_strat(self, gridclass, stratclass):
+    def run(self):
+        gridclass, stratclass = self.get_class(self.pp)
         grid = gridclass(logger=self.logger, **self.pp)
         self.strat = stratclass(
                     self.pp, grid=grid,
@@ -204,6 +209,7 @@ class Runner:
             self.strat.gui = gui
         if self.pp['profiling']:
             cProfile.runctx('self.strat.init_sim()', globals(), locals())
+            #                 sort='tottime')
         else:
             self.strat.init_sim()
 
@@ -220,18 +226,17 @@ class Runner:
         gui.test()
 
 
-def sim_proc(gridclass, stratclass, pp, proc_id):
-    logging.basicConfig(
-            level=pp['log_level'], format='%(message)s')
+def sim_proc(gridclass, stratclass, pp, pid):
+    # logging.basicConfig(
+    #         level=pp['log_level'], format='%(threadName)s %(message)s')
     logger = logging.getLogger('')
-    fh = logging.FileHandler("logs/" + pp['log_file'] + f"-p{proc_id}")
-    fh.setLevel(pp['log_level'])
-    logger.addHandler(fh)
+    # fh = logging.FileHandler(pp['log_file'] + f"-p{pid}")
+    # fh.setLevel(pp['log_level'])
+    # logger.addHandler(fh)
     grid = gridclass(logger=logger, **pp)
-    strat = stratclass(pp, grid=grid, logger=logger)
+    strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
     strat.init_sim()
 
 
 if __name__ == '__main__':
     r = Runner()
-    # r.run()

@@ -8,7 +8,7 @@ import numpy as np
 
 
 class Strat:
-    def __init__(self, pp, grid, logger,
+    def __init__(self, pp, grid, logger, pid=None,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
@@ -27,7 +27,7 @@ class Strat:
 
         # A min-heap of call events; sorted first on time then event type
         self.quit_sim = False
-        self.stats = Stats(logger=logger, **pp)
+        self.stats = Stats(pp=pp, logger=logger, pid=pid)
         self.eventgen = EventGen(logger=logger, **pp)
 
     def exit_handler(self, *args):

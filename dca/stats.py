@@ -10,13 +10,11 @@ class Stats:
     For monitoring (and warning about) simulation statistics
     """
 
-    def __init__(self, logger, n_channels, log_iter, n_episodes, do_plot,
+    def __init__(self, pp, logger, pid=None,
                  *args, **kwargs):
+        self.pp = pp
         self.logger = logger
-        self.n_channels = n_channels
-        self.log_iter = log_iter
-        self.n_episodes = n_episodes
-        self.do_plot = do_plot
+        self.pid = pid
 
         self.start_time = time.time()
         self.n_rejected = 0  # Number of rejected calls
@@ -59,7 +57,7 @@ class Stats:
         if n_used == 0:
             self.logger.debug(
                 f"Rejected call to {cell} when {n_used}"
-                f" of {self.n_channels} channels in use")
+                f" of {self.pp['n_channels']} channels in use")
 
     def iter(self, t, i, cevent):
         self.t = t
@@ -72,7 +70,7 @@ class Stats:
         self.block_probs.append(block_prob)
         self.logger.info(
                 f"\n{self.t:.2f}-{self.i}: Blocking probability events"
-                f" {self.i-self.log_iter}-{self.log_iter}:"
+                f" {self.i-self.pp['log_iter']}-{self.pp['log_iter']}:"
                 f" {block_prob:.4f}")
         if epsilon:
             self.alphas.append(alpha)
@@ -99,37 +97,45 @@ class Stats:
         self.logger.warn(
             f"\nSimulation duration: {self.t/24:.2f} sim hours(?),"
             f" {self.i+1} episodes"
-            f" at {self.n_episodes/(time.time()-self.start_time):.0f}"
+            f" at {self.pp['n_episodes']/(time.time()-self.start_time):.0f}"
             " episodes/second"
 
             f"\nRejected {self.n_rejected} of {self.n_incoming} new calls,"
-            f" {self.n_handoffs_rejected} of {self.n_handoffs} handoffs"
-
-            f"\nBlocking probability:"
-            f" {self.n_rejected/(self.n_incoming+1):.4f} for new calls,"
-            f" {self.n_handoffs_rejected/(self.n_handoffs+1):.4f} for handoffs"
-
+            f" {self.n_handoffs_rejected} of {self.n_handoffs} handoffs")
+        if self.pid is not None:
+            self.logger.error(
+                    f"\nT{self.pid} Using params:"
+                    f" alpha {self.pp['alpha']},"
+                    f" alphadec {self.pp['alpha_decay']}"
+                    f" epsilon {self.pp['epsilon']},"
+                    f" epsilondec {self.pp['alpha_decay']}")
+        self.logger.error(
+            f"\nT{self.pid} Blocking probability:"
+            f" {self.n_rejected/(self.n_incoming+1):.4f} for new calls, "
+            f"{self.n_handoffs_rejected/(self.n_handoffs+1):.4f} for handoffs")
+        self.logger.warn(
             f"\nAverage number of calls in progress when blocking: "
             f"{self.n_inuse_rej/(self.n_rejected+1):.2f}"
 
             f"\n{n_inprogress} calls in progress at simulation end\n")
         if epsilon:
             self.logger.warn(f"\nEnd epsilon: {epsilon}\nEnd alpha: {alpha}")
-        if self.do_plot:
+        if self.pp['do_plot']:
             self.plot()
 
     def plot(self):
+        l_iter = self.pp['log_iter']
         plt.subplot(221)
         plt.plot(self.block_probs)
         plt.ylabel("Blocking probability")
-        plt.xlabel(f"Iterations, in {self.log_iter}s")
+        plt.xlabel(f"Iterations, in {l_iter}s")
         if self.alphas:
             plt.subplot(223)
             plt.plot(self.alphas)
             plt.ylabel("Alpha (learning rate)")
-            plt.xlabel(f"Iterations, in {self.log_iter}s")
+            plt.xlabel(f"Iterations, in {l_iter}s")
             plt.subplot(224)
             plt.plot(self.epsilons)
             plt.ylabel("Epsilon")
-            plt.xlabel(f"Iterations, in {self.log_iter}s")
+            plt.xlabel(f"Iterations, in {l_iter}s")
         plt.show()
