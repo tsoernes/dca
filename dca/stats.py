@@ -10,7 +10,7 @@ class Stats:
     For monitoring (and warning about) simulation statistics
     """
 
-    def __init__(self, pp, logger, pid=None,
+    def __init__(self, pp, logger, pid="",
                  *args, **kwargs):
         self.pp = pp
         self.logger = logger
@@ -102,13 +102,14 @@ class Stats:
 
             f"\nRejected {self.n_rejected} of {self.n_incoming} new calls,"
             f" {self.n_handoffs_rejected} of {self.n_handoffs} handoffs")
-        if self.pid is not None:
+        if self.pid is not "":
             self.logger.error(
                     f"\nT{self.pid} Using params:"
-                    f" alpha {self.pp['alpha']},"
-                    f" alphadec {self.pp['alpha_decay']}"
-                    f" epsilon {self.pp['epsilon']},"
-                    f" epsilondec {self.pp['alpha_decay']}")
+                    f" gamma {self.pp['gamma']:.6f},"
+                    f" alpha {self.pp['alpha']:.8f},"
+                    f" alphadec {self.pp['alpha_decay']:.8f}"
+                    f" epsilon {self.pp['epsilon']:.8f},"
+                    f" epsilondec {self.pp['alpha_decay']:.8f}")
         self.logger.error(
             f"\nT{self.pid} Blocking probability:"
             f" {self.n_rejected/(self.n_incoming+1):.4f} for new calls, "

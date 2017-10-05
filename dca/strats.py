@@ -8,7 +8,7 @@ import numpy as np
 
 
 class Strat:
-    def __init__(self, pp, grid, logger, pid=None,
+    def __init__(self, pp, grid, logger, pid="",
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']

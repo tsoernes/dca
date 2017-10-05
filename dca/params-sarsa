@@ -1,0 +1,47 @@
+T0 Using params: alpha 0.038530326328192775, alphadec 0.9998982992098642 epsilon 0.1908361916319783, epsilondec 0.9998982992098642
+T0 Blocking probability: 0.1993 for new calls, 0.1514 for handoffs
+
+T112 Using params: alpha 0.016511078205557975, alphadec 0.9999801263918366 epsilon 0.24789049243860323, epsilondec 0.9999801263918366
+T112 Blocking probability: 0.1991 for new calls, 0.1521 for handoffs
+
+T198 Using params: alpha 0.08294838807434325, alphadec 0.9999760843283424 epsilon 0.622026182853262, epsilondec 0.9999760843283424
+T198 Blocking probability: 0.1990 for new calls, 0.1506 for handoffs
+
+T84 Using params: alpha 0.048844498742634405, alphadec 0.9999418168363826 epsilon 0.07720195290039047, epsilondec 0.9999418168363826
+T84 Blocking probability: 0.1989 for new calls, 0.1547 for handoffs
+
+T242 Using params: alpha 0.02276245016354536, alphadec 0.9999948426859187 epsilon 0.3369756968397867, epsilondec 0.9999948426859187
+T242 Blocking probability: 0.1984 for new calls, 0.1519 for handoffs
+
+T92 Using params: alpha 0.02264531089367451, alphadec 0.9999954105209463 epsilon 0.12480348983298593, epsilondec 0.9999954105209463
+T92 Blocking probability: 0.1995 for new calls, 0.1522 for handoffs
+
+T96 Using params: alpha 0.011132302455493863, alphadec 0.9999856803607892 epsilon 0.5749115897979591, epsilondec 0.9999856803607892
+T96 Blocking probability: 0.1953 for new calls, 0.1478 for handoffs
+
+T100 Using params: alpha 0.1414931974381061, alphadec 0.9999373660319543 epsilon 0.22177783246825453, epsilondec 0.9999373660319543
+T100 Blocking probability: 0.1996 for new calls, 0.1474 for handoffs
+
+T108 Using params: alpha 0.01348844166751284, alphadec 0.9999903668966654 epsilon 0.058042399577237044, epsilondec 0.9999903668966654
+T108 Blocking probability: 0.1969 for new calls, 0.1540 for handoffs
+
+T308 Using params: alpha 0.02335184026155982, alphadec 0.9999904673128435 epsilon 0.24849367161788202, epsilondec 0.9999904673128435
+T308 Blocking probability: 0.1982 for new calls, 0.1519 for handoffs
+
+T145 Using params: alpha 0.01137875775202886, alphadec 0.9999357405572163 epsilon 0.10525410264996037, epsilondec 0.9999357405572163
+T145 Blocking probability: 0.1998 for new calls, 0.1517 for handoffs
+
+T31 Using params: alpha 0.03439166161207763, alphadec 0.9999351602151867 epsilon 0.40251679553969066, epsilondec 0.9999351602151867
+T31 Blocking probability: 0.1988 for new calls, 0.1443 for handoffs
+
+T160 Using params: alpha 0.02064527260011073, alphadec 0.9999915159447421 epsilon 0.07679792022229545, epsilondec 0.9999915159447421
+T160 Blocking probability: 0.1994 for new calls, 0.1582 for handoffs
+
+T416 Using params: alpha 0.08051111975404068, alphadec 0.9999989456286712 epsilon 0.3895617440762957, epsilondec 0.9999989456286712
+T416 Blocking probability: 0.1990 for new calls, 0.1569 for handoffs
+
+alpha: 0.03
+alphadec: 0.99999
+
+epsilson: 0.3
+epsilondec: 0.99999
