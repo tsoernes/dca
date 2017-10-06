@@ -381,13 +381,52 @@ class SARSAQNet(RLStrat):
         from net import RSValNet
         self.net = RSValNet(self.logger)
 
+    def get_action(self, next_cevent, cell, ch):
+        """
+        Return a channel to be (re)assigned for 'next_cevent'.
+        'cell' and 'ch' specify the previous channel (re)assignment.
+        """
+        # NOTE Haven't changed anything yet besides adding comments
+        next_ce_type, next_cell = next_cevent[1], next_cevent[2]
+        # Choose A' from S'
+        next_n_used, next_ch = self.optimal_ch(next_ce_type, next_cell)
+        # If there's no action to take, don't update q-value at all
+        if next_ce_type != CEvent.END and next_ch is not None:
+            # Observe reward from previous action
+            reward = self.reward()
+            # Update q-values with one-step lookahead
+            # next_qval is qval for next state chosen with THETA(i-1),
+            # i.e. parameters from previous iteration.
+            # using current parameters may work. lets try that first.
+            next_qval = self.get_qval(next_cell, next_n_used, next_ch)
+            td_err = reward + self.discount() * next_qval - self.qval
+            self.update_qval(cell, self.n_used, ch, td_err)
+            self.alpha *= self.alpha_decay
+            # n_used doesn't change if there's no action to take
+            self.n_used, self.qval = next_n_used, next_qval
+        if next_ce_type == CEvent.END and next_ch is None:
+            self.logger.error(
+                    "'None' channel for end event"
+                    f" {ce_str(next_cevent)}"
+                    f" {np.where(self.grid.state[next_cell] == 1)}")
+            raise Exception
+        return next_ch
+
     def get_qval(self, cell, n_used, ch):
         """
         """
         pass
 
     def update_qval(self, cell, n_used, ch, td_err):
-        pass
+        # What SHOULD be the input to the network?
+        # (row, col, n_used)?
+        # (self.grid.state, row, col)?
+        # (self.grid.state[row][col])?
+        # (self.grid.state[self.grid.neighbors2(row, col))?
+        # Having channels/actions as output seems sensible.
+        #
+        state = None
+        self.net.backward(state, td_err)
 
     def arg_extreme_qval(self):
         # Two options: make two tf predictors
