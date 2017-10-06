@@ -1,7 +1,6 @@
 from eventgen import EventGen, CEvent, ce_str
 from stats import Stats
 
-import operator
 import signal
 
 import numpy as np
@@ -25,20 +24,19 @@ class Strat:
         self.epsilon = None  # Not applicable for all strats
         self.alpha = None
 
-        # A min-heap of call events; sorted first on time then event type
         self.quit_sim = False
         self.stats = Stats(pp=pp, logger=logger, pid=pid)
         self.eventgen = EventGen(logger=logger, **pp)
 
     def exit_handler(self, *args):
         """
-        Print stats on ctrl-c exit from command line
+        Graceful exit allowing printing of stats on ctrl-c exit from
+        command line or on 'q' key-event from gui.
         """
         self.logger.warn("\nPremature exit")
         self.quit_sim = True
 
     def init_sim(self):
-        # if not self.pp['test_params']:
         signal.signal(signal.SIGINT, self.exit_handler)
         # Generate initial call events; one for each cell
         for r in range(self.rows):
@@ -186,6 +184,14 @@ class RLStrat(Strat):
     def get_qval():
         raise NotImplementedError
 
+    def arg_extreme_qval(self, op, cell, n_used, chs):
+        """
+        Find index of max or min q-value for the
+        actions 'chs'
+        """
+        idx = op(self.get_qval[cell][n_used][chs])
+        return chs[idx]
+
     def get_init_action(self, cevent):
         _, ch = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
@@ -259,20 +265,18 @@ class RLStrat(Strat):
             # Find the channels that are free in 'cell' and all of
             # its neighbors by bitwise ORing all their allocation maps
             alloc_map = np.bitwise_or(
-                    self.grid.state[cell], self.grid.state[neighs[0]])
+                self.grid.state[cell], self.grid.state[neighs[0]])
             for n in neighs[1:]:
                 alloc_map = np.bitwise_or(alloc_map, self.grid.state[n])
             chs = np.where(alloc_map == 0)[0]
-            op = operator.gt
-            best_val = float("-inf")
+            op = np.argmax
         else:
             # Channels in use at cell, including channel scheduled
             # for termination. The latter is included because it might
             # be the least valueable channel, in which case no
             # reassignment is done on call termination.
             chs = inuse
-            op = operator.lt
-            best_val = float("inf")
+            op = np.argmin
 
         if len(chs) == 0:
             # No channels available for assignment,
@@ -286,11 +290,7 @@ class RLStrat(Strat):
             ch = np.random.choice(chs)
         else:
             # Choose greedily
-            for chan in chs:
-                val = self.get_qval(cell, n_used, chan)
-                if op(val, best_val):
-                    best_val = val
-                    ch = chan
+            ch = self.arg_extreme_qval(op, cell, n_used, chs)
         self.logger.debug(
                 f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
@@ -362,6 +362,8 @@ class RS_SARSA(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
+        self.fmax = np.argmax
+        self.fmin = np.argmin
 
     def get_qval(self, cell, n_used, ch):
         return self.qvals[cell][ch]
@@ -370,7 +372,7 @@ class RS_SARSA(RLStrat):
         self.qvals[cell][ch] += self.alpha * td_err
 
 
-class SARSAValNet(RLStrat):
+class SARSAQNet(RLStrat):
     """
     State consists of coordinates + number of used channels.
     """
@@ -381,17 +383,23 @@ class SARSAValNet(RLStrat):
 
     def get_qval(self, cell, n_used, ch):
         """
-        Two options:
-        a) Temporarily execute all legal actions, one by one,
-        observe the resulting states, run them through the net,
-        obs
         """
         pass
 
     def update_qval(self, cell, n_used, ch, td_err):
-        self.qvals[cell][n_used][ch] += self.alpha * td_err
-# TODO: plot block-rate over time to determine
-# if if rl system actually improves over time
+        pass
+
+    def arg_extreme_qval(self):
+        # Two options: make two tf predictors
+        # (tf.argmin, tf.argmax)
+        # or get qvals by a single forward pass
+        # and then use numpy argmin/max on
+        # results
+        pass
+
+    def fn_after(self):
+        # Should be run after simulation is finished
+        self.net.sess.close()
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?

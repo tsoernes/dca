@@ -28,8 +28,8 @@ class Stats:
         self.n_curr_rejected = 0  # Number of rejected calls last 100 episodes
         self.n_curr_incoming = 0  # Number of incoming calls last 100 episodes
         self.block_probs = []
-        self.alphas = []
-        self.epsilons = []
+        self.alphas = []  # Monitor alpha decay
+        self.epsilons = []  # Monitor epsilon decay
         self.i = 0  # Current iteration
         self.t = 0  # Current time
 
@@ -121,18 +121,18 @@ class Stats:
             self.plot()
 
     def plot(self):
-        l_iter = self.pp['log_iter']
+        xlabel_iters = f"Iterations, in {self.pp['log_iter']}s"
         plt.subplot(221)
         plt.plot(self.block_probs)
         plt.ylabel("Blocking probability")
-        plt.xlabel(f"Iterations, in {l_iter}s")
+        plt.xlabel(xlabel_iters)
         if self.alphas:
             plt.subplot(223)
             plt.plot(self.alphas)
             plt.ylabel("Alpha (learning rate)")
-            plt.xlabel(f"Iterations, in {l_iter}s")
+            plt.xlabel(xlabel_iters)
             plt.subplot(224)
             plt.plot(self.epsilons)
             plt.ylabel("Epsilon")
-            plt.xlabel(f"Iterations, in {l_iter}s")
+            plt.xlabel(xlabel_iters)
         plt.show()

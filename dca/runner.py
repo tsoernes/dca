@@ -118,7 +118,7 @@ def get_pparams():
     parser.add_argument(
         '--log_iter',
         type=int,
-        help="Show blocking probability every n iterations",  # noqa
+        help="Show blocking probability every n iterations",
         default=100000)
 
     # iterations can be approximated from hours with:
@@ -211,34 +211,30 @@ class Runner:
     def run(self):
         gridclass, stratclass = self.get_class(self.pp)
         grid = gridclass(logger=self.logger, **self.pp)
-        self.strat = stratclass(self.pp, grid=grid, logger=self.logger)
+        strat = stratclass(self.pp, grid=grid, logger=self.logger)
         if self.pp['gui']:
-            gui = Gui(grid, self.strat.exit_handler, grid.print_cell)
-            self.strat.gui = gui
+            gui = Gui(grid, strat.exit_handler, grid.print_cell)
+            strat.gui = gui
         if self.pp['profiling']:
-            cProfile.runctx('self.strat.init_sim()', globals(), locals())
-            #                 sort='tottime')
+            cProfile.runctx('strat.init_sim()', globals(), locals())
+            #                , sort='tottime')
         else:
-            self.strat.init_sim()
+            strat.init_sim()
 
-    def end_sim(self, e):
+    @staticmethod
+    def sim_proc(gridclass, stratclass, pp, pid):
         """
-        Handle key events from Tkinter and quit
-        simulation gracefully on 'q'-key
+        Allows for running simulation in separate process
         """
-        self.strat.quit_sim = True
+        logger = logging.getLogger('')
+        grid = gridclass(logger=logger, **pp)
+        strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
+        strat.init_sim()
 
     def show(self):
         grid = FixedGrid(logger=self.logger, **self.pp)
         gui = Gui(grid, self.logger)
         gui.test()
-
-    @staticmethod
-    def sim_proc(gridclass, stratclass, pp, pid):
-        logger = logging.getLogger('')
-        grid = gridclass(logger=logger, **pp)
-        strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
-        strat.init_sim()
 
 
 if __name__ == '__main__':

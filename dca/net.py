@@ -25,9 +25,10 @@ import tensorflow as tf
 
 
 class Net:
-    def __init__(self, logger,
+    def __init__(self, logger, n_in, n_out, alpha, gamma,
                  *args, **kwargs):
         self.logger = logger
+        tf.reset_default_graph()
         # Use ADAM, not rmsprop or sdg
         # learning rate decay not critical (but possible)
         # to do with adam.
@@ -65,6 +66,55 @@ class Net:
         # should be somewhere around 0.001 or so. if too high, decrease
         # learning rate, if too log (like 1e-6), increase lr.
 
+        self.alpha = alpha
+        self.gamma = gamma
+
+        self.inputs1 = tf.placeholder(shape=[1, n_in], dtype=tf.bool)
+        self.W = tf.Variable(tf.random_uniform([n_in, n_out], 0, 0.01))
+        # One q-value for each of the possible actions
+        self.Qout = tf.matmul(self.inputs1, self.W)
+        self.predict = tf.argmax(self.Qout, 1)
+
+        # Below we obtain the loss by taking the sum of squares
+        # difference between the target and prediction Q values.
+        self.nextQ = tf.placeholder(shape=[1, n_out], dtype=tf.float32)
+        loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
+        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
+        self.updateModel = trainer.minimize(loss)
+
+        # NOTE remember to call sess.close()
+        self.sess = tf.session()
+        init = tf.initialize_all_variables()
+        self.sess.run(init)
+
+    def forward(self, state):
+        """
+        Forward pass. Given an input, such as a feature vector
+        or the whole state, return the output of the network.
+        """
+        # inp = self.grid.state[cell]
+        action, qvals = self.sess.run(
+                [self.predict, self.Qout],
+                feed_dict={self.inputs1: state})  # self.inputs1?
+        # action[0] is somehow significant
+        # the action should be executed here
+        # so that reward and next_state can be observed
+        return action, qvals
+
+    def backward(self, state, reward, next_state, actions, qvals):
+        Q1 = self.sess.run(
+            self.Qout,
+            feed_dict={self.inputs1: next_state})  # self.inputs1?
+        # Obtain maxQ' and set our target value for chosen action.
+        maxQ1 = np.max(Q1)
+        targetQ = qvals
+        targetQ[0][actions[0]] = reward + self.gamma*maxQ1
+        # Train our network using target and predicted Q values
+        _, W1 = self.sess.run(
+            [self.updateModel, self.W],
+            feed_dict={self.inputs1: state, self.nextQ: targetQ})
+        # should W be set to W1?
+
     def weight_init(self):
         inp = None
         hidden_layer_sizes = [0]
@@ -78,19 +128,6 @@ class Net:
             W = np.random.randn(fan_in, fan_out) / np.sqrt(fan_in/2)
             H = np.dot(X, W)
             Hs[i] = H
-
-    def forward(self, inp):
-        """
-        Forward pass. Given an input, such as a feature vector
-        or the whole state, return the output of the network.
-        """
-        pass
-
-    def backward(self, loss):
-        """
-        Backward pass.
-        """
-        pass
 
     def save(self, filenam):
         """
