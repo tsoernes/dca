@@ -121,6 +121,9 @@ class Stats:
             self.plot()
 
     def plot(self):
+        # NOTE In Singh, "Each data point [in the graph] is the percentage
+        # of system-wide calls that were blocked up until that point in time".
+        # To compare, we have to do the same, and not reset block count.
         xlabel_iters = f"Iterations, in {self.pp['log_iter']}s"
         plt.subplot(221)
         plt.plot(self.block_probs)

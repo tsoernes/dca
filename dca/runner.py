@@ -138,7 +138,44 @@ def get_pparams():
         time = now.time()
         params['log_file'] = f"logs/paramtest-{date.month}.{date.day}-" \
                              f"{time.hour}.{time.minute}.log"
+
     return params
+
+
+def non_uniform_preset(pp):
+    """
+    Non-uniform traffic patterns for linear array of cells.
+    rows = 1
+    cols = 20
+    call rates: l:low, m:medium, h:high
+    For each pattern, the numeric values of l, h and m are chosen
+    so that the average call rate for a cell is 120 calls/hr.
+    low is 1/3 of high; med is 2/3 of high.
+    """
+    avg_cr = 120/60  # 120 calls/hr
+    patterns = ["mmmm"*5,
+                "lhlh"*5,
+                ("llh"*7)[:20],
+                ("hhl"*7)[:20],
+                ("lhl"*7)[:20],
+                ("hlh"*7)[:20]]
+    pattern_call_rates = []
+    for pattern in patterns:
+        n_l = pattern.count('l')
+        n_m = pattern.count('m')
+        n_h = pattern.count('h')
+        cr_h = avg_cr * 20 / (n_h + 2 / 3 * n_m + 1 / 3 * n_l)
+        cr_m = 2 / 3 * cr_h
+        cr_l = 1 / 3 * cr_h
+        call_rates = np.zeros((1, 20))
+        for i, c in enumerate(pattern):
+            if c == 'l':
+                call_rates[0][i] = cr_l
+            elif c == 'm':
+                call_rates[0][i] = cr_m
+            elif c == 'h':
+                call_rates[0][i] = cr_h
+        pattern_call_rates.append(call_rates)
 
 
 class Runner:
