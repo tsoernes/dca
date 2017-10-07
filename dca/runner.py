@@ -145,6 +145,8 @@ def get_pparams():
 def non_uniform_preset(pp):
     """
     Non-uniform traffic patterns for linear array of cells.
+    Formål: How are the different strategies sensitive to
+    non-uniform call patterns?
     rows = 1
     cols = 20
     call rates: l:low, m:medium, h:high
