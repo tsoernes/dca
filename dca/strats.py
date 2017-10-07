@@ -415,7 +415,12 @@ class SARSAQNet(RLStrat):
     def get_qval(self, cell, n_used, ch):
         """
         """
-        pass
+        state = (*cell, n_used)
+        qvals = self.net.forward(state)
+        # I think the second idx of qvals is dtype or something.
+        # indexing with 'ch' should work for getting multiple chs
+        # as is requested by arg_extreme_qval()
+        return qvals[0][ch]
 
     def update_qval(self, cell, n_used, ch, td_err):
         # What SHOULD be the input to the network?
@@ -424,17 +429,20 @@ class SARSAQNet(RLStrat):
         # (self.grid.state[row][col])?
         # (self.grid.state[self.grid.neighbors2(row, col))?
         # Having channels/actions as output seems sensible.
-        #
-        state = None
+        # Need to look at Singh, Atari.
+        # TODO Wasn't there another paper on channel alloc
+        # with RL or nets?
+        # TODO What should ch to here?
+        state = (*cell, n_used)
         self.net.backward(state, td_err)
 
-    def arg_extreme_qval(self):
+    def arg_extreme_qval(self, *args):
         # Two options: make two tf predictors
         # (tf.argmin, tf.argmax)
         # or get qvals by a single forward pass
         # and then use numpy argmin/max on
         # results
-        pass
+        super().arg_extreme_qvals(*args)
 
     def fn_after(self):
         # Should be run after simulation is finished
