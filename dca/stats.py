@@ -28,6 +28,7 @@ class Stats:
         self.n_curr_rejected = 0  # Number of rejected calls last 100 episodes
         self.n_curr_incoming = 0  # Number of incoming calls last 100 episodes
         self.block_probs = []
+        self.block_probs_tot = []
         self.alphas = []  # Monitor alpha decay
         self.epsilons = []  # Monitor epsilon decay
         self.i = 0  # Current iteration
@@ -67,6 +68,7 @@ class Stats:
         # NOTE excluding handoffs
         block_prob = self.n_curr_rejected / (self.n_curr_incoming + 1)
         self.block_probs.append(block_prob)
+        self.block_probs_tot.append(self.n_rejected / (self.n_incoming + 1))
         self.logger.info(
             f"\n{self.t:.2f}-{self.i}: Blocking probability events"
             f" {self.i-self.pp['log_iter']}-{self.pp['log_iter']}:"
@@ -126,7 +128,7 @@ class Stats:
         # To compare, we have to do the same, and not reset block count.
         xlabel_iters = f"Iterations, in {self.pp['log_iter']}s"
         plt.subplot(221)
-        plt.plot(self.block_probs)
+        plt.plot(self.block_probs_tot)
         plt.ylabel("Blocking probability")
         plt.xlabel(xlabel_iters)
         if self.alphas:

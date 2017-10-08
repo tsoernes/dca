@@ -234,6 +234,17 @@ class Grid:
         else:
             return idxs
 
+    def get_free_chs(self, cell):
+        neighs = self.neighbors2(*cell)
+        # Find the channels that are free in 'cell' and all of
+        # its neighbors by bitwise ORing all their allocation maps
+        alloc_map = np.bitwise_or(
+            self.state[cell], self.state[neighs[0]])
+        for n in neighs[1:]:
+            alloc_map = np.bitwise_or(alloc_map, self.state[n])
+        free = np.where(alloc_map == 0)[0]
+        return free
+
     @staticmethod
     def distance(r1, c1, r2, c2):
         raise NotImplementedError
