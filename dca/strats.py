@@ -420,7 +420,7 @@ class SARSAQNet(RLStrat):
         """
         Select the channel fitting for assignment that
         that has the maximum q-value in an epsilon-greedy fasion,
-        or select the channel for termination that has the minimum
+        or select the channel for termination that has the minimum:
         q-value in a greedy fashion.
 
         Return (n_used, ch) where 'n_used' is the number of channels in
@@ -479,6 +479,24 @@ class SARSAQNet(RLStrat):
     def get_init_action(self, cevent):
         _, ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
+# Singh features:
+# For each cell, the number of available channels.
+# For each cell-channel pair, the number of times the
+#mport tensorflow as tf
+with tf.device('/gpu:0'):
+    a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[2, 3], name='a')
+    b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[3, 2], name='b')
+    c = tf.matmul(a, b)
+
+with tf.Session() as sess:
+    print (sess.run(c))import tensorflow as tf
+with tf.device('/gpu:0'):
+    a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[2, 3], name='a')
+    b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[3, 2], name='b')
+    c = tf.matmul(a, b)
+
+with tf.Session() as sess:
+    print (sess.run(c)) channel is used in a 4 cell radius.
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?
