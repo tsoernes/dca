@@ -94,7 +94,7 @@ class Stats:
         self.logger.warn(
             f"\nSimulation duration: {self.t/24:.2f} sim hours(?),"
             f" {self.i+1} episodes"
-            f" at {self.pp['n_episodes']/(time.time()-self.start_time):.0f}"
+            f" at {self.pp['n_events']/(time.time()-self.start_time):.0f}"
             " episodes/second"
 
             f"\nRejected {self.n_rejected} of {self.n_incoming} new calls,"

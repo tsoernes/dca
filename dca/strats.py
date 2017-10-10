@@ -12,7 +12,7 @@ class Strat:
         self.rows = pp['rows']
         self.cols = pp['cols']
         self.n_channels = pp['n_channels']
-        self.n_episodes = pp['n_episodes']
+        self.n_events = pp['n_events']
         self.p_handoff = pp['p_handoff']
         self.verify_grid = pp['verify_grid']
         self.log_iter = pp['log_iter']
@@ -49,7 +49,7 @@ class Strat:
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
-        for i in range(self.n_episodes):
+        for i in range(self.n_events):
             if self.quit_sim:
                 break  # Gracefully exit to print stats
 

@@ -50,15 +50,15 @@ def get_pparams():
         help="handoff call duration, in minutes",
         default=1)
     parser.add_argument(
-        '--n_episodes',
+        '--n_events',
         type=int,
         help="number of events to simulate",
         default=200000)
     parser.add_argument(
-        '--n_hours',
+        '--n_episodes',
         type=int,
-        help="number hours in simulation time to run",
-        default=2)
+        help="Run simulation 'n' times, report average scores",
+        default=200000)
 
     parser.add_argument(
         '--alpha', type=float, help="(RL) learning rate",
