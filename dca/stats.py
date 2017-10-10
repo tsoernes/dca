@@ -78,7 +78,7 @@ class Stats:
         self.n_curr_rejected = 0
         self.n_curr_incoming = 0
 
-    def endsim(self, n_inprogress, epsilon, alpha):
+    def end_episode(self, n_inprogress, epsilon, alpha):
         delta = self.n_incoming + self.n_handoffs \
                 - self.n_rejected - self.n_handoffs_rejected - self.n_ended
         if delta != n_inprogress:

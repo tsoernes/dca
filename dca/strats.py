@@ -43,6 +43,7 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
+        return 0
 
     def _simulate(self):
         cevent = self.eventgen.pop()
@@ -109,7 +110,8 @@ class Strat:
             if i > 0 and i % self.log_iter == 0:
                 self.stats.n_iter(self.epsilon, self.alpha)
 
-        self.stats.endsim(np.sum(self.grid.state), self.epsilon, self.alpha)
+        self.stats.end_episode(
+                np.sum(self.grid.state), self.epsilon, self.alpha)
 
     def get_init_action(self):
         raise NotImplementedError()
@@ -189,7 +191,7 @@ class RLStrat(Strat):
         Find index of max or min q-value for the
         actions 'chs'
         """
-        idx = op(self.get_qval[cell][n_used][chs])
+        idx = op(self.get_qval(cell, n_used, chs))
         return chs[idx]
 
     def get_init_action(self, cevent):

@@ -5,8 +5,10 @@ from grid import Grid, FixedGrid
 import argparse
 import cProfile
 import datetime
+from functools import partial
 import logging
-from multiprocessing import Process
+import psutil
+from multiprocessing import Process, Pool
 
 import numpy as np
 
@@ -58,7 +60,7 @@ def get_pparams():
         '--n_episodes',
         type=int,
         help="Run simulation 'n' times, report average scores",
-        default=200000)
+        default=1)
 
     parser.add_argument(
         '--alpha', type=float, help="(RL) learning rate",
@@ -195,6 +197,8 @@ class Runner:
 
         if self.pp['test_params']:
             self.test_params()
+        if self.pp['n_episodes'] > 1:
+            self.avg_run()
         elif self.pp['strat'] == 'show':
             self.show()
         else:
@@ -235,6 +239,36 @@ class Runner:
             p.join()
         p.join()
 
+    def avg_run(self):
+        # TODO This isn't working. The concurrent processes
+        # always have the same results.
+        results = []
+        n_cpus = psutil.cpu_count(logical=False)
+        gridclass, stratclass = self.get_class(self.pp)
+        simproc = partial(
+                self.sim_proc, gridclass, stratclass, self.pp, reseed=True)
+        with Pool(n_cpus) as p:
+            res = p.map(simproc, range(self.pp['n_episodes']))
+            results.append(res)
+
+        # number of concurrent processes
+        # n_conc = min(self.pp['n_episodes'], n_cpus)
+        # # number of runs
+        # n_runs = np.ceil(self.pp['n_episodes'] / n_cpus).astype(int)
+        # self.logger.error(f"Running {n_conc} sims concurrently {n_runs} times")
+        # for i in range(1, n_runs + 1):
+        #     for j in range(1, n_conc + 1):
+        #         # Has to reseed lest the results will be the same
+        #         np.random.seed()
+        #         k = j * i
+        #         p = Process(
+        #             target=self.sim_proc,
+        #             args=(gridclass, stratclass, self.pp, k))
+        #         p.start()
+        #     p.join()
+        # p.join()
+        self.logger.error(results)
+
     @staticmethod
     def get_class(pp):
         s = pp['strat']
@@ -261,14 +295,17 @@ class Runner:
             strat.init_sim()
 
     @staticmethod
-    def sim_proc(gridclass, stratclass, pp, pid):
+    def sim_proc(gridclass, stratclass, pp, pid, reseed=False):
         """
         Allows for running simulation in separate process
         """
+        if reseed:
+            np.random.reseed()
         logger = logging.getLogger('')
         grid = gridclass(logger=logger, **pp)
         strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
-        strat.init_sim()
+        result = strat.init_sim()
+        return result
 
     def show(self):
         grid = FixedGrid(logger=self.logger, **self.pp)
