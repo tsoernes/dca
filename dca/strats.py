@@ -44,7 +44,7 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
-        return 0
+        return self.stats.block_prob_tot
 
     def _simulate(self):
         cevent = self.eventgen.pop()

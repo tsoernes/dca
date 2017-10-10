@@ -130,6 +130,9 @@ def get_pparams():
 
     if not params['call_rates']:
         params['call_rates'] = params['erlangs'] / params['call_duration']
+    if params['n_episodes'] > 1:
+        params['gui'] = False
+        params['log_level'] = logging.ERROR
     if params['test_params']:
         params['log_level'] = logging.ERROR
         params['gui'] = False
@@ -240,34 +243,18 @@ class Runner:
         p.join()
 
     def avg_run(self):
-        # TODO This isn't working. The concurrent processes
-        # always have the same results.
-        results = []
+        n_eps = self.pp['n_episodes']
         n_cpus = psutil.cpu_count(logical=False)
         gridclass, stratclass = self.get_class(self.pp)
         simproc = partial(
                 self.sim_proc, gridclass, stratclass, self.pp, reseed=True)
         with Pool(n_cpus) as p:
-            res = p.map(simproc, range(self.pp['n_episodes']))
-            results.append(res)
-
-        # number of concurrent processes
-        # n_conc = min(self.pp['n_episodes'], n_cpus)
-        # # number of runs
-        # n_runs = np.ceil(self.pp['n_episodes'] / n_cpus).astype(int)
-        # self.logger.error(f"Running {n_conc} sims concurrently {n_runs} times")
-        # for i in range(1, n_runs + 1):
-        #     for j in range(1, n_conc + 1):
-        #         # Has to reseed lest the results will be the same
-        #         np.random.seed()
-        #         k = j * i
-        #         p = Process(
-        #             target=self.sim_proc,
-        #             args=(gridclass, stratclass, self.pp, k))
-        #         p.start()
-        #     p.join()
-        # p.join()
-        self.logger.error(results)
+            results = p.map(simproc, range(n_eps))
+        self.logger.error(
+                f"Average cumulative block probability over {n_eps} episodes:"
+                f" {np.mean(results):.4f}"
+                f" with standard deviation {np.std(results):.5f}"
+                f"\n{results}")
 
     @staticmethod
     def get_class(pp):
@@ -302,7 +289,7 @@ class Runner:
         Allows for running simulation in separate process
         """
         if reseed:
-            np.random.reseed()
+            np.random.seed()
         logger = logging.getLogger('')
         grid = gridclass(logger=logger, **pp)
         strat = stratclass(pp, grid=grid, logger=logger, pid=pid)

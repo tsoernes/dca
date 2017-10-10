@@ -83,6 +83,7 @@ class Stats:
     def end_episode(self, n_inprogress, epsilon, alpha):
         delta = self.n_incoming + self.n_handoffs \
                 - self.n_rejected - self.n_handoffs_rejected - self.n_ended
+        self.block_prob_tot = self.n_rejected/(self.n_incoming + 1)
         if delta != n_inprogress:
             self.logger.error(
                 f"\nSome calls were lost. Counted in progress {delta}. "
@@ -101,7 +102,7 @@ class Stats:
 
             f"\nRejected {self.n_rejected} of {self.n_incoming} new calls,"
             f" {self.n_handoffs_rejected} of {self.n_handoffs} handoffs")
-        if self.pid is not "":
+        if self.pp['test_params']:
             self.logger.error(f"\nT{self.pid} Using params:"
                               f" gamma {self.pp['gamma']:.6f},"
                               f" alpha {self.pp['alpha']:.8f},"
@@ -110,7 +111,7 @@ class Stats:
                               f" epsilondec {self.pp['alpha_decay']:.8f}")
         self.logger.error(
             f"\nT{self.pid} Blocking probability:"
-            f" {self.n_rejected/(self.n_incoming+1):.4f} for new calls, "
+            f" {self.block_prob_tot:.4f} for new calls, "
             f"{self.n_handoffs_rejected/(self.n_handoffs+1):.4f} for handoffs")
         self.logger.warn(
             f"\nAverage number of calls in progress when blocking: "
@@ -123,9 +124,6 @@ class Stats:
             self.plot()
 
     def plot(self):
-        # NOTE In Singh, "Each data point [in the graph] is the percentage
-        # of system-wide calls that were blocked up until that point in time".
-        # To compare, we have to do the same, and not reset block count.
         xlabel_iters = f"Iterations, in {self.pp['log_iter']}s"
         plt.subplot(221)
         plt.plot(self.block_probs_tot)
