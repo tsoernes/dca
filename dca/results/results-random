@@ -1,0 +1,31 @@
+Starting simulation at 2017-10-10 20:56:32.025702 with params:
+{'strat': 'random', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 200000, 'n_episodes': 12, 'alpha': 0.02, 'alpha_decay': 0.99999, 'epsilon': 0.3, 'epsilon_decay': 0.99999, 'gamma': 0.9, 'test_params': False, 'param_iters': 1, 'verify_grid': False, 'profiling': False, 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 100000}
+
+T2 Blocking probability: 0.2250 for new calls, 0.1751 for handoffs
+
+T1 Blocking probability: 0.2284 for new calls, 0.1754 for handoffs
+
+T0 Blocking probability: 0.2274 for new calls, 0.1712 for handoffs
+
+T3 Blocking probability: 0.2274 for new calls, 0.1707 for handoffs
+
+T6 Blocking probability: 0.2280 for new calls, 0.1732 for handoffs
+
+T4 Blocking probability: 0.2299 for new calls, 0.1698 for handoffs
+
+T5 Blocking probability: 0.2281 for new calls, 0.1774 for handoffs
+
+T7 Blocking probability: 0.2275 for new calls, 0.1723 for handoffs
+
+T8 Blocking probability: 0.2285 for new calls, 0.1732 for handoffs
+
+T9 Blocking probability: 0.2306 for new calls, 0.1753 for handoffs
+
+T10 Blocking probability: 0.2241 for new calls, 0.1687 for handoffs
+
+T11 Blocking probability: 0.2256 for new calls, 0.1751 for handoffs
+
+12x200000 events finished with speed 65532 episodes/second
+Average cumulative block probability over 12 episodes: 0.2275 with standard deviation 0.00180
+
+[0.2274086543222101, 0.22837787126464024, 0.22504035732324482, 0.2273550993731618, 0.2298718646415673, 0.22809585505039018, 0.22799932693925626, 0.22751254791921907, 0.2285293070012269, 0.2306339419808711, 0.22414546031998095, 0.2256192526312657]

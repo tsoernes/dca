@@ -1,27 +1,3 @@
-
-class FCState():
-    def __init__(self):
-        pass
-
-    # Fully connected network; attempted replica of Singh
-    def _state_frepr(self, state):
-        """
-        Feature representation of a state
-        """
-        frepr = np.zeros((self.rows, self.cols, self.n_channels+1))
-        # Number of available channels for each cell
-        frepr[:, :, -1] = self.n_channels - np.sum(self.state, axis=2)
-        # The number of times each channel is used within a 1 cell radius,
-        # not including self
-        for i in range(self.rows):
-            for j in range(self.cols):
-                for ch in range(self.n_channels):
-                    neighs = self.neighbors2(i, j)
-                    for neigh in neighs:
-                        frepr[i][j][ch] += self.state[neigh[0]][neigh[1]][ch]
-        return frepr
-
-
 class BDCLStrat(Strat):
     # Borrowing with Directional Channel Locking (BDCL) of Zhang & Yum (1989).
     def __init__(self, *args, **kwargs):

@@ -1,4 +1,6 @@
-from strats import FixedAssign, SARSA, TT_SARSA, RS_SARSA, SARSAQNet
+from strats import RandomAssign, FixedAssign, \
+        SARSA, TT_SARSA, RS_SARSA, \
+        SARSAQNet_idx_nused
 from gui import Gui
 from grid import Grid, FixedGrid
 
@@ -23,7 +25,10 @@ def get_pparams():
 
     parser.add_argument(
         '--strat',
-        choices=['show', 'fixed', 'sarsa', 'tt_sarsa', 'rs_sarsa', 'sarsaqnet'],  # noqa
+        choices=[
+            'show', 'random', 'fixed',
+            'sarsa', 'tt_sarsa', 'rs_sarsa',
+            'sarsaqnet'],
         help="show: just show gui",
         default='fixed')
     parser.add_argument(
@@ -257,6 +262,8 @@ class Runner:
         s = pp['strat']
         if s == 'fixed':
             return (FixedGrid, FixedAssign)
+        elif s == 'random':
+            return (Grid, RandomAssign)
         elif s == 'sarsa':
             return (Grid, SARSA)
         elif s == 'tt_sarsa':
@@ -264,7 +271,7 @@ class Runner:
         elif s == 'rs_sarsa':
             return (Grid, RS_SARSA)
         elif s == 'sarsaqnet':
-            return (Grid, SARSAQNet)
+            return (Grid, SARSAQNet_idx_nused)
 
     def run(self):
         gridclass, stratclass = self.get_class(self.pp)

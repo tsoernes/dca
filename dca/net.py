@@ -80,38 +80,28 @@ class Net:
         # GradientDescentOptimizer is designed to use a constant learning rate.
         # The best is probably to use AdamOptimizer which is out-of-the-box
         # adaptive, i.e. it controls the learning rate in some way.
-        trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
+        trainer = tf.train.AdamOptimizer(learning_rate=alpha)
+        # trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
         self.updateModel = trainer.minimize(loss)
 
         self.sess = tf.Session()
         init = tf.global_variables_initializer()
         self.sess.run(init)
 
-    def forward(self, cell, n_used):
+    def forward(self, state):
         """
         Forward pass. Given an input, such as a feature vector
         or the whole state, return the output of the network.
         """
-        state = self.encode_state(cell, n_used)
-        # inp = self.grid.state[cell]
         action, qvals = self.sess.run(
                 [self.argmaxQ, self.Qout],
                 feed_dict={self.inputs: state})
-        # the action should be executed here
-        # so that reward and next_state can be observed
         return action[0], qvals[0]
 
-    def encode_state(self, cell, n_used):
-        state = np.identity(50)[(cell[0]+1)*(cell[1]+1)-1]
-        state[49] = n_used
-        state.shape = (1, 50)
-        return state
-
-    def backward(self, cell, n_used, targets):
+    def backward(self, state, targets):
         """
-        td_err should be a vector where
+        Back-propagation
         """
-        state = self.encode_state(cell, n_used)
         targets.shape = (1, 70)
         # Obtain maxQ' and set our target value for chosen action.
         # Train our network using target and predicted Q values
