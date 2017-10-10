@@ -1,4 +1,4 @@
-from strats import FixedAssign, SARSA, TT_SARSA, RS_SARSA
+from strats import FixedAssign, SARSA, TT_SARSA, RS_SARSA, SARSAQNet
 from gui import Gui
 from grid import Grid, FixedGrid
 
@@ -23,7 +23,7 @@ def get_pparams():
 
     parser.add_argument(
         '--strat',
-        choices=['show', 'fixed', 'sarsa', 'tt_sarsa', 'rs_sarsa'],
+        choices=['show', 'fixed', 'sarsa', 'tt_sarsa', 'rs_sarsa', 'sarsaqnet'],  # noqa
         help="show: just show gui",
         default='fixed')
     parser.add_argument(
@@ -280,6 +280,8 @@ class Runner:
             return (Grid, TT_SARSA)
         elif s == 'rs_sarsa':
             return (Grid, RS_SARSA)
+        elif s == 'sarsaqnet':
+            return (Grid, SARSAQNet)
 
     def run(self):
         gridclass, stratclass = self.get_class(self.pp)
@@ -289,8 +291,8 @@ class Runner:
             gui = Gui(grid, strat.exit_handler, grid.print_cell)
             strat.gui = gui
         if self.pp['profiling']:
-            cProfile.runctx('strat.init_sim()', globals(), locals())
-            #                , sort='tottime')
+            cProfile.runctx('strat.init_sim()', globals(), locals(),
+                            sort='tottime')
         else:
             strat.init_sim()
 

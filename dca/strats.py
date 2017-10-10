@@ -2,6 +2,7 @@ from eventgen import EventGen, CEvent, ce_str
 from stats import Stats
 
 import signal
+import operator
 
 import numpy as np
 
@@ -59,11 +60,14 @@ class Strat:
 
             n_used = np.sum(self.grid.state[cell])
             if ch is not None:
+                self.curr_reward = 1
                 self.execute_action(cevent, ch)
 
                 if self.verify_grid and not self.grid.validate_reuse_constr():
                     self.logger.error(f"Reuse constraint broken")
                     raise Exception
+            else:
+                self.curr_reward = -1
             if self.gui:
                 self.gui.step()
 
@@ -112,6 +116,7 @@ class Strat:
 
         self.stats.end_episode(
                 np.sum(self.grid.state), self.epsilon, self.alpha)
+        self.fn_after()
 
     def get_init_action(self):
         raise NotImplementedError()
@@ -121,6 +126,12 @@ class Strat:
 
     def execute_action(self, cevent, ch):
         raise NotImplementedError()
+
+    def fn_after(self):
+        """
+        Cleanup
+        """
+        pass
 
 
 class FixedAssign(Strat):
@@ -166,9 +177,6 @@ class FixedAssign(Strat):
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
         """
-        :param float alpha - learning rate
-        :param float epsilon - best action is selected
-            with probability (1-epsilon)
         """
         super().__init__(pp, *args, **kwargs)
         self.epsilon = pp['epsilon']
@@ -225,6 +233,51 @@ class RLStrat(Strat):
             raise Exception
         return next_ch
 
+    def optimal_ch(self, ce_type, cell):
+        # TODO this isn't really the 'optimal' ch since
+        # it's chosen in an epsilon-greedy fashion
+        """
+        Select the channel fitting for assignment that
+        that has the maximum q-value in an epsilon-greedy fasion,
+        or select the channel for termination that has the minimum
+        q-value in a greedy fashion.
+
+        Return (n_used, ch) where 'n_used' is the number of channels in
+        use before any potential action is taken.
+        'ch' is None if no channel is eligeble for assignment
+        """
+        inuse = np.nonzero(self.grid.state[cell])[0]
+        n_used = len(inuse)
+
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = self.grid.get_free_chs(cell)
+            op = np.argmax
+        else:
+            # Channels in use at cell, including channel scheduled
+            # for termination. The latter is included because it might
+            # be the least valueable channel, in which case no
+            # reassignment is done on call termination.
+            chs = inuse
+            op = np.argmin
+
+        if len(chs) == 0:
+            # No channels available for assignment,
+            # or no channels in use to reassign
+            return (None, None)
+
+        # Might do Greedy in the LImit of Exploration (GLIE) here,
+        # like Boltzmann Exploration with decaying temperature.
+        if ce_type != CEvent.END and np.random.random() < self.epsilon:
+            # Choose an eligible channel at random
+            ch = np.random.choice(chs)
+        else:
+            # Choose greedily
+            ch = self.arg_extreme_qval(op, cell, n_used, chs)
+        self.logger.debug(
+                f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        self.epsilon *= self.epsilon_decay  # Epsilon decay
+        return (n_used, ch)
+
     def execute_action(self, cevent, ch):
         """
         Change the grid state according to the given action.
@@ -247,56 +300,6 @@ class RLStrat(Strat):
             if end_ch != ch:
                 self.eventgen.reassign(cevent[2], ch, end_ch)
             self.grid.state[cell][ch] = 0
-
-    def optimal_ch(self, ce_type, cell):
-        """
-        Select the channel fitting for assignment that
-        that has the maximum q-value in an epsilon-greedy fasion,
-        or select the channel for termination that has the minimum
-        q-value in a greedy fashion.
-
-        Return (n_used, ch) where 'n_used' is the number of channels in
-        use before any potential action is taken.
-        'ch' is None if no channel is eligeble for assignment
-        """
-        inuse = np.nonzero(self.grid.state[cell])[0]
-        n_used = len(inuse)
-
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            neighs = self.grid.neighbors2(*cell)
-            # Find the channels that are free in 'cell' and all of
-            # its neighbors by bitwise ORing all their allocation maps
-            alloc_map = np.bitwise_or(
-                self.grid.state[cell], self.grid.state[neighs[0]])
-            for n in neighs[1:]:
-                alloc_map = np.bitwise_or(alloc_map, self.grid.state[n])
-            chs = np.where(alloc_map == 0)[0]
-            op = np.argmax
-        else:
-            # Channels in use at cell, including channel scheduled
-            # for termination. The latter is included because it might
-            # be the least valueable channel, in which case no
-            # reassignment is done on call termination.
-            chs = inuse
-            op = np.argmin
-
-        if len(chs) == 0:
-            # No channels available for assignment,
-            # or no channels in use to reassign
-            return (n_used, None)
-
-        # Might do Greedy in the LImit of Exploration (GLIE) here,
-        # like Boltzmann Exploration with decaying temperature.
-        if ce_type != CEvent.END and np.random.random() < self.epsilon:
-            # Choose an eligible channel at random
-            ch = np.random.choice(chs)
-        else:
-            # Choose greedily
-            ch = self.arg_extreme_qval(op, cell, n_used, chs)
-        self.logger.debug(
-                f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
-        self.epsilon *= self.epsilon_decay  # Epsilon decay
-        return (n_used, ch)
 
     def reward(self):
         """
@@ -380,32 +383,31 @@ class SARSAQNet(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from net import RSValNet
-        self.net = RSValNet(self.logger)
+        from net import Net
+        self.net = Net(self.logger, 50, 70, self.alpha)
+        self.qvals = np.zeros((70))
+        self.curr_reward = 0
 
     def get_action(self, next_cevent, cell, ch):
         """
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previous channel (re)assignment.
         """
-        # NOTE Haven't changed anything yet besides adding comments
         next_ce_type, next_cell = next_cevent[1], next_cevent[2]
         # Choose A' from S'
-        next_n_used, next_ch = self.optimal_ch(next_ce_type, next_cell)
+        next_n_used, next_ch, next_qvals = self.optimal_ch(
+                next_ce_type, next_cell)
         # If there's no action to take, don't update q-value at all
         if next_ce_type != CEvent.END and next_ch is not None:
             # Observe reward from previous action
-            reward = self.reward()
+            reward = self.reward()  # self.curr_reward
             # Update q-values with one-step lookahead
-            # next_qval is qval for next state chosen with THETA(i-1),
-            # i.e. parameters from previous iteration.
-            # using current parameters may work. lets try that first.
-            next_qval = self.get_qval(next_cell, next_n_used, next_ch)
-            td_err = reward + self.discount() * next_qval - self.qval
-            self.update_qval(cell, self.n_used, ch, td_err)
-            self.alpha *= self.alpha_decay
+            next_qval = next_qvals[next_ch]
+            target = reward + self.discount() * next_qval
+            self.qvals[ch] = target
+            self.net.backward(cell, self.n_used, self.qvals)
             # n_used doesn't change if there's no action to take
-            self.n_used, self.qval = next_n_used, next_qval
+            self.n_used, self.qvals = next_n_used, next_qvals
         if next_ce_type == CEvent.END and next_ch is None:
             self.logger.error(
                     "'None' channel for end event"
@@ -414,41 +416,75 @@ class SARSAQNet(RLStrat):
             raise Exception
         return next_ch
 
-    def get_qval(self, cell, n_used, ch):
+    def optimal_ch(self, ce_type, cell):
+        # TODO this isn't really the 'optimal' ch since
+        # it's chosen in an epsilon-greedy fashion
         """
+        Select the channel fitting for assignment that
+        that has the maximum q-value in an epsilon-greedy fasion,
+        or select the channel for termination that has the minimum:
+        q-value in a greedy fashion.
+
+        Return (n_used, ch) where 'n_used' is the number of channels in
+        use before any potential action is taken.
+        'ch' is None if no channel is eligeble for assignment
         """
-        state = (*cell, n_used)
-        qvals = self.net.forward(state)
-        # I think the second idx of qvals is dtype or something.
-        # indexing with 'ch' should work for getting multiple chs
-        # as is requested by arg_extreme_qval()
-        return qvals[0][ch]
+        inuse = np.nonzero(self.grid.state[cell])[0]
+        n_used = len(inuse)
 
-    def update_qval(self, cell, n_used, ch, td_err):
-        # What SHOULD be the input to the network?
-        # (row, col, n_used)?
-        # (self.grid.state, row, col)?
-        # (self.grid.state[row][col])?
-        # (self.grid.state[self.grid.neighbors2(row, col))?
-        # Having channels/actions as output seems sensible.
-        # Need to look at Singh, Atari.
-        # TODO Wasn't there another paper on channel alloc
-        # with RL or nets?
-        # TODO What should ch to here?
-        state = (*cell, n_used)
-        self.net.backward(state, td_err)
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = self.grid.get_free_chs(cell)
+            op = operator.gt
+            best_val = float("-inf")
+        else:
+            # Channels in use at cell, including channel scheduled
+            # for termination. The latter is included because it might
+            # be the least valueable channel, in which case no
+            # reassignment is done on call termination.
+            chs = inuse
+            op = operator.lt
+            best_val = float("inf")
 
-    def arg_extreme_qval(self, *args):
-        # Two options: make two tf predictors
-        # (tf.argmin, tf.argmax)
-        # or get qvals by a single forward pass
-        # and then use numpy argmin/max on
-        # results
-        super().arg_extreme_qvals(*args)
+        if len(chs) == 0:
+            # No channels available for assignment,
+            # or no channels in use to reassign.
+            return (None, None, None)
+
+        _, qvals = self.net.forward(cell, n_used)
+        # Might do Greedy in the LImit of Exploration (GLIE) here,
+        # like Boltzmann Exploration with decaying temperature.
+        # TODO Why are END events always greedy??
+        if ce_type != CEvent.END and np.random.random() < self.epsilon:
+            # Choose an eligible channel at random
+            ch = np.random.choice(chs)
+        else:
+            # Choose greedily (from eligible channels only)
+            ch = None
+            for chan in chs:
+                if op(qvals[chan], best_val):
+                    best_val = qvals[chan]
+                    ch = chan
+
+            # TODO
+            # If qvals blow up, you get a low of 'NaN's and 'inf's
+            # and ch becomes none.
+            if ch is None:
+                self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
+        self.logger.debug(
+                f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        self.epsilon *= self.epsilon_decay  # Epsilon decay
+        return (n_used, ch, qvals)
 
     def fn_after(self):
-        # Should be run after simulation is finished
         self.net.sess.close()
+
+    def get_init_action(self, cevent):
+        _, ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        return ch
+# Singh features:
+# For each cell, the number of available channels.
+# For each cell-channel pair, the number of times the
+# channel is used in a 4 cell radius.
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?
