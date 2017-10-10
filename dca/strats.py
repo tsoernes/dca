@@ -124,14 +124,47 @@ class Strat:
     def get_action(self):
         raise NotImplementedError()
 
-    def execute_action(self, cevent, ch):
-        raise NotImplementedError()
-
     def fn_after(self):
         """
         Cleanup
         """
         pass
+
+    def execute_action(self, cevent, ch):
+        ce_type, cell = cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            if self.grid.state[cell][ch]:
+                self.logger.error(
+                    f"Tried assigning new call {ce_str(cevent)} to"
+                    f" channel {ch} which is already in use")
+                raise Exception()
+            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
+            self.grid.state[cell][ch] = 1
+        else:
+            self.grid.state[cell][ch] = 0
+
+
+class RandomAssign(Strat):
+    """
+    On call arrival, an eligible channel is picked
+    at random.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.get_init_action = self.get_action
+
+    def get_action(self, next_cevent, *args):
+        ce_type, next_cell = next_cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            free = self.grid.get_free_chs(next_cell)
+            if len(free) == 0:
+                return None
+            else:
+                return np.random.choice(free)
+                # return np.random.randint(len(free))
+        elif ce_type == CEvent.END:
+            # No rearrangement is done when a call terminates.
+            return next_cevent[3]
 
 
 class FixedAssign(Strat):
@@ -160,19 +193,6 @@ class FixedAssign(Strat):
             # No rearrangement is done when a call terminates.
             return next_cevent[3]
 
-    def execute_action(self, cevent, ch):
-        ce_type, cell = cevent[1:3]
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            if self.grid.state[cell][ch]:
-                self.logger.error(
-                    f"Tried assigning new call {ce_str(cevent)} to"
-                    f" channel {ch} which is already in use")
-                raise Exception()
-            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
-            self.grid.state[cell][ch] = 1
-        else:
-            self.grid.state[cell][cevent[3]] = 0
-
 
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
@@ -194,14 +214,6 @@ class RLStrat(Strat):
     def get_qval():
         raise NotImplementedError
 
-    def arg_extreme_qval(self, op, cell, n_used, chs):
-        """
-        Find index of max or min q-value for the
-        actions 'chs'
-        """
-        idx = op(self.get_qval(cell, n_used, chs))
-        return chs[idx]
-
     def get_init_action(self, cevent):
         _, ch = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
@@ -220,9 +232,8 @@ class RLStrat(Strat):
             reward = self.reward()
             # Update q-values with one-step lookahead
             next_qval = self.get_qval(next_cell, next_n_used, next_ch)
-            td_err = reward + self.discount() * next_qval - self.qval
-            self.update_qval(cell, self.n_used, ch, td_err)
-            self.alpha *= self.alpha_decay
+            targetq = reward + self.discount() * next_qval
+            self.update_qval(cell, self.n_used, ch, targetq)
             # n_used doesn't change if there's no action to take
             self.n_used, self.qval = next_n_used, next_qval
         if next_ce_type == CEvent.END and next_ch is None:
@@ -271,8 +282,9 @@ class RLStrat(Strat):
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
         else:
-            # Choose greedily
-            ch = self.arg_extreme_qval(op, cell, n_used, chs)
+            # Choose greedily (either minimum or maximum)
+            idx = op(self.get_qval(cell, n_used, chs))
+            ch = chs[idx]
         self.logger.debug(
                 f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
@@ -283,15 +295,7 @@ class RLStrat(Strat):
         Change the grid state according to the given action.
         """
         ce_type, cell = cevent[1:3]
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            if self.grid.state[cell][ch]:
-                self.logger.error(
-                    f"Tried assigning new call {ce_str(cevent)} to"
-                    f" channel {ch} which is already in use")
-                raise Exception()
-            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
-            self.grid.state[cell][ch] = 1
-        else:
+        if ce_type == CEvent.END:
             end_ch = cevent[3]
             self.logger.debug(
                     f"Reassigned cell {cell} ch {ch} to ch {end_ch}")
@@ -300,6 +304,7 @@ class RLStrat(Strat):
             if end_ch != ch:
                 self.eventgen.reassign(cevent[2], ch, end_ch)
             self.grid.state[cell][ch] = 0
+        super().execute_action(cevent, ch)
 
     def reward(self):
         """
@@ -338,8 +343,10 @@ class SARSA(RLStrat):
     def get_qval(self, cell, n_used, ch):
         return self.qvals[cell][n_used][ch]
 
-    def update_qval(self, cell, n_used, ch, td_err):
+    def update_qval(self, cell, n_used, ch, targetq):
+        td_err = targetq - self.qval
         self.qvals[cell][n_used][ch] += self.alpha * td_err
+        self.alpha *= self.alpha_decay
 
 
 class TT_SARSA(RLStrat):
@@ -358,6 +365,7 @@ class TT_SARSA(RLStrat):
 
     def update_qval(self, cell, n_used, ch, td_err):
         self.qvals[cell][min(self.k-1, n_used)][ch] += self.alpha * td_err
+        self.alpha *= self.alpha_decay
 
 
 class RS_SARSA(RLStrat):
@@ -375,6 +383,7 @@ class RS_SARSA(RLStrat):
 
     def update_qval(self, cell, n_used, ch, td_err):
         self.qvals[cell][ch] += self.alpha * td_err
+        self.alpha *= self.alpha_decay
 
 
 class SARSAQNet(RLStrat):
@@ -383,8 +392,6 @@ class SARSAQNet(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from net import Net
-        self.net = Net(self.logger, 50, 70, self.alpha)
         self.qvals = np.zeros((70))
         self.curr_reward = 0
 
@@ -403,9 +410,8 @@ class SARSAQNet(RLStrat):
             reward = self.reward()  # self.curr_reward
             # Update q-values with one-step lookahead
             next_qval = next_qvals[next_ch]
-            target = reward + self.discount() * next_qval
-            self.qvals[ch] = target
-            self.net.backward(cell, self.n_used, self.qvals)
+            targetq = reward + self.discount() * next_qval
+            self.update_qvals(cell, self.n_used, ch, targetq)
             # n_used doesn't change if there's no action to take
             self.n_used, self.qvals = next_n_used, next_qvals
         if next_ce_type == CEvent.END and next_ch is None:
@@ -435,6 +441,7 @@ class SARSAQNet(RLStrat):
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = self.grid.get_free_chs(cell)
             op = operator.gt
+            op2 = np.argmax
             best_val = float("-inf")
         else:
             # Channels in use at cell, including channel scheduled
@@ -443,6 +450,7 @@ class SARSAQNet(RLStrat):
             # reassignment is done on call termination.
             chs = inuse
             op = operator.lt
+            op2 = np.argmin
             best_val = float("inf")
 
         if len(chs) == 0:
@@ -450,7 +458,7 @@ class SARSAQNet(RLStrat):
             # or no channels in use to reassign.
             return (None, None, None)
 
-        _, qvals = self.net.forward(cell, n_used)
+        qvals = self.get_qvals(cell, n_used)
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
         # TODO Why are END events always greedy??
@@ -465,11 +473,15 @@ class SARSAQNet(RLStrat):
                     best_val = qvals[chan]
                     ch = chan
 
+            idx = op2(qvals[chs])
+            ch2 = chs[idx]
+            assert ch == ch2
             # TODO
-            # If qvals blow up, you get a low of 'NaN's and 'inf's
-            # and ch becomes none.
+            # If qvals blow up, you get a lot of 'NaN's and 'inf's
+            # in the qvals and ch becomes none.
             if ch is None:
                 self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
+                raise Exception
         self.logger.debug(
                 f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
@@ -481,6 +493,38 @@ class SARSAQNet(RLStrat):
     def get_init_action(self, cevent):
         _, ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
+
+    def get_qvals(self, cell, n_used):
+        state = self.encode_state(cell, n_used)
+        _, qvals = self.net.forward(state)
+        return qvals
+
+    def update_qvals(self, cell, n_used, ch, target):
+        self.qvals[ch] = target
+        state = self.encode_state(cell, n_used)
+        self.net.backward(state, self.qvals)
+
+    def encode_state(self, *args):
+        raise NotImplementedError
+
+
+class SARSAQNet_idx_nused(SARSAQNet):
+    """
+    State consists of: Index of cell, one-hot encoded and
+    number of channels in use for that cell (integer)
+    """
+    # TODO Run average test for rewards: n_used vs +-1
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from net import Net
+        self.net = Net(self.logger, 50, 70, self.alpha)
+
+    def encode_state(self, cell, n_used):
+        state = np.identity(50)[(cell[0]+1)*(cell[1]+1)-1]
+        state[49] = n_used
+        state.shape = (1, 50)
+        return state
+
 # Singh features:
 # For each cell, the number of available channels.
 # For each cell-channel pair, the number of times the
