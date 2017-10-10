@@ -7,8 +7,8 @@ import cProfile
 import datetime
 from functools import partial
 import logging
-import psutil
-from multiprocessing import Process, Pool
+import time
+from multiprocessing import Pool
 
 import numpy as np
 
@@ -228,33 +228,29 @@ class Runner:
         return npp
 
     def test_params(self):
-        n = 14  # number of concurrent processes
-        gridclass, stratclass = self.get_class(self.pp)
-        for i in range(1, self.pp['param_iters'] + 1):
-            self.logger.error(f"Starting iters {i}-{i+n}")
-            for j in range(1, n + 1):
-                k = j * i
-                pp = self.sample_gamma(self.pp)
-                # pp = self.sample_params(self.pp)
-                p = Process(
-                    target=self.sim_proc, args=(gridclass, stratclass, pp, k))
-                p.start()
-            p.join()
-        p.join()
-
-    def avg_run(self):
-        n_eps = self.pp['n_episodes']
-        n_cpus = psutil.cpu_count(logical=False)
         gridclass, stratclass = self.get_class(self.pp)
         simproc = partial(
-                self.sim_proc, gridclass, stratclass, self.pp, reseed=True)
-        with Pool(n_cpus) as p:
+                self.sim_proc, gridclass, stratclass, self.pp, sample=True)
+        with Pool() as p:
+            p.map(simproc, range(self.pp['param_iters']))
+
+    def avg_run(self):
+        t = time.time()
+        n_eps = self.pp['n_episodes']
+        gridclass, stratclass = self.get_class(self.pp)
+        simproc = partial(
+                self.sim_proc, gridclass, stratclass, self.pp)
+        with Pool() as p:
             results = p.map(simproc, range(n_eps))
+        n_events = self.pp['n_events']
         self.logger.error(
-                f"Average cumulative block probability over {n_eps} episodes:"
-                f" {np.mean(results):.4f}"
-                f" with standard deviation {np.std(results):.5f}"
-                f"\n{results}")
+            f"\n{n_eps}x{n_events} events finished with speed"
+            f" {(n_eps*n_events)/(time.time()-t):.0f} episodes/second"
+            f"\nAverage cumulative block probability over {n_eps} episodes:"
+            f" {np.mean(results):.4f}"
+            f" with standard deviation {np.std(results):.5f}"
+            f"\n{results}")
+        # TODO Plot average cumulative over time
 
     @staticmethod
     def get_class(pp):
@@ -284,12 +280,13 @@ class Runner:
             strat.init_sim()
 
     @staticmethod
-    def sim_proc(gridclass, stratclass, pp, pid, reseed=False):
+    def sim_proc(gridclass, stratclass, pp, pid, sample=False):
         """
         Allows for running simulation in separate process
         """
-        if reseed:
-            np.random.seed()
+        np.random.seed()
+        if sample:
+            pp = Runner.sample_params(pp)
         logger = logging.getLogger('')
         grid = gridclass(logger=logger, **pp)
         strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
