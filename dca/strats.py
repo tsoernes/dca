@@ -2,7 +2,7 @@ from eventgen import EventGen, CEvent, ce_str
 from stats import Stats
 
 import signal
-import operator
+import sys
 
 import numpy as np
 
@@ -117,6 +117,10 @@ class Strat:
         self.stats.end_episode(
                 np.sum(self.grid.state), self.epsilon, self.alpha)
         self.fn_after()
+        if self.quit_sim and self.pp['hopt']:
+            # Don't want to return block prob for incomplete sims when
+            # optimizing hyperparams
+            sys.exit(0)
 
     def get_init_action(self):
         raise NotImplementedError()
