@@ -95,6 +95,11 @@ def get_pparams():
         "store results to logfile 'paramtest-MM.DD-hh.mm'.",
         default=False)
     parser.add_argument(
+        '--hopt',
+        action='store_true',
+        help="(RL) override default params by sampling in logspace",  # noqa
+        default=False)
+    parser.add_argument(
         '--param_iters',
         type=int,
         help="number of parameter iterations",
@@ -205,7 +210,9 @@ class Runner:
 
         if self.pp['test_params']:
             self.test_params()
-        if self.pp['n_episodes'] > 1:
+        elif self.pp['hopt']:
+            self.hopt()
+        elif self.pp['n_episodes'] > 1:
             self.avg_run()
         elif self.pp['strat'] == 'show':
             self.show()
@@ -304,6 +311,36 @@ class Runner:
         grid = FixedGrid(logger=self.logger, **self.pp)
         gui = Gui(grid, self.logger)
         gui.test()
+
+    def hopt(self):
+        from hyperopt import fmin, tpe, hp
+        gridclass, stratclass = Runner.get_class(self.pp)
+        space = {
+            'alpha': hp.loguniform('alpha', -6.90775527898, -1.609437912434),
+            'alpha_decay': hp.loguniform('alpha_decay', -1e-7, -0.01),
+            'epsilon': hp.loguniform('epsilon', -4.60517018598, -0.223143551),
+            'epsilon_decay': hp.loguniform('epsilon_decay', -1e-7, -0.01),  # noqa
+            'gamma': hp.uniform('gamma', 0, 1)
+        }
+        f = partial(Runner.hopt_proc, gridclass, stratclass, self.pp)
+        best = fmin(
+            fn=f,
+            space=space,
+            algo=tpe.suggest,
+            max_evals=20
+        )
+        print(best)
+
+    @staticmethod
+    def hopt_proc(gridclass, stratclass, pp, space):
+        for key, val in space.items():
+            pp[key] = val
+        logger = logging.getLogger('')
+        logger.error(space)
+        grid = gridclass(logger=logger, **pp)
+        strat = stratclass(pp, grid=grid, logger=logger)
+        result = strat.init_sim()
+        return result
 
 
 if __name__ == '__main__':

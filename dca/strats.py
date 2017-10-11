@@ -442,18 +442,14 @@ class SARSAQNet(RLStrat):
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = self.grid.get_free_chs(cell)
-            op = operator.gt
-            op2 = np.argmax
-            best_val = float("-inf")
+            op = np.argmax
         else:
             # Channels in use at cell, including channel scheduled
             # for termination. The latter is included because it might
             # be the least valueable channel, in which case no
             # reassignment is done on call termination.
             chs = inuse
-            op = operator.lt
-            op2 = np.argmin
-            best_val = float("inf")
+            op = np.argmin
 
         if len(chs) == 0:
             # No channels available for assignment,
@@ -469,15 +465,8 @@ class SARSAQNet(RLStrat):
             ch = np.random.choice(chs)
         else:
             # Choose greedily (from eligible channels only)
-            ch = None
-            for chan in chs:
-                if op(qvals[chan], best_val):
-                    best_val = qvals[chan]
-                    ch = chan
-
-            idx = op2(qvals[chs])
-            ch2 = chs[idx]
-            assert ch == ch2
+            idx = op(qvals[chs])
+            ch = chs[idx]
             # TODO
             # If qvals blow up, you get a lot of 'NaN's and 'inf's
             # in the qvals and ch becomes none.
