@@ -126,44 +126,41 @@ class Runner:
         from hyperopt import fmin, tpe, hp, Trials
         gridclass, stratclass = Runner.get_class(self.pp)
         space = {
-            'alpha': hp.loguniform('alpha', np.log(0.005), np.log(0.2)),
-            'alpha_decay': hp.loguniform('alpha_decay', np.log(0.999), np.log(0.9999999)),  # noqa
-            'epsilon': hp.loguniform('epsilon', np.log(0.1), np.log(0.8)),
-            'epsilon_decay': hp.loguniform('epsilon_decay', np.log(0.999), np.log(0.9999999)),  # noqa
-            'gamma': hp.uniform('gamma', 0.4, 1)
+            'alpha': hp.loguniform(
+                'alpha', np.log(0.001), np.log(0.1)),
+            'alpha_decay': hp.uniform(
+                'alpha_decay', 0.9999, 0.9999999),  # noqa
+            'epsilon': hp.loguniform(
+                'epsilon', np.log(0.1), np.log(0.8)),
+            'epsilon_decay': hp.uniform(
+                'epsilon_decay', 0.9995, 0.9999999),  # noqa
+            'gamma': hp.uniform('gamma', 0.6, 1)
         }
-        f = partial(Runner.hopt_proc, gridclass, stratclass, self.pp)
 
         f_name = f"results-{self.pp['strat']}.pkl"
+        try:
+            trials = pickle.load(open(f_name, "rb"))
+            self.logger.error(f"Found {len(trials.trials)} saved trials")
+        except:
+            trials = Trials()
 
-        # how many additional trials to do after loading saved
-        # trials. 1 = save after iteration
-        trials_step = 1
-
+        f = partial(Runner.hopt_proc, gridclass, stratclass, self.pp)
+        trials_step = 2
+        prev_best = {}
         while True:
-            # initial max_trials. put something small to not have to wait
-            max_trials = 5
-            try:
-                trials = pickle.load(open(f_name, "rb"))
-                max_trials = len(trials.trials) + trials_step
-                self.logger.error(
-                    "Found saved Trials! Loading..."
-                    f"\nRunning from {len(trials.trials)} trials"
-                    f" to {max_trials+trials_step}")
-            except:
-                trials = Trials()
-
+            n_trials = len(trials)
+            self.logger.error(
+                f"Running trials {n_trials+1}-{n_trials+trials_step}")
             best = fmin(
                 fn=f,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=max_trials,
+                max_evals=n_trials+trials_step,
                 trials=trials,
             )
-
-            # How to get the best over ALL trials, including loaded?
-            # Does 'best' return the best for all trials, or just the new ones
-            self.logger.error(f"Best found hopt: {best}")
+            if prev_best != best:
+                self.logger.error(f"Found new best params: {best}")
+                prev_best = best
             with open(f_name, "wb") as fil:
                 pickle.dump(trials, fil)
 
