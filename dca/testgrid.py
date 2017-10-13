@@ -96,6 +96,16 @@ class TestGrid(unittest.TestCase):
         self.grid.state[(1, 4)][ch] = 1
         self.assertFalse(self.grid.validate_reuse_constr())
 
+    def test_get_free_chs(self):
+        self.grid.state = np.ones((7, 7, 70)).astype(bool)
+        chs = [0, 4]
+        cell = (3, 4)
+        self.grid.state[cell][chs] = 0
+        for n in self.grid.neighbors2(*cell):
+            self.grid.state[n][chs] = 0
+        free = self.grid.get_free_chs(cell)
+        self._li_set_eq(free, chs)
+
 
 class TestFixedGrid(unittest.TestCase):
     def setUp(self):

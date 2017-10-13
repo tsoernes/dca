@@ -58,16 +58,13 @@ class Strat:
             t, ce_type, cell = cevent[0:3]
             self.stats.iter(t, i, cevent)
 
-            n_used = np.sum(self.grid.state[cell])
+            n_used = np.count_nonzero(self.grid.state[cell])
             if ch is not None:
-                self.curr_reward = 1
                 self.execute_action(cevent, ch)
 
                 if self.verify_grid and not self.grid.validate_reuse_constr():
                     self.logger.error(f"Reuse constraint broken")
                     raise Exception
-            else:
-                self.curr_reward = -1
             if self.gui:
                 self.gui.step()
 
@@ -397,7 +394,6 @@ class SARSAQNet(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((70))
-        self.curr_reward = 0
 
     def get_action(self, next_cevent, cell, ch):
         """
@@ -411,11 +407,11 @@ class SARSAQNet(RLStrat):
         # If there's no action to take, don't update q-value at all
         if next_ce_type != CEvent.END and next_ch is not None:
             # Observe reward from previous action
-            reward = self.reward()  # self.curr_reward
+            reward = self.reward()
             # Update q-values with one-step lookahead
             next_qval = next_qvals[next_ch]
             targetq = reward + self.discount() * next_qval
-            self.update_qvals(cell, self.n_used, ch, targetq)
+            self.update_qval(cell, self.n_used, ch, targetq)
             # n_used doesn't change if there's no action to take
             self.n_used, self.qvals = next_n_used, next_qvals
         if next_ce_type == CEvent.END and next_ch is None:
@@ -494,7 +490,7 @@ class SARSAQNet(RLStrat):
         _, qvals = self.net.forward(state)
         return qvals
 
-    def update_qvals(self, cell, n_used, ch, target):
+    def update_qval(self, cell, n_used, ch, target):
         self.qvals[ch] = target
         state = self.encode_state(cell, n_used)
         self.net.backward(state, self.qvals)
@@ -508,7 +504,6 @@ class SARSAQNet_idx_nused(SARSAQNet):
     State consists of: Index of cell, one-hot encoded and
     number of channels in use for that cell (integer)
     """
-    # TODO Run average test for rewards: n_used vs +-1
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from net import Net
@@ -520,10 +515,35 @@ class SARSAQNet_idx_nused(SARSAQNet):
         state.shape = (1, 50)
         return state
 
-# Singh features:
-# For each cell, the number of available channels.
-# For each cell-channel pair, the number of times the
-# channel is used in a 4 cell radius.
+
+class SARSAQNet_singh(SARSAQNet):
+    """
+    Nearly Features from Singh paper
+    For each cell, the number of available channels.
+    For each cell-channel pair, the number of times the
+    channel is used in a 4 cell radius.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from net import Net
+        self.net = Net(self.logger, 2*49, 70, self.alpha)
+
+    def encode_state(self, cell, n_used):
+        # state = np.identity(49*2)[(cell[0]+1)*(cell[1]+1)-1]
+        state = np.zeros(49*2)
+        state[(cell[0]+1)*(cell[1]+1)-1] = 1
+        # all_n_used = np.zeros(49)
+        for r in range(self.grid.rows):
+            for c in range(self.grid.cols):
+                state[2*((r+1)*(c+1)-1)] = np.count_nonzero(
+                        self.grid.state[r][c])
+        # neighs = set()
+        # for n in self.grid.neighbors2(*cell):
+        #     for nn in self.grid.neighbors1(*n):
+        #         neighs.add(nn)
+        state.shape = (1, 2*49)
+        return state
+
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?

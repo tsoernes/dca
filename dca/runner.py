@@ -2,7 +2,7 @@ from gui import Gui
 from grid import Grid, FixedGrid
 from strats import RandomAssign, FixedAssign, \
         SARSA, TT_SARSA, RS_SARSA, \
-        SARSAQNet_idx_nused
+        SARSAQNet_idx_nused, SARSAQNet_singh
 from params import get_pparams, sample_params, sample_gamma
 
 import cProfile
@@ -80,6 +80,8 @@ class Runner:
             return (Grid, RS_SARSA)
         elif s == 'sarsaqnet':
             return (Grid, SARSAQNet_idx_nused)
+        elif s == 'sarsaqnet_singh':
+            return (Grid, SARSAQNet_singh)
 
     def run(self):
         gridclass, stratclass = self.get_class(self.pp)

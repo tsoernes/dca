@@ -20,7 +20,7 @@ def get_pparams():
         choices=[
             'show', 'random', 'fixed',
             'sarsa', 'tt_sarsa', 'rs_sarsa',
-            'sarsaqnet'],
+            'sarsaqnet', 'sarsaqnet_singh'],
         help="show: just show gui",
         default='fixed')
     parser.add_argument(

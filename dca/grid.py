@@ -235,9 +235,11 @@ class Grid:
             return idxs
 
     def get_free_chs(self, cell):
+        """
+        Find the channels that are free in 'cell' and all of
+        its neighbors by bitwise ORing all their allocation maps
+        """
         neighs = self.neighbors2(*cell)
-        # Find the channels that are free in 'cell' and all of
-        # its neighbors by bitwise ORing all their allocation maps
         alloc_map = np.bitwise_or(
             self.state[cell], self.state[neighs[0]])
         for n in neighs[1:]:
