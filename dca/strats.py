@@ -3,6 +3,7 @@ from stats import Stats
 
 import signal
 import sys
+import inspect
 
 import numpy as np
 
@@ -473,6 +474,13 @@ class SARSAQNet(RLStrat):
             if ch is None:
                 self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
                 raise Exception
+
+        if ce_type == CEvent.END:
+            ch2, qvals2 = self.net.forward_ch(
+                ce_type, self.grid.state, cell,
+                self.encode_state(cell, n_used))
+            assert ch == ch2
+
         self.logger.debug(
                 f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
@@ -526,24 +534,35 @@ class SARSAQNet_singh(SARSAQNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from net import Net
-        self.net = Net(self.logger, 2*49, 70, self.alpha)
+        self.net = Net(self.logger, 70, self.alpha)
 
     def encode_state(self, cell, n_used):
-        # state = np.identity(49*2)[(cell[0]+1)*(cell[1]+1)-1]
-        state = np.zeros(49*2)
-        state[(cell[0]+1)*(cell[1]+1)-1] = 1
+        # pos = np.identity(49)[(cell[0]+1)*(cell[1]+1)-1]
         # all_n_used = np.zeros(49)
-        for r in range(self.grid.rows):
-            for c in range(self.grid.cols):
-                state[2*((r+1)*(c+1)-1)] = np.count_nonzero(
-                        self.grid.state[r][c])
+        # for r in range(self.grid.rows):
+        #     for c in range(self.grid.cols):
+        #         all_n_used[(r+1)*(c+1)-1] = np.count_nonzero(
+        #                 self.grid.state[r][c])
+        # state1 = np.hstack((pos, all_n_used))
         # neighs = set()
         # for n in self.grid.neighbors2(*cell):
         #     for nn in self.grid.neighbors1(*n):
         #         neighs.add(nn)
-        state.shape = (1, 2*49)
+        # state.shape = (1, 2*49)
+        pos = np.zeros((self.grid.rows, self.grid.cols))
+        pos[cell] = 1
+        state = np.dstack((self.grid.state, pos))
+        state.shape = (1, 7, 7, 71)
         return state
 
 
 # TODO verify the rl sim loop. is it correct?
 # can it be simplified, e.g. remove fn_init?
+def strat_classes():
+    """
+    Return a list with (name, class) for all the strats
+    """
+    def is_class_member(member):
+        return inspect.isclass(member) and member.__module__ == __name__
+    clsmembers = inspect.getmembers(sys.modules[__name__], is_class_member)
+    return clsmembers

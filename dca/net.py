@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+from eventgen import CEvent
 # Neighbors2
 # (3,3)
 # min row: 1
@@ -24,7 +25,7 @@ import tensorflow as tf
 # are illegal/unavailable?
 
 
-class Net:
+class Net2:
     def __init__(self, logger, n_in, n_out, alpha,
                  *args, **kwargs):
         self.n_out = n_out
@@ -88,15 +89,170 @@ class Net:
         init = tf.global_variables_initializer()
         self.sess.run(init)
 
-    def forward(self, state):
+
+class Net:
+    def __init__(self, logger, n_out, alpha,
+                 *args, **kwargs):
+        self.n_out = n_out
+        self.logger = logger
+        tf.reset_default_graph()
+
+        self.inputs = tf.placeholder(shape=[1, 7, 7, 71], dtype=tf.float32)
+        # conv1 = tf.layers.conv2d(
+        #     inputs=self.inputs,
+        #     filters=70,
+        #     kernel_size=4,
+        #     strides=2,
+        #     padding="same",  # pad with 0's
+        #     activation=tf.nn.relu)
+        # pool1 = tf.layers.max_pooling2d(
+        #     inputs=conv1, pool_size=2, strides=1)
+        # conv2 = tf.layers.conv2d(
+        #     inputs=pool1,
+        #     filters=140,
+        #     kernel_size=4,
+        #     padding="same",
+        #     activation=tf.nn.relu)
+        # # Dense Layer
+        # conv2_flat = tf.reshape(conv2, [-1, 3 * 3 * 140])
+        # dense = tf.layers.dense(
+        #         inputs=conv2_flat, units=256, activation=tf.nn.relu)
+
+        # TODO verify that linear neural net performs better than random.
+        # Perhaps reducing call rates will increase difference between
+        # fixed/random and a good alg, thus making testing nets easier.
+        # If so then need to retest sarsa-strats and redo hyperparam opt.
+        inputs_flat = tf.reshape(self.inputs, [-1, 7*7*71])
+        self.Qout = tf.layers.dense(inputs=inputs_flat, units=70)
+        self.argmaxQ = tf.argmax(self.Qout, axis=1)
+
+        # Below we obtain the loss by taking the sum of squares
+        # difference between the target and prediction Q values.
+        self.targets = tf.placeholder(shape=[1, n_out], dtype=tf.float32)
+        loss = tf.reduce_sum(tf.square(self.targets - self.Qout))
+        # GradientDescentOptimizer is designed to use a constant learning rate.
+        # The best is probably to use AdamOptimizer which is out-of-the-box
+        # adaptive, i.e. it controls the learning rate in some way.
+        # NOTE Should the rate of learning rate decrease be set for alpha?
+        # trainer = tf.train.AdamOptimizer(learning_rate=alpha)
+        # trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
+        trainer = tf.train.RMSPropOptimizer(learning_rate=alpha)
+        self.updateModel = trainer.minimize(loss)
+
+        self.sess = tf.Session()
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
+
+    def forward(self, features):
         """
         Forward pass. Given an input, such as a feature vector
         or the whole state, return the output of the network.
         """
         action, qvals = self.sess.run(
                 [self.argmaxQ, self.Qout],
-                feed_dict={self.inputs: state})
+                feed_dict={self.inputs: features})
         return action[0], qvals[0]
+
+    def forward_ch(self, ce_type, state, cell, features, neighs2=None):
+        """
+        Get the argmin (for END events) or argmax (for NEW events) of
+        the q-values for the given features. Only valid channels
+        are taken the argmin/argmax over.
+        """
+        tf_state = tf.placeholder(shape=[7, 7, 70], dtype=tf.bool)
+        tf_cell = tf.placeholder(shape=[2], dtype=tf.int32)
+        tf_neighs2 = tf.placeholder(dtype=tf.in32)
+
+        zero = tf.constant(False, dtype=tf.bool)
+        region = tf.gather_nd(tf_state, tf_cell)
+        q_flat = tf.reshape(self.Qout, [-1])
+
+        notzero = tf.not_equal(region, zero)
+        tf_inuse = tf.reshape(tf.where(notzero), [-1])
+        tf_inuse_q = tf.gather(q_flat, tf_inuse)
+        inuse_isEmpty = tf.equal(tf.size(tf_inuse_q), tf.constant(0))
+        argmin_q = tf.cond(
+            inuse_isEmpty,
+            lambda: tf.constant(-1, dtype=tf.int64),
+            lambda: tf_inuse[tf.argmin(tf_inuse_q)])
+
+        # NOTE This is not correct. Does not check that the chs
+        # are not in use in neighboring cells.
+        iszero = tf.equal(region, zero)
+        tf_free = tf.reshape(tf.where(iszero), [-1])
+        tf_free_q = tf.gather(q_flat, tf_free)
+        free_isEmpty = tf.equal(tf.size(tf_inuse_q), tf.constant(0))
+        argmax_q = tf.cond(
+            free_isEmpty,
+            lambda: tf.constant(-1, dtype=tf.int64),
+            lambda: tf_free[tf.argmax(tf_free_q)])
+
+        if ce_type == CEvent.END:
+            ch, qvals = self.sess.run(
+                [argmin_q, q_flat],
+                feed_dict={tf_state: state, tf_cell: cell,
+                           self.inputs: features})
+        else:
+            ch, qvals = self.sess.run(
+                [argmax_q, q_flat],
+                feed_dict={tf_state: state, tf_cell: cell,
+                           self.inputs: features, tf_neighs2: neighs2})
+        if ch == -1:
+            ch = None
+        return ch, qvals
+
+    def neighbors2(self, cell):
+        """
+        Returns a list with indices of neighbors within a radius of 2,
+        not including self
+        """
+        idxs = []
+
+        zero = tf.constant(0)
+        row = cell[0]
+        col = cell[1]
+        r_low = tf.max(0, row - 2)
+        r_hi = tf.min(self.rows - 1, row + 2)
+        c_low = tf.max(0, col - 2)
+        c_hi = tf.min(self.cols - 1, col + 2)
+        k = 7
+        at = tf.transpose(
+            tf.meshgrid(tf.range(k), tf.range(k), indexing="ij"),
+            perm=[1, 2, 0])
+
+        cross1 = tf.cond(
+            tf.equal(tf.mod(col, 2), zero),
+            tf.subtract(row, 2),
+            tf.add(row, 2))
+        cross2 = tf.cond(
+            tf.equal(tf.mod(col, 2), zero),
+            tf.add(row, 2),
+            tf.subtract(row, 2))
+
+        for r in range(r_low, r_hi + 1):
+            for c in range(c_low, c_hi + 1):
+                if not ((r, c) == (row, col) or
+                        (r, c) == (cross1, col - 2) or
+                        (r, c) == (cross1, col - 1) or
+                        (r, c) == (cross1, col + 1) or
+                        (r, c) == (cross1, col + 2) or
+                        (r, c) == (cross2, col - 2) or
+                        (r, c) == (cross2, col + 2)):
+                    idxs.append((r, c))
+        return idxs
+
+    # def get_free_chs(self, cell):
+    #     """
+    #     Find the channels that are free in 'cell' and all of
+    #     its neighbors by bitwise ORing all their allocation maps
+    #     """
+    #     neighs = self.neighbors2(*cell)
+    #     alloc_map = np.bitwise_or(
+    #         self.state[cell], self.state[neighs[0]])
+    #     for n in neighs[1:]:
+    #         alloc_map = np.bitwise_or(alloc_map, self.state[n])
+    #     free = np.where(alloc_map == 0)[0]
+    #     return free
 
     def backward(self, state, targets):
         """
@@ -105,12 +261,12 @@ class Net:
         targets.shape = (1, 70)
         # Obtain maxQ' and set our target value for chosen action.
         # Train our network using target and predicted Q values
-        _, W1 = self.sess.run(
-            [self.updateModel, self.W],
+        self.sess.run(
+            self.updateModel,
             feed_dict={self.inputs: state, self.targets: targets})
-        # should W be set to W1?
 
     def weight_init(self):
+        raise NotImplementedError
         inp = None
         hidden_layer_sizes = [0]
         Hs = {}

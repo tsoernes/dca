@@ -218,7 +218,8 @@ class Grid:
             cross2 = row - 2
         for r in range(r_low, r_hi + 1):
             for c in range(c_low, c_hi + 1):
-                if not ((r, c) == (row, col) or (r, c) == (cross1, col - 2) or
+                if not ((r, c) == (row, col) or
+                        (r, c) == (cross1, col - 2) or
                         (r, c) == (cross1, col - 1) or
                         (r, c) == (cross1, col + 1) or
                         (r, c) == (cross1, col + 2) or
@@ -229,6 +230,12 @@ class Grid:
                         cs.append(c)
                     else:
                         idxs.append((r, c))
+
+        k = self.rows
+        idxs2all = np.array(
+            np.meshgrid(np.arange(k), np.arange(k), indexing="ij")) \
+            .transpose([1, 2, 0])
+        # .reshape(1, -2, 2)[0}
         if separate:
             return (rs, cs)
         else:

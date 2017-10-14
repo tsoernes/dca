@@ -48,6 +48,10 @@ class Stats:
         self.n_ended += 1
 
     def hoff_new(self):
+        # TODO Because n_incoming/n_rejected does not include
+        # handoffs, a significant amount of data, 15 %, is
+        # not included when judgning hyperparams.
+        # A separate counter for new+hoff should be made.
         self.n_handoffs += 1
 
     def hoff_rej(self, cell, n_used):
@@ -68,11 +72,12 @@ class Stats:
         # NOTE excluding handoffs
         block_prob = self.n_curr_rejected / (self.n_curr_incoming + 1)
         self.block_probs.append(block_prob)
-        self.block_probs_tot.append(self.n_rejected / (self.n_incoming + 1))
+        block_prob_tot = self.n_rejected / (self.n_incoming + 1)
+        self.block_probs_tot.append(block_prob_tot)
         self.logger.info(
             f"\n{self.t:.2f}-{self.i}: Blocking probability events"
-            f" {self.i-self.pp['log_iter']}-{self.pp['log_iter']}:"
-            f" {block_prob:.4f}")
+            f" {self.i-self.pp['log_iter']}-{self.i}:"
+            f" {block_prob:.4f}, cumulative {block_prob_tot:.4f}")
         if epsilon:
             self.alphas.append(alpha)
             self.epsilons.append(epsilon)

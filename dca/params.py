@@ -1,3 +1,5 @@
+from strats import strat_classes
+
 import argparse
 import datetime
 import logging
@@ -13,15 +15,13 @@ def get_pparams():
         description='DCA',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    # alpha==0.05451609265961329 alpha_decay==0.9998300279366096 epsilon==0.6178066665492812 epsilon_decay==0.9999157991188173 gamma==0.6055244560728928
+    # alpha==0.05451609265961329 alpha_decay==0.9998300279366096 epsilon==0.6178066665492812 epsilon_decay==0.9999157991188173 gamma==0.6055244560728928  # noqa
+    stratnames = [n[0].lower() for n in strat_classes()]
+    stratnames += ['show', 'random', 'fixed']
 
     parser.add_argument(
         '--strat',
-        choices=[
-            'show', 'random', 'fixed',
-            'sarsa', 'tt_sarsa', 'rs_sarsa',
-            'sarsaqnet', 'sarsaqnet_singh'],
-        help="show: just show gui",
+        choices=stratnames,
         default='fixed')
     parser.add_argument(
         '--rows', type=int, help="number of rows in grid", default=7)
@@ -130,6 +130,8 @@ def get_pparams():
     args = parser.parse_args()
     params = vars(args)
 
+    if params['strat'] in ['sarsaqnet', 'sarsaqnet_singh']:
+        params['log_iter'] = 1000
     if not params['call_rates']:
         params['call_rates'] = params['erlangs'] / params['call_duration']
     if params['avg_runs'] > 1:

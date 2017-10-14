@@ -1,17 +1,16 @@
 from gui import Gui
 from grid import Grid, FixedGrid
-from strats import RandomAssign, FixedAssign, \
-        SARSA, TT_SARSA, RS_SARSA, \
-        SARSAQNet_idx_nused, SARSAQNet_singh
+import strats
+from strats import FixedAssign, strat_classes
 from params import get_pparams, sample_params, sample_gamma
 
 import cProfile
 import datetime
 from functools import partial
 import logging
-import time
-import pickle
 from multiprocessing import Pool
+import pickle
+import time
 
 import numpy as np
 
@@ -53,7 +52,7 @@ class Runner:
         gridclass, stratclass = self.get_class(self.pp)
         simproc = partial(
                 self.sim_proc, gridclass, stratclass, self.pp)
-        with Pool() as p:
+        with Pool(1) as p:
             results = p.map(simproc, range(n_eps))
         n_events = self.pp['n_events']
         self.logger.error(
@@ -70,18 +69,10 @@ class Runner:
         s = pp['strat']
         if s == 'fixed':
             return (FixedGrid, FixedAssign)
-        elif s == 'random':
-            return (Grid, RandomAssign)
-        elif s == 'sarsa':
-            return (Grid, SARSA)
-        elif s == 'tt_sarsa':
-            return (Grid, TT_SARSA)
-        elif s == 'rs_sarsa':
-            return (Grid, RS_SARSA)
-        elif s == 'sarsaqnet':
-            return (Grid, SARSAQNet_idx_nused)
-        elif s == 'sarsaqnet_singh':
-            return (Grid, SARSAQNet_singh)
+        stratcls = strat_classes()
+        for name, cls in stratcls:
+            if s == name.lower():
+                return(Grid, cls)
 
     def run(self):
         gridclass, stratclass = self.get_class(self.pp)
@@ -118,7 +109,7 @@ class Runner:
         gui = Gui(grid, self.logger)
         gui.test()
 
-    def hopt(self):
+    def hopt(self, net=True):
         """
         Hyper-parameter optimization with hyperopt.
         Saves progress to 'results-{stratname}.pkl' and
@@ -127,17 +118,26 @@ class Runner:
         # TODO parallell execution
         from hyperopt import fmin, tpe, hp, Trials
         gridclass, stratclass = Runner.get_class(self.pp)
-        space = {
-            'alpha': hp.loguniform(
-                'alpha', np.log(0.001), np.log(0.1)),
-            'alpha_decay': hp.uniform(
-                'alpha_decay', 0.9999, 0.9999999),  # noqa
-            'epsilon': hp.loguniform(
-                'epsilon', np.log(0.1), np.log(0.8)),
-            'epsilon_decay': hp.uniform(
-                'epsilon_decay', 0.9995, 0.9999999),  # noqa
-            'gamma': hp.uniform('gamma', 0.6, 1)
-        }
+        if net:
+            space = {
+                'alpha': hp.loguniform(
+                    'alpha', np.log(0.000001), np.log(0.01)),
+            }
+            self.pp['n_events'] = 30000
+            trials_step = 1
+        else:
+            space = {
+                'alpha': hp.loguniform(
+                    'alpha', np.log(0.001), np.log(0.1)),
+                'alpha_decay': hp.uniform(
+                    'alpha_decay', 0.9999, 0.9999999),  # noqa
+                'epsilon': hp.loguniform(
+                    'epsilon', np.log(0.1), np.log(0.8)),
+                'epsilon_decay': hp.uniform(
+                    'epsilon_decay', 0.9995, 0.9999999),  # noqa
+                'gamma': hp.uniform('gamma', 0.6, 1)
+            }
+            trials_step = 4
 
         f_name = f"results-{self.pp['strat']}.pkl"
         try:
@@ -147,7 +147,6 @@ class Runner:
             trials = Trials()
 
         f = partial(Runner.hopt_proc, gridclass, stratclass, self.pp)
-        trials_step = 2
         prev_best = {}
         while True:
             n_trials = len(trials)
