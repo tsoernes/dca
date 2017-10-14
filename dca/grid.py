@@ -231,11 +231,11 @@ class Grid:
                     else:
                         idxs.append((r, c))
 
-        k = self.rows
-        idxs2all = np.array(
-            np.meshgrid(np.arange(k), np.arange(k), indexing="ij")) \
-            .transpose([1, 2, 0])
-        # .reshape(1, -2, 2)[0}
+        # k = self.rows
+        # idxs2all = np.array(
+        #     np.meshgrid(np.arange(k), np.arange(k), indexing="ij")) \
+        #     .transpose([1, 2, 0]) \
+        #     .reshape(1, -2, 2)[0}
         if separate:
             return (rs, cs)
         else:

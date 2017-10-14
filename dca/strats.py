@@ -461,7 +461,7 @@ class SARSAQNet(RLStrat):
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
         # TODO Why are END events always greedy??
-        if ce_type != CEvent.END and np.random.random() < self.epsilon:
+        if False and ce_type != CEvent.END and np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
         else:
@@ -475,11 +475,16 @@ class SARSAQNet(RLStrat):
                 self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
                 raise Exception
 
-        if ce_type == CEvent.END:
+            # Testing moving calculations to TF
             ch2, qvals2 = self.net.forward_ch(
                 ce_type, self.grid.state, cell,
-                self.encode_state(cell, n_used))
+                self.encode_state(cell, n_used),
+                self.grid.neighbors2(*cell))
             assert ch == ch2
+            if ch != ch2:
+                print("\n")
+                print(ch, ch2)
+                print(qvals[ch], qvals[ch2])
 
         self.logger.debug(
                 f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")

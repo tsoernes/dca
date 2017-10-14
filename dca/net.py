@@ -161,31 +161,31 @@ class Net:
         """
         tf_state = tf.placeholder(shape=[7, 7, 70], dtype=tf.bool)
         tf_cell = tf.placeholder(shape=[2], dtype=tf.int32)
-        tf_neighs2 = tf.placeholder(dtype=tf.in32)
+        tf_neighs2i = tf.placeholder(dtype=tf.int32)
 
-        zero = tf.constant(False, dtype=tf.bool)
         region = tf.gather_nd(tf_state, tf_cell)
         q_flat = tf.reshape(self.Qout, [-1])
 
-        notzero = tf.not_equal(region, zero)
-        tf_inuse = tf.reshape(tf.where(notzero), [-1])
+        # Get the minimally valued channel that's in use
+        # notzero = tf.not_equal(region, false)
+        tf_inuse = tf.reshape(tf.where(region), [-1])
         tf_inuse_q = tf.gather(q_flat, tf_inuse)
-        inuse_isEmpty = tf.equal(tf.size(tf_inuse_q), tf.constant(0))
         argmin_q = tf.cond(
-            inuse_isEmpty,
+            tf.equal(tf.size(tf_inuse_q), tf.constant(0)),
             lambda: tf.constant(-1, dtype=tf.int64),
             lambda: tf_inuse[tf.argmin(tf_inuse_q)])
 
-        # NOTE This is not correct. Does not check that the chs
-        # are not in use in neighboring cells.
-        iszero = tf.equal(region, zero)
-        tf_free = tf.reshape(tf.where(iszero), [-1])
-        tf_free_q = tf.gather(q_flat, tf_free)
-        free_isEmpty = tf.equal(tf.size(tf_inuse_q), tf.constant(0))
+        # Get the maximally valued channel that's free in this cell
+        # and its neighbors within a radius of 2
+        tf_neighs2 = tf.gather_nd(tf_state, tf_neighs2i)
+        tf_free_neighs = tf.reduce_any(tf_neighs2, axis=0)
+        tf_free = tf.logical_or(region, tf_free_neighs)
+        tf_free_i = tf.reshape(tf.where(tf.logical_not(tf_free)), [-1])
+        tf_free_q = tf.gather(q_flat, tf_free_i)
         argmax_q = tf.cond(
-            free_isEmpty,
+            tf.equal(tf.size(tf_free_q), tf.constant(0)),
             lambda: tf.constant(-1, dtype=tf.int64),
-            lambda: tf_free[tf.argmax(tf_free_q)])
+            lambda: tf_free_i[tf.argmax(tf_free_q)])
 
         if ce_type == CEvent.END:
             ch, qvals = self.sess.run(
@@ -196,7 +196,7 @@ class Net:
             ch, qvals = self.sess.run(
                 [argmax_q, q_flat],
                 feed_dict={tf_state: state, tf_cell: cell,
-                           self.inputs: features, tf_neighs2: neighs2})
+                           self.inputs: features, tf_neighs2i: neighs2})
         if ch == -1:
             ch = None
         return ch, qvals
