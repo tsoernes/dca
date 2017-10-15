@@ -159,44 +159,70 @@ class Net:
         the q-values for the given features. Only valid channels
         are taken the argmin/argmax over.
         """
+        tf_ce_type = tf.placeholder(shape=[1], dtype=tf.int32)
         tf_state = tf.placeholder(shape=[7, 7, 70], dtype=tf.bool)
         tf_cell = tf.placeholder(shape=[2], dtype=tf.int32)
         tf_neighs2i = tf.placeholder(dtype=tf.int32)
+        # tf_epsilon = tf.placeholder(shape=[1], dtype=tf.float32)
+        zero = tf.constant(0)
 
         region = tf.gather_nd(tf_state, tf_cell)
         q_flat = tf.reshape(self.Qout, [-1])
 
+        # NOTE When everything is a lambda, conds evaluate lazily,
+        # which prevents the calculation of free channels for end-events
+        # and vice-versa.
+
         # Get the minimally valued channel that's in use
         # notzero = tf.not_equal(region, false)
-        tf_inuse = tf.reshape(tf.where(region), [-1])
-        tf_inuse_q = tf.gather(q_flat, tf_inuse)
-        argmin_q = tf.cond(
-            tf.equal(tf.size(tf_inuse_q), tf.constant(0)),
-            lambda: tf.constant(-1, dtype=tf.int64),
-            lambda: tf_inuse[tf.argmin(tf_inuse_q)])
+        tf_inuse_chs = lambda: tf.where(region)  # noqa
+        tf_inuse_q = lambda: tf.gather_nd(q_flat, tf_inuse_chs())
+        inuse_isempty = lambda: tf.equal(tf.size(tf_inuse_chs()), zero)
 
         # Get the maximally valued channel that's free in this cell
         # and its neighbors within a radius of 2
-        tf_neighs2 = tf.gather_nd(tf_state, tf_neighs2i)
-        tf_free_neighs = tf.reduce_any(tf_neighs2, axis=0)
-        tf_free = tf.logical_or(region, tf_free_neighs)
-        tf_free_i = tf.reshape(tf.where(tf.logical_not(tf_free)), [-1])
-        tf_free_q = tf.gather(q_flat, tf_free_i)
-        argmax_q = tf.cond(
-            tf.equal(tf.size(tf_free_q), tf.constant(0)),
-            lambda: tf.constant(-1, dtype=tf.int64),
-            lambda: tf_free_i[tf.argmax(tf_free_q)])
+        tf_neighs2 = lambda: tf.gather_nd(tf_state, tf_neighs2i)
+        tf_free_neighs = lambda: tf.reduce_any(tf_neighs2(), axis=0)
+        tf_free = lambda: tf.logical_or(region, tf_free_neighs())
+        tf_free_chs = lambda: tf.where(tf.logical_not(tf_free()))
+        tf_free_q = lambda: tf.gather_nd(q_flat, tf_free_chs())
+        free_isempty = lambda: tf.equal(tf.size(tf_free_chs()), zero)
+        free_ch = lambda: tf_free_chs()[tf.argmax(tf_free_q())]
 
+        tf_ch_min = lambda: tf.cond(
+            inuse_isempty(),
+            lambda: tf.constant(-1, dtype=tf.int64),
+            lambda: tf_inuse_chs()[tf.argmin(tf_inuse_q())])
+
+        tf_ch_max = lambda: tf.cond(
+            free_isempty(),
+            lambda: tf.constant(-1, dtype=tf.int64),
+            free_ch)
+
+        tf_ch = tf.cond(
+            tf.equal(tf_ce_type[0], tf.constant(1)),
+            tf_ch_min,
+            tf_ch_max)
+
+        print(ce_type)
         if ce_type == CEvent.END:
-            ch, qvals = self.sess.run(
-                [argmin_q, q_flat],
-                feed_dict={tf_state: state, tf_cell: cell,
-                           self.inputs: features})
-        else:
-            ch, qvals = self.sess.run(
-                [argmax_q, q_flat],
-                feed_dict={tf_state: state, tf_cell: cell,
-                           self.inputs: features, tf_neighs2i: neighs2})
+            neighs2 = np.zeros(0, dtype=np.int32),
+        ch, qvals = self.sess.run(
+            [tf_ch, q_flat],
+            {tf_state: state, tf_cell: cell,
+             self.inputs: features, tf_neighs2i: neighs2,
+             tf_ce_type: [ce_type.value]})
+
+        # e-greedy
+        # probs = lambda: tf.log([tf.ones(n_valid)/n_valid])
+        # e_greedy_select = tf.cond(
+        #     tf.less(tf.random_uniform([1]), tf.epsilon),
+        #     lambda: tf_chs[tf.multinomial(probs)[0][0]],
+        #     lambda: argm_q)
+        # probs = tf.log([tf.ones(70)/70])  # this shouldnt be 70 but n valid chs
+        # sample = tf.multinomial(probs, 1)
+        # ch = chs[sample[0][0]]
+
         if ch == -1:
             ch = None
         return ch, qvals

@@ -113,7 +113,7 @@ class Strat:
                 self.stats.n_iter(self.epsilon, self.alpha)
 
         self.stats.end_episode(
-                np.sum(self.grid.state), self.epsilon, self.alpha)
+                np.count_nonzero(self.grid.state), self.epsilon, self.alpha)
         self.fn_after()
         if self.quit_sim and self.pp['hopt']:
             # Don't want to return block prob for incomplete sims when
@@ -315,7 +315,7 @@ class RLStrat(Strat):
         """
         # Number of calls currently in progress
         # TODO try +1 for accepted and -1 for rejected instead
-        return np.sum(self.grid.state)
+        return np.count_nonzero(self.grid.state)
 
     def discount(self):
         """
@@ -480,11 +480,12 @@ class SARSAQNet(RLStrat):
                 ce_type, self.grid.state, cell,
                 self.encode_state(cell, n_used),
                 self.grid.neighbors2(*cell))
-            assert ch == ch2
             if ch != ch2:
                 print("\n")
                 print(ch, ch2)
                 print(qvals[ch], qvals[ch2])
+                print((qvals == qvals2).all())
+            assert ch == ch2
 
         self.logger.debug(
                 f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
