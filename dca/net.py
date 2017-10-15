@@ -155,16 +155,17 @@ class Net:
 
     def forward_ch(self, ce_type, state, cell, features, neighs2=None):
         """
-        Get the argmin (for END events) or argmax (for NEW events) of
+        Get the argmin (for END events) or argmax (for NEW/HOFF events) of
         the q-values for the given features. Only valid channels
-        are taken the argmin/argmax over.
+        are taken argmin/argmax over.
         """
         tf_ce_type = tf.placeholder(shape=[1], dtype=tf.int32)
         tf_state = tf.placeholder(shape=[7, 7, 70], dtype=tf.bool)
         tf_cell = tf.placeholder(shape=[2], dtype=tf.int32)
         tf_neighs2i = tf.placeholder(dtype=tf.int32)
+        if ce_type == CEvent.END:
+            neighs2 = np.zeros(0, dtype=np.int32)
         # tf_epsilon = tf.placeholder(shape=[1], dtype=tf.float32)
-        zero = tf.constant(0)
 
         region = tf.gather_nd(tf_state, tf_cell)
         q_flat = tf.reshape(self.Qout, [-1])
@@ -174,8 +175,7 @@ class Net:
         # and vice-versa.
 
         # Get the minimally valued channel that's in use
-        # notzero = tf.not_equal(region, false)
-        tf_inuse_chs = lambda: tf.where(region)  # noqa
+        tf_inuse_chs = lambda: tf.where(region)
 
         # Get the maximally valued channel that's free in this cell
         # and its neighbors within a radius of 2
@@ -186,9 +186,9 @@ class Net:
 
         tf_chs = lambda: tf.cond(
             tf.equal(tf_ce_type[0], tf.constant(1)),
-            tf_inuse_chs,
-            tf_free_chs)
-        isempty = lambda: tf.equal(tf.size(tf_chs()), zero)
+            tf_inuse_chs,  # END event
+            tf_free_chs)  # NEW/HOFF event
+        isempty = lambda: tf.equal(tf.size(tf_chs()), tf.constant(0))
         tf_valid_qs = lambda: tf.gather_nd(q_flat, tf_chs())
 
         tf_ch_min = lambda: tf.cond(
@@ -207,8 +207,6 @@ class Net:
             tf_ch_max)
 
         print(ce_type)
-        if ce_type == CEvent.END:
-            neighs2 = np.zeros(0, dtype=np.int32),
         ch, qvals = self.sess.run(
             [tf_ch, q_flat],
             {tf_state: state, tf_cell: cell,
