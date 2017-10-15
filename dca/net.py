@@ -122,7 +122,7 @@ class Net:
         # Perhaps reducing call rates will increase difference between
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
-        inputs_flat = tf.reshape(self.inputs, [-1, 7*7*71])
+        inputs_flat = tf.reshape(self.inputs, [-1, 7 * 7 * 71])
         self.Qout = tf.layers.dense(inputs=inputs_flat, units=70)
         self.argmaxQ = tf.argmax(self.Qout, axis=1)
 
@@ -149,8 +149,8 @@ class Net:
         or the whole state, return the output of the network.
         """
         action, qvals = self.sess.run(
-                [self.argmaxQ, self.Qout],
-                feed_dict={self.inputs: features})
+            [self.argmaxQ, self.Qout],
+            feed_dict={self.inputs: features})
         return action[0], qvals[0]
 
     def forward_ch(self, ce_type, state, cell, features, neighs2=None):
@@ -176,9 +176,6 @@ class Net:
         # Get the minimally valued channel that's in use
         # notzero = tf.not_equal(region, false)
         tf_inuse_chs = lambda: tf.where(region)  # noqa
-        tf_inuse_q = lambda: tf.gather_nd(q_flat, tf_inuse_chs())
-        inuse_isempty = lambda: tf.equal(tf.size(tf_inuse_chs()), zero)
-        inuse_ch = lambda: tf_inuse_chs()[tf.argmin(tf_inuse_q())]
 
         # Get the maximally valued channel that's free in this cell
         # and its neighbors within a radius of 2
@@ -186,19 +183,23 @@ class Net:
         tf_free_neighs = lambda: tf.reduce_any(tf_neighs2(), axis=0)
         tf_free = lambda: tf.logical_or(region, tf_free_neighs())
         tf_free_chs = lambda: tf.where(tf.logical_not(tf_free()))
-        tf_free_q = lambda: tf.gather_nd(q_flat, tf_free_chs())
-        free_isempty = lambda: tf.equal(tf.size(tf_free_chs()), zero)
-        free_ch = lambda: tf_free_chs()[tf.argmax(tf_free_q())]
+
+        tf_chs = lambda: tf.cond(
+            tf.equal(tf_ce_type[0], tf.constant(1)),
+            tf_inuse_chs,
+            tf_free_chs)
+        isempty = lambda: tf.equal(tf.size(tf_chs()), zero)
+        tf_valid_qs = lambda: tf.gather_nd(q_flat, tf_chs())
 
         tf_ch_min = lambda: tf.cond(
-            inuse_isempty(),
+            isempty(),
             lambda: tf.constant(-1, dtype=tf.int64),
-            inuse_ch)
+            lambda: tf_chs()[tf.argmin(tf_valid_qs())])
 
         tf_ch_max = lambda: tf.cond(
-            free_isempty(),
+            isempty(),
             lambda: tf.constant(-1, dtype=tf.int64),
-            free_ch)
+            lambda: tf_chs()[tf.argmax(tf_valid_qs())])
 
         tf_ch = tf.cond(
             tf.equal(tf_ce_type[0], tf.constant(1)),
@@ -220,7 +221,7 @@ class Net:
         #     tf.less(tf.random_uniform([1]), tf.epsilon),
         #     lambda: tf_chs[tf.multinomial(probs)[0][0]],
         #     lambda: argm_q)
-        # probs = tf.log([tf.ones(70)/70])  # this shouldnt be 70 but n valid chs
+        # probs = tf.log([tf.ones(70)/70])# this shouldnt be 70 but n valid chs
         # sample = tf.multinomial(probs, 1)
         # ch = chs[sample[0][0]]
 
@@ -298,12 +299,12 @@ class Net:
         hidden_layer_sizes = [0]
         Hs = {}
         for i in range(hidden_layer_sizes):
-            X = inp if i == 0 else Hs[i-1]
+            X = inp if i == 0 else Hs[i - 1]
             fan_in = X.shape[1]
             fan_out = hidden_layer_sizes[i]
             # init according to [He et al. 2015]
             # fan_in: number input
-            W = np.random.randn(fan_in, fan_out) / np.sqrt(fan_in/2)
+            W = np.random.randn(fan_in, fan_out) / np.sqrt(fan_in / 2)
             H = np.dot(X, W)
             Hs[i] = H
 
