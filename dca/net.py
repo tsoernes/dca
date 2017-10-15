@@ -178,6 +178,7 @@ class Net:
         tf_inuse_chs = lambda: tf.where(region)  # noqa
         tf_inuse_q = lambda: tf.gather_nd(q_flat, tf_inuse_chs())
         inuse_isempty = lambda: tf.equal(tf.size(tf_inuse_chs()), zero)
+        inuse_ch = lambda: tf_inuse_chs()[tf.argmin(tf_inuse_q())]
 
         # Get the maximally valued channel that's free in this cell
         # and its neighbors within a radius of 2
@@ -192,7 +193,7 @@ class Net:
         tf_ch_min = lambda: tf.cond(
             inuse_isempty(),
             lambda: tf.constant(-1, dtype=tf.int64),
-            lambda: tf_inuse_chs()[tf.argmin(tf_inuse_q())])
+            inuse_ch)
 
         tf_ch_max = lambda: tf.cond(
             free_isempty(),
