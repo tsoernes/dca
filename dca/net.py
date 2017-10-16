@@ -185,10 +185,10 @@ class Net:
         tf_free_chs = lambda: tf.where(tf.logical_not(tf_free()))
 
         tf_chs = lambda: tf.cond(
-            tf.equal(tf_ce_type[0], tf.constant(1)),
+            tf.equal(tf_ce_type[0], 1),
             tf_inuse_chs,  # END event
             tf_free_chs)  # NEW/HOFF event
-        isempty = lambda: tf.equal(tf.size(tf_chs()), tf.constant(0))
+        isempty = lambda: tf.equal(tf.size(tf_chs()), 0)
         tf_valid_qs = lambda: tf.gather_nd(q_flat, tf_chs())
 
         tf_ch_min = lambda: tf.cond(
@@ -202,7 +202,7 @@ class Net:
             lambda: tf_chs()[tf.argmax(tf_valid_qs())])
 
         tf_ch = tf.cond(
-            tf.equal(tf_ce_type[0], tf.constant(1)),
+            tf.equal(tf_ce_type[0], 1),
             tf_ch_min,
             tf_ch_max)
 
@@ -227,58 +227,49 @@ class Net:
             ch = None
         return ch, qvals
 
-    def neighbors2(self, cell):
+    def neighbors2(self):
         """
         Returns a list with indices of neighbors within a radius of 2,
         not including self
         """
-        idxs = []
-
-        zero = tf.constant(0)
+        rows, cols = 7, 7
+        cell = tf.placeholder(dtype=tf.int32)
         row = cell[0]
         col = cell[1]
-        r_low = tf.max(0, row - 2)
-        r_hi = tf.min(self.rows - 1, row + 2)
-        c_low = tf.max(0, col - 2)
-        c_hi = tf.min(self.cols - 1, col + 2)
-        k = 7
-        at = tf.transpose(
-            tf.meshgrid(tf.range(k), tf.range(k), indexing="ij"),
-            perm=[1, 2, 0])
+        r_low = tf.maximum(0, row - 2)
+        r_hi = tf.minimum(rows - 1, row + 2)
+        c_low = tf.maximum(0, col - 2)
+        c_hi = tf.minimum(cols - 1, col + 2)
+
+        shape = tf.stack([rows + 2, cols + 2])
+        oh_idxs = tf.Variable(tf.fill(shape, False), validate_shape=False)
+        oh_idxs2 = oh_idxs[r_low: r_hi + 1, c_low: c_hi + 1].assign(True)
 
         cross1 = tf.cond(
-            tf.equal(tf.mod(col, 2), zero),
-            tf.subtract(row, 2),
-            tf.add(row, 2))
+            tf.equal(tf.mod(col, 2), 0),
+            lambda: tf.subtract(row, 2),
+            lambda: tf.add(row, 2))
         cross2 = tf.cond(
-            tf.equal(tf.mod(col, 2), zero),
-            tf.add(row, 2),
-            tf.subtract(row, 2))
+            tf.equal(tf.mod(col, 2), 0),
+            lambda: tf.add(row, 2),
+            lambda: tf.subtract(row, 2))
 
-        for r in range(r_low, r_hi + 1):
-            for c in range(c_low, c_hi + 1):
-                if not ((r, c) == (row, col) or
-                        (r, c) == (cross1, col - 2) or
-                        (r, c) == (cross1, col - 1) or
-                        (r, c) == (cross1, col + 1) or
-                        (r, c) == (cross1, col + 2) or
-                        (r, c) == (cross2, col - 2) or
-                        (r, c) == (cross2, col + 2)):
-                    idxs.append((r, c))
-        return idxs
+        # av2 = tf.scatter_nd_update(av, [[0, 0]], [True])
+        oh_idxs[row, col].assign(False)
+        oh_idxs[cross1, col - 2].assign(False)
+        oh_idxs[cross1, col - 1].assign(False)
+        oh_idxs[cross1, col + 1].assign(False)
+        oh_idxs[cross1, col + 2].assign(False)
+        oh_idxs[cross2, col - 2].assign(False)
+        oh_idxs[cross2, col + 2].assign(False)
 
-    # def get_free_chs(self, cell):
-    #     """
-    #     Find the channels that are free in 'cell' and all of
-    #     its neighbors by bitwise ORing all their allocation maps
-    #     """
-    #     neighs = self.neighbors2(*cell)
-    #     alloc_map = np.bitwise_or(
-    #         self.state[cell], self.state[neighs[0]])
-    #     for n in neighs[1:]:
-    #         alloc_map = np.bitwise_or(alloc_map, self.state[n])
-    #     free = np.where(alloc_map == 0)[0]
-    #     return free
+        idxs = tf.transpose(tf.where(oh_idxs))
+
+        init_op = tf.global_variables_initializer()
+        with tf.Session() as sess:
+            sess.run(init_op, {cell: (3, 3)})
+            print(sess.run([oh_idxs2, idxs], {cell: (3, 3)}))
+        # return idxs
 
     def backward(self, state, targets):
         """
