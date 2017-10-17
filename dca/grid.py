@@ -241,6 +241,39 @@ class Grid:
         else:
             return idxs
 
+    def neighbors2all(self):
+        # NOTE the results, i.e. np.arrays, do NOT
+        # index the same way as tuples
+        neighs2 = np.zeros((self.rows, self.cols, 18, 2), dtype=np.int32)
+        mask = np.zeros((self.rows, self.cols, 18), dtype=np.bool)
+        for row in range(self.rows):
+            for col in range(self.cols):
+                r_low = max(0, row - 2)
+                r_hi = min(self.rows - 1, row + 2)
+                c_low = max(0, col - 2)
+                c_hi = min(self.cols - 1, col + 2)
+                if col % 2 == 0:
+                    cross1 = row - 2
+                    cross2 = row + 2
+                else:
+                    cross1 = row + 2
+                    cross2 = row - 2
+                oh_idxs = np.zeros(
+                    (self.rows + 2, self.cols + 2), dtype=np.bool)
+                oh_idxs[r_low: r_hi + 1, c_low: c_hi + 1] = True
+
+                oh_idxs[row, col] = False
+                oh_idxs[cross1, col - 2] = False
+                oh_idxs[cross1, col - 1] = False
+                oh_idxs[cross1, col + 1] = False
+                oh_idxs[cross1, col + 2] = False
+                oh_idxs[cross2, col - 2] = False
+                oh_idxs[cross2, col + 2] = False
+                idxs = np.transpose(np.where(oh_idxs))
+                neighs2[row][col][:idxs.shape[0], :idxs.shape[1]] = idxs
+                mask[row][col][:idxs.shape[0]] = True
+        return (neighs2, mask)
+
     def get_free_chs(self, cell):
         """
         Find the channels that are free in 'cell' and all of

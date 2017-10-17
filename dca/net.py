@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-from eventgen import CEvent
 # Neighbors2
 # (3,3)
 # min row: 1
@@ -92,11 +91,15 @@ class Net2:
 
 class Net:
     def __init__(self, logger, n_out, alpha,
+                 neighs2, neighs2mask, rows=7, cols=7,
                  *args, **kwargs):
+        self.rows = rows
+        self.cols = cols
         self.n_out = n_out
         self.logger = logger
         tf.reset_default_graph()
-
+        self.neighs2 = tf.constant(neighs2)
+        self.neighs2mask = tf.constant(neighs2mask)
         self.inputs = tf.placeholder(shape=[1, 7, 7, 71], dtype=tf.float32)
         # conv1 = tf.layers.conv2d(
         #     inputs=self.inputs,
@@ -122,6 +125,7 @@ class Net:
         # Perhaps reducing call rates will increase difference between
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
+        # TODO Try encoding grid as +1/-1 instead of +1/0
         inputs_flat = tf.reshape(self.inputs, [-1, 7 * 7 * 71])
         self.Qout = tf.layers.dense(inputs=inputs_flat, units=70)
         self.argmaxQ = tf.argmax(self.Qout, axis=1)
@@ -134,9 +138,9 @@ class Net:
         # The best is probably to use AdamOptimizer which is out-of-the-box
         # adaptive, i.e. it controls the learning rate in some way.
         # NOTE Should the rate of learning rate decrease be set for alpha?
-        # trainer = tf.train.AdamOptimizer(learning_rate=alpha)
+        trainer = tf.train.AdamOptimizer(learning_rate=alpha)
         # trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
-        trainer = tf.train.RMSPropOptimizer(learning_rate=alpha)
+        # trainer = tf.train.RMSPropOptimizer(learning_rate=alpha)
         self.updateModel = trainer.minimize(loss)
 
         self.sess = tf.Session()
@@ -153,7 +157,7 @@ class Net:
             feed_dict={self.inputs: features})
         return action[0], qvals[0]
 
-    def forward_ch(self, ce_type, state, cell, features, neighs2=None):
+    def forward_ch(self, ce_type, state, cell, features):
         """
         Get the argmin (for END events) or argmax (for NEW/HOFF events) of
         the q-values for the given features. Only valid channels
@@ -162,9 +166,6 @@ class Net:
         tf_ce_type = tf.placeholder(shape=[1], dtype=tf.int32)
         tf_state = tf.placeholder(shape=[7, 7, 70], dtype=tf.bool)
         tf_cell = tf.placeholder(shape=[2], dtype=tf.int32)
-        tf_neighs2i = tf.placeholder(dtype=tf.int32)
-        if ce_type == CEvent.END:
-            neighs2 = np.zeros(0, dtype=np.int32)
         # tf_epsilon = tf.placeholder(shape=[1], dtype=tf.float32)
 
         region = tf.gather_nd(tf_state, tf_cell)
@@ -179,7 +180,8 @@ class Net:
 
         # Get the maximally valued channel that's free in this cell
         # and its neighbors within a radius of 2
-        tf_neighs2 = lambda: tf.gather_nd(tf_state, tf_neighs2i)
+        tf_neighs2i = lambda: self.neighbors2(cell)
+        tf_neighs2 = lambda: tf.gather_nd(tf_state, tf_neighs2i())
         tf_free_neighs = lambda: tf.reduce_any(tf_neighs2(), axis=0)
         tf_free = lambda: tf.logical_or(region, tf_free_neighs())
         tf_free_chs = lambda: tf.where(tf.logical_not(tf_free()))
@@ -210,7 +212,7 @@ class Net:
         ch, qvals = self.sess.run(
             [tf_ch, q_flat],
             {tf_state: state, tf_cell: cell,
-             self.inputs: features, tf_neighs2i: neighs2,
+             self.inputs: features,
              tf_ce_type: [ce_type.value]})
 
         # e-greedy
@@ -226,50 +228,6 @@ class Net:
         if ch == -1:
             ch = None
         return ch, qvals
-
-    def neighbors2(self):
-        """
-        Returns a list with indices of neighbors within a radius of 2,
-        not including self
-        """
-        rows, cols = 7, 7
-        cell = tf.placeholder(dtype=tf.int32)
-        row = cell[0]
-        col = cell[1]
-        r_low = tf.maximum(0, row - 2)
-        r_hi = tf.minimum(rows - 1, row + 2)
-        c_low = tf.maximum(0, col - 2)
-        c_hi = tf.minimum(cols - 1, col + 2)
-
-        shape = tf.stack([rows + 2, cols + 2])
-        oh_idxs = tf.Variable(tf.fill(shape, False), validate_shape=False)
-        oh_idxs2 = oh_idxs[r_low: r_hi + 1, c_low: c_hi + 1].assign(True)
-
-        cross1 = tf.cond(
-            tf.equal(tf.mod(col, 2), 0),
-            lambda: tf.subtract(row, 2),
-            lambda: tf.add(row, 2))
-        cross2 = tf.cond(
-            tf.equal(tf.mod(col, 2), 0),
-            lambda: tf.add(row, 2),
-            lambda: tf.subtract(row, 2))
-
-        # av2 = tf.scatter_nd_update(av, [[0, 0]], [True])
-        oh_idxs[row, col].assign(False)
-        oh_idxs[cross1, col - 2].assign(False)
-        oh_idxs[cross1, col - 1].assign(False)
-        oh_idxs[cross1, col + 1].assign(False)
-        oh_idxs[cross1, col + 2].assign(False)
-        oh_idxs[cross2, col - 2].assign(False)
-        oh_idxs[cross2, col + 2].assign(False)
-
-        idxs = tf.transpose(tf.where(oh_idxs))
-
-        init_op = tf.global_variables_initializer()
-        with tf.Session() as sess:
-            sess.run(init_op, {cell: (3, 3)})
-            print(sess.run([oh_idxs2, idxs], {cell: (3, 3)}))
-        # return idxs
 
     def backward(self, state, targets):
         """
@@ -296,6 +254,11 @@ class Net:
             W = np.random.randn(fan_in, fan_out) / np.sqrt(fan_in / 2)
             H = np.dot(X, W)
             Hs[i] = H
+
+    def neighbors2(self, cell):
+        return tf.boolean_mask(
+            tf.gather_nd(self.tneighs2, cell),
+            tf.gather_nd(self.tneighs2mask, cell))
 
     def save(self, filenam):
         """
