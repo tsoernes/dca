@@ -84,7 +84,7 @@ class Strat:
                     # instead of ending the call
                     if np.random.random() < self.p_handoff:
                         self.eventgen.event_new_handoff(
-                                t, cell, ch, self.grid.neighbors1(*cell))
+                            t, cell, ch, self.grid.neighbors1(*cell))
                     else:
                         # Generate call duration for call and add end event
                         self.eventgen.event_end(t, cell, ch)
@@ -113,7 +113,7 @@ class Strat:
                 self.stats.n_iter(self.epsilon, self.alpha)
 
         self.stats.end_episode(
-                np.count_nonzero(self.grid.state), self.epsilon, self.alpha)
+            np.count_nonzero(self.grid.state), self.epsilon, self.alpha)
         self.fn_after()
         if self.quit_sim and self.pp['hopt']:
             # Don't want to return block prob for incomplete sims when
@@ -209,6 +209,8 @@ class RLStrat(Strat):
 
         self.n_used = 0
         self.qval = 0
+        from net import NeighNet
+        self.net = NeighNet(**pp)
 
     def update_qval():
         raise NotImplementedError
@@ -240,9 +242,9 @@ class RLStrat(Strat):
             self.n_used, self.qval = next_n_used, next_qval
         if next_ce_type == CEvent.END and next_ch is None:
             self.logger.error(
-                    "'None' channel for end event"
-                    f" {ce_str(next_cevent)}"
-                    f" {np.where(self.grid.state[next_cell] == 1)}")
+                "'None' channel for end event"
+                f" {ce_str(next_cevent)}"
+                f" {np.where(self.grid.state[next_cell] == 1)}")
             raise Exception
         return next_ch
 
@@ -287,8 +289,20 @@ class RLStrat(Strat):
             # Choose greedily (either minimum or maximum)
             idx = op(self.get_qval(cell, n_used, chs))
             ch = chs[idx]
+
+        # Test Neighs2-Net
+        shouldbe_false = self.net.forwardback(
+            self.grid.state[:, :, ch], cell, 0)
+        self.logger.error(f"False?: {shouldbe_false}")
+        if n_used > 0:
+            ch2 = inuse[0]
+            shouldbe_true = self.net.forwardback(
+                self.grid.state[:, :, ch2], cell, 1)
+            self.logger.error(f"True?:  {shouldbe_true}")
+        # # #
+
         self.logger.debug(
-                f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+            f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
         return (n_used, ch)
 
@@ -300,7 +314,7 @@ class RLStrat(Strat):
         if ce_type == CEvent.END:
             end_ch = cevent[3]
             self.logger.debug(
-                    f"Reassigned cell {cell} ch {ch} to ch {end_ch}")
+                f"Reassigned cell {cell} ch {ch} to ch {end_ch}")
             assert self.grid.state[cell][end_ch] == 1
             assert self.grid.state[cell][ch] == 1
             if end_ch != ch:
@@ -363,10 +377,10 @@ class TT_SARSA(RLStrat):
         self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
 
     def get_qval(self, cell, n_used, ch):
-        return self.qvals[cell][min(self.k-1, n_used)][ch]
+        return self.qvals[cell][min(self.k - 1, n_used)][ch]
 
     def update_qval(self, cell, n_used, ch, td_err):
-        self.qvals[cell][min(self.k-1, n_used)][ch] += self.alpha * td_err
+        self.qvals[cell][min(self.k - 1, n_used)][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
 
@@ -404,7 +418,7 @@ class SARSAQNet(RLStrat):
         next_ce_type, next_cell = next_cevent[1], next_cevent[2]
         # Choose A' from S'
         next_n_used, next_ch, next_qvals = self.optimal_ch(
-                next_ce_type, next_cell)
+            next_ce_type, next_cell)
         # If there's no action to take, don't update q-value at all
         if next_ce_type != CEvent.END and next_ch is not None:
             # Observe reward from previous action
@@ -417,9 +431,9 @@ class SARSAQNet(RLStrat):
             self.n_used, self.qvals = next_n_used, next_qvals
         if next_ce_type == CEvent.END and next_ch is None:
             self.logger.error(
-                    "'None' channel for end event"
-                    f" {ce_str(next_cevent)}"
-                    f" {np.where(self.grid.state[next_cell] == 1)}")
+                "'None' channel for end event"
+                f" {ce_str(next_cevent)}"
+                f" {np.where(self.grid.state[next_cell] == 1)}")
             raise Exception
         return next_ch
 
@@ -461,7 +475,7 @@ class SARSAQNet(RLStrat):
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
         # TODO Why are END events always greedy??
-        if False and ce_type != CEvent.END and np.random.random() < self.epsilon:
+        if ce_type != CEvent.END and np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
         else:
@@ -476,19 +490,19 @@ class SARSAQNet(RLStrat):
                 raise Exception
 
             # Testing moving calculations to TF
-            ch2, qvals2 = self.net.forward_ch(
-                ce_type, self.grid.state, cell,
-                self.encode_state(cell, n_used),
-                self.grid.neighbors2(*cell))
-            if ch != ch2:
-                print("\n")
-                print(ch, ch2)
-                print(qvals[ch], qvals[ch2])
-                print((qvals == qvals2).all())
-            assert ch == ch2
+            # NOTE This is incredibly slow
+            # ch2, qvals2 = self.net.forward_ch(
+            #     ce_type, self.grid.state, cell,
+            #     self.encode_state(cell, n_used))
+            # if ch != ch2:
+            #     print("\n")
+            #     print(ch, ch2)
+            #     print(qvals[ch], qvals[ch2])
+            #     print((qvals == qvals2).all())
+            # assert ch == ch2
 
         self.logger.debug(
-                f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+            f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
         return (n_used, ch, qvals)
 
@@ -524,7 +538,7 @@ class SARSAQNet_idx_nused(SARSAQNet):
         self.net = Net(self.logger, 50, 70, self.alpha)
 
     def encode_state(self, cell, n_used):
-        state = np.identity(50)[(cell[0]+1)*(cell[1]+1)-1]
+        state = np.identity(50)[(cell[0] + 1) * (cell[1] + 1) - 1]
         state[49] = n_used
         state.shape = (1, 50)
         return state
@@ -540,26 +554,20 @@ class SARSAQNet_singh(SARSAQNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from net import Net
-        self.net = Net(self.logger, 70, self.alpha)
+        self.net = Net(
+            self.logger, self.n_channels,
+            self.alpha, *self.grid.neighbors2all())
 
-    def encode_state(self, cell, n_used):
-        # pos = np.identity(49)[(cell[0]+1)*(cell[1]+1)-1]
-        # all_n_used = np.zeros(49)
-        # for r in range(self.grid.rows):
-        #     for c in range(self.grid.cols):
-        #         all_n_used[(r+1)*(c+1)-1] = np.count_nonzero(
-        #                 self.grid.state[r][c])
-        # state1 = np.hstack((pos, all_n_used))
-        # neighs = set()
-        # for n in self.grid.neighbors2(*cell):
-        #     for nn in self.grid.neighbors1(*n):
-        #         neighs.add(nn)
-        # state.shape = (1, 2*49)
+    def encode_state(self, cell, n_used, empty_neg=True):
         pos = np.zeros((self.grid.rows, self.grid.cols))
         pos[cell] = 1
-        state = np.dstack((self.grid.state, pos))
-        state.shape = (1, 7, 7, 71)
-        return state
+        if empty_neg:
+            state = self.grid.state * 2 - 1
+        else:
+            state = self.grid.state
+        features = np.dstack((state, pos))
+        features.shape = (1, self.rows, self.cols, self.n_channels + 1)
+        return features
 
 
 # TODO verify the rl sim loop. is it correct?

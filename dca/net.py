@@ -101,43 +101,39 @@ class Net:
         self.neighs2 = tf.constant(neighs2)
         self.neighs2mask = tf.constant(neighs2mask)
         self.inputs = tf.placeholder(shape=[1, 7, 7, 71], dtype=tf.float32)
-        # conv1 = tf.layers.conv2d(
-        #     inputs=self.inputs,
-        #     filters=70,
-        #     kernel_size=4,
-        #     strides=2,
-        #     padding="same",  # pad with 0's
-        #     activation=tf.nn.relu)
-        # pool1 = tf.layers.max_pooling2d(
-        #     inputs=conv1, pool_size=2, strides=1)
-        # conv2 = tf.layers.conv2d(
-        #     inputs=pool1,
-        #     filters=140,
-        #     kernel_size=4,
-        #     padding="same",
-        #     activation=tf.nn.relu)
-        # # Dense Layer
-        # conv2_flat = tf.reshape(conv2, [-1, 3 * 3 * 140])
-        # dense = tf.layers.dense(
-        #         inputs=conv2_flat, units=256, activation=tf.nn.relu)
+        conv1 = tf.layers.conv2d(
+            inputs=self.inputs,
+            filters=70,
+            kernel_size=4,
+            strides=2,
+            padding="same",  # pad with 0's
+            activation=tf.nn.relu)
+        pool1 = tf.layers.max_pooling2d(
+            inputs=conv1, pool_size=2, strides=1)
+        conv2 = tf.layers.conv2d(
+            inputs=pool1,
+            filters=140,
+            kernel_size=4,
+            padding="same",
+            activation=tf.nn.relu)
+        # Dense Layer
+        conv2_flat = tf.reshape(conv2, [-1, 3 * 3 * 140])
+        dense = tf.layers.dense(
+            inputs=conv2_flat, units=256, activation=tf.nn.relu)
 
         # TODO verify that linear neural net performs better than random.
         # Perhaps reducing call rates will increase difference between
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
-        # TODO Try encoding grid as +1/-1 instead of +1/0
-        inputs_flat = tf.reshape(self.inputs, [-1, 7 * 7 * 71])
-        self.Qout = tf.layers.dense(inputs=inputs_flat, units=70)
+        # inputs_flat = tf.reshape(self.inputs, [-1, 7 * 7 * 71])
+        self.Qout = tf.layers.dense(inputs=dense, units=70)
         self.argmaxQ = tf.argmax(self.Qout, axis=1)
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
         self.targets = tf.placeholder(shape=[1, n_out], dtype=tf.float32)
         loss = tf.reduce_sum(tf.square(self.targets - self.Qout))
-        # GradientDescentOptimizer is designed to use a constant learning rate.
-        # The best is probably to use AdamOptimizer which is out-of-the-box
-        # adaptive, i.e. it controls the learning rate in some way.
-        # NOTE Should the rate of learning rate decrease be set for alpha?
+        # TODO check/test Adam hyperparams
         trainer = tf.train.AdamOptimizer(learning_rate=alpha)
         # trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=alpha)
@@ -208,7 +204,6 @@ class Net:
             tf_ch_min,
             tf_ch_max)
 
-        print(ce_type)
         ch, qvals = self.sess.run(
             [tf_ch, q_flat],
             {tf_state: state, tf_cell: cell,
@@ -257,14 +252,72 @@ class Net:
 
     def neighbors2(self, cell):
         return tf.boolean_mask(
-            tf.gather_nd(self.tneighs2, cell),
-            tf.gather_nd(self.tneighs2mask, cell))
+            tf.gather_nd(self.neighs2, cell),
+            tf.gather_nd(self.neighs2mask, cell))
 
     def save(self, filenam):
         """
         Save parameters to disk
         """
         pass
+
+
+class NeighNet:
+    def __init__(self,
+                 *args, **kwargs):
+        tf.reset_default_graph()
+        self.input_grid = tf.placeholder(
+            shape=[1, 7, 7, 1], dtype=tf.float16, name="input_grid")
+        self.input_cell = tf.placeholder(
+            shape=[1, 7, 7, 1], dtype=tf.float16, name="input_cell")
+        conv1 = tf.layers.conv2d(
+            inputs=self.input_grid,
+            filters=1,
+            kernel_size=5,
+            strides=1,
+            padding="same",  # pad with 0's
+            activation=tf.nn.relu)
+        stacked = tf.stack([conv1, self.input_cell], axis=4)
+        # Stacking on
+        # axis=1 yields shape: (1, 2, 7, 7, 1) -- same as multiple filters?
+        # axis=4 yields shape: (1, 7, 7, 1, 2)
+        stacked_flat = tf.contrib.layers.flatten(stacked)
+        dense = tf.layers.dense(
+            inputs=stacked_flat, units=1)
+        self.isfree = tf.sigmoid(dense)
+        self.target = tf.placeholder(
+            shape=[1, 1], dtype=tf.float16, name="target")
+        # loss = tf.reduce_sum(tf.square(self.target - self.isfree))
+        loss = tf.nn.sigmoid_cross_entropy_with_logits(
+            labels=self.target,
+            logits=dense)
+        trainer = tf.train.AdamOptimizer(learning_rate=0.01)
+        self.updateModel = trainer.minimize(loss)
+
+        self.sess = tf.Session()
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
+
+    def forwardback(self, chgrid, cell, target):
+        oh_cell = np.zeros((7, 7, 1), dtype=np.float16)
+        oh_cell[cell][0] = 1
+        oh_cell.shape = (1, 7, 7, 1)
+        chgridneg = chgrid
+        chgridneg.shape = (1, 7, 7, 1)
+        # np.set_printoptions(threshold=np.nan)
+        # print(oh_cell)
+        # print(chgridneg)
+        # print(targ)
+        isfree = self.sess.run(
+            self.isfree,
+            {self.input_grid: chgridneg,
+             self.input_cell: oh_cell})
+        self.sess.run(
+            self.updateModel,
+            {self.input_grid: chgridneg,
+             self.input_cell: oh_cell,
+             self.target: [[target]]})
+        return isfree[0][0]
 
 
 class PGNet(Net):
