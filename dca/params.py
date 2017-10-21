@@ -186,13 +186,13 @@ def non_uniform_preset(pp):
     so that the average call rate for a cell is 120 calls/hr.
     low is 1/3 of high; med is 2/3 of high.
     """
-    avg_cr = 120/60  # 120 calls/hr
-    patterns = ["mmmm"*5,
-                "lhlh"*5,
-                ("llh"*7)[:20],
-                ("hhl"*7)[:20],
-                ("lhl"*7)[:20],
-                ("hlh"*7)[:20]]
+    avg_cr = 120 / 60  # 120 calls/hr
+    patterns = ["mmmm" * 5,
+                "lhlh" * 5,
+                ("llh" * 7)[:20],
+                ("hhl" * 7)[:20],
+                ("lhl" * 7)[:20],
+                ("hlh" * 7)[:20]]
     pattern_call_rates = []
     for pattern in patterns:
         n_l = pattern.count('l')

@@ -263,40 +263,70 @@ class Net:
 
 
 class NeighNet:
-    def __init__(self,
-                 *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        tf.logging.set_verbosity(tf.logging.INFO)
         tf.reset_default_graph()
-        self.input_grid = tf.placeholder(
-            shape=[1, 7, 7, 1], dtype=tf.float16, name="input_grid")
-        self.input_cell = tf.placeholder(
-            shape=[1, 7, 7, 1], dtype=tf.float16, name="input_cell")
-        conv1 = tf.layers.conv2d(
-            inputs=self.input_grid,
-            filters=1,
-            kernel_size=5,
-            strides=1,
-            padding="same",  # pad with 0's
-            activation=tf.nn.relu)
-        stacked = tf.stack([conv1, self.input_cell], axis=4)
-        # Stacking on
-        # axis=1 yields shape: (1, 2, 7, 7, 1) -- same as multiple filters?
-        # axis=4 yields shape: (1, 7, 7, 1, 2)
-        stacked_flat = tf.contrib.layers.flatten(stacked)
-        dense = tf.layers.dense(
-            inputs=stacked_flat, units=1)
-        self.isfree = tf.sigmoid(dense)
-        self.target = tf.placeholder(
-            shape=[1, 1], dtype=tf.float16, name="target")
-        # loss = tf.reduce_sum(tf.square(self.target - self.isfree))
-        loss = tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=self.target,
-            logits=dense)
-        trainer = tf.train.AdamOptimizer(learning_rate=0.01)
-        self.updateModel = trainer.minimize(loss)
-
         self.sess = tf.Session()
         init = tf.global_variables_initializer()
         self.sess.run(init)
+
+    def build_model(self, features, labels, mode):
+        input_grid = features['input_grid']
+        input_cell = features['input_cell']
+        input_stacked = tf.concat([input_grid, input_cell], axis=3)
+        conv1even = tf.layers.conv2d(
+            inputs=input_stacked,
+            filters=1,
+            kernel_size=5,
+            strides=[1, 2],
+            padding="same",  # pad with 0's
+            activation=tf.nn.relu)
+        conv1odd = tf.layers.conv2d(
+            inputs=input_stacked[:, :, 1:],
+            filters=1,
+            kernel_size=5,
+            strides=[1, 2],
+            padding="same",  # pad with 0's
+            activation=tf.nn.relu)
+        # Pad to get same amount of even and odd columns, which allows for
+        # stacking
+        conv1odd_pad = tf.pad(conv1odd, [[0, 0], [0, 0], [0, 1], [0, 0]])
+        # Interleave even and odd columns to one array
+        conv1s = tf.stack((conv1even, conv1odd_pad), axis=3)
+        conv1 = tf.reshape(conv1s, [-1, 7, 8, 1])[:, :, :-1]  # Remove pad col
+
+        conv1_flat = tf.contrib.layers.flatten(conv1)
+        logits = tf.layers.dense(
+            inputs=conv1_flat, units=1)
+        # Probability of channel not being free for assignment,
+        # i.e. it is in use in cell or its neighs2
+        inuse = tf.nn.sigmoid(logits, name="sigmoid_tensor")
+        loss = tf.losses.sigmoid_cross_entropy(
+            labels,
+            logits=logits)
+        trainer = tf.train.AdamOptimizer(learning_rate=0.001)
+
+        predictions = {
+            "class": tf.greater(inuse, tf.constant(0.5)),
+            "probability": inuse
+        }
+
+        if mode == tf.estimator.ModeKeys.PREDICT:
+            return tf.estimator.EstimatorSpec(
+                mode=mode, predictions=predictions)
+        elif mode == tf.estimator.ModeKeys.TRAIN:
+            train_op = trainer.minimize(
+                loss=loss,
+                global_step=tf.train.get_global_step())
+            return tf.estimator.EstimatorSpec(
+                mode=mode, loss=loss, train_op=train_op)
+        elif mode == tf.estimator.ModeKeys.EVAL:
+            eval_metric_ops = {
+                "accuracy": tf.metrics.accuracy(
+                    labels=labels,
+                    predictions=predictions["class"])}
+            return tf.estimator.EstimatorSpec(
+                mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
     def forwardback(self, chgrid, cell, target):
         oh_cell = np.zeros((7, 7, 1), dtype=np.float16)
@@ -316,8 +346,61 @@ class NeighNet:
             self.updateModel,
             {self.input_grid: chgridneg,
              self.input_cell: oh_cell,
-             self.target: [[target]]})
+             self.targets: [[target]]})
         return isfree[0][0]
+
+    def train(self, data):
+        # Train on data, plot loss, success rate
+        # NOTE This data may not be any good, because there's no
+        # examples where the ch is free in cell but not free in
+        # neighs2
+        chgrids, cells, targets = zip(*data)
+        chgrids, targets = np.array(chgrids), np.array(targets)
+        oh_cells = np.zeros_like(chgrids)
+        for i, cell in enumerate(cells):
+            oh_cells[i][cell] = 1
+        chgrids.shape, oh_cells.shape = (-1, 7, 7, 1), (-1, 7, 7, 1)
+        chgridsneg = chgrids * 2 - 1
+        targets.shape = (-1, 1)
+        chgridsneg = chgridsneg.astype(np.float32)
+        oh_cells = oh_cells.astype(np.float32)
+        targets = targets.astype(np.float32)
+        split = -10000
+        train_data = {"input_grid": chgridsneg[:split],
+                      "input_cell": oh_cells[:split]}
+        test_data = {"input_grid": chgridsneg[split:],
+                     "input_cell": oh_cells[split:]}
+
+        # model/neighsnet:
+        # {'accuracy': 0.88459998, 'loss': 0.33509377, 'global_step': 220000}
+        classifier = tf.estimator.Estimator(
+            model_fn=self.build_model, model_dir="model/neighsnetalt")
+        # NOTE Does this make sense to log?
+        # Probability of a channel being in use?
+        # What does the MNIST code log?
+        tensors_to_log = {"probability": "sigmoid_tensor"}
+        logging_hook = tf.train.LoggingTensorHook(
+            tensors=tensors_to_log, every_n_iter=2000)
+        # Train the model
+        train_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=train_data,
+            y=targets[:split],
+            batch_size=100,
+            num_epochs=None,
+            shuffle=True)
+        classifier.train(
+            input_fn=train_input_fn,
+            steps=50000,
+            hooks=[logging_hook])
+
+        # Evaluate the model and print results
+        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=test_data,
+            y=targets[split:],
+            num_epochs=1,
+            shuffle=False)
+        eval_results = classifier.evaluate(input_fn=eval_input_fn)
+        print(eval_results)
 
 
 class PGNet(Net):
@@ -344,3 +427,11 @@ class RSPolicyNet(Net):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+if __name__ == "__main__":
+    n = NeighNet()
+    import pickle
+    with open("neighdata", "rb") as f:
+        data = pickle.load(f)
+    n.train(data)

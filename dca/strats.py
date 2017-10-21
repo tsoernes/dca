@@ -4,6 +4,7 @@ from stats import Stats
 import signal
 import sys
 import inspect
+import pickle
 
 import numpy as np
 
@@ -45,6 +46,7 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
+        # pickle.dump(self.neigh_data, open("neighdata", "wb"))
         return self.stats.block_prob_tot
 
     def _simulate(self):
@@ -209,8 +211,10 @@ class RLStrat(Strat):
 
         self.n_used = 0
         self.qval = 0
-        from net import NeighNet
-        self.net = NeighNet(**pp)
+        # from net import NeighNet
+        # self.net = NeighNet(**pp)
+        # self.neigh_data = []
+        self.iter = 0
 
     def update_qval():
         raise NotImplementedError
@@ -291,14 +295,17 @@ class RLStrat(Strat):
             ch = chs[idx]
 
         # Test Neighs2-Net
-        shouldbe_false = self.net.forwardback(
-            self.grid.state[:, :, ch], cell, 0)
-        self.logger.error(f"False?: {shouldbe_false}")
-        if n_used > 0:
-            ch2 = inuse[0]
-            shouldbe_true = self.net.forwardback(
-                self.grid.state[:, :, ch2], cell, 1)
-            self.logger.error(f"True?:  {shouldbe_true}")
+        # TODO test the pre-trained net and verify that results give ~90 %
+        # accuray. Then try dual offset convolutions for even/odd columns.
+        # That should give 100 %.
+
+        # Save n2 data
+        # self.neigh_data.append(
+        #     (self.grid.state[:, :, ch], cell, 0))
+        # if n_used > 0:
+        #     ch2 = inuse[0]
+        #     self.neigh_data.append(
+        #         (self.grid.state[:, :, ch2], cell, 1))
         # # #
 
         self.logger.debug(

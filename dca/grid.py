@@ -356,6 +356,78 @@ class Grid:
             first_row_center = center
 
 
+class ARGrid(Grid):
+    "Rhombus grid with axial coordinates"
+    def __init__(self, rows, cols, n_channels, logger,
+                 *args, **kwargs):
+        self.rows = rows
+        self.cols = cols
+        self.n_channels = n_channels
+        self.logger = logger
+
+        self.state = np.zeros(
+            (self.rows, self.cols, self.n_channels), dtype=bool)
+
+    @staticmethod
+    def neighbors1sparse(row, col):
+        """
+        Returns a list with indexes of neighbors within a radius of 1,
+        not including self. The indexes may not be within grid.
+        In clockwise order starting from north.
+        """
+        raise NotImplementedError
+
+    @functools.lru_cache(maxsize=None)
+    def neighbors1(self, row, col):
+        """
+        Returns a list with indexes of neighbors within a radius of 1,
+        not including self
+        """
+        idxs = []
+        r_low = max(0, row - 1)
+        r_hi = min(self.rows - 1, row + 1)
+        c_low = max(0, col - 1)
+        c_hi = min(self.cols - 1, col + 1)
+        for r in range(r_low, r_hi + 1):
+            for c in range(c_low, c_hi + 1):
+                if not ((r, c) == (row - 1, col - 1) or
+                        (r, c) == (col + 1, col + 1) or
+                        (r, c) == (row, col)):
+                    idxs.append((r, c))
+        return idxs
+
+    @functools.lru_cache(maxsize=None)
+    def neighbors2(self, row, col):
+        """
+        If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),
+        else return [(r1, c1), (r2, c2), ...]
+
+        Returns a list with indices of neighbors within a radius of 2,
+        not including self
+        """
+        idxs = []
+
+        r_low = max(0, row - 2)
+        r_hi = min(self.rows - 1, row + 2)
+        c_low = max(0, col - 2)
+        c_hi = min(self.cols - 1, col + 2)
+        for r in range(r_low, r_hi + 1):
+            for c in range(c_low, c_hi + 1):
+                if not ((r, c) == (row, col) or
+                        (r, c) == (row - 2, col - 2) or
+                        (r, c) == (row - 2, col - 1) or
+                        (r, c) == (row - 1, col - 2) or
+                        (r, c) == (row + 1, col + 2) or
+                        (r, c) == (row + 2, col + 1) or
+                        (r, c) == (row + 2, col + 2)):
+                    idxs.append((r, c))
+        return idxs
+
+    def _partition_cells(self):
+        # Perhaps super func still works
+        raise NotImplementedError
+
+
 class FixedGrid(Grid):
     def __init__(self, n_nom_channels=0, *args, **kwargs):
         super().__init__(*args, **kwargs)

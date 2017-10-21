@@ -1,6 +1,5 @@
 from gui import Gui
-from grid import Grid, FixedGrid
-import strats
+from grid import Grid, FixedGrid, RAGrid
 from strats import FixedAssign, strat_classes
 from params import get_pparams, sample_params, sample_gamma
 
@@ -42,7 +41,7 @@ class Runner:
     def test_params(self):
         gridclass, stratclass = self.get_class(self.pp)
         simproc = partial(
-                self.sim_proc, gridclass, stratclass, self.pp, do_sample=True)
+            self.sim_proc, gridclass, stratclass, self.pp, do_sample=True)
         with Pool() as p:
             p.map(simproc, range(self.pp['param_iters']))
 
@@ -51,7 +50,7 @@ class Runner:
         n_eps = self.pp['avg_runs']
         gridclass, stratclass = self.get_class(self.pp)
         simproc = partial(
-                self.sim_proc, gridclass, stratclass, self.pp)
+            self.sim_proc, gridclass, stratclass, self.pp)
         with Pool(1) as p:
             results = p.map(simproc, range(n_eps))
         n_events = self.pp['n_events']
@@ -72,7 +71,7 @@ class Runner:
         stratcls = strat_classes()
         for name, cls in stratcls:
             if s == name.lower():
-                return(Grid, cls)
+                return(RAGrid, cls)
 
     def run(self):
         gridclass, stratclass = self.get_class(self.pp)
@@ -156,7 +155,7 @@ class Runner:
                 fn=f,
                 space=space,
                 algo=tpe.suggest,
-                max_evals=n_trials+trials_step,
+                max_evals=n_trials + trials_step,
                 trials=trials,
             )
             if prev_best != best:
