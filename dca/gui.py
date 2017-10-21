@@ -32,7 +32,7 @@ class Hexagon:
 
         if top == "pointy":
             self.start_angle = 30
-        elif self.top == "flat":
+        elif top == "flat":
             self.start_angle = 0
 
         self.shape = None
@@ -131,6 +131,7 @@ class HexagonGrid(Frame):
                     self.can.create_text(
                         c * (size * 1.5) + (size),
                         (r * (size * sqrt(3))) + offset + (size / 3),
+                        font=("Arial", 16, "bold"),
                         text=coords)
             self.hexagons.append(hxs)
 

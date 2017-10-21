@@ -274,27 +274,13 @@ class NeighNet:
         input_grid = features['input_grid']
         input_cell = features['input_cell']
         input_stacked = tf.concat([input_grid, input_cell], axis=3)
-        conv1even = tf.layers.conv2d(
+        conv1 = tf.layers.conv2d(
             inputs=input_stacked,
             filters=1,
             kernel_size=5,
-            strides=[1, 2],
+            strides=1,
             padding="same",  # pad with 0's
             activation=tf.nn.relu)
-        conv1odd = tf.layers.conv2d(
-            inputs=input_stacked[:, :, 1:],
-            filters=1,
-            kernel_size=5,
-            strides=[1, 2],
-            padding="same",  # pad with 0's
-            activation=tf.nn.relu)
-        # Pad to get same amount of even and odd columns, which allows for
-        # stacking
-        conv1odd_pad = tf.pad(conv1odd, [[0, 0], [0, 0], [0, 1], [0, 0]])
-        # Interleave even and odd columns to one array
-        conv1s = tf.stack((conv1even, conv1odd_pad), axis=3)
-        conv1 = tf.reshape(conv1s, [-1, 7, 8, 1])[:, :, :-1]  # Remove pad col
-
         conv1_flat = tf.contrib.layers.flatten(conv1)
         logits = tf.layers.dense(
             inputs=conv1_flat, units=1)
@@ -304,7 +290,7 @@ class NeighNet:
         loss = tf.losses.sigmoid_cross_entropy(
             labels,
             logits=logits)
-        trainer = tf.train.AdamOptimizer(learning_rate=0.001)
+        trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
 
         predictions = {
             "class": tf.greater(inuse, tf.constant(0.5)),
@@ -349,6 +335,26 @@ class NeighNet:
              self.targets: [[target]]})
         return isfree[0][0]
 
+    def verify_data(self, chgrids, cells, targets):
+        from grid import RhombAxGrid
+        for i in range(0, len(chgrids)):
+            chgrid = chgrids[i]
+            cell = cells[i]
+            neighs2 = RhombAxGrid.neighbors2(*cell)
+            inuse = np.bitwise_or(chgrid[cell], chgrid[neighs2[0]])
+            for n in neighs2[1:]:
+                inuse = np.bitwise_or(inuse, chgrid[n])
+            if not inuse == targets[i]:
+                print(i)
+                print(chgrid)
+                print(chgrid[cell])
+                print(cell)
+                print(neighs2)
+                print("Target: ", targets[i])
+                print("Actual: ", inuse)
+                raise Exception
+        print("\nDATA OK\n")
+
     def train(self, data):
         # Train on data, plot loss, success rate
         # NOTE This data may not be any good, because there's no
@@ -356,6 +362,7 @@ class NeighNet:
         # neighs2
         chgrids, cells, targets = zip(*data)
         chgrids, targets = np.array(chgrids), np.array(targets)
+        self.verify_data(chgrids, cells, targets)
         oh_cells = np.zeros_like(chgrids)
         for i, cell in enumerate(cells):
             oh_cells[i][cell] = 1
@@ -374,7 +381,7 @@ class NeighNet:
         # model/neighsnet:
         # {'accuracy': 0.88459998, 'loss': 0.33509377, 'global_step': 220000}
         classifier = tf.estimator.Estimator(
-            model_fn=self.build_model, model_dir="model/neighsnetalt")
+            model_fn=self.build_model, model_dir="model/neighsnet-rhomb")
         # NOTE Does this make sense to log?
         # Probability of a channel being in use?
         # What does the MNIST code log?
@@ -431,7 +438,8 @@ class RSPolicyNet(Net):
 
 if __name__ == "__main__":
     n = NeighNet()
-    import pickle
-    with open("neighdata", "rb") as f:
-        data = pickle.load(f)
+    # import pickle
+    # with open("neighdata-rhomb", "rb") as f:
+    #     data = pickle.load(f)
+    data = np.load("neighdata-rhomb.npy")
     n.train(data)

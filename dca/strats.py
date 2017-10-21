@@ -1,5 +1,6 @@
 from eventgen import EventGen, CEvent, ce_str
 from stats import Stats
+from grid import RhombAxGrid
 
 import signal
 import sys
@@ -46,7 +47,8 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
-        # pickle.dump(self.neigh_data, open("neighdata", "wb"))
+        # pickle.dump(self.neigh_data, open("neighdata-rhomb", "wb"))
+        np.save("neighdata-rhomb", np.array(self.neigh_data))
         return self.stats.block_prob_tot
 
     def _simulate(self):
@@ -213,7 +215,7 @@ class RLStrat(Strat):
         self.qval = 0
         # from net import NeighNet
         # self.net = NeighNet(**pp)
-        # self.neigh_data = []
+        self.neigh_data = []
         self.iter = 0
 
     def update_qval():
@@ -282,7 +284,8 @@ class RLStrat(Strat):
         if len(chs) == 0:
             # No channels available for assignment,
             # or no channels in use to reassign
-            return (None, None)
+            assert ce_type != CEvent.END
+            return (n_used, None)
 
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
@@ -296,16 +299,27 @@ class RLStrat(Strat):
 
         # Test Neighs2-Net
         # TODO test the pre-trained net and verify that results give ~90 %
-        # accuray. Then try dual offset convolutions for even/odd columns.
+        # accuracy. Then try dual offset convolutions for even/odd columns.
         # That should give 100 %.
 
+        if ce_type == CEvent.END:
+            val = 1
+        else:
+            val = 0
+        self.neigh_data.append(
+            (np.copy(self.grid.state[:, :, ch]), cell, val))
         # Save n2 data
-        # self.neigh_data.append(
-        #     (self.grid.state[:, :, ch], cell, 0))
+        # neighs2 = self.grid.neighbors2(*cell)
+        # neighi = np.random.randint(0, len(neighs2))
+        # inuseneigh = np.nonzero(self.grid.state[neighs2[neighi]])[0]
+        # if len(inuseneigh) > 0:
+            # ch2 = inuseneigh[0]
+            # self.neigh_data.append(
+            #     (self.grid.state[:, :, ch2], cell, 1))
         # if n_used > 0:
-        #     ch2 = inuse[0]
-        #     self.neigh_data.append(
-        #         (self.grid.state[:, :, ch2], cell, 1))
+            # ch2 = inuse[0]
+            # self.neigh_data.append(
+#                 (self.grid.state[:, :, ch2], cell, 1))
         # # #
 
         self.logger.debug(
