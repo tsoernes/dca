@@ -28,16 +28,21 @@ class Grid:
         self._partition_cells()
 
     def print_cell(self, r, c):
-        print(np.where(self.state[r][c] == 1))
+        print(f"Cell ({r}, {c}): {np.where(self.state[r][c] == 1)}")
+
+    def print_neighs(self, row, col):
+        print(f"Cell ({row}, {col})"
+              f"\nNeighs1: {self.neighbors1(row, col)}"
+              f"\nNeighs1sparse: {self.neighbors1sparse(row, col)}"
+              f"\nNeighs2: {self.neighbors2(row, col)}")
 
     def print_neighs2(self, row, col):
         """
         Show all the channels for the given cell and its neighbors
         """
-        print(f"\n{row}, {col}: {np.where(self.state[row][col]==1)}")
+        self.print_cell(row, col)
         for neigh in self.neighbors2(row, col):
-            print(
-                f"\n{neigh}: {np.where(self.state[neigh]==1)}")
+            print(f"\n{neigh}: {np.where(self.state[neigh]==1)}")
 
     def __str__(self):
         strstate = ""
@@ -358,24 +363,23 @@ class Grid:
 
 class ARGrid(Grid):
     "Rhombus grid with axial coordinates"
-    def __init__(self, rows, cols, n_channels, logger,
-                 *args, **kwargs):
-        self.rows = rows
-        self.cols = cols
-        self.n_channels = n_channels
-        self.logger = logger
-
-        self.state = np.zeros(
-            (self.rows, self.cols, self.n_channels), dtype=bool)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     @staticmethod
     def neighbors1sparse(row, col):
         """
         Returns a list with indexes of neighbors within a radius of 1,
         not including self. The indexes may not be within grid.
-        In clockwise order starting from north.
         """
-        raise NotImplementedError
+        idxs = []
+        for r in range(row - 1, row + 2):
+            for c in range(col - 1, col + 2):
+                if not ((r, c) == (row - 1, col - 1) or
+                        (r, c) == (row + 1, col + 1) or
+                        (r, c) == (row, col)):
+                    idxs.append((r, c))
+        return idxs
 
     @functools.lru_cache(maxsize=None)
     def neighbors1(self, row, col):
@@ -391,13 +395,13 @@ class ARGrid(Grid):
         for r in range(r_low, r_hi + 1):
             for c in range(c_low, c_hi + 1):
                 if not ((r, c) == (row - 1, col - 1) or
-                        (r, c) == (col + 1, col + 1) or
+                        (r, c) == (row + 1, col + 1) or
                         (r, c) == (row, col)):
                     idxs.append((r, c))
         return idxs
 
     @functools.lru_cache(maxsize=None)
-    def neighbors2(self, row, col):
+    def neighbors2(self, row, col, separate=False):
         """
         If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),
         else return [(r1, c1), (r2, c2), ...]
@@ -405,7 +409,11 @@ class ARGrid(Grid):
         Returns a list with indices of neighbors within a radius of 2,
         not including self
         """
-        idxs = []
+        if separate:
+            rs = []
+            cs = []
+        else:
+            idxs = []
 
         r_low = max(0, row - 2)
         r_hi = min(self.rows - 1, row + 2)
@@ -420,12 +428,37 @@ class ARGrid(Grid):
                         (r, c) == (row + 1, col + 2) or
                         (r, c) == (row + 2, col + 1) or
                         (r, c) == (row + 2, col + 2)):
-                    idxs.append((r, c))
-        return idxs
+                    if separate:
+                        rs.append(r)
+                        cs.append(c)
+                    else:
+                        idxs.append((r, c))
+        if separate:
+            return [rs, cs]
+        else:
+            return idxs
 
     def _partition_cells(self):
-        # Perhaps super func still works
-        raise NotImplementedError
+        """
+        Partition cells into 7 lots such that the minimum distance
+        between cells with the same label ([0..6]) is at least 2
+        (which corresponds to a minimum reuse distance of 3).
+
+        Returns an n*m array with the label for each cell.
+        """
+        def label(l, y, x):
+            # A center and some part of its subgrid may be out of bounds.
+            if (x >= 0 and x < self.cols and y >= 0 and y < self.rows):
+                self.labels[y][x] = l
+
+        centers = [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8),
+                   (3, -1), (4, 1), (5, 3), (6, 5), (7, 7),
+                   (-1, 5), (7, 0), (0, 7)]
+        for center in centers:
+            label(0, *center)
+            for i, neigh in enumerate(
+                    self.neighbors1sparse(*center)):
+                label(i + 1, *neigh)
 
 
 class FixedGrid(Grid):

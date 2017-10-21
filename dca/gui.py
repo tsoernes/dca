@@ -11,7 +11,8 @@ label_colors = [
 
 
 class Hexagon:
-    def __init__(self, parent, x, y, length, color, outline="gray", tags=""):
+    def __init__(self, parent, x, y, length, color, outline="gray",
+                 top="pointy", tags=""):
         '''
         :param Tk parent
         :param int x: Top left x coordinate
@@ -29,6 +30,11 @@ class Hexagon:
         self.tags = tags
         self.selected = False
 
+        if top == "pointy":
+            self.start_angle = 30
+        elif self.top == "flat":
+            self.start_angle = 0
+
         self.shape = None
         self.draw()
 
@@ -38,8 +44,9 @@ class Hexagon:
         angle = 60
         coords = []
         for i in range(6):
-            end_x = start_x + self.length * cos(radians(angle * i))
-            end_y = start_y + self.length * sin(radians(angle * i))
+            angl = radians(self.start_angle + angle * i)
+            end_x = start_x + self.length * cos(angl)
+            end_y = start_y + self.length * sin(angl)
             coords.append([start_x, start_y])
             start_x = end_x
             start_y = end_y
@@ -58,7 +65,8 @@ class HexagonGrid(Frame):
                  color="#a1e2a1",
                  marked_color="#000000",
                  bg="#a1e2a1",
-                 show_coords=False,
+                 show_coords=True,
+                 shape="rhomb",
                  *args, **kwargs):
         '''
         :param Tk parent
@@ -72,24 +80,34 @@ class HexagonGrid(Frame):
         :param bg: Background color
         '''
         Frame.__init__(self, parent)
-        self.left_offset = size / 2
-        self.top_offset = 1
-        width = size * cols + (cols + 1) * size / 2
-        height = (rows + 1 / 2) * sqrt(3) * size + self.top_offset
-        self.can = Canvas(self, width=width, height=height, bg=bg)
-        self.can.pack()
-
         self.labels = labels
         self.color = color
         self.marked_color = marked_color
         self.cell_printer = cell_printer
 
         self.hexagons = []
-        self.initGrid(rows, cols, size, show_coords)
+        if shape == "rect":
+            self.left_offset = size / 2
+            self.top_offset = 1
+            width = size * cols + (cols + 1) * size / 2
+            height = (rows + 1 / 2) * sqrt(3) * size + self.top_offset
+            self.can = Canvas(self, width=width, height=height, bg=bg)
+            self.init_grid_rect(rows, cols, size, show_coords)
+        elif shape == "rhomb":
+            self.left_offset = size
+            self.top_offset = 1
+            width = sqrt(3) * size * (rows + cols / 2)
+            height = (rows + 1 / 2) * 1.5 * size + self.top_offset
+            self.can = Canvas(self, width=width, height=height, bg=bg)
+            self.init_grid_rhomb(rows, cols, size, show_coords)
+        else:
+            print(f"Invalid shape {shape}")
+            raise Exception
 
+        self.can.pack()
         self.can.bind("<Button-1>", self.onclick)
 
-    def initGrid(self, rows, cols, size, show_coords):
+    def init_grid_rect(self, rows, cols, size, show_coords):
         for r in range(rows):
             hxs = []
             for c in range(cols):
@@ -104,6 +122,7 @@ class HexagonGrid(Frame):
                     (r * (size * sqrt(3))) + offset + self.top_offset,
                     size,
                     color=label_colors[label],
+                    top="flat",
                     tags="{},{}-{}".format(r, c, label))
                 hxs.append(h)
 
@@ -113,6 +132,32 @@ class HexagonGrid(Frame):
                         c * (size * 1.5) + (size),
                         (r * (size * sqrt(3))) + offset + (size / 3),
                         text=coords)
+            self.hexagons.append(hxs)
+
+    def init_grid_rhomb(self, rows, cols, size, show_coords):
+        col_offset = 0
+        for r in range(rows):
+            hxs = []
+            for c in range(cols):
+                label = self.labels[r][c]
+                h = Hexagon(
+                    self.can,
+                    c * (size * sqrt(3)) + col_offset + self.left_offset,
+                    (r * (size * 1.5)) + self.top_offset,
+                    size,
+                    color=label_colors[label],
+                    top="pointy",
+                    tags="{},{}-{}".format(r, c, label))
+                hxs.append(h)
+
+                if show_coords:
+                    coords = "{}, {}".format(r, c)
+                    self.can.create_text(
+                        c * (size * sqrt(3)) + size + col_offset,
+                        (r * (size * 1.5)) + size / 3,
+                        text=coords,
+                        font=("Arial", 16, "bold"))
+            col_offset += size * sqrt(3) / 2
             self.hexagons.append(hxs)
 
     def onclick(self, evt):
@@ -143,12 +188,12 @@ class HexagonGrid(Frame):
 
 
 class Gui:
-    def __init__(self, grid, exit_handler, cell_printer):
+    def __init__(self, grid, exit_handler, cell_printer, shape="rhomb"):
         self.grid = grid
         self.root = Tk()
         self.hgrid = HexagonGrid(
-                self.root, grid.rows, grid.cols,
-                grid.labels, cell_printer, show_coords=True)
+            self.root, grid.rows, grid.cols,
+            grid.labels, cell_printer, show_coords=True, shape=shape)
         # Call 'keydown' func for graceful exit on 'q' key
         # or on window close
         self.root.bind("q", exit_handler)
@@ -163,6 +208,7 @@ class Gui:
         self.root.mainloop()
 
     def neighs(self, radius=1, grayscale=False):
+        raise NotImplementedError
         x, y = 4, 4
         neighs = [(x, y)]
         if radius == 1:
@@ -187,6 +233,6 @@ class Gui:
 # the more busy a cell is, the darker/denser its color
 if __name__ == '__main__':
     g = Grid(7, 7, 70)
-    gui = Gui(g, None)
+    gui = Gui(g, None, "rhomb")
     gui.neighs(1)
     gui.test()

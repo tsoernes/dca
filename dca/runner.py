@@ -1,5 +1,5 @@
 from gui import Gui
-from grid import Grid, FixedGrid, RAGrid
+from grid import Grid, FixedGrid, ARGrid
 from strats import FixedAssign, strat_classes
 from params import get_pparams, sample_params, sample_gamma
 
@@ -71,7 +71,7 @@ class Runner:
         stratcls = strat_classes()
         for name, cls in stratcls:
             if s == name.lower():
-                return(RAGrid, cls)
+                return(ARGrid, cls)
 
     def run(self):
         gridclass, stratclass = self.get_class(self.pp)
@@ -104,8 +104,8 @@ class Runner:
         return result
 
     def show(self):
-        grid = FixedGrid(logger=self.logger, **self.pp)
-        gui = Gui(grid, self.logger)
+        grid = ARGrid(logger=self.logger, **self.pp)
+        gui = Gui(grid, self.logger, grid.print_neighs)
         gui.test()
 
     def hopt(self, net=True):
