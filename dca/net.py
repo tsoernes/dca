@@ -270,6 +270,9 @@ class NeighNet:
         init = tf.global_variables_initializer()
         self.sess.run(init)
 
+        self.classifier = tf.estimator.Estimator(
+            model_fn=self.build_model, model_dir="model/neighsnet-rhomb")
+
     def build_model(self, features, labels, mode):
         input_grid = features['input_grid']
         input_cell = features['input_cell']
@@ -287,11 +290,7 @@ class NeighNet:
         # Probability of channel not being free for assignment,
         # i.e. it is in use in cell or its neighs2
         inuse = tf.nn.sigmoid(logits, name="sigmoid_tensor")
-        loss = tf.losses.sigmoid_cross_entropy(
-            labels,
-            logits=logits)
-        trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
-
+        self.pred_class = tf.greater(inuse, tf.constant(0.5))
         predictions = {
             "class": tf.greater(inuse, tf.constant(0.5)),
             "probability": inuse
@@ -300,7 +299,13 @@ class NeighNet:
         if mode == tf.estimator.ModeKeys.PREDICT:
             return tf.estimator.EstimatorSpec(
                 mode=mode, predictions=predictions)
-        elif mode == tf.estimator.ModeKeys.TRAIN:
+
+        loss = tf.losses.sigmoid_cross_entropy(
+            multi_class_labels=labels,
+            logits=logits)
+        trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
+
+        if mode == tf.estimator.ModeKeys.TRAIN:
             train_op = trainer.minimize(
                 loss=loss,
                 global_step=tf.train.get_global_step())
@@ -314,26 +319,14 @@ class NeighNet:
             return tf.estimator.EstimatorSpec(
                 mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
-    def forwardback(self, chgrid, cell, target):
-        oh_cell = np.zeros((7, 7, 1), dtype=np.float16)
-        oh_cell[cell][0] = 1
-        oh_cell.shape = (1, 7, 7, 1)
-        chgridneg = chgrid
-        chgridneg.shape = (1, 7, 7, 1)
-        # np.set_printoptions(threshold=np.nan)
-        # print(oh_cell)
-        # print(chgridneg)
-        # print(targ)
-        isfree = self.sess.run(
-            self.isfree,
-            {self.input_grid: chgridneg,
-             self.input_cell: oh_cell})
-        self.sess.run(
-            self.updateModel,
-            {self.input_grid: chgridneg,
-             self.input_cell: oh_cell,
-             self.targets: [[target]]})
-        return isfree[0][0]
+    def forward(self, chgrid, cell):
+        cg, ce, _ = self.prep_data(chgrid, cell)
+        pred_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x={"input_grid": cg, "input_cell": ce},
+            shuffle=False)
+        preds = self.classifier.predict(input_fn=pred_input_fn)
+        prediction = list(p["class"][0] for p in preds)
+        return prediction[0]
 
     def verify_data(self, chgrids, cells, targets):
         from grid import RhombAxGrid
@@ -355,59 +348,76 @@ class NeighNet:
                 raise Exception
         print("\nDATA OK\n")
 
-    def train(self, data):
-        # Train on data, plot loss, success rate
+    def prep_data(self, chgrids, cells, targets=None):
+        chgrids = np.array(chgrids)
+        oh_cells = np.zeros_like(chgrids)
+        # One-hot grid encoding
+        for i, cell in enumerate(cells):
+            oh_cells[i][cell] = 1
+        chgrids.shape = (-1, 7, 7, 1)
+        oh_cells.shape = (-1, 7, 7, 1)
+        chgridsneg = chgrids * 2 - 1  # Make empty cells -1 instead of 0
+        if targets:
+            targets = np.array(targets)
+            targets.shape = (-1, 1)
+            targets = targets.astype(np.float32)
+        chgridsneg = chgridsneg.astype(np.float32)
+        oh_cells = oh_cells.astype(np.float32)
+        return chgridsneg, oh_cells, targets
+
+    def train(self, do_train=True):
+        data = np.load("neighdata-rhomb2.npy")
         # NOTE This data may not be any good, because there's no
         # examples where the ch is free in cell but not free in
         # neighs2
         chgrids, cells, targets = zip(*data)
-        chgrids, targets = np.array(chgrids), np.array(targets)
-        self.verify_data(chgrids, cells, targets)
-        oh_cells = np.zeros_like(chgrids)
-        for i, cell in enumerate(cells):
-            oh_cells[i][cell] = 1
-        chgrids.shape, oh_cells.shape = (-1, 7, 7, 1), (-1, 7, 7, 1)
-        chgridsneg = chgrids * 2 - 1
-        targets.shape = (-1, 1)
-        chgridsneg = chgridsneg.astype(np.float32)
-        oh_cells = oh_cells.astype(np.float32)
-        targets = targets.astype(np.float32)
+        chgridsneg, oh_cells, targets = self.prep_data(chgrids, cells, targets)
+        # self.verify_data(chgrids, cells, targets)
         split = -10000
         train_data = {"input_grid": chgridsneg[:split],
                       "input_cell": oh_cells[:split]}
         test_data = {"input_grid": chgridsneg[split:],
                      "input_cell": oh_cells[split:]}
+        test_targets = targets[split:]
 
-        # model/neighsnet:
-        # {'accuracy': 0.88459998, 'loss': 0.33509377, 'global_step': 220000}
-        classifier = tf.estimator.Estimator(
-            model_fn=self.build_model, model_dir="model/neighsnet-rhomb")
-        # NOTE Does this make sense to log?
-        # Probability of a channel being in use?
-        # What does the MNIST code log?
-        tensors_to_log = {"probability": "sigmoid_tensor"}
-        logging_hook = tf.train.LoggingTensorHook(
-            tensors=tensors_to_log, every_n_iter=2000)
         # Train the model
-        train_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=train_data,
-            y=targets[:split],
-            batch_size=100,
-            num_epochs=None,
-            shuffle=True)
-        classifier.train(
-            input_fn=train_input_fn,
-            steps=50000,
-            hooks=[logging_hook])
+        if do_train:
+            train_input_fn = tf.estimator.inputs.numpy_input_fn(
+                x=train_data,
+                y=targets[:split],
+                batch_size=100,
+                num_epochs=None,
+                shuffle=True)
+            self.classifier.train(
+                input_fn=train_input_fn,
+                steps=50000)
 
         # Evaluate the model and print results
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=test_data,
-            y=targets[split:],
+            y=test_targets,
             num_epochs=1,
             shuffle=False)
-        eval_results = classifier.evaluate(input_fn=eval_input_fn)
+        eval_results = self.classifier.evaluate(input_fn=eval_input_fn)
         print(eval_results)
+
+        # pred_input_fn = tf.estimator.inputs.numpy_input_fn(
+        #   x=test_data,
+        #     shuffle=False)
+        # preds = self.classifier.predict(input_fn=pred_input_fn)
+        # predictions = list(p["class"][0] for p in preds)
+        # test_targets.shape = (np.abs(split))
+        # wrong_preds = np.where(test_targets != predictions)
+        # n_wrong = len(wrong_preds[0])
+        # print(f"Number of incorrect preds {n_wrong}"
+        #       f"\n Accuracy {(np.abs(split) - n_wrong) / np.abs(split)}")
+        # print("The first incorrect examples: ")
+        # wrong_grid = test_data['input_grid'][wrong_preds][0]
+        # wrong_grid.shape = (7, 7)
+        # print(wrong_grid)
+        # print(test_data['input_cell'][wrong_preds][0])
+        # print(test_targets[wrong_preds][0])
+        # print(predictions[wrong_preds[0]])
 
 
 class PGNet(Net):
@@ -438,8 +448,4 @@ class RSPolicyNet(Net):
 
 if __name__ == "__main__":
     n = NeighNet()
-    # import pickle
-    # with open("neighdata-rhomb", "rb") as f:
-    #     data = pickle.load(f)
-    data = np.load("neighdata-rhomb.npy")
-    n.train(data)
+    n.train()
