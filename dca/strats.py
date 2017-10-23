@@ -1,11 +1,9 @@
 from eventgen import EventGen, CEvent, ce_str
 from stats import Stats
-from grid import RhombAxGrid
 
 import signal
 import sys
 import inspect
-import pickle
 
 import numpy as np
 
@@ -47,11 +45,11 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
-        # np.save("neighdata-rhomb-allch", np.array(self.neigh_data))
-        print(
-            f"Incorrect preds: {self.incorrect_preds}"
-            f"\nAccuracy: "
-            f"{self.correct_preds/(self.correct_preds+self.incorrect_preds)}")
+        np.save("data-freechs", np.array(self.neigh_data))
+        # print(
+        #     f"Incorrect preds: {self.incorrect_preds}"
+        #     f"\nAccuracy: "
+        #     f"{self.correct_preds/(self.correct_preds+self.incorrect_preds)}")
         return self.stats.block_prob_tot
 
     def _simulate(self):
@@ -216,8 +214,8 @@ class RLStrat(Strat):
 
         self.n_used = 0
         self.qval = 0
-        from net import NeighNet
-        self.net = NeighNet()
+        from net import FreeChNet
+        self.net = FreeChNet()
         self.neigh_data = []
         self.correct_preds = 0
         self.incorrect_preds = 0
@@ -277,6 +275,9 @@ class RLStrat(Strat):
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = self.grid.get_free_chs(cell)
             op = np.argmax
+            # pred = self.net.forward([self.grid.state[:, :, ch]], [cell])
+            self.neigh_data.append(
+                (np.copy(self.grid.state), cell, chs))
         else:
             # Channels in use at cell, including channel scheduled
             # for termination. The latter is included because it might
@@ -300,51 +301,6 @@ class RLStrat(Strat):
             # Choose greedily (either minimum or maximum)
             idx = op(self.get_qval(cell, n_used, chs))
             ch = chs[idx]
-
-        # Test Neighs2-Net
-        # TODO test the pre-trained net and verify that results give ~90 %
-        # accuracy. Then try dual offset convolutions for even/odd columns.
-
-        pred = self.net.forward([self.grid.state[:, :, ch]], [cell])
-        # Fails on:
-        # False (0, 0)
-        # [[ True False False False  True False False]
-        #  [False False False False False False  True]
-        #  [False False False False False False False]
-        #  [False False  True False False False False]
-        #  [False False False False False  True False]
-        #  [False False False False False False False]
-        #  [False False  True False False False False]]
-        if ce_type == CEvent.END:
-            if pred:
-                self.correct_preds += 1
-            else:
-                print(pred, cell)
-                print(self.grid.state[:, :, ch])
-                self.incorrect_preds += 1
-            val = 1
-        else:
-            if not pred:
-                self.correct_preds += 1
-            else:
-                print(pred, cell)
-                self.incorrect_preds += 1
-            val = 0
-        # TODO
-        self.neigh_data.append(
-            (np.copy(self.grid.state[:, :, ch]), cell, val))
-        # Save n2 data
-        # neighs2 = self.grid.neighbors2(*cell)
-        # neighi = np.random.randint(0, len(neighs2))
-        # inuseneigh = np.nonzero(self.grid.state[neighs2[neighi]])[0]
-        # if len(inuseneigh) > 0:
-        #     ch2 = inuseneigh[0]
-        #     self.neigh_data.append(
-        #         (self.grid.state[:, :, ch2], cell, 1))
-        # if n_used > 0:
-        #     ch2 = inuse[0]
-        #     self.neigh_data.append(
-        #         (self.grid.state[:, :, ch2], cell, 1))
 
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")

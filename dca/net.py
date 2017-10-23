@@ -30,10 +30,6 @@ class Net2:
         self.n_out = n_out
         self.logger = logger
         tf.reset_default_graph()
-        # Use ADAM, not rmsprop or sdg
-        # learning rate decay not critical (but possible)
-        # to do with adam.
-
         # consider batch norm [ioffe and szegedy, 2015]
         # batch norm is inserted after fully connected or convolutional
         # layers and before nonlinearity
@@ -354,6 +350,8 @@ class NeighNet:
         # One-hot grid encoding
         for i, cell in enumerate(cells):
             oh_cells[i][cell] = 1
+            if cell == (0, 0):
+                print(chgrids[i], targets[i])
         chgrids.shape = (-1, 7, 7, 1)
         oh_cells.shape = (-1, 7, 7, 1)
         chgridsneg = chgrids * 2 - 1  # Make empty cells -1 instead of 0
@@ -420,32 +418,128 @@ class NeighNet:
         # print(predictions[wrong_preds[0]])
 
 
-class PGNet(Net):
-    """
-    Policy gradient net
-    """
+class FreeChNet:
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        tf.logging.set_verbosity(tf.logging.INFO)
+        tf.reset_default_graph()
+        self.sess = tf.Session()
+        self.build()
+        init = tf.global_variables_initializer()
+        self.sess.run(init)
 
+    def build(self):
+        self.tfinput_grid = tf.placeholder(
+            shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
+        self.tfinput_cell = tf.placeholder(
+            shape=[None, 7, 7, 1], dtype=tf.float16, name="input_cell")
+        self.tflabels = tf.placeholder(
+            shape=[None, 70], dtype=tf.float16, name="labels")
+        input_stacked = tf.concat(
+            [self.tfinput_grid, self.tfinput_cell], axis=3)
+        conv1 = tf.layers.conv2d(
+            inputs=input_stacked,
+            filters=70,
+            kernel_size=5,
+            strides=1,
+            padding="same",  # pad with 0's
+            activation=tf.nn.relu)
+        conv2 = tf.layers.conv2d(
+            inputs=conv1,
+            filters=70,
+            kernel_size=1,
+            strides=1,
+            padding="same",
+            activation=tf.nn.relu)
+        conv2_flat = tf.contrib.layers.flatten(conv2)
+        logits = tf.layers.dense(
+            inputs=conv2_flat, units=70)
+        prob_inuse = tf.add(
+            tf.nn.sigmoid(logits, name="sigmoid_tensor"), 0.000000000001)
+        self.inuse = tf.greater(prob_inuse, tf.constant(0.5, dtype=tf.float16))
 
-class RSValNet(Net):
-    """
-    Input is coordinates and number of used channels.
-    Output is a state value.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        self.loss = tf.losses.sigmoid_cross_entropy(
+            self.tflabels,
+            logits=logits)
+        trainer = tf.train.GradientDescentOptimizer(learning_rate=0.00000001)
+        self.updateModel = trainer.minimize(self.loss)
 
+    def predict(self, grids, cells):
+        assert len(grids.shape) == 4
+        assert len(cells.shape) == 4
+        pgrids, pcells, _ = self.prep_data(grids, cells)
+        predictions = self.sess.run(
+            self.inuse,
+            {self.tfinput_grid: pgrids,
+             self.tfinput_cell: pcells})
+        return predictions
 
-class RSPolicyNet(Net):
-    """
-    Input is coordinates and number of used channels.
-    Output is a vector with probability for each channel.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def train(self, do_train=True):
+        data = np.load("data-freechs-shuffle.npy")
+        data = data[:10000]
+        grids, cells, targets = zip(*data)
+        grids, oh_cells, targets = self.prep_data(grids, cells, targets)
+        split = -2000
+        train_grids = grids[:split]
+        train_cells = oh_cells[:split]
+        train_targets = targets[:split]
+        test_grids = grids[split:]
+        test_cells = oh_cells[split:]
+        test_targets = targets[split:]
+
+        # Train the model
+        batch_size = 10
+        steps = 500
+        for i in range(steps):
+            bgrids = train_grids[i * batch_size: (i + 1) * batch_size]
+            bcells = train_cells[i * batch_size: (i + 1) * batch_size]
+            btargets = train_targets[i * batch_size: (i + 1) * batch_size]
+            _, loss, preds = self.sess.run(
+                [self.updateModel, self.loss, self.inuse],
+                {self.tfinput_grid: bgrids,
+                 self.tfinput_cell: bcells,
+                 self.tflabels: btargets})
+            if (i % 5 == 0):
+                accuracy = np.sum(preds == btargets) / preds.size
+                print(f"\nLoss at step {i}: {loss}")
+                print(f"Minibatch accuracy: {accuracy:.4f}%")
+
+        self.eval(test_grids, test_cells, test_targets)
+
+    def eval(self, grids, cells, targets):
+        batch_size = 50
+        losses, accuracies = [], []
+        for i in range(len(grids) // batch_size):
+            bgrids = grids[i * batch_size: (i + 1) * batch_size]
+            bcells = cells[i * batch_size: (i + 1) * batch_size]
+            btargets = targets[i * batch_size: (i + 1) * batch_size]
+            loss, preds = self.sess.run(
+                self.loss, self.inuse,
+                {self.tfinput_grid: bgrids,
+                 self.tfinput_cell: bcells,
+                 self.tflabels: btargets})
+            losses.append(loss)
+            accuracy = np.sum(preds == btargets) / np.size(preds)
+            accuracies.append(accuracy)
+        print(f"Loss: {sum(losses)/len(losses)}")
+        print(f"Accuracy: {sum(accuracies)/len(accuracies)}")
+
+    def prep_data(self, grids, cells, targets=None):
+        grids = np.array(grids)
+        oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
+        # One-hot grid encoding
+        for i, cell in enumerate(cells):
+            oh_cells[i][cell] = 1
+        if targets is not None:
+            h_targets = np.zeros((len(grids), 70), dtype=np.float16)
+            for i, targ in enumerate(targets):
+                for ch in targ:
+                    h_targets[i][ch] = 1
+        grids.shape = (-1, 7, 7, 70)
+        oh_cells.shape = (-1, 7, 7, 1)
+        gridsneg = grids  # * 2 - 1  # Make empty cells -1 instead of 0
+        return gridsneg, oh_cells, h_targets
 
 
 if __name__ == "__main__":
-    n = NeighNet()
+    n = FreeChNet()
     n.train()
