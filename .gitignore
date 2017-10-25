@@ -1,3 +1,5 @@
+dca/model/
+*.npy # Numpy data sets
 logs/
 .idea/
 # Byte-compiled / optimized / DLL files

@@ -428,6 +428,9 @@ class FreeChNet:
         self.sess.run(init)
 
     def build(self):
+        # Result: ~0.95 accuracy after 350-400 steps with batch size of 100
+        # and learning rate of 0.001 (SGD)
+        # Should start with higher learning rate, 0.01 and decay
         self.tfinput_grid = tf.placeholder(
             shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
         self.tfinput_cell = tf.placeholder(
@@ -443,27 +446,33 @@ class FreeChNet:
             strides=1,
             padding="same",  # pad with 0's
             activation=tf.nn.relu)
-        conv2 = tf.layers.conv2d(
-            inputs=conv1,
-            filters=70,
-            kernel_size=1,
-            strides=1,
-            padding="same",
-            activation=tf.nn.relu)
-        conv2_flat = tf.contrib.layers.flatten(conv2)
-        logits = tf.layers.dense(
-            inputs=conv2_flat, units=70)
+        # conv2 = tf.layers.conv2d(
+        #     inputs=conv1,
+        #     filters=70,
+        #     kernel_size=1,
+        #     strides=1,
+        #     padding="same",
+        #     activation=tf.nn.relu)
+        conv_flat = tf.contrib.layers.flatten(conv1)
+        logits = tf.layers.dense(inputs=conv_flat, units=70)
         prob_inuse = tf.add(
             tf.nn.sigmoid(logits, name="sigmoid_tensor"), 0.000000000001)
         self.inuse = tf.greater(prob_inuse, tf.constant(0.5, dtype=tf.float16))
 
+        # TODO How does this work then there's multiple batches?
+        # Should do a manual step through and look
         self.loss = tf.losses.sigmoid_cross_entropy(
             self.tflabels,
             logits=logits)
-        trainer = tf.train.GradientDescentOptimizer(learning_rate=0.00000001)
+        # trainer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+        trainer = tf.train.MomentumOptimizer(
+            momentum=0.9,
+            learning_rate=0.001)
         self.updateModel = trainer.minimize(self.loss)
 
     def predict(self, grids, cells):
+        # If there's no outer array for batches, the reshaping will mangle
+        # the data
         assert len(grids.shape) == 4
         assert len(cells.shape) == 4
         pgrids, pcells, _ = self.prep_data(grids, cells)
@@ -475,7 +484,7 @@ class FreeChNet:
 
     def train(self, do_train=True):
         data = np.load("data-freechs-shuffle.npy")
-        data = data[:10000]
+        # data = data[:50000]
         grids, cells, targets = zip(*data)
         grids, oh_cells, targets = self.prep_data(grids, cells, targets)
         split = -2000
@@ -487,8 +496,9 @@ class FreeChNet:
         test_targets = targets[split:]
 
         # Train the model
-        batch_size = 10
-        steps = 500
+        batch_size = 100
+        invalid = False
+        steps = len(train_grids) // batch_size
         for i in range(steps):
             bgrids = train_grids[i * batch_size: (i + 1) * batch_size]
             bcells = train_cells[i * batch_size: (i + 1) * batch_size]
@@ -498,11 +508,15 @@ class FreeChNet:
                 {self.tfinput_grid: bgrids,
                  self.tfinput_cell: bcells,
                  self.tflabels: btargets})
-            if (i % 5 == 0):
+            if np.isinf(loss) or np.isnan(loss):
+                print(f"Invalid loss iter {i}: {loss}")
+                invalid = True
+            if (i % 1 == 0):
+                # Might do this in tf instead
                 accuracy = np.sum(preds == btargets) / preds.size
                 print(f"\nLoss at step {i}: {loss}")
                 print(f"Minibatch accuracy: {accuracy:.4f}%")
-
+        print("Finished training")
         self.eval(test_grids, test_cells, test_targets)
 
     def eval(self, grids, cells, targets):
@@ -513,15 +527,34 @@ class FreeChNet:
             bcells = cells[i * batch_size: (i + 1) * batch_size]
             btargets = targets[i * batch_size: (i + 1) * batch_size]
             loss, preds = self.sess.run(
-                self.loss, self.inuse,
+                [self.loss, self.inuse],
                 {self.tfinput_grid: bgrids,
                  self.tfinput_cell: bcells,
                  self.tflabels: btargets})
             losses.append(loss)
             accuracy = np.sum(preds == btargets) / np.size(preds)
             accuracies.append(accuracy)
+        print(f"Evaluating {len(grids)} samples")
         print(f"Loss: {sum(losses)/len(losses)}")
-        print(f"Accuracy: {sum(accuracies)/len(accuracies)}")
+        print(f"Accuracy: {sum(accuracies)/len(accuracies):.8f}%")
+        i, n = 0, 0
+        while n < 3:
+            bgrids = grids[i:i + 1]
+            bcells = cells[i:i + 1]
+            btargets = targets[i:i + 1]
+            _, preds = self.sess.run(
+                [self.loss, self.inuse],
+                {self.tfinput_grid: bgrids,
+                 self.tfinput_cell: bcells,
+                 self.tflabels: btargets})
+            if not (preds == btargets).all():
+                n += 1
+                idx = np.where(bcells[0])
+                cell = (idx[0][0], idx[1][0])
+                print(f"\nMisclassified example #{i}\nCell: {cell}")
+                print(f"\nTargets: {btargets[0].astype(int)}")
+                print(f"\nPreds: {preds[0].astype(int)}")
+            i += 1
 
     def prep_data(self, grids, cells, targets=None):
         grids = np.array(grids)
@@ -536,7 +569,7 @@ class FreeChNet:
                     h_targets[i][ch] = 1
         grids.shape = (-1, 7, 7, 70)
         oh_cells.shape = (-1, 7, 7, 1)
-        gridsneg = grids  # * 2 - 1  # Make empty cells -1 instead of 0
+        gridsneg = grids * 2 - 1  # Make empty cells -1 instead of 0
         return gridsneg, oh_cells, h_targets
 
 
