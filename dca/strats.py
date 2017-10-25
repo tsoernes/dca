@@ -490,18 +490,6 @@ class SARSAQNet(RLStrat):
                 self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
                 raise Exception
 
-            # Testing moving calculations to TF
-            # NOTE This is incredibly slow
-            # ch2, qvals2 = self.net.forward_ch(
-            #     ce_type, self.grid.state, cell,
-            #     self.encode_state(cell, n_used))
-            # if ch != ch2:
-            #     print("\n")
-            #     print(ch, ch2)
-            #     print(qvals[ch], qvals[ch2])
-            #     print((qvals == qvals2).all())
-            # assert ch == ch2
-
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
