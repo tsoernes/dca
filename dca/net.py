@@ -1,88 +1,61 @@
 import numpy as np
 import tensorflow as tf
 
-# Neighbors2
-# (3,3)
-# min row: 1
-# max row: 5
-# min col: 1
-# max col: 5
-# (4,3)
-# min row: 2
-# max row: 6
-# min col: 1
-# max col: 5
-# So it might be a good idea to have 4x4 filters,
-# as that would cover all neighs2
-#
-# Padding with 0's is the natural choice since that would be
-# equivalent to having empty cells outside of grid
-#
-# For a policy network, i.e. with actions [0, 1, ..., n_channels-1]
-# corresponding to the probability of assigning the different channels,
-# how can the network know, or be trained to know, that some actions
-# are illegal/unavailable?
+"""
+Neighbors2
+(3,3)
+min row: 1
+max row: 5
+min col: 1
+max col: 5
+(4,3)
+min row: 2
+max row: 6
+min col: 1
+max col: 5
+So it might be a good idea to have 4x4 filters,
+as that would cover all neighs2
 
+Padding with 0's is the natural choice since that would be
+equivalent to having empty cells outside of grid
 
-class Net2:
-    def __init__(self, logger, n_in, n_out, alpha,
-                 *args, **kwargs):
-        self.n_out = n_out
-        self.logger = logger
-        tf.reset_default_graph()
-        # consider batch norm [ioffe and szegedy, 2015]
-        # batch norm is inserted after fully connected or convolutional
-        # layers and before nonlinearity
+For a policy network, i.e. with actions [0, 1, ..., n_channels-1]
+corresponding to the probability of assigning the different channels,
+how can the network know, or be trained to know, that some actions
+are illegal/unavailable?
+consider batch norm [ioffe and szegedy, 2015]
+batch norm is inserted after fully connected or convolutional
+layers and before nonlinearity
 
-        # possible data prep: set unused channels to -1,
-        # OR make it unit gaussian. refer to alphago paper -- did they prep
-        # the board? did they use the complete board as input to any of their
-        # nets, or just features?
+possible data prep: set unused channels to -1,
+OR make it unit gaussian. refer to alphago paper -- did they prep
+the board? did they use the complete board as input to any of their
+nets, or just features?
 
-        # sanity checks:
-        # - double check that loss is sane
-        # for softmax classifier: print loss, should be roughly:
-        # "-log(1/n_classes)"
-        # - make sure that it's possible to overfit
-        # (ie loss of nearly 0, when no regularization)
-        # a very small portion (eg <20 samples) of the training data
-        #
-        # On finding learning rate:
-        # start very small (eg 1e-6), make sure it's barely changing
-        # or decreasing very slowly.
-        # If cost is NaN or inf, learning rate is too high
-        #
-        # on tuning hyperparams:
-        # if cost goes over 3x original cost, break out early
-        #
-        # big gap between train and test accuracy:
-        # overfitting. reduce net size or increase regularization
-        # no gap: increase net size
-        #
-        # debugging nets: track ratio of weight updates/weight magnitues
-        # should be somewhere around 0.001 or so. if too high, decrease
-        # learning rate, if too log (like 1e-6), increase lr.
+sanity checks:
+- double check that loss is sane
+for softmax classifier: print loss, should be roughly:
+"-log(1/n_classes)"
+- make sure that it's possible to overfit
+(ie loss of nearly 0, when no regularization)
+a very small portion (eg <20 samples) of the training data
 
-        self.inputs = tf.placeholder(shape=[1, n_in], dtype=tf.float32)
-        self.W = tf.Variable(tf.random_uniform([n_in, n_out], 0, 0.01))
-        # One q-value for each of the possible actions
-        self.Qout = tf.matmul(self.inputs, self.W)
-        self.argmaxQ = tf.argmax(self.Qout, 1)
+On finding learning rate:
+start very small (eg 1e-6), make sure it's barely changing
+or decreasing very slowly.
+If cost is NaN or inf, learning rate is too high
 
-        # Below we obtain the loss by taking the sum of squares
-        # difference between the target and prediction Q values.
-        self.targets = tf.placeholder(shape=[1, n_out], dtype=tf.float32)
-        loss = tf.reduce_sum(tf.square(self.targets - self.Qout))
-        # GradientDescentOptimizer is designed to use a constant learning rate.
-        # The best is probably to use AdamOptimizer which is out-of-the-box
-        # adaptive, i.e. it controls the learning rate in some way.
-        trainer = tf.train.AdamOptimizer(learning_rate=alpha)
-        # trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
-        self.updateModel = trainer.minimize(loss)
+on tuning hyperparams:
+if cost goes over 3x original cost, break out early
 
-        self.sess = tf.Session()
-        init = tf.global_variables_initializer()
-        self.sess.run(init)
+big gap between train and test accuracy:
+overfitting. reduce net size or increase regularization
+no gap: increase net size
+
+debugging nets: track ratio of weight updates/weight magnitues
+should be somewhere around 0.001 or so. if too high, decrease
+learning rate, if too log (like 1e-6), increase lr.
+"""
 
 
 class Net:
@@ -94,28 +67,23 @@ class Net:
         self.n_out = n_out
         self.logger = logger
         tf.reset_default_graph()
-        self.neighs2 = tf.constant(neighs2)
-        self.neighs2mask = tf.constant(neighs2mask)
         self.inputs = tf.placeholder(shape=[1, 7, 7, 71], dtype=tf.float32)
         conv1 = tf.layers.conv2d(
             inputs=self.inputs,
             filters=70,
-            kernel_size=4,
-            strides=2,
+            kernel_size=5,
+            strides=1,
             padding="same",  # pad with 0's
             activation=tf.nn.relu)
-        pool1 = tf.layers.max_pooling2d(
-            inputs=conv1, pool_size=2, strides=1)
         conv2 = tf.layers.conv2d(
-            inputs=pool1,
-            filters=140,
-            kernel_size=4,
+            inputs=conv1,
+            filters=70,
+            kernel_size=3,
             padding="same",
             activation=tf.nn.relu)
-        # Dense Layer
-        conv2_flat = tf.reshape(conv2, [-1, 3 * 3 * 140])
+        conv2_flat = tf.contrib.flatten(conv2)
         dense = tf.layers.dense(
-            inputs=conv2_flat, units=256, activation=tf.nn.relu)
+            inputs=conv2_flat, units=70, activation=tf.nn.relu)
 
         # TODO verify that linear neural net performs better than random.
         # Perhaps reducing call rates will increase difference between
@@ -149,77 +117,6 @@ class Net:
             feed_dict={self.inputs: features})
         return action[0], qvals[0]
 
-    def forward_ch(self, ce_type, state, cell, features):
-        """
-        Get the argmin (for END events) or argmax (for NEW/HOFF events) of
-        the q-values for the given features. Only valid channels
-        are taken argmin/argmax over.
-        """
-        tf_ce_type = tf.placeholder(shape=[1], dtype=tf.int32)
-        tf_state = tf.placeholder(shape=[7, 7, 70], dtype=tf.bool)
-        tf_cell = tf.placeholder(shape=[2], dtype=tf.int32)
-        # tf_epsilon = tf.placeholder(shape=[1], dtype=tf.float32)
-
-        region = tf.gather_nd(tf_state, tf_cell)
-        q_flat = tf.reshape(self.Qout, [-1])
-
-        # NOTE When everything is a lambda, conds evaluate lazily,
-        # which prevents the calculation of free channels for end-events
-        # and vice-versa.
-
-        # Get the minimally valued channel that's in use
-        tf_inuse_chs = lambda: tf.where(region)
-
-        # Get the maximally valued channel that's free in this cell
-        # and its neighbors within a radius of 2
-        tf_neighs2i = lambda: self.neighbors2(cell)
-        tf_neighs2 = lambda: tf.gather_nd(tf_state, tf_neighs2i())
-        tf_free_neighs = lambda: tf.reduce_any(tf_neighs2(), axis=0)
-        tf_free = lambda: tf.logical_or(region, tf_free_neighs())
-        tf_free_chs = lambda: tf.where(tf.logical_not(tf_free()))
-
-        tf_chs = lambda: tf.cond(
-            tf.equal(tf_ce_type[0], 1),
-            tf_inuse_chs,  # END event
-            tf_free_chs)  # NEW/HOFF event
-        isempty = lambda: tf.equal(tf.size(tf_chs()), 0)
-        tf_valid_qs = lambda: tf.gather_nd(q_flat, tf_chs())
-
-        tf_ch_min = lambda: tf.cond(
-            isempty(),
-            lambda: tf.constant(-1, dtype=tf.int64),
-            lambda: tf_chs()[tf.argmin(tf_valid_qs())])
-
-        tf_ch_max = lambda: tf.cond(
-            isempty(),
-            lambda: tf.constant(-1, dtype=tf.int64),
-            lambda: tf_chs()[tf.argmax(tf_valid_qs())])
-
-        tf_ch = tf.cond(
-            tf.equal(tf_ce_type[0], 1),
-            tf_ch_min,
-            tf_ch_max)
-
-        ch, qvals = self.sess.run(
-            [tf_ch, q_flat],
-            {tf_state: state, tf_cell: cell,
-             self.inputs: features,
-             tf_ce_type: [ce_type.value]})
-
-        # e-greedy
-        # probs = lambda: tf.log([tf.ones(n_valid)/n_valid])
-        # e_greedy_select = tf.cond(
-        #     tf.less(tf.random_uniform([1]), tf.epsilon),
-        #     lambda: tf_chs[tf.multinomial(probs)[0][0]],
-        #     lambda: argm_q)
-        # probs = tf.log([tf.ones(70)/70])# this shouldnt be 70 but n valid chs
-        # sample = tf.multinomial(probs, 1)
-        # ch = chs[sample[0][0]]
-
-        if ch == -1:
-            ch = None
-        return ch, qvals
-
     def backward(self, state, targets):
         """
         Back-propagation
@@ -231,26 +128,6 @@ class Net:
             self.updateModel,
             feed_dict={self.inputs: state, self.targets: targets})
 
-    def weight_init(self):
-        raise NotImplementedError
-        inp = None
-        hidden_layer_sizes = [0]
-        Hs = {}
-        for i in range(hidden_layer_sizes):
-            X = inp if i == 0 else Hs[i - 1]
-            fan_in = X.shape[1]
-            fan_out = hidden_layer_sizes[i]
-            # init according to [He et al. 2015]
-            # fan_in: number input
-            W = np.random.randn(fan_in, fan_out) / np.sqrt(fan_in / 2)
-            H = np.dot(X, W)
-            Hs[i] = H
-
-    def neighbors2(self, cell):
-        return tf.boolean_mask(
-            tf.gather_nd(self.neighs2, cell),
-            tf.gather_nd(self.neighs2mask, cell))
-
     def save(self, filenam):
         """
         Save parameters to disk
@@ -258,181 +135,31 @@ class Net:
         pass
 
 
-class NeighNet:
-    def __init__(self, *args, **kwargs):
-        tf.logging.set_verbosity(tf.logging.INFO)
-        tf.reset_default_graph()
-        self.sess = tf.Session()
-        init = tf.global_variables_initializer()
-        self.sess.run(init)
-
-        self.classifier = tf.estimator.Estimator(
-            model_fn=self.build_model, model_dir="model/neighsnet-rhomb")
-
-    def build_model(self, features, labels, mode):
-        input_grid = features['input_grid']
-        input_cell = features['input_cell']
-        input_stacked = tf.concat([input_grid, input_cell], axis=3)
-        conv1 = tf.layers.conv2d(
-            inputs=input_stacked,
-            filters=1,
-            kernel_size=5,
-            strides=1,
-            padding="same",  # pad with 0's
-            activation=tf.nn.relu)
-        conv1_flat = tf.contrib.layers.flatten(conv1)
-        logits = tf.layers.dense(
-            inputs=conv1_flat, units=1)
-        # Probability of channel not being free for assignment,
-        # i.e. it is in use in cell or its neighs2
-        inuse = tf.nn.sigmoid(logits, name="sigmoid_tensor")
-        self.pred_class = tf.greater(inuse, tf.constant(0.5))
-        predictions = {
-            "class": tf.greater(inuse, tf.constant(0.5)),
-            "probability": inuse
-        }
-
-        if mode == tf.estimator.ModeKeys.PREDICT:
-            return tf.estimator.EstimatorSpec(
-                mode=mode, predictions=predictions)
-
-        loss = tf.losses.sigmoid_cross_entropy(
-            multi_class_labels=labels,
-            logits=logits)
-        trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
-
-        if mode == tf.estimator.ModeKeys.TRAIN:
-            train_op = trainer.minimize(
-                loss=loss,
-                global_step=tf.train.get_global_step())
-            return tf.estimator.EstimatorSpec(
-                mode=mode, loss=loss, train_op=train_op)
-        elif mode == tf.estimator.ModeKeys.EVAL:
-            eval_metric_ops = {
-                "accuracy": tf.metrics.accuracy(
-                    labels=labels,
-                    predictions=predictions["class"])}
-            return tf.estimator.EstimatorSpec(
-                mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
-
-    def forward(self, chgrid, cell):
-        cg, ce, _ = self.prep_data(chgrid, cell)
-        pred_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x={"input_grid": cg, "input_cell": ce},
-            shuffle=False)
-        preds = self.classifier.predict(input_fn=pred_input_fn)
-        prediction = list(p["class"][0] for p in preds)
-        return prediction[0]
-
-    def verify_data(self, chgrids, cells, targets):
-        from grid import RhombAxGrid
-        for i in range(0, len(chgrids)):
-            chgrid = chgrids[i]
-            cell = cells[i]
-            neighs2 = RhombAxGrid.neighbors2(*cell)
-            inuse = np.bitwise_or(chgrid[cell], chgrid[neighs2[0]])
-            for n in neighs2[1:]:
-                inuse = np.bitwise_or(inuse, chgrid[n])
-            if not inuse == targets[i]:
-                print(i)
-                print(chgrid)
-                print(chgrid[cell])
-                print(cell)
-                print(neighs2)
-                print("Target: ", targets[i])
-                print("Actual: ", inuse)
-                raise Exception
-        print("\nDATA OK\n")
-
-    def prep_data(self, chgrids, cells, targets=None):
-        chgrids = np.array(chgrids)
-        oh_cells = np.zeros_like(chgrids)
-        # One-hot grid encoding
-        for i, cell in enumerate(cells):
-            oh_cells[i][cell] = 1
-            if cell == (0, 0):
-                print(chgrids[i], targets[i])
-        chgrids.shape = (-1, 7, 7, 1)
-        oh_cells.shape = (-1, 7, 7, 1)
-        chgridsneg = chgrids * 2 - 1  # Make empty cells -1 instead of 0
-        if targets:
-            targets = np.array(targets)
-            targets.shape = (-1, 1)
-            targets = targets.astype(np.float32)
-        chgridsneg = chgridsneg.astype(np.float32)
-        oh_cells = oh_cells.astype(np.float32)
-        return chgridsneg, oh_cells, targets
-
-    def train(self, do_train=True):
-        data = np.load("neighdata-rhomb2.npy")
-        # NOTE This data may not be any good, because there's no
-        # examples where the ch is free in cell but not free in
-        # neighs2
-        chgrids, cells, targets = zip(*data)
-        chgridsneg, oh_cells, targets = self.prep_data(chgrids, cells, targets)
-        # self.verify_data(chgrids, cells, targets)
-        split = -10000
-        train_data = {"input_grid": chgridsneg[:split],
-                      "input_cell": oh_cells[:split]}
-        test_data = {"input_grid": chgridsneg[split:],
-                     "input_cell": oh_cells[split:]}
-        test_targets = targets[split:]
-
-        # Train the model
-        if do_train:
-            train_input_fn = tf.estimator.inputs.numpy_input_fn(
-                x=train_data,
-                y=targets[:split],
-                batch_size=100,
-                num_epochs=None,
-                shuffle=True)
-            self.classifier.train(
-                input_fn=train_input_fn,
-                steps=50000)
-
-        # Evaluate the model and print results
-        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=test_data,
-            y=test_targets,
-            num_epochs=1,
-            shuffle=False)
-        eval_results = self.classifier.evaluate(input_fn=eval_input_fn)
-        print(eval_results)
-
-        # pred_input_fn = tf.estimator.inputs.numpy_input_fn(
-        #   x=test_data,
-        #     shuffle=False)
-        # preds = self.classifier.predict(input_fn=pred_input_fn)
-        # predictions = list(p["class"][0] for p in preds)
-        # test_targets.shape = (np.abs(split))
-        # wrong_preds = np.where(test_targets != predictions)
-        # n_wrong = len(wrong_preds[0])
-        # print(f"Number of incorrect preds {n_wrong}"
-        #       f"\n Accuracy {(np.abs(split) - n_wrong) / np.abs(split)}")
-        # print("The first incorrect examples: ")
-        # wrong_grid = test_data['input_grid'][wrong_preds][0]
-        # wrong_grid.shape = (7, 7)
-        # print(wrong_grid)
-        # print(test_data['input_cell'][wrong_preds][0])
-        # print(test_targets[wrong_preds][0])
-        # print(predictions[wrong_preds[0]])
-
-
 class FreeChNet:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, restore=False, *args, **kwargs):
         tf.logging.set_verbosity(tf.logging.INFO)
         tf.reset_default_graph()
         self.sess = tf.Session()
-        self.build()
-        init = tf.global_variables_initializer()
-        self.sess.run(init)
+        self.model_path = "model/freechnet/model.cpkt"
+        # build OR restore
+        if restore:
+            init = tf.global_variables_initializer()
+            self.sess.run(init)
+            print(f"Restoring model from {self.model_path}")
+            self.saver.restore(self.sess, self.model_path)
+        else:
+            self.build()
+            init = tf.global_variables_initializer()
+            self.sess.run(init)
+        self.saver = tf.train.Saver()
 
     def build(self):
-        # Result: ~0.95 accuracy after 350-400 steps with batch size of 100
-        # and learning rate of 0.001 (SGD)
+        # Result: ~0.95 accuracy after 25 steps with batch size of 100
+        # and learning rate of 0.001 (Momentum)
         # Should start with higher learning rate, 0.01 and decay
         self.tfinput_grid = tf.placeholder(
             shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
+        # TODO Test -1 for empty entries on input_cell
         self.tfinput_cell = tf.placeholder(
             shape=[None, 7, 7, 1], dtype=tf.float16, name="input_cell")
         self.tflabels = tf.placeholder(
@@ -487,7 +214,7 @@ class FreeChNet:
         # data = data[:50000]
         grids, cells, targets = zip(*data)
         grids, oh_cells, targets = self.prep_data(grids, cells, targets)
-        split = -2000
+        split = -1000
         train_grids = grids[:split]
         train_cells = oh_cells[:split]
         train_targets = targets[:split]
@@ -498,7 +225,8 @@ class FreeChNet:
         # Train the model
         batch_size = 100
         invalid = False
-        steps = len(train_grids) // batch_size
+        # steps = len(train_grids) // batch_size
+        steps = 20
         for i in range(steps):
             bgrids = train_grids[i * batch_size: (i + 1) * batch_size]
             bcells = train_cells[i * batch_size: (i + 1) * batch_size]
@@ -514,14 +242,21 @@ class FreeChNet:
             if (i % 1 == 0):
                 # Might do this in tf instead
                 accuracy = np.sum(preds == btargets) / preds.size
-                print(f"\nLoss at step {i}: {loss}")
-                print(f"Minibatch accuracy: {accuracy:.4f}%")
-        print("Finished training")
+                nonzero = np.sum(np.any(preds, axis=1))
+                print(
+                    f"\nLoss at step {i}: {loss}"
+                    f"\nMinibatch accuracy: {accuracy:.4f}%"
+                    "\nNumber of not all-zero predictions:"
+                    f" {nonzero}/{len(preds)}")
+        print(f"Finished training. Encountered invalid loss? {invalid}")
+        self.saver.save(self.sess, self.model_path)
+        print(f"Saving model to {self.model_path}")
+
         self.eval(test_grids, test_cells, test_targets)
 
     def eval(self, grids, cells, targets):
         batch_size = 50
-        losses, accuracies = [], []
+        losses, accuracies, aon_accuracies = [], [], []
         for i in range(len(grids) // batch_size):
             bgrids = grids[i * batch_size: (i + 1) * batch_size]
             bcells = cells[i * batch_size: (i + 1) * batch_size]
@@ -534,11 +269,17 @@ class FreeChNet:
             losses.append(loss)
             accuracy = np.sum(preds == btargets) / np.size(preds)
             accuracies.append(accuracy)
+            aon_accuracy = \
+                np.sum(np.all((preds == btargets), axis=1)) / len(preds)
+            aon_accuracies.append(aon_accuracy)
         print(f"Evaluating {len(grids)} samples")
         print(f"Loss: {sum(losses)/len(losses)}")
         print(f"Accuracy: {sum(accuracies)/len(accuracies):.8f}%")
-        i, n = 0, 0
-        while n < 3:
+        print("All-or-nothing accuracy:"
+              f" {sum(aon_accuracies)/len(aon_accuracies):.8f}%")
+        n = 3
+        i, miss, hit = 0, 0, 0
+        while (miss < n) and (hit < n):
             bgrids = grids[i:i + 1]
             bcells = cells[i:i + 1]
             btargets = targets[i:i + 1]
@@ -547,13 +288,16 @@ class FreeChNet:
                 {self.tfinput_grid: bgrids,
                  self.tfinput_cell: bcells,
                  self.tflabels: btargets})
+            idx = np.where(bcells[0])
+            cell = (idx[0][0], idx[1][0])
             if not (preds == btargets).all():
-                n += 1
-                idx = np.where(bcells[0])
-                cell = (idx[0][0], idx[1][0])
+                miss += 1
                 print(f"\nMisclassified example #{i}\nCell: {cell}")
-                print(f"\nTargets: {btargets[0].astype(int)}")
-                print(f"\nPreds: {preds[0].astype(int)}")
+            else:
+                hit += 1
+                print(f"\nCorrectly classified example #{i}\nCell: {cell}")
+            print(f"Targets: {btargets[0].astype(int)}")
+            print(f"Preds:\t{preds[0].astype(int)}")
             i += 1
 
     def prep_data(self, grids, cells, targets=None):
