@@ -59,17 +59,29 @@ learning rate, if too log (like 1e-6), increase lr.
 
 
 class Net:
-    def __init__(self, logger, n_out, alpha,
-                 neighs2, neighs2mask, rows=7, cols=7,
+    def __init__(self,
                  *args, **kwargs):
-        self.rows = rows
-        self.cols = cols
-        self.n_out = n_out
-        self.logger = logger
-        tf.reset_default_graph()
-        self.inputs = tf.placeholder(shape=[1, 7, 7, 71], dtype=tf.float32)
+        self.alpha = 0.01
+        tf.logging.set_verbosity(tf.logging.INFO)
+        # tf.reset_default_graph()
+        # self.sess = tf.Session()
+        # init = tf.global_variables_initializer()
+        # self.sess.run(init)
+        self.classifier = tf.estimator.Estimator(
+            model_fn=self.build_model, model_dir="../model/qnet01")
+
+    def build_model(self, features, labels, mode):
+        input_grid = features['input_grid']
+        input_cell = features['input_cell']
+        input_stacked = tf.concat([input_grid, input_cell], axis=3)
+        # self.tfinput_grid = tf.placeholder(
+        #      shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
+        # self.tfinput_cell = tf.placeholder(
+        #     shape=[None, 7, 7, 1], dtype=tf.float16, name="input_cell")
+        # input_stacked = tf.concat(
+        #     [self.tfinput_grid, self.tfinput_cell], axis=3)
         conv1 = tf.layers.conv2d(
-            inputs=self.inputs,
+            inputs=input_stacked,
             filters=70,
             kernel_size=5,
             strides=1,
@@ -81,7 +93,7 @@ class Net:
             kernel_size=3,
             padding="same",
             activation=tf.nn.relu)
-        conv2_flat = tf.contrib.flatten(conv2)
+        conv2_flat = tf.layers.flatten(conv2)
         dense = tf.layers.dense(
             inputs=conv2_flat, units=70, activation=tf.nn.relu)
 
@@ -90,22 +102,44 @@ class Net:
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
         # inputs_flat = tf.reshape(self.inputs, [-1, 7 * 7 * 71])
-        self.Qout = tf.layers.dense(inputs=dense, units=70)
-        self.argmaxQ = tf.argmax(self.Qout, axis=1)
+        self.q_vals = tf.layers.dense(inputs=dense, units=70)
+        self.q_amax = tf.argmax(self.q_vals, axis=1)
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
-        self.targets = tf.placeholder(shape=[1, n_out], dtype=tf.float32)
-        loss = tf.reduce_sum(tf.square(self.targets - self.Qout))
-        # TODO check/test Adam hyperparams
-        trainer = tf.train.AdamOptimizer(learning_rate=alpha)
+        # self.targets = tf.placeholder(
+        #     shape=[1, 70], dtype=tf.float32, name="targets")
+
+        predictions = {
+            "amax": self.q_amax,
+            "qvals": self.q_vals
+        }
+
+        if mode == tf.estimator.ModeKeys.PREDICT:
+            return tf.estimator.EstimatorSpec(
+                mode=mode, predictions=predictions)
+
+        loss = tf.losses.mean_squared_error(
+            labels=labels,
+            predictions=self.q_vals)
+        trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=alpha)
-        self.updateModel = trainer.minimize(loss)
+        # self.updateModel = trainer.minimize(loss)
 
-        self.sess = tf.Session()
-        init = tf.global_variables_initializer()
-        self.sess.run(init)
+        if mode == tf.estimator.ModeKeys.TRAIN:
+            train_op = trainer.minimize(
+                loss=loss,
+                global_step=tf.train.get_global_step())
+            return tf.estimator.EstimatorSpec(
+                mode=mode, loss=loss, train_op=train_op)
+        elif mode == tf.estimator.ModeKeys.EVAL:
+            eval_metric_ops = {
+                "accuracy": tf.metrics.mean_squared_error(
+                    labels=labels,
+                    predictions=self.q_vals)}
+            return tf.estimator.EstimatorSpec(
+                mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
     def forward(self, features):
         """
@@ -128,11 +162,51 @@ class Net:
             self.updateModel,
             feed_dict={self.inputs: state, self.targets: targets})
 
-    def save(self, filenam):
-        """
-        Save parameters to disk
-        """
-        pass
+    def get_data(self, fname):
+        data = np.load(fname)
+        grids, cells, actions, rewards, next_grids = zip(*data)
+
+        oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
+        # One-hot grid encoding
+        for i, cell in enumerate(cells):
+            oh_cells[i][cell] = 1
+        grids.shape = (-1, 7, 7, 70)
+        oh_cells.shape = (-1, 7, 7, 1)
+        grids = grids * 2 - 1  # Make empty cells -1 instead of 0
+
+        split = -1000
+        train_data = {"input_grid": grids[:split],
+                      "input_cell": oh_cells[:split]}
+        test_data = {"input_grid": grids[split:],
+                     "input_cell": oh_cells[split:]}
+        targets = None
+        test_targets = targets[:split]
+        train_targets = targets[split:]
+        return train_data, train_targets, test_data, test_targets
+
+    def train(self):
+        data = self.get_data("data-experience-sub-shuffle.npy")
+        train_data, train_targets, test_data, test_targets = data
+
+        # Train the model
+        train_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=train_data,
+            y=train_targets,
+            batch_size=100,
+            num_epochs=None,
+            shuffle=False)  # Data already shuffled
+        self.classifier.train(
+            input_fn=train_input_fn,
+            steps=50000)
+
+        # Evaluate the model and print results
+        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x=test_data,
+            y=test_targets,
+            num_epochs=1,
+            shuffle=False)
+        eval_results = self.classifier.evaluate(input_fn=eval_input_fn)
+        print(eval_results)
 
 
 class FreeChNet:

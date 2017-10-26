@@ -45,11 +45,7 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
-        np.save("data-freechs", np.array(self.neigh_data))
-        # print(
-        #     f"Incorrect preds: {self.incorrect_preds}"
-        #     f"\nAccuracy: "
-        #     f"{self.correct_preds/(self.correct_preds+self.incorrect_preds)}")
+        np.save("data-experience", np.array(self.experience))
         return self.stats.block_prob_tot
 
     def _simulate(self):
@@ -66,7 +62,11 @@ class Strat:
 
             n_used = np.count_nonzero(self.grid.state[cell])
             if ch is not None:
+                s = np.copy(self.grid.state)
                 self.execute_action(cevent, ch)
+                r = self.reward()
+                s_new = np.copy(self.grid.state)
+                self.experience.append((s, cell, ch, r, s_new))
 
                 if self.verify_grid and not self.grid.validate_reuse_constr():
                     self.logger.error(f"Reuse constraint broken")
@@ -214,9 +214,7 @@ class RLStrat(Strat):
 
         self.n_used = 0
         self.qval = 0
-        from net import FreeChNet
-        self.net = FreeChNet()
-        self.neigh_data = []
+        self.experience = []
         self.correct_preds = 0
         self.incorrect_preds = 0
 
@@ -242,6 +240,7 @@ class RLStrat(Strat):
         if next_ce_type != CEvent.END and next_ch is not None:
             # Observe reward from previous action
             reward = self.reward()
+
             # Update q-values with one-step lookahead
             next_qval = self.get_qval(next_cell, next_n_used, next_ch)
             targetq = reward + self.discount() * next_qval
@@ -275,9 +274,6 @@ class RLStrat(Strat):
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = self.grid.get_free_chs(cell)
             op = np.argmax
-            # pred = self.net.forward([self.grid.state[:, :, ch]], [cell])
-            self.neigh_data.append(
-                (np.copy(self.grid.state), cell, chs))
         else:
             # Channels in use at cell, including channel scheduled
             # for termination. The latter is included because it might
