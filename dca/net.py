@@ -62,6 +62,8 @@ class Net:
     def __init__(self,
                  *args, **kwargs):
         self.alpha = 0.01
+        self.gamma = 0.9
+        self.batch_size = 100
         tf.logging.set_verbosity(tf.logging.INFO)
         # tf.reset_default_graph()
         # self.sess = tf.Session()
@@ -71,8 +73,8 @@ class Net:
             model_fn=self.build_model, model_dir="../model/qnet01")
 
     def build_model(self, features, labels, mode):
-        input_grid = features['input_grid']
-        input_cell = features['input_cell']
+        input_grid = features['grid']
+        input_cell = features['cell']
         input_stacked = tf.concat([input_grid, input_cell], axis=3)
         # self.tfinput_grid = tf.placeholder(
         #      shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
@@ -94,16 +96,14 @@ class Net:
             padding="same",
             activation=tf.nn.relu)
         conv2_flat = tf.layers.flatten(conv2)
-        dense = tf.layers.dense(
-            inputs=conv2_flat, units=70, activation=tf.nn.relu)
 
         # TODO verify that linear neural net performs better than random.
         # Perhaps reducing call rates will increase difference between
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
-        # inputs_flat = tf.reshape(self.inputs, [-1, 7 * 7 * 71])
-        self.q_vals = tf.layers.dense(inputs=dense, units=70)
+        self.q_vals = tf.layers.dense(inputs=conv2_flat, units=70)
         self.q_amax = tf.argmax(self.q_vals, axis=1)
+        self.q_max = tf.maximum(self.q_vals, axis=1)
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
@@ -111,8 +111,9 @@ class Net:
         #     shape=[1, 70], dtype=tf.float32, name="targets")
 
         predictions = {
-            "amax": self.q_amax,
-            "qvals": self.q_vals
+            "qvals": self.q_vals,
+            "q_max": self.q_max,
+            "q_amax": self.q_amax,
         }
 
         if mode == tf.estimator.ModeKeys.PREDICT:
@@ -120,12 +121,11 @@ class Net:
                 mode=mode, predictions=predictions)
 
         loss = tf.losses.mean_squared_error(
-            labels=labels,
-            predictions=self.q_vals)
+            labels=labels['q_max'],
+            predictions=self.q_vals[labels['actions']])
         trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=alpha)
-        # self.updateModel = trainer.minimize(loss)
 
         if mode == tf.estimator.ModeKeys.TRAIN:
             train_op = trainer.minimize(
@@ -136,68 +136,73 @@ class Net:
         elif mode == tf.estimator.ModeKeys.EVAL:
             eval_metric_ops = {
                 "accuracy": tf.metrics.mean_squared_error(
-                    labels=labels,
-                    predictions=self.q_vals)}
+                    labels=labels['q_max'],
+                    predictions=self.q_vals[labels['actions']])}
             return tf.estimator.EstimatorSpec(
                 mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
-    def forward(self, features):
-        """
-        Forward pass. Given an input, such as a feature vector
-        or the whole state, return the output of the network.
-        """
-        action, qvals = self.sess.run(
-            [self.argmaxQ, self.Qout],
-            feed_dict={self.inputs: features})
-        return action[0], qvals[0]
-
-    def backward(self, state, targets):
-        """
-        Back-propagation
-        """
-        targets.shape = (1, 70)
-        # Obtain maxQ' and set our target value for chosen action.
-        # Train our network using target and predicted Q values
-        self.sess.run(
-            self.updateModel,
-            feed_dict={self.inputs: state, self.targets: targets})
-
     def get_data(self, fname):
         data = np.load(fname)
-        grids, cells, actions, rewards, next_grids = zip(*data)
+        # grids = np.array(data[:, 0])
+        # cells = np.array(data[:, 1])
+        # actions = np.array(data[:, 2])
+        # rewards = np.array(data[:, 3])
+        # next_grids = np.array(data[:, 4])
+        # next_cells = np.array(data[:, 5])
+        grids, cells, actions, rewards, next_grids, next_cells = \
+            map(np.array, zip(*data))
 
         oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
+        next_oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
         # One-hot grid encoding
         for i, cell in enumerate(cells):
             oh_cells[i][cell] = 1
-        grids.shape = (-1, 7, 7, 70)
+        for i, cell in enumerate(next_cells):
+            next_oh_cells[i][cell] = 1
+        grids.shape = (-1, 7, 7, 70)  # should this be -1,7,7,70,1 perhaps
+        next_grids.shape = (-1, 7, 7, 70)
         oh_cells.shape = (-1, 7, 7, 1)
+        next_oh_cells.shape = (-1, 7, 7, 1)
         grids = grids * 2 - 1  # Make empty cells -1 instead of 0
+        next_grids = next_grids * 2 - 1
 
+        # TODO WHAT TO DO WITH ACTIONS
         split = -1000
-        train_data = {"input_grid": grids[:split],
-                      "input_cell": oh_cells[:split]}
-        test_data = {"input_grid": grids[split:],
-                     "input_cell": oh_cells[split:]}
-        targets = None
+        train_data = {"grid": grids[:split],
+                      "cell": oh_cells[:split],
+                      "actions": actions[:split]}
+        test_data = {"grid": grids[split:],
+                     "cell": oh_cells[split:],
+                     "actions": actions[split:]}
+        # Get expected returns following a greedy policy from the next state
+        # max a': Q(s', a', w_old)
+        nextq_input_fn = tf.estimator.inputs.numpy_input_fn(
+            x={"grid": next_grids, "cells": next_cells},
+            batch_size=self.batch_size,
+            num_epochs=None,
+            shuffle=False)  # Data already shuffled
+        next_max_qs = self.classifier.predict(
+            input_fn=nextq_input_fn,
+            predict_keys=['q_max'])
+        targets = rewards + self.gamma * next_max_qs
         test_targets = targets[:split]
         train_targets = targets[split:]
         return train_data, train_targets, test_data, test_targets
 
     def train(self):
-        data = self.get_data("data-experience-sub-shuffle.npy")
+        data = self.get_data("data-experience-shuffle.npy")
         train_data, train_targets, test_data, test_targets = data
 
         # Train the model
         train_input_fn = tf.estimator.inputs.numpy_input_fn(
             x=train_data,
             y=train_targets,
-            batch_size=100,
+            batch_size=self.batch_size,
             num_epochs=None,
             shuffle=False)  # Data already shuffled
         self.classifier.train(
             input_fn=train_input_fn,
-            steps=50000)
+            steps=5000)
 
         # Evaluate the model and print results
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -392,5 +397,5 @@ class FreeChNet:
 
 
 if __name__ == "__main__":
-    n = FreeChNet()
+    n = Net()
     n.train()

@@ -64,9 +64,6 @@ class Strat:
             if ch is not None:
                 s = np.copy(self.grid.state)
                 self.execute_action(cevent, ch)
-                r = self.reward()
-                s_new = np.copy(self.grid.state)
-                self.experience.append((s, cell, ch, r, s_new))
 
                 if self.verify_grid and not self.grid.validate_reuse_constr():
                     self.logger.error(f"Reuse constraint broken")
@@ -111,6 +108,14 @@ class Strat:
                     self.gui.hgrid.unmark_cell(*cell)
 
             next_cevent = self.eventgen.pop()
+            if ch is not None and ce_type != CEvent.END \
+                    and next_cevent[1] != CEvent.END:
+                # Only add (s, a, r, s') tuples for which the events in
+                # s and s' are not END events
+                r = self.reward()
+                s_new = np.copy(self.grid.state)
+                cell_new = next_cevent[2]
+                self.experience.append([s, cell, ch, r, s_new, cell_new])
             next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
 
