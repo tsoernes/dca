@@ -59,29 +59,40 @@ learning rate, if too log (like 1e-6), increase lr.
 
 
 class Net:
-    def __init__(self,
+    def __init__(self, restore=False,
                  *args, **kwargs):
-        self.alpha = 0.01
+        self.alpha = 0.0000001
         self.gamma = 0.9
-        self.batch_size = 100
-        tf.logging.set_verbosity(tf.logging.INFO)
-        # tf.reset_default_graph()
-        # self.sess = tf.Session()
-        # init = tf.global_variables_initializer()
-        # self.sess.run(init)
-        self.classifier = tf.estimator.Estimator(
-            model_fn=self.build_model, model_dir="../model/qnet01")
+        self.batch_size = 10
 
-    def build_model(self, features, labels, mode):
-        input_grid = features['grid']
-        input_cell = features['cell']
-        input_stacked = tf.concat([input_grid, input_cell], axis=3)
-        # self.tfinput_grid = tf.placeholder(
-        #      shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
-        # self.tfinput_cell = tf.placeholder(
-        #     shape=[None, 7, 7, 1], dtype=tf.float16, name="input_cell")
-        # input_stacked = tf.concat(
-        #     [self.tfinput_grid, self.tfinput_cell], axis=3)
+        tf.logging.set_verbosity(tf.logging.INFO)
+        tf.reset_default_graph()
+        self.sess = tf.Session()
+        self.model_path = "model/qnet01/model.cpkt"
+        # build or restore
+        if restore:
+            init = tf.global_variables_initializer()
+            self.sess.run(init)
+            print(f"Restoring model from {self.model_path}")
+            self.saver.restore(self.sess, self.model_path)
+        else:
+            self.build()
+            init = tf.global_variables_initializer()
+            self.sess.run(init)
+        self.saver = tf.train.Saver()
+
+    def build(self):
+        self.input_grid = tf.placeholder(
+            shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
+        self.input_cell = tf.placeholder(
+            shape=[None, 7, 7, 1], dtype=tf.float16, name="input_cell")
+        self.target_action = tf.placeholder(
+            shape=[None, 1], dtype=tf.int32, name="target_action")
+        self.target_q = tf.placeholder(
+            shape=[None, 1], dtype=tf.float16, name="target_q")
+
+        input_stacked = tf.concat(
+            [self.input_grid, self.input_cell], axis=3)
         conv1 = tf.layers.conv2d(
             inputs=input_stacked,
             filters=70,
@@ -103,54 +114,31 @@ class Net:
         # If so then need to retest sarsa-strats and redo hyperparam opt.
         self.q_vals = tf.layers.dense(inputs=conv2_flat, units=70)
         self.q_amax = tf.argmax(self.q_vals, axis=1)
-        self.q_max = tf.maximum(self.q_vals, axis=1)
 
+        flat_q_vals = tf.reshape(self.q_vals, [-1])
+        flat_amax = self.q_amax + tf.cast(tf.range(
+            tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1], tf.int64)
+        self.q_max = tf.gather(flat_q_vals, flat_amax)
+
+        flat_target_action = self.target_action + tf.cast(tf.range(
+            tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1], tf.int32)
+        predictions = tf.gather(flat_q_vals, flat_target_action)
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
-        # self.targets = tf.placeholder(
-        #     shape=[1, 70], dtype=tf.float32, name="targets")
+        self.loss = tf.losses.mean_squared_error(
+            labels=self.target_q,
+            predictions=predictions)
+        # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
+        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
+        # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
+        self.do_train = trainer.minimize(self.loss)
 
-        predictions = {
-            "qvals": self.q_vals,
-            "q_max": self.q_max,
-            "q_amax": self.q_amax,
-        }
-
-        if mode == tf.estimator.ModeKeys.PREDICT:
-            return tf.estimator.EstimatorSpec(
-                mode=mode, predictions=predictions)
-
-        loss = tf.losses.mean_squared_error(
-            labels=labels['q_max'],
-            predictions=self.q_vals[labels['actions']])
-        trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
-        # trainer = tf.train.GradientDescentOptimizer(learning_rate=alpha)
-        # trainer = tf.train.RMSPropOptimizer(learning_rate=alpha)
-
-        if mode == tf.estimator.ModeKeys.TRAIN:
-            train_op = trainer.minimize(
-                loss=loss,
-                global_step=tf.train.get_global_step())
-            return tf.estimator.EstimatorSpec(
-                mode=mode, loss=loss, train_op=train_op)
-        elif mode == tf.estimator.ModeKeys.EVAL:
-            eval_metric_ops = {
-                "accuracy": tf.metrics.mean_squared_error(
-                    labels=labels['q_max'],
-                    predictions=self.q_vals[labels['actions']])}
-            return tf.estimator.EstimatorSpec(
-                mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
-
-    def get_data(self, fname):
-        data = np.load(fname)
-        # grids = np.array(data[:, 0])
-        # cells = np.array(data[:, 1])
-        # actions = np.array(data[:, 2])
-        # rewards = np.array(data[:, 3])
-        # next_grids = np.array(data[:, 4])
-        # next_cells = np.array(data[:, 5])
+    def train(self):
+        data = np.load("data-experience-shuffle.npy")
         grids, cells, actions, rewards, next_grids, next_cells = \
             map(np.array, zip(*data))
+        actions = actions.astype(np.int32)
+        rewards = rewards.astype(np.float16)
 
         oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
         next_oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
@@ -159,59 +147,44 @@ class Net:
             oh_cells[i][cell] = 1
         for i, cell in enumerate(next_cells):
             next_oh_cells[i][cell] = 1
-        grids.shape = (-1, 7, 7, 70)  # should this be -1,7,7,70,1 perhaps
+        grids.shape = (-1, 7, 7, 70)
         next_grids.shape = (-1, 7, 7, 70)
         oh_cells.shape = (-1, 7, 7, 1)
         next_oh_cells.shape = (-1, 7, 7, 1)
-        grids = grids * 2 - 1  # Make empty cells -1 instead of 0
+        actions.shape = (-1, 1)
+        rewards.shape = (-1, 1)
+        # Make empty cells -1 instead of 0
+        grids = grids * 2 - 1
         next_grids = next_grids * 2 - 1
 
-        # TODO WHAT TO DO WITH ACTIONS
-        split = -1000
-        train_data = {"grid": grids[:split],
-                      "cell": oh_cells[:split],
-                      "actions": actions[:split]}
-        test_data = {"grid": grids[split:],
-                     "cell": oh_cells[split:],
-                     "actions": actions[split:]}
-        # Get expected returns following a greedy policy from the next state
-        # max a': Q(s', a', w_old)
-        nextq_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x={"grid": next_grids, "cells": next_cells},
-            batch_size=self.batch_size,
-            num_epochs=None,
-            shuffle=False)  # Data already shuffled
-        next_max_qs = self.classifier.predict(
-            input_fn=nextq_input_fn,
-            predict_keys=['q_max'])
-        targets = rewards + self.gamma * next_max_qs
-        test_targets = targets[:split]
-        train_targets = targets[split:]
-        return train_data, train_targets, test_data, test_targets
-
-    def train(self):
-        data = self.get_data("data-experience-shuffle.npy")
-        train_data, train_targets, test_data, test_targets = data
-
-        # Train the model
-        train_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=train_data,
-            y=train_targets,
-            batch_size=self.batch_size,
-            num_epochs=None,
-            shuffle=False)  # Data already shuffled
-        self.classifier.train(
-            input_fn=train_input_fn,
-            steps=5000)
-
-        # Evaluate the model and print results
-        eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=test_data,
-            y=test_targets,
-            num_epochs=1,
-            shuffle=False)
-        eval_results = self.classifier.evaluate(input_fn=eval_input_fn)
-        print(eval_results)
+        split_perc = 0.9  # Percentage of data to train on
+        split = int(len(grids) * split_perc)
+        n_train_steps = split // self.batch_size
+        eval_losses = []
+        for i in range(len(grids) // self.batch_size):
+            # Get expected returns following a greedy policy from the
+            # next state: max a': Q(s', a', w_old)
+            batch = slice(i * self.batch_size, (i + 1) * self.batch_size)
+            next_data = {self.input_grid: next_grids[batch],
+                         self.input_cell: next_oh_cells[batch]}
+            next_q_maxs = self.sess.run(self.q_max, next_data)
+            next_q_maxs.shape = (-1, 1)
+            r = rewards[batch]
+            q_targets = r + self.gamma * next_q_maxs
+            train_data = {self.input_grid: grids[batch],
+                          self.input_cell: oh_cells[batch],
+                          self.target_action: actions[batch],
+                          self.target_q: q_targets}
+            if i < n_train_steps:
+                loss, _ = self.sess.run([self.loss, self.do_train], train_data)
+                print(f"Iter {i} loss: {loss}")
+            else:
+                if len(eval_losses) == 0:
+                    print("Started evaluation")
+                eval_losses.append(self.sess.run(self.loss, train_data))
+        print(
+            f"Trained {i} minibatches of size {self.batch_size}"
+            f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
 
 class FreeChNet:
@@ -238,6 +211,7 @@ class FreeChNet:
         # Should start with higher learning rate, 0.01 and decay
         self.tfinput_grid = tf.placeholder(
             shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
+
         # TODO Test -1 for empty entries on input_cell
         self.tfinput_cell = tf.placeholder(
             shape=[None, 7, 7, 1], dtype=tf.float16, name="input_cell")
