@@ -61,6 +61,7 @@ learning rate, if too log (like 1e-6), increase lr.
 class Net:
     def __init__(self, restore=False,
                  *args, **kwargs):
+        # 0.000001 and higher gives nan loss (eventually), when batch sz is 10
         self.alpha = 0.0000001
         self.gamma = 0.9
         self.batch_size = 10
@@ -147,12 +148,14 @@ class Net:
             oh_cells[i][cell] = 1
         for i, cell in enumerate(next_cells):
             next_oh_cells[i][cell] = 1
+
         grids.shape = (-1, 7, 7, 70)
         next_grids.shape = (-1, 7, 7, 70)
         oh_cells.shape = (-1, 7, 7, 1)
         next_oh_cells.shape = (-1, 7, 7, 1)
         actions.shape = (-1, 1)
         rewards.shape = (-1, 1)
+
         # Make empty cells -1 instead of 0
         grids = grids * 2 - 1
         next_grids = next_grids * 2 - 1
@@ -161,6 +164,9 @@ class Net:
         split = int(len(grids) * split_perc)
         n_train_steps = split // self.batch_size
         eval_losses = []
+        print(
+            f"Training {n_train_steps} minibatches of size {self.batch_size}"
+            f" for a total of {split} examples")
         for i in range(len(grids) // self.batch_size):
             # Get expected returns following a greedy policy from the
             # next state: max a': Q(s', a', w_old)
@@ -183,7 +189,6 @@ class Net:
                     print("Started evaluation")
                 eval_losses.append(self.sess.run(self.loss, train_data))
         print(
-            f"Trained {i} minibatches of size {self.batch_size}"
             f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
 
