@@ -61,8 +61,7 @@ learning rate, if too log (like 1e-6), increase lr.
 class Net:
     def __init__(self, restore=False,
                  *args, **kwargs):
-        # 0.000001 and higher gives nan loss (eventually), when batch sz is 10
-        self.alpha = 0.0000001
+        self.alpha = 0.00000001
         self.gamma = 0.9
         self.batch_size = 10
 
@@ -88,32 +87,33 @@ class Net:
         self.input_cell = tf.placeholder(
             shape=[None, 7, 7, 1], dtype=tf.float16, name="input_cell")
         self.target_action = tf.placeholder(
-            shape=[None, 1], dtype=tf.int32, name="target_action")
+            shape=[None], dtype=tf.int32, name="target_action")
         self.target_q = tf.placeholder(
-            shape=[None, 1], dtype=tf.float16, name="target_q")
+            shape=[None], dtype=tf.float16, name="target_q")
 
         input_stacked = tf.concat(
             [self.input_grid, self.input_cell], axis=3)
-        conv1 = tf.layers.conv2d(
-            inputs=input_stacked,
-            filters=70,
+        input_stacked_2 = tf.cast(input_stacked, tf.float32)
+        conv1 = tf.contrib.layers.conv2d_in_plane(
+            inputs=input_stacked_2,
             kernel_size=5,
-            strides=1,
-            padding="same",  # pad with 0's
-            activation=tf.nn.relu)
-        conv2 = tf.layers.conv2d(
-            inputs=conv1,
-            filters=70,
-            kernel_size=3,
-            padding="same",
-            activation=tf.nn.relu)
-        conv2_flat = tf.layers.flatten(conv2)
+            stride=1,
+            padding="SAME",  # pad with 0's
+            activation_fn=tf.nn.relu)
+        # conv2 = tf.layers.conv2d(
+            # inputs=conv1,
+            # filters=140,
+            # kernel_size=3,
+            # padding="same",
+            # activation=tf.nn.relu)
+        conv2_flat = tf.layers.flatten(conv1)
 
-        # TODO verify that linear neural net performs better than random.
         # Perhaps reducing call rates will increase difference between
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
-        self.q_vals = tf.layers.dense(inputs=conv2_flat, units=70)
+        dense = tf.layers.dense(
+            inputs=conv2_flat, units=1024)
+        self.q_vals = tf.layers.dense(inputs=dense, units=70)
         self.q_amax = tf.argmax(self.q_vals, axis=1)
 
         flat_q_vals = tf.reshape(self.q_vals, [-1])
@@ -123,16 +123,29 @@ class Net:
 
         flat_target_action = self.target_action + tf.cast(tf.range(
             tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1], tf.int32)
-        predictions = tf.gather(flat_q_vals, flat_target_action)
+        self.predictions = tf.gather(flat_q_vals, flat_target_action)
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
             labels=self.target_q,
-            predictions=predictions)
+            predictions=self.predictions)
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
         self.do_train = trainer.minimize(self.loss)
+        self.shapes = \
+            [tf.shape(input_stacked),
+             tf.shape(conv1),
+             tf.shape(conv2_flat),
+             tf.shape(dense),
+             tf.shape(self.q_vals),
+             tf.shape(self.q_amax),
+             tf.shape(flat_q_vals),
+             tf.shape(flat_amax),
+             tf.shape(self.q_max),
+             tf.shape(flat_target_action),
+             tf.shape(self.predictions),
+             tf.shape(self.loss)]
 
     def train(self):
         data = np.load("data-experience-shuffle.npy")
@@ -153,12 +166,15 @@ class Net:
         next_grids.shape = (-1, 7, 7, 70)
         oh_cells.shape = (-1, 7, 7, 1)
         next_oh_cells.shape = (-1, 7, 7, 1)
-        actions.shape = (-1, 1)
-        rewards.shape = (-1, 1)
 
-        # Make empty cells -1 instead of 0
+        # Make empty cells -1 instead of 0.
+        # Temporarily convert to int8 to save memory
+        grids = grids.astype(np.int8)
+        next_grids = next_grids.astype(np.int8)
         grids = grids * 2 - 1
         next_grids = next_grids * 2 - 1
+        grids = grids.astype(np.float16)
+        next_grids = next_grids.astype(np.float16)
 
         split_perc = 0.9  # Percentage of data to train on
         split = int(len(grids) * split_perc)
@@ -174,22 +190,31 @@ class Net:
             next_data = {self.input_grid: next_grids[batch],
                          self.input_cell: next_oh_cells[batch]}
             next_q_maxs = self.sess.run(self.q_max, next_data)
-            next_q_maxs.shape = (-1, 1)
             r = rewards[batch]
             q_targets = r + self.gamma * next_q_maxs
-            train_data = {self.input_grid: grids[batch],
-                          self.input_cell: oh_cells[batch],
-                          self.target_action: actions[batch],
-                          self.target_q: q_targets}
+            data = {self.input_grid: grids[batch],
+                    self.input_cell: oh_cells[batch],
+                    self.target_action: actions[batch],
+                    self.target_q: q_targets}
             if i < n_train_steps:
-                loss, _ = self.sess.run([self.loss, self.do_train], train_data)
-                print(f"Iter {i} loss: {loss}")
+                q_vals, q_amax, q_max, pred, _, loss = self.sess.run(
+                    [self.q_vals, self.q_amax, self.q_max, self.predictions,
+                     self.do_train, self.loss],
+                    data)
+                print(f"Iter {i}\tloss: {loss:.2f}")
+                # print(
+                #     f"\nqvals: {q_vals}"
+                #     f"\nq_amax: {q_amax}"
+                #     f"\nq_max: {q_max}"
+                #     f"\naction: {actions[batch]}"
+                #     f"\npred: {pred}")
+                if np.isnan(loss) or np.isinf(loss):
+                    break
             else:
                 if len(eval_losses) == 0:
                     print("Started evaluation")
-                eval_losses.append(self.sess.run(self.loss, train_data))
-        print(
-            f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
+                eval_losses.append(self.sess.run(self.loss, data))
+        print(f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
 
 class FreeChNet:

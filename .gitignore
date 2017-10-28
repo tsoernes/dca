@@ -1,7 +1,9 @@
 dca/model/
 # Numpy data sets
 *.npy
+data-experience*
 logs/
+
 .idea/
 # Byte-compiled / optimized / DLL files
 __pycache__/
