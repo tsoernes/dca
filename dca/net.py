@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from matplotlib import pyplot as plt
 
 """
 Neighbors2
@@ -59,47 +60,56 @@ learning rate, if too log (like 1e-6), increase lr.
 
 
 class Net:
-    def __init__(self, restore=False,
+    def __init__(self, restore=False, save=True,
                  *args, **kwargs):
-        self.alpha = 0.00000001
+        self.save = save
+        self.alpha = 1e-5
         self.gamma = 0.9
         self.batch_size = 10
+        self.model_path = "model/qnet01/model.cpkt"
 
         tf.logging.set_verbosity(tf.logging.INFO)
         tf.reset_default_graph()
         self.sess = tf.Session()
-        self.model_path = "model/qnet01/model.cpkt"
-        # build or restore
+        self.build()
+        init = tf.global_variables_initializer()
+        self.saver = tf.train.Saver()
+        self.sess.run(init)
         if restore:
-            init = tf.global_variables_initializer()
-            self.sess.run(init)
+            # Could do a try/except and build if loading fails
             print(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
-        else:
-            self.build()
-            init = tf.global_variables_initializer()
-            self.sess.run(init)
-        self.saver = tf.train.Saver()
+
+        data = self.get_data()
+        self.n_train_steps, self.n_test_steps = data[0:2]
+        self.train_gen, self.test_gen = data = data[2:]
 
     def build(self):
         self.input_grid = tf.placeholder(
-            shape=[None, 7, 7, 70], dtype=tf.float16, name="input_grid")
+            shape=[None, 7, 7, 70], dtype=tf.float32, name="input_grid")
         self.input_cell = tf.placeholder(
-            shape=[None, 7, 7, 1], dtype=tf.float16, name="input_cell")
+            shape=[None, 7, 7, 1], dtype=tf.float32, name="input_cell")
         self.target_action = tf.placeholder(
             shape=[None], dtype=tf.int32, name="target_action")
         self.target_q = tf.placeholder(
-            shape=[None], dtype=tf.float16, name="target_q")
+            shape=[None], dtype=tf.float32, name="target_q")
 
+        # NOTE Could stack after conv. No need to do conv on oh cells
         input_stacked = tf.concat(
             [self.input_grid, self.input_cell], axis=3)
-        input_stacked_2 = tf.cast(input_stacked, tf.float32)
-        conv1 = tf.contrib.layers.conv2d_in_plane(
-            inputs=input_stacked_2,
+        conv1 = tf.layers.conv2d(
+            inputs=input_stacked,
+            filters=70,
             kernel_size=5,
-            stride=1,
-            padding="SAME",  # pad with 0's
-            activation_fn=tf.nn.relu)
+            padding="same",
+            activation=tf.nn.relu)
+        # Conv2d_in_plane does not support float16
+        # conv1 = tf.contrib.layers.conv2d_in_plane(
+            # inputs=input_stacked,
+            # kernel_size=5,
+            # stride=1,
+            # padding="SAME",  # pad with 0's
+            # activation_fn=tf.nn.relu)
         # conv2 = tf.layers.conv2d(
             # inputs=conv1,
             # filters=140,
@@ -112,8 +122,8 @@ class Net:
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
         dense = tf.layers.dense(
-            inputs=conv2_flat, units=1024)
-        self.q_vals = tf.layers.dense(inputs=dense, units=70)
+            inputs=conv2_flat, units=128)
+        self.q_vals = tf.layers.dense(inputs=conv2_flat, units=70)
         self.q_amax = tf.argmax(self.q_vals, axis=1)
 
         flat_q_vals = tf.reshape(self.q_vals, [-1])
@@ -129,8 +139,9 @@ class Net:
         self.loss = tf.losses.mean_squared_error(
             labels=self.target_q,
             predictions=self.predictions)
-        # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
-        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
+        trainer = tf.train.AdamOptimizer(
+            learning_rate=self.alpha)
+        # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
         self.do_train = trainer.minimize(self.loss)
         self.shapes = \
@@ -147,12 +158,12 @@ class Net:
              tf.shape(self.predictions),
              tf.shape(self.loss)]
 
-    def train(self):
+    def get_data(self):
         data = np.load("data-experience-shuffle.npy")
         grids, cells, actions, rewards, next_grids, next_cells = \
             map(np.array, zip(*data))
         actions = actions.astype(np.int32)
-        rewards = rewards.astype(np.float16)
+        rewards = rewards.astype(np.float32)  # Needs to be 32-bit
 
         oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
         next_oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
@@ -177,43 +188,91 @@ class Net:
         next_grids = next_grids.astype(np.float16)
 
         split_perc = 0.9  # Percentage of data to train on
-        split = int(len(grids) * split_perc)
-        n_train_steps = split // self.batch_size
-        eval_losses = []
-        print(
-            f"Training {n_train_steps} minibatches of size {self.batch_size}"
-            f" for a total of {split} examples")
-        for i in range(len(grids) // self.batch_size):
+        split = int(len(grids) * split_perc) // self.batch_size
+        end = len(grids) // self.batch_size
+
+        def data_gen(start, stop):
+            for i in range(start, stop):
+                # Get expected returns following a greedy policy from the
+                # next state: max a': Q(s', a', w_old)
+                batch = slice(i * self.batch_size, (i + 1) * self.batch_size)
+                yield {
+                    'grids': grids[batch],
+                    'cells': oh_cells[batch],
+                    'actions': actions[batch],
+                    'rewards': rewards[batch],
+                    'next_grids': next_grids[batch],
+                    'next_cells': next_oh_cells[batch]}
+
+        train_gen = data_gen(0, split)
+        test_gen = data_gen(split, end)
+        n_test_steps = end - split
+        return split, n_test_steps, train_gen, test_gen
+
+    def train(self):
+        losses = []
+        print(f"Training {self.n_train_steps} minibatches of size"
+              f" {self.batch_size} for a total of"
+              f" {self.n_train_steps * self.batch_size} examples")
+        for i in range(self.n_train_steps):
             # Get expected returns following a greedy policy from the
             # next state: max a': Q(s', a', w_old)
-            batch = slice(i * self.batch_size, (i + 1) * self.batch_size)
-            next_data = {self.input_grid: next_grids[batch],
-                         self.input_cell: next_oh_cells[batch]}
+            data = next(self.train_gen)
+            next_data = {self.input_grid: data['next_grids'],
+                         self.input_cell: data['next_cells']}
             next_q_maxs = self.sess.run(self.q_max, next_data)
-            r = rewards[batch]
+            r = data['rewards']
             q_targets = r + self.gamma * next_q_maxs
-            data = {self.input_grid: grids[batch],
-                    self.input_cell: oh_cells[batch],
-                    self.target_action: actions[batch],
-                    self.target_q: q_targets}
-            if i < n_train_steps:
-                q_vals, q_amax, q_max, pred, _, loss = self.sess.run(
-                    [self.q_vals, self.q_amax, self.q_max, self.predictions,
-                     self.do_train, self.loss],
-                    data)
+            curr_data = {
+                self.input_grid: data['grids'],
+                self.input_cell: data['cells'],
+                self.target_action: data['actions'],
+                self.target_q: q_targets}
+            _, loss = self.sess.run(
+                [self.do_train, self.loss],
+                curr_data)
+            if i % 50 == 0:
                 print(f"Iter {i}\tloss: {loss:.2f}")
-                # print(
-                #     f"\nqvals: {q_vals}"
-                #     f"\nq_amax: {q_amax}"
-                #     f"\nq_max: {q_max}"
-                #     f"\naction: {actions[batch]}"
-                #     f"\npred: {pred}")
-                if np.isnan(loss) or np.isinf(loss):
-                    break
-            else:
-                if len(eval_losses) == 0:
-                    print("Started evaluation")
-                eval_losses.append(self.sess.run(self.loss, data))
+                losses.append(loss)
+            if np.isnan(loss) or np.isinf(loss):
+                print(f"Invalid loss: {loss}")
+                break
+        if self.save:
+            print(f"Saving model to path {self.model_path}")
+            self.saver.save(self.sess, self.model_path)
+        self.eval()
+
+        plt.plot(losses)
+        plt.ylabel("Loss")
+        plt.xlabel(f"Iterations, in {self.batch_size}s")
+        plt.show()
+
+    def eval(self):
+        print(f"Evaluating {self.n_test_steps} minibatches of size"
+              f" {self.batch_size} for a total of"
+              f"  {self.n_test_steps * self.batch_size} examples")
+        eval_losses = []
+        for i in range(self.n_test_steps):
+            # Get expected returns following a greedy policy from the
+            # next state: max a': Q(s', a', w_old)
+            data = next(self.test_gen)
+            next_data = {self.input_grid: data['next_grids'],
+                         self.input_cell: data['next_cells']}
+            next_q_maxs = self.sess.run(self.q_max, next_data)
+            r = data['rewards']
+            q_targets = r + self.gamma * next_q_maxs
+            curr_data = {
+                self.input_grid: data['grids'],
+                self.input_cell: data['cells'],
+                self.target_action: data['actions'],
+                self.target_q: q_targets}
+            loss = self.sess.run(
+                self.loss,
+                curr_data)
+            eval_losses.append(loss)
+            if np.isnan(loss) or np.isinf(loss):
+                print(f"Invalid loss: {loss}")
+                break
         print(f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
 
@@ -403,3 +462,4 @@ class FreeChNet:
 if __name__ == "__main__":
     n = Net()
     n.train()
+    # n.eval()
