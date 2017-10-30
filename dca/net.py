@@ -67,6 +67,7 @@ class Net:
         self.gamma = 0.9
         self.batch_size = 10
         self.model_path = "model/qnet01/model.cpkt"
+        self.log_path = "model/qnet01/logs"
 
         tf.logging.set_verbosity(tf.logging.INFO)
         tf.reset_default_graph()
@@ -105,26 +106,27 @@ class Net:
             activation=tf.nn.relu)
         # Conv2d_in_plane does not support float16
         # conv1 = tf.contrib.layers.conv2d_in_plane(
-            # inputs=input_stacked,
-            # kernel_size=5,
-            # stride=1,
-            # padding="SAME",  # pad with 0's
-            # activation_fn=tf.nn.relu)
+        #     inputs=input_stacked,
+        #     kernel_size=5,
+        #     stride=1,
+        #     padding="SAME",  pad with 0's
+        #     activation_fn=tf.nn.relu)
         # conv2 = tf.layers.conv2d(
-            # inputs=conv1,
-            # filters=140,
-            # kernel_size=3,
-            # padding="same",
-            # activation=tf.nn.relu)
+        #     inputs=conv1,
+        #     filters=140,
+        #     kernel_size=3,
+        #     padding="same",
+        #     activation=tf.nn.relu)
         conv2_flat = tf.layers.flatten(conv1)
 
         # Perhaps reducing call rates will increase difference between
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
         dense = tf.layers.dense(
-            inputs=conv2_flat, units=128)
-        self.q_vals = tf.layers.dense(inputs=conv2_flat, units=70)
-        self.q_amax = tf.argmax(self.q_vals, axis=1)
+            inputs=conv2_flat, units=128, name="dense")
+        self.q_vals = tf.layers.dense(
+            inputs=conv2_flat, units=70, name="q_vals")
+        self.q_amax = tf.argmax(self.q_vals, axis=1, name="q_amax")
 
         flat_q_vals = tf.reshape(self.q_vals, [-1])
         flat_amax = self.q_amax + tf.cast(tf.range(
@@ -133,7 +135,8 @@ class Net:
 
         flat_target_action = self.target_action + tf.cast(tf.range(
             tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1], tf.int32)
-        self.predictions = tf.gather(flat_q_vals, flat_target_action)
+        self.predictions = tf.gather(
+            flat_q_vals, flat_target_action, name="action_q_vals")
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
@@ -144,6 +147,16 @@ class Net:
         # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
         self.do_train = trainer.minimize(self.loss)
+        with tf.name_scope("summaries"):
+            tf.summary.scalar("learning_rate", self.alpha)
+            tf.summary.scalar("loss", self.loss)
+            tf.summary.histogram("qvals", self.q_vals)
+        self.summaries = tf.summary.merge_all()
+        self.train_writer = tf.summary.FileWriter(
+            self.log_path + '/train', self.sess.graph)
+        self.eval_writer = tf.summary.FileWriter(
+            self.log_path + '/eval')
+
         self.shapes = \
             [tf.shape(input_stacked),
              tf.shape(conv1),
@@ -228,10 +241,14 @@ class Net:
                 self.input_cell: data['cells'],
                 self.target_action: data['actions'],
                 self.target_q: q_targets}
-            _, loss = self.sess.run(
-                [self.do_train, self.loss],
+            _, loss, summary = self.sess.run(
+                [self.do_train, self.loss, self.summaries],
                 curr_data)
             if i % 50 == 0:
+                # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                # run_metadata = tf.RunMetadata()
+                # self.train_writer.add_run_metadata(run_metadata, 'step%d' % i)
+                self.train_writer.add_summary(summary, i)
                 print(f"Iter {i}\tloss: {loss:.2f}")
                 losses.append(loss)
             if np.isnan(loss) or np.isinf(loss):
@@ -266,9 +283,10 @@ class Net:
                 self.input_cell: data['cells'],
                 self.target_action: data['actions'],
                 self.target_q: q_targets}
-            loss = self.sess.run(
-                self.loss,
+            loss, summary = self.sess.run(
+                [self.loss, self.summaries],
                 curr_data)
+            self.eval_writer.add_summary(summary, i)
             eval_losses.append(loss)
             if np.isnan(loss) or np.isinf(loss):
                 print(f"Invalid loss: {loss}")
