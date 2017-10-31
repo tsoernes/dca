@@ -1,5 +1,6 @@
 from utils import BackgroundGenerator
 
+import h5py
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
@@ -65,7 +66,7 @@ class Net:
     def __init__(self, restore=False, save=True,
                  *args, **kwargs):
         self.save = save
-        self.alpha = 1e-5
+        self.alpha = 5e-6
         self.gamma = 0.9
         self.batch_size = 10
         self.model_path = "model/qnet01/model.cpkt"
@@ -83,9 +84,12 @@ class Net:
             print(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
 
+        # data = self.get_data_h5py()
         data = self.get_data()
-        self.n_train_steps, self.n_test_steps = data[0:2]
-        self.train_gen, self.test_gen = data = data[2:]
+        self.n_train_steps = data['n_train_steps']
+        self.n_test_steps = data['n_test_steps']
+        self.train_gen = data['train_gen']
+        self.test_gen = data['test_gen']
 
     def build(self):
         self.input_grid = tf.placeholder(
@@ -173,10 +177,67 @@ class Net:
              tf.shape(self.predictions),
              tf.shape(self.loss)]
 
+    def get_data_h5py(self):
+        # Open file handle, but don't load contents into memory
+        h5f = h5py.File("data-experience.0.hdf5", "r")
+        entries = len(h5f['states'])
+
+        split_perc = 0.9  # Percentage of data to train on
+        split = int(entries * split_perc) // self.batch_size
+        end = entries // self.batch_size
+
+        def data_gen(start, stop):
+            for i in range(start, stop):
+                batch = slice(i * self.batch_size, (i + 1) * self.batch_size)
+                # Load batch data into memory and prep it
+                grids, cells, actions, rewards, next_grids, next_cells = \
+                    self.prep_data(
+                        h5f['states'][batch][:],
+                        h5f['cells'][batch][:],
+                        h5f['chs'][batch][:],
+                        h5f['rewards'][batch][:],
+                        h5f['new_states'][batch][:],
+                        h5f['new_cells'][batch][:])
+                yield {
+                    'grids': grids,
+                    'cells': cells,
+                    'actions': actions,
+                    'rewards': rewards,
+                    'next_grids': next_grids,
+                    'next_cells': next_cells}
+
+        train_gen = BackgroundGenerator(data_gen(0, split), k=10)
+        test_gen = BackgroundGenerator(data_gen(split, end), k=10)
+        return {"n_train_steps": split, "n_test_steps": end - split,
+                "train_gen": train_gen, "test_gen": test_gen}
+
     def get_data(self):
-        data = np.load("data-experience-shuffle.npy")
-        grids, cells, actions, rewards, next_grids, next_cells = \
-            map(np.array, zip(*data))
+        data = np.load("data-experience-shuffle-sub.npy")
+        grids, oh_cells, actions, rewards, next_grids, next_oh_cells = \
+            self.prep_data(*map(np.array, zip(*data)))
+
+        split_perc = 0.9  # Percentage of data to train on
+        split = int(len(grids) * split_perc) // self.batch_size
+        end = len(grids) // self.batch_size
+
+        def data_gen(start, stop):
+            for i in range(start, stop):
+                batch = slice(i * self.batch_size, (i + 1) * self.batch_size)
+                yield {
+                    'grids': grids[batch],
+                    'cells': oh_cells[batch],
+                    'actions': actions[batch],
+                    'rewards': rewards[batch],
+                    'next_grids': next_grids[batch],
+                    'next_cells': next_oh_cells[batch]}
+
+        train_gen = data_gen(0, split)
+        test_gen = data_gen(split, end)
+        return {"n_train_steps": split, "n_test_steps": end - split,
+                "train_gen": train_gen, "test_gen": test_gen}
+
+    @staticmethod
+    def prep_data(grids, cells, actions, rewards, next_grids, next_cells):
         actions = actions.astype(np.int32)
         rewards = rewards.astype(np.float32)  # Needs to be 32-bit
 
@@ -187,6 +248,9 @@ class Net:
             oh_cells[i][cell] = 1
         for i, cell in enumerate(next_cells):
             next_oh_cells[i][cell] = 1
+
+        del cells
+        del next_cells
 
         grids.shape = (-1, 7, 7, 70)
         next_grids.shape = (-1, 7, 7, 70)
@@ -201,28 +265,7 @@ class Net:
         next_grids = next_grids * 2 - 1
         grids = grids.astype(np.float16)
         next_grids = next_grids.astype(np.float16)
-
-        split_perc = 0.9  # Percentage of data to train on
-        split = int(len(grids) * split_perc) // self.batch_size
-        end = len(grids) // self.batch_size
-
-        def data_gen(start, stop):
-            for i in range(start, stop):
-                # Get expected returns following a greedy policy from the
-                # next state: max a': Q(s', a', w_old)
-                batch = slice(i * self.batch_size, (i + 1) * self.batch_size)
-                yield {
-                    'grids': grids[batch],
-                    'cells': oh_cells[batch],
-                    'actions': actions[batch],
-                    'rewards': rewards[batch],
-                    'next_grids': next_grids[batch],
-                    'next_cells': next_oh_cells[batch]}
-
-        train_gen = data_gen(0, split)
-        test_gen = data_gen(split, end)
-        n_test_steps = end - split
-        return split, n_test_steps, train_gen, test_gen
+        return grids, oh_cells, actions, rewards, next_grids, next_oh_cells
 
     def train(self):
         losses = []

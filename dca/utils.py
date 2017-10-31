@@ -17,7 +17,7 @@ class BackgroundGenerator(threading.Thread):
         threading.Thread.__init__(self)
         # Tell Python it's OK to exit even if this thread has not finished
         self.daemon = True
-        self.queue = Queue.Queue(k)
+        self.queue = Queue(k)
         self.generator = generator
         self.start()
 
@@ -26,7 +26,10 @@ class BackgroundGenerator(threading.Thread):
             self.queue.put(item)
         self.queue.put(None)
 
-    def next(self):
+    def __iter__(self):
+        return self
+
+    def __next__(self):
         next_item = self.queue.get()
         if next_item is None:
             raise StopIteration
@@ -41,6 +44,11 @@ def shuffle_in_unison(arrs):
     for arr in arrs:
         np.random.set_state(rng_state)
         np.random.shuffle(arr)
+
+
+def h5py_shuffle_in_unison(fname):
+    f = h5py.File(fname + ".hdf5", "r+")
+    shuffle_in_unison(f)
 
 
 def next_filename(fname, ext=".hdf5"):
@@ -85,17 +93,19 @@ def h5py_save(fname, states, cells, chs, rewards, new_states, new_cells,
     print(f"Wrote {len(states)} experience tuples to {n_fname}")
 
 
-def h5py_save_concat(fname, states, cells, chs, rewards, new_states, new_cells,
+def h5py_save_append(fname, states, cells, chs, rewards, new_states, new_cells,
                      chunk_size=100000):
     """
+    Append to existing data set
     chunk_size: Number of experience tuples to load at a time
     """
-    fname += ".hdf5"
-    if not os.path.isfile(fname):
-        print(f"File not found {fname}")
-        raise Exception
+    efname = fname + ".0.hdf5"
+    if not os.path.isfile(efname):
+        print(f"File not found {efname}, creating new")
+        h5py_save(fname, states, cells, chs, rewards, new_states, new_cells)
+        return
     n = len(states)
-    with h5py.File(fname, "r+") as f:
+    with h5py.File(efname, "r+") as f:
         for ds_key in f.keys():
             dset = f[ds_key]
             dset.resize(dset.shape[0] + n, axis=0)
@@ -103,7 +113,7 @@ def h5py_save_concat(fname, states, cells, chs, rewards, new_states, new_cells,
         ds_cells = f['cells']
         ds_chs = f['chs']
         ds_rewards = f['rewards']
-        ds_new_states = f['new_stats']
+        ds_new_states = f['new_states']
         ds_new_cells = f['new_cells']
         ds_states[-n:] = states
         ds_cells[-n:] = cells
@@ -111,19 +121,4 @@ def h5py_save_concat(fname, states, cells, chs, rewards, new_states, new_cells,
         ds_rewards[-n:] = rewards
         ds_new_states[-n:] = new_states
         ds_new_cells[-n:] = new_cells
-    print(f"Appended {len(states)} experience tuples to {fname}")
-
-
-def h5py_concat(paths):
-    path = None
-    with h5py.File(path, "a") as f:
-        dset = f.create_dataset('voltage284', (10**5,), maxshape=(None,),
-                                dtype='i8', chunks=(10**4,))
-        dset[:] = np.random.random(dset.shape)
-        print(dset.shape)
-        # (100000,)
-
-        for i in range(3):
-            dset.resize(dset.shape[0] + 10**4, axis=0)
-            dset[-10**4:] = np.random.random(10**4)
-            print(dset.shape)
+    print(f"Appended {len(states)} experience tuples to {efname}")
