@@ -1,3 +1,5 @@
+from utils import BackgroundGenerator
+
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt

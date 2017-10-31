@@ -1,5 +1,6 @@
 from eventgen import EventGen, CEvent, ce_str
 from stats import Stats
+from utils import h5py_save
 
 import signal
 import sys
@@ -45,7 +46,8 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
-        np.save("data-experience", np.array(self.experience))
+        # np.save("data-experience", np.array(self.experience))
+        h5py_save("data-experience", *zip(*self.experience))
         return self.stats.block_prob_tot
 
     def _simulate(self):
