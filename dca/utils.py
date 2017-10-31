@@ -70,7 +70,7 @@ def h5py_save(fname, states, cells, chs, rewards, new_states, new_cells,
             return f.create_dataset(
                 name, (len(states), *shape), maxshape=(None, *shape),
                 dtype=dtype, chunks=(chunk_size, *shape))
-        ds_states = create_ds("states", (7, 7, 70), np.int8)
+        ds_states = create_ds("states", (7, 7, 70), np.bool)
         ds_cells = create_ds("cells", (2,), np.int8)
         ds_chs = create_ds("chs", (), np.int8)
         ds_rewards = create_ds("rewards", (), np.int32)
@@ -83,6 +83,35 @@ def h5py_save(fname, states, cells, chs, rewards, new_states, new_cells,
         ds_new_states[:] = new_states
         ds_new_cells[:] = new_cells
     print(f"Wrote {len(states)} experience tuples to {n_fname}")
+
+
+def h5py_save_concat(fname, states, cells, chs, rewards, new_states, new_cells,
+                     chunk_size=100000):
+    """
+    chunk_size: Number of experience tuples to load at a time
+    """
+    fname += ".hdf5"
+    if not os.path.isfile(fname):
+        print(f"File not found {fname}")
+        raise Exception
+    n = len(states)
+    with h5py.File(fname, "r+") as f:
+        for ds_key in f.keys():
+            dset = f[ds_key]
+            dset.resize(dset.shape[0] + n, axis=0)
+        ds_states = f['states']
+        ds_cells = f['cells']
+        ds_chs = f['chs']
+        ds_rewards = f['rewards']
+        ds_new_states = f['new_stats']
+        ds_new_cells = f['new_cells']
+        ds_states[-n:] = states
+        ds_cells[-n:] = cells
+        ds_chs[-n:] = chs
+        ds_rewards[-n:] = rewards
+        ds_new_states[-n:] = new_states
+        ds_new_cells[-n:] = new_cells
+    print(f"Appended {len(states)} experience tuples to {fname}")
 
 
 def h5py_concat(paths):
