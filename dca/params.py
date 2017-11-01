@@ -87,6 +87,10 @@ def get_pparams():
         "store results to logfile 'paramtest-MM.DD-hh.mm'.",
         default=False)
     parser.add_argument(
+        '--save_exp_data',
+        action='store_true',
+        default=False)
+    parser.add_argument(
         '--hopt',
         action='store_true',
         help="(RL) override default params by sampling in logspace",  # noqa

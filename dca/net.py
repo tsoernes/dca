@@ -63,10 +63,10 @@ learning rate, if too log (like 1e-6), increase lr.
 
 
 class Net:
-    def __init__(self, restore=False, save=True,
+    def __init__(self, restore=True, save=True,
                  *args, **kwargs):
         self.save = save
-        self.alpha = 5e-6
+        self.alpha = 1e-7
         self.gamma = 0.9
         self.batch_size = 10
         self.model_path = "model/qnet01/model.cpkt"
@@ -83,13 +83,18 @@ class Net:
             # Could do a try/except and build if loading fails
             print(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
+        self.data_is_loaded = False
 
+    def load_data(self):
+        if self.data_is_loaded:
+            return
         data = self.get_data_h5py()
         # data = self.get_data()
         self.n_train_steps = data['n_train_steps']
         self.n_test_steps = data['n_test_steps']
         self.train_gen = data['train_gen']
         self.test_gen = data['test_gen']
+        self.data_is_loaded = True
 
     def build(self):
         self.input_grid = tf.placeholder(
@@ -237,37 +242,47 @@ class Net:
                 "train_gen": train_gen, "test_gen": test_gen}
 
     @staticmethod
-    def prep_data(grids, cells, actions, rewards, next_grids, next_cells):
-        actions = actions.astype(np.int32)
-        rewards = rewards.astype(np.float32)  # Needs to be 32-bit
+    def prep_data_grids(grids):
+        assert type(grids) == np.ndarray
+        if grids.ndim == 3:
+            grids = np.expand_dims(grids, axis=0)
+        grids.shape = (-1, 7, 7, 70)
+        grids = grids.astype(np.int8)
+        # Make empty cells -1 instead of 0.
+        # Temporarily convert to int8 to save memory
+        grids = grids * 2 - 1
+        grids = grids.astype(np.float16)
+        return grids
 
-        oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
-        next_oh_cells = np.zeros((len(grids), 7, 7), dtype=np.float16)
+    @staticmethod
+    def prep_data_cells(cells):
+        if type(cells) == tuple:
+            cells = [cells]
+        oh_cells = np.zeros((len(cells), 7, 7), dtype=np.float16)
         # One-hot grid encoding
         for i, cell in enumerate(cells):
             oh_cells[i][cell] = 1
-        for i, cell in enumerate(next_cells):
-            next_oh_cells[i][cell] = 1
-
-        del cells
-        del next_cells
-
-        grids.shape = (-1, 7, 7, 70)
-        next_grids.shape = (-1, 7, 7, 70)
         oh_cells.shape = (-1, 7, 7, 1)
-        next_oh_cells.shape = (-1, 7, 7, 1)
+        # Should not be used when predicting, but could save mem when training
+        # del cells
 
-        # Make empty cells -1 instead of 0.
-        # Temporarily convert to int8 to save memory
-        grids = grids.astype(np.int8)
-        next_grids = next_grids.astype(np.int8)
-        grids = grids * 2 - 1
-        next_grids = next_grids * 2 - 1
-        grids = grids.astype(np.float16)
-        next_grids = next_grids.astype(np.float16)
+        return oh_cells
+
+    @staticmethod
+    def prep_data(grids, cells, actions, rewards, next_grids, next_cells):
+        assert type(actions) == np.ndarray
+        assert type(rewards) == np.ndarray
+        actions = actions.astype(np.int32)
+        rewards = rewards.astype(np.float32)  # Needs to be 32-bit
+
+        grids = Net.prep_data_grids(grids)
+        next_grids = Net.prep_data_grids(next_grids)
+        oh_cells = Net.prep_data_cells(cells)
+        next_oh_cells = Net.prep_data_cells(next_cells)
         return grids, oh_cells, actions, rewards, next_grids, next_oh_cells
 
     def train(self):
+        self.load_data()
         losses = []
         print(f"Training {self.n_train_steps} minibatches of size"
               f" {self.batch_size} for a total of"
@@ -310,6 +325,7 @@ class Net:
         plt.show()
 
     def eval(self):
+        self.load_data()
         print(f"Evaluating {self.n_test_steps} minibatches of size"
               f" {self.batch_size} for a total of"
               f"  {self.n_test_steps * self.batch_size} examples")
@@ -337,6 +353,19 @@ class Net:
                 print(f"Invalid loss: {loss}")
                 break
         print(f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
+
+    def forward(self, state):
+        grid, cell = state
+        q_vals, q_amax, q_max = self.sess.run(
+            [self.q_vals, self.q_amax, self.q_max],
+            feed_dict={
+                self.input_grid: self.prep_data_grids(grid),
+                self.input_cell: self.prep_data_cells(cell)})
+        q_vals = np.reshape(q_vals, [-1])
+        return q_vals, q_amax, q_max
+
+    def backward(self, *args):
+        pass
 
 
 class FreeChNet:

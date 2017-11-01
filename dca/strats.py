@@ -18,6 +18,7 @@ class Strat:
         self.n_events = pp['n_events']
         self.p_handoff = pp['p_handoff']
         self.verify_grid = pp['verify_grid']
+        self.save = pp['save_exp_data']
         self.log_iter = pp['log_iter']
         self.pp = pp
         self.grid = grid
@@ -46,7 +47,8 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
-        h5py_save_append("data-experience", *zip(*self.experience[10000:]))
+        if self.save:
+            h5py_save_append("data-experience", *zip(*self.experience[10000:]))
         return self.stats.block_prob_tot
 
     def _simulate(self):
@@ -109,7 +111,7 @@ class Strat:
                     self.gui.hgrid.unmark_cell(*cell)
 
             next_cevent = self.eventgen.pop()
-            if ch is not None and ce_type != CEvent.END \
+            if self.save and ch is not None and ce_type != CEvent.END \
                     and next_cevent[1] != CEvent.END:
                 # Only add (s, a, r, s') tuples for which the events in
                 # s and s' are not END events
@@ -506,7 +508,7 @@ class SARSAQNet(RLStrat):
 
     def get_qvals(self, cell, n_used):
         state = self.encode_state(cell, n_used)
-        _, qvals = self.net.forward(state)
+        qvals, _, _ = self.net.forward(state)
         return qvals
 
     def update_qval(self, cell, n_used, ch, target):
@@ -516,6 +518,21 @@ class SARSAQNet(RLStrat):
 
     def encode_state(self, *args):
         raise NotImplementedError
+
+
+class SARSAQNet_full(SARSAQNet):
+    """
+    State consists of: Index of cell, one-hot encoded and
+    number of channels in use for that cell (integer)
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from net import Net
+        self.net = Net()
+
+    def encode_state(self, cell, n_used):
+        state = (self.grid.state, cell)
+        return state
 
 
 class SARSAQNet_idx_nused(SARSAQNet):
