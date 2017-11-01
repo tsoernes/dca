@@ -47,8 +47,14 @@ def shuffle_in_unison(arrs):
 
 
 def h5py_shuffle_in_unison(fname):
-    f = h5py.File(fname + ".hdf5", "r+")
-    shuffle_in_unison(f)
+    """
+    Shuffle a hdf5 dataset inplace and in unison
+    """
+    with h5py.File(fname + ".hdf5", "r+", driver="core") as f:
+        rng_state = np.random.get_state()
+        for key in f.keys():
+            np.random.set_state(rng_state)
+            np.random.shuffle(f[key])
 
 
 def next_filename(fname, ext=".hdf5"):
@@ -67,8 +73,8 @@ def next_filename(fname, ext=".hdf5"):
     return n_fname
 
 
-def h5py_save(fname, states, cells, chs, rewards, new_states, new_cells,
-              chunk_size=100000):
+def h5py_save(fname, grids, cells, chs, rewards, next_grids, next_cells,
+              chunk_size=100000, n_rows=7, n_cols=7, n_channels=70):
     """
     chunk_size: Number of experience tuples to load at a time
     """
@@ -76,24 +82,25 @@ def h5py_save(fname, states, cells, chs, rewards, new_states, new_cells,
     with h5py.File(n_fname, "x") as f:
         def create_ds(name, shape, dtype):
             return f.create_dataset(
-                name, (len(states), *shape), maxshape=(None, *shape),
+                name, (len(grids), *shape), maxshape=(None, *shape),
                 dtype=dtype, chunks=(chunk_size, *shape))
-        ds_states = create_ds("states", (7, 7, 70), np.bool)
+        ds_grids = create_ds("grids", (n_rows, n_cols, n_channels), np.bool)
         ds_cells = create_ds("cells", (2,), np.int8)
         ds_chs = create_ds("chs", (), np.int8)
         ds_rewards = create_ds("rewards", (), np.int32)
-        ds_new_states = create_ds("new_states", (7, 7, 70), np.bool)
-        ds_new_cells = create_ds("new_cells", (2,), np.int8)
-        ds_states[:] = states
+        ds_next_grids = create_ds(
+            "next_grids", (n_rows, n_cols, n_channels), np.bool)
+        ds_next_cells = create_ds("next_cells", (2,), np.int8)
+        ds_grids[:] = grids
         ds_cells[:] = cells
         ds_chs[:] = chs
         ds_rewards[:] = rewards
-        ds_new_states[:] = new_states
-        ds_new_cells[:] = new_cells
-    print(f"Wrote {len(states)} experience tuples to {n_fname}")
+        ds_next_grids[:] = next_grids
+        ds_next_cells[:] = next_cells
+    print(f"Wrote {len(grids)} experience tuples to {n_fname}")
 
 
-def h5py_save_append(fname, states, cells, chs, rewards, new_states, new_cells,
+def h5py_save_append(fname, grids, cells, chs, rewards, next_grids, next_cells,
                      chunk_size=100000):
     """
     Append to existing data set
@@ -102,23 +109,23 @@ def h5py_save_append(fname, states, cells, chs, rewards, new_states, new_cells,
     efname = fname + ".0.hdf5"
     if not os.path.isfile(efname):
         print(f"File not found {efname}, creating new")
-        h5py_save(fname, states, cells, chs, rewards, new_states, new_cells)
+        h5py_save(fname, grids, cells, chs, rewards, next_grids, next_cells)
         return
-    n = len(states)
+    n = len(grids)
     with h5py.File(efname, "r+") as f:
         for ds_key in f.keys():
             dset = f[ds_key]
             dset.resize(dset.shape[0] + n, axis=0)
-        ds_states = f['states']
+        ds_grids = f['grids']
         ds_cells = f['cells']
         ds_chs = f['chs']
         ds_rewards = f['rewards']
-        ds_new_states = f['new_states']
-        ds_new_cells = f['new_cells']
-        ds_states[-n:] = states
+        ds_next_grids = f['next_grids']
+        ds_next_cells = f['next_cells']
+        ds_grids[-n:] = grids
         ds_cells[-n:] = cells
         ds_chs[-n:] = chs
         ds_rewards[-n:] = rewards
-        ds_new_states[-n:] = new_states
-        ds_new_cells[-n:] = new_cells
-    print(f"Appended {len(states)} experience tuples to {efname}")
+        ds_next_grids[-n:] = next_grids
+        ds_next_cells[-n:] = next_cells
+    print(f"Appended {len(grids)} experience tuples to {efname}")

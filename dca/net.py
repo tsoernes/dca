@@ -84,8 +84,8 @@ class Net:
             print(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
 
-        # data = self.get_data_h5py()
-        data = self.get_data()
+        data = self.get_data_h5py()
+        # data = self.get_data()
         self.n_train_steps = data['n_train_steps']
         self.n_test_steps = data['n_test_steps']
         self.train_gen = data['train_gen']
@@ -180,7 +180,7 @@ class Net:
     def get_data_h5py(self):
         # Open file handle, but don't load contents into memory
         h5f = h5py.File("data-experience.0.hdf5", "r")
-        entries = len(h5f['states'])
+        entries = len(h5f['grids'])
 
         split_perc = 0.9  # Percentage of data to train on
         split = int(entries * split_perc) // self.batch_size
@@ -192,12 +192,12 @@ class Net:
                 # Load batch data into memory and prep it
                 grids, cells, actions, rewards, next_grids, next_cells = \
                     self.prep_data(
-                        h5f['states'][batch][:],
+                        h5f['grids'][batch][:],
                         h5f['cells'][batch][:],
                         h5f['chs'][batch][:],
                         h5f['rewards'][batch][:],
-                        h5f['new_states'][batch][:],
-                        h5f['new_cells'][batch][:])
+                        h5f['next_grids'][batch][:],
+                        h5f['next_cells'][batch][:])
                 yield {
                     'grids': grids,
                     'cells': cells,

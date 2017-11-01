@@ -123,7 +123,7 @@ def get_pparams():
         '--log_iter',
         type=int,
         help="Show blocking probability every n iterations",
-        default=100000)
+        default=50000)
 
     # iterations can be approximated from hours with:
     # iters = 7821* hours - 2015

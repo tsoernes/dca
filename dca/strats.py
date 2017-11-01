@@ -46,7 +46,7 @@ class Strat:
             for c in range(self.cols):
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
-        h5py_save_append("data-experience", *zip(*self.experience))
+        h5py_save_append("data-experience", *zip(*self.experience[10000:]))
         return self.stats.block_prob_tot
 
     def _simulate(self):
