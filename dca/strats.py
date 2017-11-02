@@ -252,7 +252,8 @@ class RLStrat(Strat):
             # Update q-values with one-step lookahead
             next_qval = self.get_qval(next_cell, next_n_used, next_ch)
             targetq = reward + self.discount() * next_qval
-            self.update_qval(cell, self.n_used, ch, targetq)
+            if ch is not None:
+                self.update_qval(cell, self.n_used, ch, targetq)
             # n_used doesn't change if there's no action to take
             self.n_used, self.qval = next_n_used, next_qval
         if next_ce_type == CEvent.END and next_ch is None:
@@ -413,27 +414,27 @@ class SARSAQNet(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.qvals = np.zeros((70))
 
     def get_action(self, next_cevent, cell, ch):
         """
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previous channel (re)assignment.
         """
-        next_ce_type, next_cell = next_cevent[1], next_cevent[2]
+        next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
-        next_n_used, next_ch, next_qvals = self.optimal_ch(
+        next_n_used, next_ch, next_qval = self.optimal_ch(
             next_ce_type, next_cell)
-        # If there's no action to take, don't update q-value at all
+        # If there's no action to take, don't update q-value at all.
+        # Why is learning not done on reasssignment, i.e. end-events?
         if next_ce_type != CEvent.END and next_ch is not None:
             # Observe reward from previous action
             reward = self.reward()
             # Update q-values with one-step lookahead
-            next_qval = next_qvals[next_ch]
-            targetq = reward + self.discount() * next_qval
-            self.update_qval(cell, self.n_used, ch, targetq)
+            q_target = reward + self.discount() * next_qval
+            if ch is not None:
+                self.update_qval(cell, self.n_used, ch, q_target)
             # n_used doesn't change if there's no action to take
-            self.n_used, self.qvals = next_n_used, next_qvals
+            self.n_used = next_n_used
         if next_ce_type == CEvent.END and next_ch is None:
             self.logger.error(
                 "'None' channel for end event"
@@ -445,12 +446,13 @@ class SARSAQNet(RLStrat):
     def optimal_ch(self, ce_type, cell):
         # TODO this isn't really the 'optimal' ch since
         # it's chosen in an epsilon-greedy fashion
-        # TODO This, and get_action, should be merged with RL Strat
-        # with some sensible refactoring
+        # TODO This function, and get_action, should be merged with the
+        # corresponding funcs in RLStrat through some
+        # sensible refactoring.
         """
         Select the channel fitting for assignment that
         that has the maximum q-value in an epsilon-greedy fasion,
-        or select the channel for termination that has the minimum:
+        or select the channel for termination that has the minimum
         q-value in a greedy fashion.
 
         Return (n_used, ch) where 'n_used' is the number of channels in
@@ -479,7 +481,8 @@ class SARSAQNet(RLStrat):
         qvals = self.get_qvals(cell, n_used)
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
-        # TODO Why are END events always greedy??
+        # Selecting a ch for reassigment is always greedy because no learning
+        # is done on the reassignment actions.
         if ce_type != CEvent.END and np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
@@ -497,7 +500,7 @@ class SARSAQNet(RLStrat):
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
-        return (n_used, ch, qvals)
+        return (n_used, ch, qvals[ch])
 
     def fn_after(self):
         self.net.sess.close()
@@ -508,13 +511,12 @@ class SARSAQNet(RLStrat):
 
     def get_qvals(self, cell, n_used):
         state = self.encode_state(cell, n_used)
-        qvals, _, _ = self.net.forward(state)
+        qvals, _, _ = self.net.forward(*state)
         return qvals
 
-    def update_qval(self, cell, n_used, ch, target):
-        self.qvals[ch] = target
+    def update_qval(self, cell, n_used, ch, q_target):
         state = self.encode_state(cell, n_used)
-        self.net.backward(state, self.qvals)
+        self.net.backward(*state, ch, q_target)
 
     def encode_state(self, *args):
         raise NotImplementedError

@@ -307,7 +307,8 @@ class Net:
             if i % 50 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 # run_metadata = tf.RunMetadata()
-                # self.train_writer.add_run_metadata(run_metadata, 'step%d' % i)
+                # self.train_writer.add_run_metadata(
+                #     run_metadata, 'step%d' % i)
                 self.train_writer.add_summary(summary, i)
                 print(f"Iter {i}\tloss: {loss:.2f}")
                 losses.append(loss)
@@ -354,8 +355,7 @@ class Net:
                 break
         print(f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
-    def forward(self, state):
-        grid, cell = state
+    def forward(self, grid, cell):
         q_vals, q_amax, q_max = self.sess.run(
             [self.q_vals, self.q_amax, self.q_max],
             feed_dict={
@@ -364,8 +364,15 @@ class Net:
         q_vals = np.reshape(q_vals, [-1])
         return q_vals, q_amax, q_max
 
-    def backward(self, *args):
-        pass
+    def backward(self, grid, cell, action, q_target):
+        data = {
+            self.input_grid: self.prep_data_grids(grid),
+            self.input_cell: self.prep_data_cells(cell),
+            self.target_action: np.array([action], dtype=np.int32),
+            self.target_q: np.array([q_target], dtype=np.float32)}
+        self.sess.run(
+            self.loss,
+            data)
 
 
 class FreeChNet:

@@ -61,7 +61,7 @@ def get_pparams():
 
     parser.add_argument(
         '--alpha', type=float, help="(RL) learning rate",
-        default=0.02)
+        default=0.1)
     parser.add_argument(
         '--alpha_decay',
         type=float,

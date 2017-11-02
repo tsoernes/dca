@@ -51,7 +51,7 @@ class Runner:
         gridclass, stratclass = self.get_class(self.pp)
         simproc = partial(
             self.sim_proc, gridclass, stratclass, self.pp)
-        with Pool(1) as p:
+        with Pool() as p:
             results = p.map(simproc, range(n_eps))
         n_events = self.pp['n_events']
         self.logger.error(
