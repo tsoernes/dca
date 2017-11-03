@@ -110,7 +110,7 @@ class Runner:
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
         gui.test()
 
-    def hopt(self, net=True):
+    def hopt(self, net=False):
         """
         Hyper-parameter optimization with hyperopt.
         Saves progress to 'results-{stratname}.pkl' and
@@ -129,13 +129,13 @@ class Runner:
         else:
             space = {
                 'alpha': hp.loguniform(
-                    'alpha', np.log(0.001), np.log(0.1)),
+                    'alpha', np.log(0.001), np.log(0.3)),
                 'alpha_decay': hp.uniform(
-                    'alpha_decay', 0.9999, 0.9999999),  # noqa
+                    'alpha_decay', 0.9999, 0.9999999),
                 'epsilon': hp.loguniform(
                     'epsilon', np.log(0.1), np.log(0.8)),
                 'epsilon_decay': hp.uniform(
-                    'epsilon_decay', 0.9995, 0.9999999),  # noqa
+                    'epsilon_decay', 0.9995, 0.9999999),
                 'gamma': hp.uniform('gamma', 0.6, 1)
             }
             trials_step = 4
@@ -158,7 +158,7 @@ class Runner:
                 space=space,
                 algo=tpe.suggest,
                 max_evals=n_trials + trials_step,
-                trials=trials,
+                trials=trials
             )
             if prev_best != best:
                 self.logger.error(f"Found new best params: {best}")

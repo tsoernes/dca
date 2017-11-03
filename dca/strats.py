@@ -53,10 +53,11 @@ class Strat:
         self._simulate()
         if self.save:
             h5py_save_append("data-experience", *zip(*self.experience[10000:]))
-        if not self.pp['hopt']:
+        if self.quit_sim and self.pp['hopt']:
             # Don't want to return block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
-            return self.stats.block_prob_tot
+            return
+        return self.stats.block_prob_tot
 
     def _simulate(self):
         cevent = self.eventgen.pop()
