@@ -136,7 +136,7 @@ class Runner:
                     'epsilon', np.log(0.1), np.log(0.8)),
                 'epsilon_decay': hp.uniform(
                     'epsilon_decay', 0.9995, 0.9999999),
-                'gamma': hp.uniform('gamma', 0.6, 1)
+                'gamma': hp.uniform('gamma', 0.7, 0.95)
             }
             trials_step = 4
 
@@ -170,11 +170,13 @@ class Runner:
     def hopt_proc(gridclass, stratclass, pp, space):
         for key, val in space.items():
             pp[key] = val
+        simproc = partial(
+            Runner.sim_proc, gridclass, stratclass, pp)
         logger = logging.getLogger('')
         logger.error(space)
-        grid = gridclass(logger=logger, **pp)
-        strat = stratclass(pp, grid=grid, logger=logger)
-        result = strat.init_sim()
+        with Pool() as p:
+            results = p.map(simproc, range(6))
+        result = sum(results) / len(results)
         return result
 
 
