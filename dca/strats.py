@@ -232,7 +232,7 @@ class RLStrat(Strat):
         raise NotImplementedError
 
     def get_init_action(self, cevent):
-        _, ch = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        _, ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
     def get_action(self, next_cevent, cell, ch):
@@ -241,16 +241,18 @@ class RLStrat(Strat):
         'cell' and 'ch' specify the previous channel (re)assignment.
         """
         next_ce_type, next_cell = next_cevent[1], next_cevent[2]
+        next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
-        next_n_used, next_ch = self.optimal_ch(next_ce_type, next_cell)
+        next_n_used, next_ch, next_qval = self.optimal_ch(
+            next_ce_type, next_cell)
         # If there's no action to take, don't update q-value at all
         if next_ce_type != CEvent.END and next_ch is not None:
             # Observe reward from previous action
             reward = self.reward()
-
             # Update q-values with one-step lookahead
-            next_qval = self.get_qval(next_cell, next_n_used, next_ch)
+            # next_qval = self.get_qval(next_cell, next_n_used, next_ch)
             targetq = reward + self.discount() * next_qval
+            # Can't update if no action was taken
             if ch is not None:
                 self.update_qval(cell, self.n_used, ch, targetq)
             # n_used doesn't change if there's no action to take
@@ -294,22 +296,30 @@ class RLStrat(Strat):
             # No channels available for assignment,
             # or no channels in use to reassign
             assert ce_type != CEvent.END
-            return (n_used, None)
+            return (n_used, None, None)
 
+        qvals = self.get_qvals(cell, n_used)
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
+        # Selecting a ch for reassigment is always greedy because no learning
+        # is done on the reassignment actions.
         if ce_type != CEvent.END and np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
         else:
             # Choose greedily (either minimum or maximum)
-            idx = op(self.get_qval(cell, n_used, chs))
+            idx = op(qvals[chs])
             ch = chs[idx]
+            # If qvals blow up, you get a lot of 'NaN's and 'inf's
+            # in the qvals and ch becomes none.
+            if ch is None:
+                self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
+                raise Exception
 
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
-        return (n_used, ch)
+        return (n_used, ch, qvals[ch])
 
     def execute_action(self, cevent, ch):
         """
@@ -361,8 +371,8 @@ class SARSA(RLStrat):
         self.qvals = np.zeros((self.rows, self.cols,
                               self.n_channels, self.n_channels))
 
-    def get_qval(self, cell, n_used, ch):
-        return self.qvals[cell][n_used][ch]
+    def get_qvals(self, cell, n_used):
+        return self.qvals[cell][n_used]
 
     def update_qval(self, cell, n_used, ch, targetq):
         td_err = targetq - self.qval
@@ -381,8 +391,8 @@ class TT_SARSA(RLStrat):
         self.k = 30
         self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
 
-    def get_qval(self, cell, n_used, ch):
-        return self.qvals[cell][min(self.k - 1, n_used)][ch]
+    def get_qvals(self, cell, n_used):
+        return self.qvals[cell][min(self.k - 1, n_used)]
 
     def update_qval(self, cell, n_used, ch, td_err):
         self.qvals[cell][min(self.k - 1, n_used)][ch] += self.alpha * td_err
@@ -399,8 +409,8 @@ class RS_SARSA(RLStrat):
         self.fmax = np.argmax
         self.fmin = np.argmin
 
-    def get_qval(self, cell, n_used, ch):
-        return self.qvals[cell][ch]
+    def get_qvals(self, cell, n_used):
+        return self.qvals[cell]
 
     def update_qval(self, cell, n_used, ch, td_err):
         self.qvals[cell][ch] += self.alpha * td_err
@@ -414,93 +424,6 @@ class SARSAQNet(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.losses = []
-
-    def get_action(self, next_cevent, cell, ch):
-        """
-        Return a channel to be (re)assigned for 'next_cevent'.
-        'cell' and 'ch' specify the previous channel (re)assignment.
-        """
-        next_ce_type, next_cell = next_cevent[1:3]
-        # Choose A' from S'
-        next_n_used, next_ch, next_qval = self.optimal_ch(
-            next_ce_type, next_cell)
-        # If there's no action to take, don't update q-value at all.
-        # Why is learning not done on reasssignment, i.e. end-events?
-        if next_ce_type != CEvent.END and next_ch is not None:
-            # Observe reward from previous action
-            reward = self.reward()
-            # Update q-values with one-step lookahead
-            q_target = reward + self.discount() * next_qval
-            if ch is not None:
-                self.update_qval(cell, self.n_used, ch, q_target)
-            # n_used doesn't change if there's no action to take
-            self.n_used = next_n_used
-        if next_ce_type == CEvent.END and next_ch is None:
-            self.logger.error(
-                "'None' channel for end event"
-                f" {ce_str(next_cevent)}"
-                f" {np.where(self.grid.state[next_cell] == 1)}")
-            raise Exception
-        return next_ch
-
-    def optimal_ch(self, ce_type, cell):
-        # TODO this isn't really the 'optimal' ch since
-        # it's chosen in an epsilon-greedy fashion
-        # TODO This function, and get_action, should be merged with the
-        # corresponding funcs in RLStrat through some
-        # sensible refactoring.
-        """
-        Select the channel fitting for assignment that
-        that has the maximum q-value in an epsilon-greedy fasion,
-        or select the channel for termination that has the minimum
-        q-value in a greedy fashion.
-
-        Return (n_used, ch) where 'n_used' is the number of channels in
-        use before any potential action is taken.
-        'ch' is None if no channel is eligeble for assignment
-        """
-        inuse = np.nonzero(self.grid.state[cell])[0]
-        n_used = len(inuse)
-
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = self.grid.get_free_chs(cell)
-            op = np.argmax
-        else:
-            # Channels in use at cell, including channel scheduled
-            # for termination. The latter is included because it might
-            # be the least valueable channel, in which case no
-            # reassignment is done on call termination.
-            chs = inuse
-            op = np.argmin
-
-        if len(chs) == 0:
-            # No channels available for assignment,
-            # or no channels in use to reassign.
-            return (None, None, None)
-
-        qvals = self.get_qvals(cell, n_used)
-        # Might do Greedy in the LImit of Exploration (GLIE) here,
-        # like Boltzmann Exploration with decaying temperature.
-        # Selecting a ch for reassigment is always greedy because no learning
-        # is done on the reassignment actions.
-        if ce_type != CEvent.END and np.random.random() < self.epsilon:
-            # Choose an eligible channel at random
-            ch = np.random.choice(chs)
-        else:
-            # Choose greedily (from eligible channels only)
-            idx = op(qvals[chs])
-            ch = chs[idx]
-            # TODO
-            # If qvals blow up, you get a lot of 'NaN's and 'inf's
-            # in the qvals and ch becomes none.
-            if ch is None:
-                self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
-                raise Exception
-
-        self.logger.debug(
-            f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
-        self.epsilon *= self.epsilon_decay  # Epsilon decay
-        return (n_used, ch, qvals[ch])
 
     def fn_after(self):
         self.net.do_save()
