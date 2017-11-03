@@ -20,13 +20,17 @@ class Strat:
         self.verify_grid = pp['verify_grid']
         self.save = pp['save_exp_data']
         self.log_iter = pp['log_iter']
+        self.epsilon = pp['epsilon']
+        self.epsilon_decay = pp['epsilon_decay']
+        self.alpha = pp['alpha']
+        self.alpha_decay = pp['alpha_decay']
+        self.gamma = pp['gamma']
         self.pp = pp
         self.grid = grid
         self.logger = logger
 
         self.gui = None
-        self.epsilon = None  # Not applicable for all strats
-        self.alpha = None
+        self.losses = []
 
         self.quit_sim = False
         self.stats = Stats(pp=pp, logger=logger, pid=pid)
@@ -213,17 +217,9 @@ class RLStrat(Strat):
         """
         """
         super().__init__(pp, *args, **kwargs)
-        self.epsilon = pp['epsilon']
-        self.epsilon_decay = pp['epsilon_decay']
-        self.alpha = pp['alpha']
-        self.alpha_decay = pp['alpha_decay']
-        self.gamma = pp['gamma']
-
         self.n_used = 0
         self.qval = 0
         self.experience = []
-        self.correct_preds = 0
-        self.incorrect_preds = 0
 
     def update_qval():
         raise NotImplementedError
@@ -240,29 +236,20 @@ class RLStrat(Strat):
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previous channel (re)assignment.
         """
-        next_ce_type, next_cell = next_cevent[1], next_cevent[2]
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_n_used, next_ch, next_qval = self.optimal_ch(
             next_ce_type, next_cell)
         # If there's no action to take, don't update q-value at all
         if next_ce_type != CEvent.END and next_ch is not None:
-            # Observe reward from previous action
-            reward = self.reward()
-            # Update q-values with one-step lookahead
-            # next_qval = self.get_qval(next_cell, next_n_used, next_ch)
-            targetq = reward + self.discount() * next_qval
+            # Observe reward from previous action, and
+            # update q-values with one-step lookahead
+            targetq = self.reward() + self.discount() * next_qval
             # Can't update if no action was taken
             if ch is not None:
                 self.update_qval(cell, self.n_used, ch, targetq)
-            # n_used doesn't change if there's no action to take
-            self.n_used, self.qval = next_n_used, next_qval
-        if next_ce_type == CEvent.END and next_ch is None:
-            self.logger.error(
-                "'None' channel for end event"
-                f" {ce_str(next_cevent)}"
-                f" {np.where(self.grid.state[next_cell] == 1)}")
-            raise Exception
+        self.n_used = next_n_used
+        self.qval = next_qval
         return next_ch
 
     def optimal_ch(self, ce_type, cell):
@@ -274,9 +261,9 @@ class RLStrat(Strat):
         or select the channel for termination that has the minimum
         q-value in a greedy fashion.
 
-        Return (n_used, ch) where 'n_used' is the number of channels in
-        use before any potential action is taken.
-        'ch' is None if no channel is eligeble for assignment
+        Return (n_used, ch, qval) where 'n_used' is the number of channels in
+        use at the given cell before any potential action is taken.
+        'ch' is None if no channel is eligible for assignment.
         """
         inuse = np.nonzero(self.grid.state[cell])[0]
         n_used = len(inuse)
@@ -374,8 +361,9 @@ class SARSA(RLStrat):
     def get_qvals(self, cell, n_used):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, cell, n_used, ch, targetq):
-        td_err = targetq - self.qval
+    def update_qval(self, cell, n_used, ch, target_q):
+        assert type(ch) == np.int64
+        td_err = target_q - self.qval
         self.qvals[cell][n_used][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
@@ -394,7 +382,9 @@ class TT_SARSA(RLStrat):
     def get_qvals(self, cell, n_used):
         return self.qvals[cell][min(self.k - 1, n_used)]
 
-    def update_qval(self, cell, n_used, ch, td_err):
+    def update_qval(self, cell, n_used, ch, target_q):
+        assert type(ch) == np.int64
+        td_err = target_q - self.qval
         self.qvals[cell][min(self.k - 1, n_used)][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
@@ -406,13 +396,13 @@ class RS_SARSA(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
-        self.fmax = np.argmax
-        self.fmin = np.argmin
 
     def get_qvals(self, cell, n_used):
         return self.qvals[cell]
 
-    def update_qval(self, cell, n_used, ch, td_err):
+    def update_qval(self, cell, n_used, ch, target_q):
+        assert type(ch) == np.int64
+        td_err = target_q - self.qval
         self.qvals[cell][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
@@ -423,7 +413,6 @@ class SARSAQNet(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.losses = []
 
     def fn_after(self):
         self.net.do_save()
@@ -460,49 +449,6 @@ class SARSAQNet_full(SARSAQNet):
     def encode_state(self, cell, n_used):
         state = (self.grid.state, cell)
         return state
-
-
-class SARSAQNet_idx_nused(SARSAQNet):
-    """
-    State consists of: Index of cell, one-hot encoded and
-    number of channels in use for that cell (integer)
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        from net import Net
-        self.net = Net(self.logger, 50, 70, self.alpha)
-
-    def encode_state(self, cell, n_used):
-        state = np.identity(50)[(cell[0] + 1) * (cell[1] + 1) - 1]
-        state[49] = n_used
-        state.shape = (1, 50)
-        return state
-
-
-class SARSAQNet_singh(SARSAQNet):
-    """
-    Nearly Features from Singh paper
-    For each cell, the number of available channels.
-    For each cell-channel pair, the number of times the
-    channel is used in a 4 cell radius.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        from net import Net
-        self.net = Net(
-            self.logger, self.n_channels,
-            self.alpha, *self.grid.neighbors2all())
-
-    def encode_state(self, cell, n_used, empty_neg=True):
-        pos = np.zeros((self.grid.rows, self.grid.cols))
-        pos[cell] = 1
-        if empty_neg:
-            state = self.grid.state * 2 - 1
-        else:
-            state = self.grid.state
-        features = np.dstack((state, pos))
-        features.shape = (1, self.rows, self.cols, self.n_channels + 1)
-        return features
 
 
 # TODO verify the rl sim loop. is it correct?
