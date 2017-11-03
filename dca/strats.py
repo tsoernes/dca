@@ -71,9 +71,9 @@ class Strat:
             t, ce_type, cell = cevent[0:3]
             self.stats.iter(t, i, cevent)
 
-            n_used = np.count_nonzero(self.grid.state[cell])
             if ch is not None:
-                s = np.copy(self.grid.state)
+                if self.save:
+                    s = np.copy(self.grid.state)
                 self.execute_action(cevent, ch)
 
                 if self.verify_grid and not self.grid.validate_reuse_constr():
@@ -82,8 +82,7 @@ class Strat:
             if self.gui:
                 self.gui.step()
 
-            # TODO Something seems off here. Why is the event checked
-            # after it's executed? n_used has changed?
+            n_used = np.count_nonzero(self.grid.state[cell])
             if ce_type == CEvent.NEW:
                 self.stats.new()
                 # Generate next incoming call
@@ -218,7 +217,6 @@ class RLStrat(Strat):
         """
         """
         super().__init__(pp, *args, **kwargs)
-        self.n_used = 0
         self.qval = 0
         self.experience = []
 
@@ -229,7 +227,7 @@ class RLStrat(Strat):
         raise NotImplementedError
 
     def get_init_action(self, cevent):
-        _, ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
     def get_action(self, next_cevent, cell, ch):
@@ -239,18 +237,15 @@ class RLStrat(Strat):
         """
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
-        next_n_used, next_ch, next_qval = self.optimal_ch(
-            next_ce_type, next_cell)
+        next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, don't update q-value at all
-        if next_ce_type != CEvent.END and next_ch is not None:
+        if next_ce_type != CEvent.END \
+                and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            targetq = self.reward() + self.discount() * next_qval
+            target_q = self.reward() + self.discount() * next_qval
             # Can't update if no action was taken
-            if ch is not None:
-                self.update_qval(cell, self.n_used, ch, targetq)
-        self.n_used = next_n_used
-        self.qval = next_qval
+            self.update_qval(cell, ch, target_q)
         return next_ch
 
     def optimal_ch(self, ce_type, cell):
@@ -262,8 +257,8 @@ class RLStrat(Strat):
         or select the channel for termination that has the minimum
         q-value in a greedy fashion.
 
-        Return (n_used, ch, qval) where 'n_used' is the number of channels in
-        use at the given cell before any potential action is taken.
+        Return (ch, qval) where 'qval' is the q-value for the
+        selected channel.
         'ch' is None if no channel is eligible for assignment.
         """
         inuse = np.nonzero(self.grid.state[cell])[0]
@@ -284,7 +279,7 @@ class RLStrat(Strat):
             # No channels available for assignment,
             # or no channels in use to reassign
             assert ce_type != CEvent.END
-            return (n_used, None, None)
+            return (None, None)
 
         qvals = self.get_qvals(cell, n_used)
         # Might do Greedy in the LImit of Exploration (GLIE) here,
@@ -307,7 +302,7 @@ class RLStrat(Strat):
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         self.epsilon *= self.epsilon_decay  # Epsilon decay
-        return (n_used, ch, qvals[ch])
+        return (ch, qvals[ch])
 
     def execute_action(self, cevent, ch):
         """
@@ -362,9 +357,10 @@ class SARSA(RLStrat):
     def get_qvals(self, cell, n_used):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, cell, n_used, ch, target_q):
+    def update_qval(self, cell, ch, target_q):
         assert type(ch) == np.int64
-        td_err = target_q - self.qval
+        n_used = np.count_nonzero(self.grid.state[cell])
+        td_err = target_q - self.get_qvals(cell, n_used)[ch]
         self.qvals[cell][n_used][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
@@ -383,9 +379,10 @@ class TT_SARSA(RLStrat):
     def get_qvals(self, cell, n_used):
         return self.qvals[cell][min(self.k - 1, n_used)]
 
-    def update_qval(self, cell, n_used, ch, target_q):
+    def update_qval(self, cell, ch, target_q):
         assert type(ch) == np.int64
-        td_err = target_q - self.qval
+        n_used = np.count_nonzero(self.grid.state[cell])
+        td_err = target_q - self.get_qvals(cell, n_used)[ch]
         self.qvals[cell][min(self.k - 1, n_used)][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
@@ -398,12 +395,12 @@ class RS_SARSA(RLStrat):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
 
-    def get_qvals(self, cell, n_used):
+    def get_qvals(self, cell, *args):
         return self.qvals[cell]
 
-    def update_qval(self, cell, n_used, ch, target_q):
+    def update_qval(self, cell, ch, target_q):
         assert type(ch) == np.int64
-        td_err = target_q - self.qval
+        td_err = target_q - self.get_qvals(cell)[ch]
         self.qvals[cell][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
@@ -420,7 +417,7 @@ class SARSAQNet(RLStrat):
         self.net.sess.close()
 
     def get_init_action(self, cevent):
-        _, ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
     def get_qvals(self, cell, n_used):
@@ -428,8 +425,8 @@ class SARSAQNet(RLStrat):
         qvals, _, _ = self.net.forward(*state)
         return qvals
 
-    def update_qval(self, cell, n_used, ch, q_target):
-        state = self.encode_state(cell, n_used)
+    def update_qval(self, cell, ch, q_target):
+        state = self.encode_state(cell)
         loss = self.net.backward(*state, ch, q_target)
         self.losses.append(loss)
 
@@ -447,7 +444,7 @@ class SARSAQNet_full(SARSAQNet):
         from net import Net
         self.net = Net(self.pp, restore=False, save=True)
 
-    def encode_state(self, cell, n_used):
+    def encode_state(self, cell):
         state = (self.grid.state, cell)
         return state
 

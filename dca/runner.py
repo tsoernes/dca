@@ -1,5 +1,5 @@
 from gui import Gui
-from grid import FixedGrid, RhombAxGrid, RectOffGrid
+from grid import FixedGrid, RhombAxGrid, RectOffGrid  # noqa
 from strats import FixedAssign, strat_classes
 from params import get_pparams, sample_params, sample_gamma
 
