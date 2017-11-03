@@ -134,8 +134,9 @@ def get_pparams():
     args = parser.parse_args()
     params = vars(args)
 
-    if params['strat'] in ['sarsaqnet', 'sarsaqnet_singh']:
-        params['log_iter'] = 1000
+    # Sensible presets / overrides
+    if "net" in params['strat'].lower():
+        params['log_iter'] = 5000
     if not params['call_rates']:
         params['call_rates'] = params['erlangs'] / params['call_duration']
     if params['avg_runs'] > 1:

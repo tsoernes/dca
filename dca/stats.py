@@ -68,7 +68,8 @@ class Stats:
         self.i = i
         self.logger.debug(ce_str(cevent))
 
-    def n_iter(self, epsilon, alpha):
+    def n_iter(self, epsilon, alpha, losses):
+        niter = self.pp['log_iter']
         # NOTE excluding handoffs
         block_prob = self.n_curr_rejected / (self.n_curr_incoming + 1)
         self.block_probs.append(block_prob)
@@ -76,12 +77,15 @@ class Stats:
         self.block_probs_tot.append(block_prob_tot)
         self.logger.info(
             f"\n{self.t:.2f}-{self.i}: Blocking probability events"
-            f" {self.i-self.pp['log_iter']}-{self.i}:"
+            f" {self.i-niter}-{self.i}:"
             f" {block_prob:.4f}, cumulative {block_prob_tot:.4f}")
         if epsilon:
             self.alphas.append(alpha)
             self.epsilons.append(epsilon)
             self.logger.info(f"Epsilon: {epsilon:.5f}," f" Alpha: {alpha:.5f}")
+        if losses:
+            avg_loss = sum(losses[-niter:]) / niter
+            self.logger.info(f"Avg. loss: {avg_loss:.5f}")
         self.n_curr_rejected = 0
         self.n_curr_incoming = 0
 

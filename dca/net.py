@@ -63,14 +63,15 @@ learning rate, if too log (like 1e-6), increase lr.
 
 
 class Net:
-    def __init__(self, restore=True, save=True,
+    def __init__(self, pp, restore=False, save=False,
                  *args, **kwargs):
         self.save = save
-        self.alpha = 1e-7
-        self.gamma = 0.9
+        self.alpha = 1e-5
+        self.gamma = pp['gamma']
         self.batch_size = 10
-        self.model_path = "model/qnet01/model.cpkt"
-        self.log_path = "model/qnet01/logs"
+        main_path = "model/qnet02"
+        self.model_path = main_path + "/model.cpkt"
+        self.log_path = main_path + "/logs"
 
         tf.logging.set_verbosity(tf.logging.INFO)
         tf.reset_default_graph()
@@ -96,6 +97,11 @@ class Net:
         self.test_gen = data['test_gen']
         self.data_is_loaded = True
 
+    def do_save(self):
+        if self.save:
+            print(f"Saving model to path {self.model_path}")
+            self.saver.save(self.sess, self.model_path)
+
     def build(self):
         self.input_grid = tf.placeholder(
             shape=[None, 7, 7, 70], dtype=tf.float32, name="input_grid")
@@ -106,35 +112,33 @@ class Net:
         self.target_q = tf.placeholder(
             shape=[None], dtype=tf.float32, name="target_q")
 
-        # NOTE Could stack after conv. No need to do conv on oh cells
-        input_stacked = tf.concat(
-            [self.input_grid, self.input_cell], axis=3)
-        conv1 = tf.layers.conv2d(
-            inputs=input_stacked,
-            filters=70,
-            kernel_size=5,
-            padding="same",
-            activation=tf.nn.relu)
-        # Conv2d_in_plane does not support float16
-        # conv1 = tf.contrib.layers.conv2d_in_plane(
-        #     inputs=input_stacked,
+        # conv1 = tf.layers.conv2d(
+        #     inputs=self.input_grid,
+        #     filters=70,
         #     kernel_size=5,
-        #     stride=1,
-        #     padding="SAME",  pad with 0's
-        #     activation_fn=tf.nn.relu)
+        #     padding="same",
+        #     activation=tf.nn.relu)
+        conv1 = tf.contrib.layers.conv2d_in_plane(
+            inputs=self.input_grid,
+            kernel_size=5,
+            stride=1,
+            padding="SAME",
+            activation_fn=tf.nn.relu)
         # conv2 = tf.layers.conv2d(
         #     inputs=conv1,
         #     filters=140,
         #     kernel_size=3,
         #     padding="same",
         #     activation=tf.nn.relu)
-        conv2_flat = tf.layers.flatten(conv1)
+        stacked = tf.concat(
+            [conv1, self.input_cell], axis=3)
+        conv2_flat = tf.layers.flatten(stacked)
 
         # Perhaps reducing call rates will increase difference between
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
         dense = tf.layers.dense(
-            inputs=conv2_flat, units=128, name="dense")
+            inputs=conv2_flat, units=128, name="dense", activation=tf.nn.relu)
         self.q_vals = tf.layers.dense(
             inputs=conv2_flat, units=70, name="q_vals")
         self.q_amax = tf.argmax(self.q_vals, axis=1, name="q_amax")
@@ -169,7 +173,7 @@ class Net:
             self.log_path + '/eval')
 
         self.shapes = \
-            [tf.shape(input_stacked),
+            [tf.shape(stacked),
              tf.shape(conv1),
              tf.shape(conv2_flat),
              tf.shape(dense),
@@ -315,9 +319,7 @@ class Net:
             if np.isnan(loss) or np.isinf(loss):
                 print(f"Invalid loss: {loss}")
                 break
-        if self.save:
-            print(f"Saving model to path {self.model_path}")
-            self.saver.save(self.sess, self.model_path)
+        self.do_save()
         self.eval()
 
         plt.plot(losses)
@@ -370,9 +372,12 @@ class Net:
             self.input_cell: self.prep_data_cells(cell),
             self.target_action: np.array([action], dtype=np.int32),
             self.target_q: np.array([q_target], dtype=np.float32)}
-        self.sess.run(
-            self.loss,
+        _, loss = self.sess.run(
+            [self.do_train, self.loss],
             data)
+        if np.isnan(loss) or np.isinf(loss):
+            print(f"Invalid loss: {loss}")
+        return loss
 
 
 class FreeChNet:

@@ -49,7 +49,10 @@ class Strat:
         self._simulate()
         if self.save:
             h5py_save_append("data-experience", *zip(*self.experience[10000:]))
-        return self.stats.block_prob_tot
+        if not self.pp['hopt']:
+            # Don't want to return block prob for incomplete sims when
+            # optimizing params, because block prob is much lower at sim start
+            return self.stats.block_prob_tot
 
     def _simulate(self):
         cevent = self.eventgen.pop()
@@ -58,7 +61,7 @@ class Strat:
         # Discrete event simulation
         for i in range(self.n_events):
             if self.quit_sim:
-                break  # Gracefully exit to print stats
+                break  # Gracefully exit to print stats, clean up etc.
 
             t, ce_type, cell = cevent[0:3]
             self.stats.iter(t, i, cevent)
@@ -123,15 +126,11 @@ class Strat:
             ch, cevent = next_ch, next_cevent
 
             if i > 0 and i % self.log_iter == 0:
-                self.stats.n_iter(self.epsilon, self.alpha)
+                self.stats.n_iter(self.epsilon, self.alpha, self.losses)
 
         self.stats.end_episode(
             np.count_nonzero(self.grid.state), self.epsilon, self.alpha)
         self.fn_after()
-        if self.quit_sim and self.pp['hopt']:
-            # Don't want to return block prob for incomplete sims when
-            # optimizing hyperparams
-            sys.exit(0)
 
     def get_init_action(self):
         raise NotImplementedError()
@@ -414,6 +413,7 @@ class SARSAQNet(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.losses = []
 
     def get_action(self, next_cevent, cell, ch):
         """
@@ -503,6 +503,7 @@ class SARSAQNet(RLStrat):
         return (n_used, ch, qvals[ch])
 
     def fn_after(self):
+        self.net.do_save()
         self.net.sess.close()
 
     def get_init_action(self, cevent):
@@ -516,7 +517,8 @@ class SARSAQNet(RLStrat):
 
     def update_qval(self, cell, n_used, ch, q_target):
         state = self.encode_state(cell, n_used)
-        self.net.backward(*state, ch, q_target)
+        loss = self.net.backward(*state, ch, q_target)
+        self.losses.append(loss)
 
     def encode_state(self, *args):
         raise NotImplementedError
@@ -530,7 +532,7 @@ class SARSAQNet_full(SARSAQNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from net import Net
-        self.net = Net()
+        self.net = Net(self.pp, restore=False, save=True)
 
     def encode_state(self, cell, n_used):
         state = (self.grid.state, cell)
