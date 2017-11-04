@@ -129,21 +129,22 @@ class Runner:
         else:
             space = {
                 'alpha': hp.loguniform(
-                    'alpha', np.log(0.001), np.log(0.3)),
+                    'alpha', np.log(0.001), np.log(0.1)),
                 'alpha_decay': hp.uniform(
                     'alpha_decay', 0.9999, 0.9999999),
                 'epsilon': hp.loguniform(
-                    'epsilon', np.log(0.1), np.log(0.8)),
+                    'epsilon', np.log(0.2), np.log(0.8)),
                 'epsilon_decay': hp.uniform(
                     'epsilon_decay', 0.9995, 0.9999999),
-                'gamma': hp.uniform('gamma', 0.7, 0.95)
+                'gamma': hp.uniform('gamma', 0.7, 0.90)
             }
             trials_step = 4
 
         f_name = f"results-{self.pp['strat']}.pkl"
         try:
-            trials = pickle.load(open(f_name, "rb"))
-            self.logger.error(f"Found {len(trials.trials)} saved trials")
+            with open(f_name, "rb") as f:
+                trials = pickle.load(f)
+                self.logger.error(f"Found {len(trials.trials)} saved trials")
         except:
             trials = Trials()
 
@@ -165,6 +166,17 @@ class Runner:
                 prev_best = best
             with open(f_name, "wb") as fil:
                 pickle.dump(trials, fil)
+
+    def hopt_best(self):
+        f_name = f"results-{self.pp['strat']}.pkl"
+        try:
+            with open(f_name, "rb") as f:
+                trials = pickle.load(f)
+                b = trials.best
+                self.logger.error(
+                    f"{b['result']['loss']}\n{b['vals']}")
+        except:
+            self.logger.error(f"Could not find {f_name}")
 
     @staticmethod
     def hopt_proc(gridclass, stratclass, pp, space):
