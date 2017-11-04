@@ -176,7 +176,7 @@ class Runner:
                 b = trials.best_trial
                 self.logger.error(
                     f"Loss: {b['result']['loss']}\n{b['misc']['vals']}")
-        except:
+        except FileNotFoundError:
             self.logger.error(f"Could not find {f_name}")
 
     @staticmethod
