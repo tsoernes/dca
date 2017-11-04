@@ -63,10 +63,10 @@ learning rate, if too log (like 1e-6), increase lr.
 
 
 class Net:
-    def __init__(self, pp, restore=False, save=False,
+    def __init__(self, pp, restore=True, save=True,
                  *args, **kwargs):
         self.save = save
-        self.alpha = 1e-5
+        self.alpha = 1e-4
         self.gamma = pp['gamma']
         self.batch_size = 10
         main_path = "model/qnet02"
@@ -157,9 +157,8 @@ class Net:
         self.loss = tf.losses.mean_squared_error(
             labels=self.target_q,
             predictions=self.predictions)
-        trainer = tf.train.AdamOptimizer(
-            learning_rate=self.alpha)
-        # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
+        # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
+        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
         self.do_train = trainer.minimize(self.loss)
         with tf.name_scope("summaries"):
