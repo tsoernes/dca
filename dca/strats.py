@@ -421,7 +421,7 @@ class SARSAQNet(RLStrat):
         return ch
 
     def get_qvals(self, cell, n_used):
-        state = self.encode_state(cell, n_used)
+        state = self.encode_state(cell)
         qvals, _, _ = self.net.forward(*state)
         return qvals
 
@@ -442,7 +442,7 @@ class SARSAQNet_full(SARSAQNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from net import Net
-        self.net = Net(self.pp, restore=False, save=True)
+        self.net = Net(self.pp, restore=True, save=True)
 
     def encode_state(self, cell):
         state = (self.grid.state, cell)
