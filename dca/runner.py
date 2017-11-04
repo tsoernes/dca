@@ -31,6 +31,8 @@ class Runner:
             self.test_params()
         elif self.pp['hopt']:
             self.hopt()
+        elif self.pp['hopt_best']:
+            self.hopt_best()
         elif self.pp['avg_runs'] > 1:
             self.avg_run()
         elif self.pp['strat'] == 'show':
@@ -66,7 +68,7 @@ class Runner:
     @staticmethod
     def get_class(pp):
         s = pp['strat']
-        if s == 'fixed':
+        if s == 'fixed' or s == 'fixedassign':
             return (FixedGrid, FixedAssign)
         stratcls = strat_classes()
         for name, cls in stratcls:
@@ -116,7 +118,6 @@ class Runner:
         Saves progress to 'results-{stratname}.pkl' and
         automatically resumes if file already exists.
         """
-        # TODO parallell execution
         from hyperopt import fmin, tpe, hp, Trials
         gridclass, stratclass = Runner.get_class(self.pp)
         if net:
@@ -125,7 +126,7 @@ class Runner:
                     'alpha', np.log(0.000001), np.log(0.01)),
             }
             self.pp['n_events'] = 30000
-            trials_step = 1
+            trials_step = 1  # Number of trials to run before saving
         else:
             space = {
                 'alpha': hp.loguniform(
@@ -148,14 +149,14 @@ class Runner:
         except:
             trials = Trials()
 
-        f = partial(Runner.hopt_proc, gridclass, stratclass, self.pp)
+        fn = partial(Runner.hopt_proc, gridclass, stratclass, self.pp)
         prev_best = {}
         while True:
             n_trials = len(trials)
             self.logger.error(
                 f"Running trials {n_trials+1}-{n_trials+trials_step}")
             best = fmin(
-                fn=f,
+                fn=fn,
                 space=space,
                 algo=tpe.suggest,
                 max_evals=n_trials + trials_step,
@@ -164,8 +165,8 @@ class Runner:
             if prev_best != best:
                 self.logger.error(f"Found new best params: {best}")
                 prev_best = best
-            with open(f_name, "wb") as fil:
-                pickle.dump(trials, fil)
+            with open(f_name, "wb") as f:
+                pickle.dump(trials, f)
 
     def hopt_best(self):
         f_name = f"results-{self.pp['strat']}.pkl"

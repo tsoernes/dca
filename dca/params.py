@@ -83,9 +83,14 @@ def get_pparams():
     parser.add_argument(
         '--test_params',
         action='store_true',
-        help="(RL) override default params by sampling in logspace"  # noqa
+        help="Override default params by sampling in logspace"  # noqa
         "store results to logfile 'paramtest-MM.DD-hh.mm'.",
         default=False)
+    parser.add_argument(
+        '--param_iters',
+        type=int,
+        help="number of parameter iterations",
+        default=1)
     parser.add_argument(
         '--save_exp_data',
         action='store_true',
@@ -93,13 +98,13 @@ def get_pparams():
     parser.add_argument(
         '--hopt',
         action='store_true',
-        help="(RL) override default params by sampling in logspace",  # noqa
+        help="Override default params by sampling in logspace",  # noqa
         default=False)
     parser.add_argument(
-        '--param_iters',
-        type=int,
-        help="number of parameter iterations",
-        default=1)
+        '--hopt_best',
+        action='store_true',
+        help="Show best params found and corresponding loss for a given strat",  # noqa
+        default=False)
 
     parser.add_argument(
         '--verify_grid',
