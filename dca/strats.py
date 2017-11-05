@@ -4,9 +4,12 @@ from utils import h5py_save_append
 
 import signal
 import sys
+from typing import Tuple
 import inspect
 
 import numpy as np
+
+Cell = Tuple[int, int]
 
 
 class Strat:
@@ -140,7 +143,7 @@ class Strat:
     def get_init_action(self):
         raise NotImplementedError
 
-    def get_action(self):
+    def get_action(self, next_cevent, cell: Cell, ch: int):
         raise NotImplementedError
 
     def fn_after(self):
@@ -149,7 +152,7 @@ class Strat:
         """
         pass
 
-    def execute_action(self, cevent, ch):
+    def execute_action(self, cevent, ch: int):
         ce_type, cell = cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             if self.grid.state[cell][ch]:
@@ -217,17 +220,17 @@ class RLStrat(Strat):
         super().__init__(pp, *args, **kwargs)
         self.experience = []
 
-    def update_qval():
+    def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float64):
         raise NotImplementedError
 
-    def get_qval():
+    def get_qvals(self, cell: Cell, ch):
         raise NotImplementedError
 
     def get_init_action(self, cevent):
         ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, cell, ch):
+    def get_action(self, next_cevent, cell: Cell, ch: int):
         """
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previous channel (re)assignment.
@@ -245,7 +248,7 @@ class RLStrat(Strat):
             self.update_qval(cell, ch, target_q)
         return next_ch
 
-    def optimal_ch(self, ce_type, cell):
+    def optimal_ch(self, ce_type, cell: Cell):
         # TODO this isn't really the 'optimal' ch since
         # it's chosen in an epsilon-greedy fashion
         """
@@ -301,7 +304,7 @@ class RLStrat(Strat):
         self.epsilon *= self.epsilon_decay  # Epsilon decay
         return (ch, qvals[ch])
 
-    def execute_action(self, cevent, ch):
+    def execute_action(self, cevent, ch: int):
         """
         Change the grid state according to the given action.
         """
@@ -351,10 +354,11 @@ class SARSA(RLStrat):
         self.qvals = np.zeros((self.rows, self.cols,
                               self.n_channels, self.n_channels))
 
-    def get_qvals(self, cell, n_used):
+    def get_qvals(self, cell: Cell, n_used):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, cell, ch, target_q):
+    def update_qval(self,
+                    cell: Cell, ch: np.int64, target_q: np.float32):
         assert type(ch) == np.int64
         n_used = np.count_nonzero(self.grid.state[cell])
         td_err = target_q - self.get_qvals(cell, n_used)[ch]
