@@ -26,11 +26,9 @@ class EventGen:
         self.cols = cols
         if type(call_rates) != np.ndarray:
             # Use uniform call rates through grid
-            self.call_rates = np.ones((rows, cols)) * call_rates
-        else:
-            self.call_rates = call_rates
+            call_rates = np.ones((rows, cols)) * call_rates
         # Avg. time between arriving calls
-        self.call_intertimes = 1 / self.call_rates
+        self.call_intertimes = 1 / call_rates
         self.call_duration = call_duration
         self.handoff_call_duration = hoff_call_duration
         self.logger = logger
@@ -38,7 +36,7 @@ class EventGen:
         self.pq = []  # min-heap of event timestamps
         # mapping from timestamps to events
         self.events = {}
-        # mapping from (cell_r, cell_c, ch) to end event timestamps
+        # mapping from (cell_row, cell_col, ch) to end event timestamps
         self.end_events = {}
 
     def event_new(self, t, cell):
@@ -51,7 +49,7 @@ class EventGen:
 
     def event_end(self, t, cell, ch):
         """
-        Generate end event for a call
+        Generate and return an end event for a call
         """
         dt = np.random.exponential(self.call_duration)
         event = (t + dt, CEvent.END, cell, ch)
@@ -70,21 +68,21 @@ class EventGen:
         some time dt from now.
 
         In total, a handoff generates 3 events:
-        - end call in current cell
-        - new call in neighboring cell
-        - end call in neighboring cell
+        - end call in current cell (END)
+        - new call in neighboring cell (HOFF)
+        - end call in neighboring cell (END)
         """
         neigh = np.random.randint(0, len(neighs))
         end_event = self.event_end(t, cell, ch)
         # The end event, having lower Enum (1) than the handoff
-        # event (2), is handled first due to minheap sorting
-        # on second tuple element if the first is equal.
+        # event (2), is handled first due to the minheap sorting
+        # on the second tuple element if the first is equal.
         # Keeping handoff events separate from new events makes it possible
         # to reward handoff acceptance/rejectance different from new calls.
         new_event = (end_event[0], CEvent.HOFF, neighs[neigh])
         self.logger.debug(
             f"Created handoff event for cell {cell} ch {ch}"
-            f" to cell {neighs[neigh]} scheduled for {end_event[0]}")
+            f" to cell {neighs[neigh]} scheduled for time {end_event[0]}")
         self._push(new_event)
 
     def event_end_handoff(self, t, cell, ch):
@@ -96,7 +94,7 @@ class EventGen:
         Reassign the event at time 't' to channel 'ch'
         """
         # If the channels are equal, that means that
-        # 'to_ch' belongs to a call (end_event) that's
+        # 'to_ch' belongs to a call (end_event) that is
         # already popped from the heapq, which means
         # that it will trigger a key-error.
         assert from_ch != to_ch
@@ -113,7 +111,7 @@ class EventGen:
         self.end_events[(*cell, to_ch)] = key
 
     def _push(self, event):
-        key = event[0], event[1]
+        key = (event[0], event[1])
         self.events[key] = event
         if event[1] == CEvent.END:
             self.end_events[(*event[2], event[3])] = key
@@ -131,7 +129,7 @@ class EventGen:
                 del self.end_events[(*event[2], event[3])]
             del self.events[key]
             return event
-        raise KeyError('pop from an empty priority queue')
+        raise KeyError('Pop from an empty priority queue')
 
 
 def ce_str(cevent):

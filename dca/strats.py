@@ -79,8 +79,6 @@ class Strat:
                 if self.verify_grid and not self.grid.validate_reuse_constr():
                     self.logger.error(f"Reuse constraint broken")
                     raise Exception
-            if self.gui:
-                self.gui.step()
 
             n_used = np.count_nonzero(self.grid.state[cell])
             if ce_type == CEvent.NEW:
@@ -117,6 +115,9 @@ class Strat:
                 if self.gui:
                     self.gui.hgrid.unmark_cell(*cell)
 
+            if self.gui:
+                self.gui.step()
+
             next_cevent = self.eventgen.pop()
             if self.save and ch is not None and ce_type != CEvent.END \
                     and next_cevent[1] != CEvent.END:
@@ -137,10 +138,10 @@ class Strat:
         self.fn_after()
 
     def get_init_action(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_action(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def fn_after(self):
         """
@@ -155,7 +156,7 @@ class Strat:
                 self.logger.error(
                     f"Tried assigning new call {ce_str(cevent)} to"
                     f" channel {ch} which is already in use")
-                raise Exception()
+                raise Exception
             self.logger.debug(f"Assigned ch {ch} to cell {cell}")
             self.grid.state[cell][ch] = 1
         else:
@@ -179,7 +180,6 @@ class RandomAssign(Strat):
                 return None
             else:
                 return np.random.choice(free)
-                # return np.random.randint(len(free))
         elif ce_type == CEvent.END:
             # No rearrangement is done when a call terminates.
             return next_cevent[3]
@@ -214,10 +214,7 @@ class FixedAssign(Strat):
 
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
-        """
-        """
         super().__init__(pp, *args, **kwargs)
-        self.qval = 0
         self.experience = []
 
     def update_qval():
@@ -238,13 +235,13 @@ class RLStrat(Strat):
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
-        # If there's no action to take, don't update q-value at all
+        # If there's no action to take, or no action was taken,
+        # don't update q-value at all
         if next_ce_type != CEvent.END \
                 and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
             target_q = self.reward() + self.discount() * next_qval
-            # Can't update if no action was taken
             self.update_qval(cell, ch, target_q)
         return next_ch
 

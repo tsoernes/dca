@@ -28,7 +28,7 @@ class Stats:
         self.n_curr_rejected = 0  # Number of rejected calls last 100 episodes
         self.n_curr_incoming = 0  # Number of incoming calls last 100 episodes
         self.block_probs = []
-        self.block_probs_tot = []
+        self.block_probs_cum = []
         self.alphas = []  # Monitor alpha decay
         self.epsilons = []  # Monitor epsilon decay
         self.i = 0  # Current iteration
@@ -60,8 +60,9 @@ class Stats:
 
     def rej(self, cell, n_used):
         if n_used == 0:
-            self.logger.debug(f"Rejected call to {cell} when {n_used}"
-                              f" of {self.pp['n_channels']} channels in use")
+            self.logger.debug(
+                f"Rejected call to {cell} when {n_used}"
+                f" of {self.pp['n_channels']} channels in use")
 
     def iter(self, t, i, cevent):
         self.t = t
@@ -73,12 +74,12 @@ class Stats:
         # NOTE excluding handoffs
         block_prob = self.n_curr_rejected / (self.n_curr_incoming + 1)
         self.block_probs.append(block_prob)
-        block_prob_tot = self.n_rejected / (self.n_incoming + 1)
-        self.block_probs_tot.append(block_prob_tot)
+        block_prob_cum = self.n_rejected / (self.n_incoming + 1)
+        self.block_probs_cum.append(block_prob_cum)
         self.logger.info(
             f"\n{self.t:.2f}-{self.i}: Blocking probability events"
             f" {self.i-niter}-{self.i}:"
-            f" {block_prob:.4f}, cumulative {block_prob_tot:.4f}")
+            f" {block_prob:.4f}, cumulative {block_prob_cum:.4f}")
         if epsilon:
             self.alphas.append(alpha)
             self.epsilons.append(epsilon)
@@ -92,7 +93,7 @@ class Stats:
     def end_episode(self, n_inprogress, epsilon, alpha):
         delta = self.n_incoming + self.n_handoffs \
             - self.n_rejected - self.n_handoffs_rejected - self.n_ended
-        self.block_prob_tot = self.n_rejected / (self.n_incoming + 1)
+        self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         if delta != n_inprogress:
             self.logger.error(
                 f"\nSome calls were lost. Counted in progress {delta}. "
@@ -102,7 +103,6 @@ class Stats:
                 f"\nRejected: {self.n_rejected}"
                 f"\nRejected handoffs: {self.n_handoffs_rejected}"
                 f"\nEnded: {self.n_ended}")
-        # Avoid zero divisions by adding 1 do dividers
         self.logger.warn(
             f"\nSimulation duration: {self.t/24:.2f} sim hours(?),"
             f" {self.i+1} episodes"
@@ -118,9 +118,10 @@ class Stats:
                               f" alphadec {self.pp['alpha_decay']:.8f}"
                               f" epsilon {self.pp['epsilon']:.8f},"
                               f" epsilondec {self.pp['alpha_decay']:.8f}")
+        # Avoid zero divisions by adding 1 do dividers
         self.logger.error(
             f"\nT{self.pid} Blocking probability:"
-            f" {self.block_prob_tot:.4f} for new calls, "
+            f" {self.block_prob_cum:.4f} for new calls, "
             f"{self.n_handoffs_rejected/(self.n_handoffs+1):.4f} for handoffs")
         self.logger.warn(
             f"\nAverage number of calls in progress when blocking: "
@@ -135,7 +136,7 @@ class Stats:
     def plot(self):
         xlabel_iters = f"Iterations, in {self.pp['log_iter']}s"
         plt.subplot(221)
-        plt.plot(self.block_probs_tot)
+        plt.plot(self.block_probs_cum)
         plt.ylabel("Blocking probability")
         plt.xlabel(xlabel_iters)
         if self.alphas:
