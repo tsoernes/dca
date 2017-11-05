@@ -106,6 +106,16 @@ def get_pparams():
         default=False)
 
     parser.add_argument(
+        '--net_lr',
+        type=float,
+        help="(Net) Learning rate",
+        default=2e-4)
+    parser.add_argument(
+        '--batch_size',
+        type=int,
+        help="(Net) Batch size for experience replay",
+        default=10)
+    parser.add_argument(
         '--verify_grid',
         action='store_true',
         help="verify reuse constraint each iteration",
@@ -141,6 +151,8 @@ def get_pparams():
     # Sensible presets / overrides
     if "net" in params['strat'].lower():
         params['log_iter'] = 5000
+    else:
+        params['batch_size'] = 1
     if not params['call_rates']:
         params['call_rates'] = params['erlangs'] / params['call_duration']
     if params['avg_runs'] > 1:

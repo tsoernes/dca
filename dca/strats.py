@@ -28,6 +28,7 @@ class Strat:
         self.alpha = pp['alpha']
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
+        self.batch_size = pp['batch_size']
         self.pp = pp
         self.grid = grid
         self.logger = logger
@@ -35,6 +36,13 @@ class Strat:
         self.gui = None
         self.losses = []
 
+        self.exp_replay_store = {
+            'grids': [],
+            'cells': [],
+            'actions': [],
+            'rewards': [],
+            'next_grids': [],
+            'next_cells': []}
         self.quit_sim = False
         self.stats = Stats(pp=pp, logger=logger, pid=pid)
         self.eventgen = EventGen(logger=logger, **pp)
@@ -55,7 +63,11 @@ class Strat:
                 self.eventgen.event_new(0, (r, c))
         self._simulate()
         if self.save:
-            h5py_save_append("data-experience", *zip(*self.experience[10000:]))
+            # NOTE UNTESTED. May be better to append to different data sets
+            n_save = 10000  # Ignore initial period
+            h5py_save_append(
+                "data-experience",
+                map(lambda li: li[n_save:], self.exp_replay_store.values()))
         if self.quit_sim and self.pp['hopt']:
             # Don't want to return block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
@@ -122,14 +134,21 @@ class Strat:
                 self.gui.step()
 
             next_cevent = self.eventgen.pop()
-            if self.save and ch is not None and ce_type != CEvent.END \
+            if (self.save or self.batch_size > 1) and ch is not None \
+                    and ce_type != CEvent.END \
                     and next_cevent[1] != CEvent.END:
                 # Only add (s, a, r, s') tuples for which the events in
                 # s and s' are not END events
                 r = self.reward()
                 s_new = np.copy(self.grid.state)
                 cell_new = next_cevent[2]
-                self.experience.append([s, cell, ch, r, s_new, cell_new])
+                self.exp_replay_store['grids'].append(s)
+                self.exp_replay_store['cells'].append(cell)
+                self.exp_replay_store['actions'].append(ch)
+                self.exp_replay_store['rewards'].append(r)
+                self.exp_replay_store['next_grids'].append(s_new)
+                self.exp_replay_store['next_cells'].append(cell_new)
+
             next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
 
@@ -218,7 +237,6 @@ class FixedAssign(Strat):
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
         super().__init__(pp, *args, **kwargs)
-        self.experience = []
 
     def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float64):
         raise NotImplementedError
@@ -412,6 +430,10 @@ class SARSAQNet(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.batch_size > 1:
+            self.update_qval = self.update_qval_exp_replay
+        else:
+            self.update_qval = self.update_qval_single
 
     def fn_after(self):
         self.net.do_save()
@@ -426,9 +448,39 @@ class SARSAQNet(RLStrat):
         qvals, _, _ = self.net.forward(*state)
         return qvals
 
-    def update_qval(self, cell, ch, q_target):
+    def update_qval_single(self, cell, ch, q_target):
+        """ Update qval for one state-action pair """
         state = self.encode_state(cell)
         loss = self.net.backward(*state, ch, q_target)
+        self.losses.append(loss)
+
+    def update_qval_exp_replay(self, *args):
+        """
+        Update qval for pp['batch_size'] state-action
+        pairs, randomly sampled from the experience
+        replay reservoir
+        """
+        idxs = np.random.randint(
+            0, len(self.exp_replay_store), self.batch_size)
+        grids = np.zeros(
+            (self.batch_size, self.rows, self.cols, self.n_channels),
+            dtype=np.int8)
+        cells = []
+        actions = np.zeros(self.batch_size, dtype=np.int32)
+        rewards = np.zeros(self.batch_size, dtype=np.float32)
+        next_grids = np.zeros(
+            (self.batch_size, self.rows, self.cols, self.n_channels),
+            dtype=np.int8)
+        next_cells = []
+        for i, idx in enumerate(idxs):
+            grids[i][:] = self.exp_replay_store['grids'][idx]
+            cells.append(self.exp_replay_store['cells'][idx])
+            actions[i] = self.exp_replay_store['actions'][idx]
+            rewards[i] = self.exp_replay_store['rewards'][idx]
+            next_grids[i][:] = self.exp_replay_store['next_grids'][idx]
+            next_cells.append(self.exp_replay_store['next_cells'][idx])
+        loss = self.net.backward_exp_replay(
+            grids, cells, actions, rewards, next_grids, next_cells)
         self.losses.append(loss)
 
     def encode_state(self, *args):

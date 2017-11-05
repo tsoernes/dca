@@ -69,9 +69,9 @@ class Net:
                  *args, **kwargs):
         self.logger = logger
         self.save = save
-        self.alpha = 2e-4
+        self.alpha = pp['net_lr']
         self.gamma = pp['gamma']
-        self.batch_size = 10
+        self.batch_size = pp['batch_size']
         main_path = "model/qnet03"
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
@@ -381,6 +381,27 @@ class Net:
         _, loss = self.sess.run(
             [self.do_train, self.loss],
             data)
+        if np.isnan(loss) or np.isinf(loss):
+            self.logger.error(f"Invalid loss: {loss}")
+            sys.exit(0)
+        return loss
+
+    def backward_exp_replay(self, grids, cells, actions, rewards,
+                            next_grids, next_cells):
+        # Get expected returns following a greedy policy from the
+        # next state: max a': Q(s', a', w_old)
+        next_data = {self.input_grid: self.prep_data_grids(next_grids),
+                     self.input_cell: self.prep_data_cells(next_cells)}
+        next_q_maxs = self.sess.run(self.q_max, next_data)
+        q_targets = rewards + self.gamma * next_q_maxs
+        curr_data = {
+            self.input_grid: self.prep_data_grids(grids),
+            self.input_cell: self.prep_data_cells(cells),
+            self.target_action: actions,
+            self.target_q: q_targets}
+        _, loss, summary = self.sess.run(
+            [self.do_train, self.loss, self.summaries],
+            curr_data)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
             sys.exit(0)
