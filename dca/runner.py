@@ -173,10 +173,10 @@ class Runner:
         try:
             with open(f_name, "rb") as f:
                 trials = pickle.load(f)
-                b = trials.best
+                b = trials.best_trial
                 self.logger.error(
-                    f"{b['result']['loss']}\n{b['vals']}")
-        except:
+                    f"Loss: {b['result']['loss']}\n{b['misc']['vals']}")
+        except FileNotFoundError:
             self.logger.error(f"Could not find {f_name}")
 
     @staticmethod
