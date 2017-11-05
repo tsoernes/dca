@@ -399,8 +399,8 @@ class Net:
             self.input_cell: self.prep_data_cells(cells),
             self.target_action: actions,
             self.target_q: q_targets}
-        _, loss, summary = self.sess.run(
-            [self.do_train, self.loss, self.summaries],
+        _, loss = self.sess.run(
+            [self.do_train, self.loss],
             curr_data)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")

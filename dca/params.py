@@ -80,17 +80,6 @@ def get_pparams():
         '--gamma', type=float, help="(RL) discount factor",
         default=0.85)
     parser.add_argument(
-        '--test_params',
-        action='store_true',
-        help="Override default params by sampling in logspace"  # noqa
-        "store results to logfile 'paramtest-MM.DD-hh.mm'.",
-        default=False)
-    parser.add_argument(
-        '--param_iters',
-        type=int,
-        help="number of parameter iterations",
-        default=1)
-    parser.add_argument(
         '--save_exp_data',
         action='store_true',
         default=False)

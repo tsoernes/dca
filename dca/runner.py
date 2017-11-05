@@ -1,7 +1,7 @@
 from gui import Gui
 from grid import FixedGrid, RhombAxGrid, RectOffGrid  # noqa
 from strats import FixedAssign, strat_classes
-from params import get_pparams, sample_params, sample_gamma
+from params import get_pparams
 
 import cProfile
 import datetime
@@ -39,13 +39,6 @@ class Runner:
             self.show()
         else:
             self.run()
-
-    def test_params(self):
-        gridclass, stratclass = self.get_class(self.pp)
-        simproc = partial(
-            self.sim_proc, gridclass, stratclass, self.pp, do_sample=True)
-        with Pool() as p:
-            p.map(simproc, range(self.pp['param_iters']))
 
     def avg_run(self):
         t = time.time()
@@ -89,20 +82,27 @@ class Runner:
             strat.init_sim()
 
     @staticmethod
-    def sim_proc(gridclass, stratclass, pp, pid,
-                 do_sample=False, do_sample_gamma=False):
+    def sim_proc(gridclass, stratclass, pp, pid):
         """
         Allows for running simulation in separate process
         """
-        np.random.seed()
-        if do_sample:
-            pp = sample_params(pp)
-        if do_sample_gamma:
-            pp = sample_gamma(pp)
         logger = logging.getLogger('')
         grid = gridclass(logger=logger, **pp)
         strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
         result = strat.init_sim()
+        return result
+
+    @staticmethod
+    def hopt_proc(gridclass, stratclass, pp, space):
+        for key, val in space.items():
+            pp[key] = val
+        simproc = partial(
+            Runner.sim_proc, gridclass, stratclass, pp)
+        logger = logging.getLogger('')
+        logger.error(space)
+        with Pool() as p:
+            results = p.map(simproc, range(6))
+        result = sum(results) / len(results)
         return result
 
     def show(self):
@@ -178,19 +178,6 @@ class Runner:
                     f"Loss: {b['result']['loss']}\n{b['misc']['vals']}")
         except FileNotFoundError:
             self.logger.error(f"Could not find {f_name}")
-
-    @staticmethod
-    def hopt_proc(gridclass, stratclass, pp, space):
-        for key, val in space.items():
-            pp[key] = val
-        simproc = partial(
-            Runner.sim_proc, gridclass, stratclass, pp)
-        logger = logging.getLogger('')
-        logger.error(space)
-        with Pool() as p:
-            results = p.map(simproc, range(6))
-        result = sum(results) / len(results)
-        return result
 
 
 if __name__ == '__main__':

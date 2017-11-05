@@ -87,7 +87,7 @@ class Strat:
             self.stats.iter(t, i, cevent)
 
             if ch is not None:
-                if self.save:
+                if self.save or self.batch_size > 1:
                     s = np.copy(self.grid.state)
                 self.execute_action(cevent, ch)
 
@@ -460,8 +460,12 @@ class SARSAQNet(RLStrat):
         pairs, randomly sampled from the experience
         replay reservoir
         """
+        n = len(self.exp_replay_store['grids'])
+        if n < self.batch_size:
+            # Don't want to backprop before exp store has enough experiences
+            return 0
         idxs = np.random.randint(
-            0, len(self.exp_replay_store), self.batch_size)
+            0, n, self.batch_size)
         grids = np.zeros(
             (self.batch_size, self.rows, self.cols, self.n_channels),
             dtype=np.int8)
@@ -495,7 +499,7 @@ class SARSAQNet_full(SARSAQNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from net import Net
-        self.net = Net(self.pp, self.logger, restore=False, save=True)
+        self.net = Net(self.pp, self.logger, restore=False, save=False)
 
     def encode_state(self, cell):
         state = (self.grid.state, cell)
