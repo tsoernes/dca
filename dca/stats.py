@@ -77,7 +77,7 @@ class Stats:
         block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         self.block_probs_cum.append(block_prob_cum)
         self.logger.info(
-            f"\n{self.t:.2f}-{self.i}: Blocking probability events"
+            f"\nBlocking probability events"
             f" {self.i-niter}-{self.i}:"
             f" {block_prob:.4f}, cumulative {block_prob_cum:.4f}")
         if epsilon:
@@ -86,7 +86,7 @@ class Stats:
             self.logger.info(f"Epsilon: {epsilon:.5f}," f" Alpha: {alpha:.5f}")
         if losses:
             avg_loss = sum(losses[-niter:]) / niter
-            self.logger.info(f"Avg. loss: {avg_loss:.5f}")
+            self.logger.info(f"Avg. loss: {avg_loss:.2f}")
         self.n_curr_rejected = 0
         self.n_curr_incoming = 0
 

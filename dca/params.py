@@ -15,7 +15,6 @@ def get_pparams():
         description='DCA',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    # alpha==0.05451609265961329 alpha_decay==0.9998300279366096 epsilon==0.6178066665492812 epsilon_decay==0.9999157991188173 gamma==0.6055244560728928  # noqa
     stratnames = [n[0].lower() for n in strat_classes()]
     stratnames += ['show', 'random', 'fixed']
 
@@ -61,17 +60,17 @@ def get_pparams():
 
     parser.add_argument(
         '--alpha', type=float, help="(RL) learning rate",
-        default=0.1)
+        default=0.036)
     parser.add_argument(
         '--alpha_decay',
         type=float,
         help="(RL) factor by which alpha is multiplied each iter",
-        default=0.99999)
+        default=0.999998)
     parser.add_argument(
         '--epsilon',
         type=float,
         help="(RL) probability of choosing random action",
-        default=0.3)
+        default=0.75443)
     parser.add_argument(
         '--epsilon_decay',
         type=float,
@@ -79,7 +78,7 @@ def get_pparams():
         default=0.99999)
     parser.add_argument(
         '--gamma', type=float, help="(RL) discount factor",
-        default=0.9)
+        default=0.85)
     parser.add_argument(
         '--test_params',
         action='store_true',

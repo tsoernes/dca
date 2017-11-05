@@ -57,7 +57,7 @@ class Strat:
             # Don't want to return block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
             return
-        return self.stats.block_prob_tot
+        return self.stats.block_prob_cum
 
     def _simulate(self):
         cevent = self.eventgen.pop()
@@ -439,7 +439,7 @@ class SARSAQNet_full(SARSAQNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from net import Net
-        self.net = Net(self.pp, restore=True, save=True)
+        self.net = Net(self.pp, self.logger, restore=False, save=True)
 
     def encode_state(self, cell):
         state = (self.grid.state, cell)

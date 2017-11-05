@@ -1,5 +1,7 @@
 from utils import BackgroundGenerator
 
+import sys
+
 import h5py
 import numpy as np
 import tensorflow as tf
@@ -63,13 +65,14 @@ learning rate, if too log (like 1e-6), increase lr.
 
 
 class Net:
-    def __init__(self, pp, restore=True, save=True,
+    def __init__(self, pp, logger, restore=True, save=True,
                  *args, **kwargs):
+        self.logger = logger
         self.save = save
-        self.alpha = 1e-4
+        self.alpha = 2e-4
         self.gamma = pp['gamma']
         self.batch_size = 10
-        main_path = "model/qnet02"
+        main_path = "model/qnet03"
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
 
@@ -82,7 +85,7 @@ class Net:
         self.sess.run(init)
         if restore:
             # Could do a try/except and build if loading fails
-            print(f"Restoring model from {self.model_path}")
+            self.logger.error(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
         self.data_is_loaded = False
 
@@ -99,7 +102,7 @@ class Net:
 
     def do_save(self):
         if self.save:
-            print(f"Saving model to path {self.model_path}")
+            self.logger.error(f"Saving model to path {self.model_path}")
             self.saver.save(self.sess, self.model_path)
 
     def build(self):
@@ -124,14 +127,14 @@ class Net:
             stride=1,
             padding="SAME",
             activation_fn=tf.nn.relu)
-        # conv2 = tf.layers.conv2d(
-        #     inputs=conv1,
-        #     filters=140,
-        #     kernel_size=3,
-        #     padding="same",
-        #     activation=tf.nn.relu)
+        conv2 = tf.layers.conv2d(
+            inputs=conv1,
+            filters=140,
+            kernel_size=3,
+            padding="same",
+            activation=tf.nn.relu)
         stacked = tf.concat(
-            [conv1, self.input_cell], axis=3)
+            [conv2, self.input_cell], axis=3)
         conv2_flat = tf.layers.flatten(stacked)
 
         # Perhaps reducing call rates will increase difference between
@@ -287,9 +290,10 @@ class Net:
     def train(self):
         self.load_data()
         losses = []
-        print(f"Training {self.n_train_steps} minibatches of size"
-              f" {self.batch_size} for a total of"
-              f" {self.n_train_steps * self.batch_size} examples")
+        self.logger.error(
+            f"Training {self.n_train_steps} minibatches of size"
+            f" {self.batch_size} for a total of"
+            f" {self.n_train_steps * self.batch_size} examples")
         for i in range(self.n_train_steps):
             # Get expected returns following a greedy policy from the
             # next state: max a': Q(s', a', w_old)
@@ -313,10 +317,11 @@ class Net:
                 # self.train_writer.add_run_metadata(
                 #     run_metadata, 'step%d' % i)
                 self.train_writer.add_summary(summary, i)
-                print(f"Iter {i}\tloss: {loss:.2f}")
+                self.logger.error(f"Iter {i}\tloss: {loss:.2f}")
                 losses.append(loss)
             if np.isnan(loss) or np.isinf(loss):
-                print(f"Invalid loss: {loss}")
+                self.logger.error(f"Invalid loss: {loss}")
+                sys.exit(0)
                 break
         self.do_save()
         self.eval()
@@ -328,9 +333,10 @@ class Net:
 
     def eval(self):
         self.load_data()
-        print(f"Evaluating {self.n_test_steps} minibatches of size"
-              f" {self.batch_size} for a total of"
-              f"  {self.n_test_steps * self.batch_size} examples")
+        self.logger.error(
+            f"Evaluating {self.n_test_steps} minibatches of size"
+            f" {self.batch_size} for a total of"
+            f"  {self.n_test_steps * self.batch_size} examples")
         eval_losses = []
         for i in range(self.n_test_steps):
             # Get expected returns following a greedy policy from the
@@ -352,9 +358,10 @@ class Net:
             self.eval_writer.add_summary(summary, i)
             eval_losses.append(loss)
             if np.isnan(loss) or np.isinf(loss):
-                print(f"Invalid loss: {loss}")
+                self.logger.error(f"Invalid loss: {loss}")
                 break
-        print(f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
+        self.logger.error(
+            f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
     def forward(self, grid, cell):
         q_vals, q_amax, q_max = self.sess.run(
@@ -375,7 +382,8 @@ class Net:
             [self.do_train, self.loss],
             data)
         if np.isnan(loss) or np.isinf(loss):
-            print(f"Invalid loss: {loss}")
+            self.logger.error(f"Invalid loss: {loss}")
+            sys.exit(0)
         return loss
 
 
@@ -563,6 +571,8 @@ class FreeChNet:
 
 
 if __name__ == "__main__":
-    n = Net()
+    import logging
+    logger = logging.getLogger('')
+    n = Net(logger)
     n.train()
     # n.eval()
