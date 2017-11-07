@@ -1,7 +1,6 @@
 from strats import strat_classes
 
 import argparse
-import datetime
 import logging
 
 import numpy as np
@@ -98,12 +97,22 @@ def get_pparams():
         '--net_lr',
         type=float,
         help="(Net) Learning rate",
-        default=2e-4)
+        default=9e-5)
     parser.add_argument(
         '--batch_size',
         type=int,
         help="(Net) Batch size for experience replay",
         default=10)
+    parser.add_argument(
+        '--bench_batch_size',
+        action='store_true',
+        help="(Net) Benchmark batch size for neural network",
+        default=False)
+    parser.add_argument(
+        '--train_net',
+        action='store_true',
+        help="(Net) Train network",
+        default=False)
     parser.add_argument(
         '--verify_grid',
         action='store_true',
@@ -149,38 +158,10 @@ def get_pparams():
         params['log_level'] = logging.ERROR
     if params['hopt']:
         params['log_level'] = logging.ERROR
-    if params['test_params']:
-        params['log_level'] = logging.ERROR
-        params['gui'] = False
-        params['plot'] = False
-        params['log_iter'] = 1000
-        now = datetime.datetime.now()
-        date = now.date()
-        time = now.time()
-        params['log_file'] = f"logs/paramtest-{date.month}.{date.day}-" \
-                             f"{time.hour}.{time.minute}.log"
+    if params['bench_batch_size']:
+        params['log_level'] = logging.WARN
 
     return params
-
-
-def sample_gamma(pp):
-    npp = dict(pp)
-    npp['gamma'] = np.random.uniform()
-    return npp
-
-
-def sample_params(pp):
-    """
-    Sample parameters randomly,
-    return copy of dict
-    """
-    # It's best to optimize in log space
-    npp = dict(pp)
-    npp['alpha'] = 10**np.random.uniform(-2, -0.3)
-    npp['alpha_decay'] = 10**np.random.uniform(-0.0001, -0.00000001)
-    npp['epsilon'] = 10**np.random.uniform(-1.3, -0.1)
-    npp['epsilon_decay'] = 10**np.random.uniform(-0.0001, -0.00000001)
-    return npp
 
 
 def non_uniform_preset(pp):

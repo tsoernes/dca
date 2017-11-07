@@ -1,6 +1,7 @@
 from gui import Gui
 from grid import FixedGrid, RhombAxGrid, RectOffGrid  # noqa
 from strats import FixedAssign, strat_classes
+from net import Net
 from params import get_pparams
 
 import cProfile
@@ -27,9 +28,7 @@ class Runner:
         self.logger.error(f"Starting simulation at {datetime.datetime.now()}"
                           f" with params:\n{self.pp}")
 
-        if self.pp['test_params']:
-            self.test_params()
-        elif self.pp['hopt']:
+        if self.pp['hopt']:
             self.hopt()
         elif self.pp['hopt_best']:
             self.hopt_best()
@@ -37,6 +36,10 @@ class Runner:
             self.avg_run()
         elif self.pp['strat'] == 'show':
             self.show()
+        elif self.pp['train_net']:
+            self.train_net()
+        elif self.pp['bench_batch_size']:
+            self.bench_batch_size()
         else:
             self.run()
 
@@ -57,6 +60,19 @@ class Runner:
             f" with standard deviation {np.std(results):.5f}"
             f"\n{results}")
         # TODO Plot average cumulative over time
+
+    def train_net(self):
+        n = Net(self.pp, self.logger)
+        n.train()
+
+    def bench_batch_size(self):
+        for bs in [256, 512, 1024, 2048]:
+            self.pp['batch_size'] = bs
+            net = Net(self.pp, self.logger, restore=False, save=False)
+            t = time.time()
+            net.train()
+            self.logger.error(
+                f"Batch size {bs} took {time.time()-t:.2f} seconds")
 
     @staticmethod
     def get_class(pp):
@@ -86,6 +102,7 @@ class Runner:
         """
         Allows for running simulation in separate process
         """
+        np.random.seed()  # Must reseed lest all results will be the same
         logger = logging.getLogger('')
         grid = gridclass(logger=logger, **pp)
         strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
@@ -93,7 +110,10 @@ class Runner:
         return result
 
     @staticmethod
-    def hopt_proc(gridclass, stratclass, pp, space):
+    def hopt_proc(gridclass, stratclass, pp, space, n_avg=6):
+        """
+        n_avg: Number of runs to run in parallell and take the average of
+        """
         for key, val in space.items():
             pp[key] = val
         simproc = partial(
@@ -101,7 +121,10 @@ class Runner:
         logger = logging.getLogger('')
         logger.error(space)
         with Pool() as p:
-            results = p.map(simproc, range(6))
+            results = p.map(simproc, range(n_avg))
+        for res in results:
+            if np.isnan(res) or np.isinf(res):
+                return {"status": "fail"}
         result = sum(results) / len(results)
         return result
 
@@ -120,13 +143,14 @@ class Runner:
         """
         from hyperopt import fmin, tpe, hp, Trials
         gridclass, stratclass = Runner.get_class(self.pp)
-        if net:
+        if 'net' in self.pp['strat'].lower():
             space = {
-                'alpha': hp.loguniform(
-                    'alpha', np.log(0.000001), np.log(0.01)),
+                'net_lr': hp.loguniform(
+                    'net_lr', np.log(1e-7), np.log(1e-3)),
             }
-            self.pp['n_events'] = 30000
+            self.pp['n_events'] = 100000
             trials_step = 1  # Number of trials to run before saving
+            n_avg = 1
         else:
             space = {
                 'alpha': hp.loguniform(
@@ -139,6 +163,7 @@ class Runner:
                     'epsilon_decay', 0.9995, 0.9999999),
                 'gamma': hp.uniform('gamma', 0.7, 0.90)
             }
+            n_avg = 6
             trials_step = 4
 
         f_name = f"results-{self.pp['strat']}.pkl"
@@ -149,7 +174,8 @@ class Runner:
         except:
             trials = Trials()
 
-        fn = partial(Runner.hopt_proc, gridclass, stratclass, self.pp)
+        fn = partial(
+            Runner.hopt_proc, gridclass, stratclass, self.pp, n_avg=n_avg)
         prev_best = {}
         while True:
             n_trials = len(trials)

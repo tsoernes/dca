@@ -71,7 +71,7 @@ class Strat:
         if self.quit_sim and self.pp['hopt']:
             # Don't want to return block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
-            return
+            return 1
         return self.stats.block_prob_cum
 
     def _simulate(self):
@@ -134,7 +134,11 @@ class Strat:
                 self.gui.step()
 
             next_cevent = self.eventgen.pop()
-            if (self.save or self.batch_size > 1) and ch is not None \
+
+            next_ch = self.get_action(next_cevent, cell, ch)
+            if (self.save or self.batch_size > 1) \
+                    and ch is not None \
+                    and next_ch is not None \
                     and ce_type != CEvent.END \
                     and next_cevent[1] != CEvent.END:
                 # Only add (s, a, r, s') tuples for which the events in
@@ -148,8 +152,6 @@ class Strat:
                 self.exp_replay_store['rewards'].append(r)
                 self.exp_replay_store['next_grids'].append(s_new)
                 self.exp_replay_store['next_cells'].append(cell_new)
-
-            next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
 
             if i > 0 and i % self.log_iter == 0:
@@ -453,6 +455,8 @@ class SARSAQNet(RLStrat):
         state = self.encode_state(cell)
         loss = self.net.backward(*state, ch, q_target)
         self.losses.append(loss)
+        if np.isinf(loss) or np.isnan(loss):
+            self.quit_sim = True
 
     def update_qval_exp_replay(self, *args):
         """
@@ -486,6 +490,8 @@ class SARSAQNet(RLStrat):
         loss = self.net.backward_exp_replay(
             grids, cells, actions, rewards, next_grids, next_cells)
         self.losses.append(loss)
+        if np.isinf(loss) or np.isnan(loss):
+            self.quit_sim = True
 
     def encode_state(self, *args):
         raise NotImplementedError

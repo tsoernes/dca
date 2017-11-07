@@ -103,21 +103,17 @@ class Stats:
                 f"\nRejected: {self.n_rejected}"
                 f"\nRejected handoffs: {self.n_handoffs_rejected}"
                 f"\nEnded: {self.n_ended}")
+        t = time.time() - self.start_time
+        m, s = divmod(t, 60)
         self.logger.warn(
             f"\nSimulation duration: {self.t/24:.2f} sim hours(?),"
+            f" {m}m:{s}s real,"
             f" {self.i+1} episodes"
-            f" at {self.pp['n_events']/(time.time()-self.start_time):.0f}"
+            f" at {self.pp['n_events']/t:.0f}"
             " episodes/second"
 
             f"\nRejected {self.n_rejected} of {self.n_incoming} new calls,"
             f" {self.n_handoffs_rejected} of {self.n_handoffs} handoffs")
-        if self.pp['test_params']:
-            self.logger.error(f"\nT{self.pid} Using params:"
-                              f" gamma {self.pp['gamma']:.6f},"
-                              f" alpha {self.pp['alpha']:.8f},"
-                              f" alphadec {self.pp['alpha_decay']:.8f}"
-                              f" epsilon {self.pp['epsilon']:.8f},"
-                              f" epsilondec {self.pp['alpha_decay']:.8f}")
         # Avoid zero divisions by adding 1 do dividers
         self.logger.error(
             f"\nT{self.pid} Blocking probability:"
