@@ -104,7 +104,7 @@ class Stats:
                 f"\nRejected handoffs: {self.n_handoffs_rejected}"
                 f"\nEnded: {self.n_ended}")
         t = time.time() - self.start_time
-        m, s = divmod(t, 60)
+        m, s = map(int, divmod(t, 60))
         self.logger.warn(
             f"\nSimulation duration: {self.t/24:.2f} sim hours(?),"
             f" {m}m:{s}s real,"
