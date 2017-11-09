@@ -8,27 +8,6 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 
 """
-Neighbors2
-(3,3)
-min row: 1
-max row: 5
-min col: 1
-max col: 5
-(4,3)
-min row: 2
-max row: 6
-min col: 1
-max col: 5
-So it might be a good idea to have 4x4 filters,
-as that would cover all neighs2
-
-Padding with 0's is the natural choice since that would be
-equivalent to having empty cells outside of grid
-
-For a policy network, i.e. with actions [0, 1, ..., n_channels-1]
-corresponding to the probability of assigning the different channels,
-how can the network know, or be trained to know, that some actions
-are illegal/unavailable?
 consider batch norm [ioffe and szegedy, 2015]
 batch norm is inserted after fully connected or convolutional
 layers and before nonlinearity
@@ -47,9 +26,8 @@ for softmax classifier: print loss, should be roughly:
 a very small portion (eg <20 samples) of the training data
 
 On finding learning rate:
-start very small (eg 1e-6), make sure it's barely changing
+start very small (eg 1e-6), make sure loss is barely changing
 or decreasing very slowly.
-If cost is NaN or inf, learning rate is too high
 
 on tuning hyperparams:
 if cost goes over 3x original cost, break out early
@@ -61,12 +39,21 @@ no gap: increase net size
 debugging nets: track ratio of weight updates/weight magnitues
 should be somewhere around 0.001 or so. if too high, decrease
 learning rate, if too log (like 1e-6), increase lr.
+
+Batch size 8 took 307.63 seconds
+Batch size 16 took 163.69 seconds
+Batch size 32 took 92.84 seconds
+Batch size 64 took 53.94 seconds
+Batch size 128 took 38.26 seconds
+Batch size 256 took 34.56 seconds
+Batch size 512 took 29.68 seconds
+Batch size 1024 took 27.80 seconds
+Batch size 2048 took 24.63 seconds
 """
 
 
 class Net:
-    def __init__(self, pp, logger, restore=True, save=True,
-                 *args, **kwargs):
+    def __init__(self, pp, logger, restore=True, save=True):
         self.logger = logger
         self.save = save
         self.alpha = pp['net_lr']
@@ -290,7 +277,7 @@ class Net:
     def train(self):
         self.load_data()
         losses = []
-        self.logger.error(
+        self.logger.warn(
             f"Training {self.n_train_steps} minibatches of size"
             f" {self.batch_size} for a total of"
             f" {self.n_train_steps * self.batch_size} examples")
@@ -317,7 +304,7 @@ class Net:
                 # self.train_writer.add_run_metadata(
                 #     run_metadata, 'step%d' % i)
                 self.train_writer.add_summary(summary, i)
-                self.logger.error(f"Iter {i}\tloss: {loss:.2f}")
+                self.logger.info(f"Iter {i}\tloss: {loss:.2f}")
                 losses.append(loss)
             if np.isnan(loss) or np.isinf(loss):
                 self.logger.error(f"Invalid loss: {loss}")
@@ -325,15 +312,15 @@ class Net:
                 break
         self.do_save()
         self.eval()
-
-        plt.plot(losses)
-        plt.ylabel("Loss")
-        plt.xlabel(f"Iterations, in {self.batch_size}s")
-        plt.show()
+        if False:
+            plt.plot(losses)
+            plt.ylabel("Loss")
+            plt.xlabel(f"Iterations, in {self.batch_size}s")
+            plt.show()
 
     def eval(self):
         self.load_data()
-        self.logger.error(
+        self.logger.warn(
             f"Evaluating {self.n_test_steps} minibatches of size"
             f" {self.batch_size} for a total of"
             f"  {self.n_test_steps * self.batch_size} examples")
@@ -383,7 +370,6 @@ class Net:
             data)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
-            sys.exit(0)
         return loss
 
     def backward_exp_replay(self, grids, cells, actions, rewards,
@@ -404,7 +390,6 @@ class Net:
             curr_data)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
-            sys.exit(0)
         return loss
 
 
