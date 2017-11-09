@@ -1,4 +1,6 @@
+from environment import Env
 from eventgen import CEvent
+from grid import RhombusAxialGrid
 from utils import h5py_save_append
 
 import signal
@@ -12,30 +14,17 @@ Cell = Tuple[int, int]
 
 
 class Strat:
-    def __init__(self, pp, grid, logger,
+    def __init__(self, pp, logger, pid="", gui=None,
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
         self.n_channels = pp['n_channels']
         self.pp = pp
-        self.grid = grid
         self.logger = logger
 
-        self.epsilon = pp['epsilon']
-        self.epsilon_decay = pp['epsilon_decay']
-        self.alpha = pp['alpha']
-        self.alpha_decay = pp['alpha_decay']
-        self.gamma = pp['gamma']
-        self.batch_size = pp['batch_size']
-        self.losses = []
+        grid = RhombusAxialGrid(*pp, logger=self.logger)
+        self.env = Env(self.pp, grid, self.logger, self.pid)
 
-        self.exp_replay_store = {
-            'grids': [],
-            'cells': [],
-            'actions': [],
-            'rewards': [],
-            'next_grids': [],
-            'next_cells': []}
         self.quit_sim = False
         signal.signal(signal.SIGINT, self.exit_handler)
 
@@ -48,7 +37,7 @@ class Strat:
         self.quit_sim = True
 
     def simulate(self):
-        cevent = None
+        cevent = self.env.init()
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
@@ -57,7 +46,6 @@ class Strat:
                 break  # Gracefully exit to print stats, clean up etc.
 
             t, ce_type, cell = cevent[0:3]
-            self.stats.iter(t, i, cevent)
 
             if ch is not None:
                 if self.save or self.batch_size > 1:
@@ -80,23 +68,26 @@ class Strat:
                 self.exp_replay_store['next_grids'].append(s_new)
                 self.exp_replay_store['next_cells'].append(cell_new)
 
+            reward, next_cevent = self.env.step(ch)
             next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
+            self.env.stats.report_rl(self.epsilon, self.alpha)
 
+        self.env.stats.end_episode(reward)
         self.fn_after()
         if self.save:
             # NOTE UNTESTED. May be better to append to different data sets
-            n_save = 10000  # Ignore initial period
+            start = 10000  # Ignore initial period
             h5py_save_append(
                 "data-experience",
-                map(lambda li: li[n_save:], self.exp_replay_store.values()))
+                map(lambda li: li[start:], self.exp_replay_store.values()))
         if self.quit_sim and self.pp['hopt']:
             # Don't want to return block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
             return
         return self.stats.block_prob_cum
 
-    def get_init_action(self):
+    def get_init_action(self, next_cevent):
         raise NotImplementedError
 
     def get_action(self, next_cevent, cell: Cell, ch: int):
@@ -109,58 +100,24 @@ class Strat:
         pass
 
 
-class RandomAssign(Strat):
-    """
-    On call arrival, an eligible channel is picked
-    at random.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.get_init_action = self.get_action
-
-    def get_action(self, next_cevent, *args):
-        ce_type, next_cell = next_cevent[1:3]
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            free = self.grid.get_free_chs(next_cell)
-            if len(free) == 0:
-                return None
-            else:
-                return np.random.choice(free)
-        elif ce_type == CEvent.END:
-            # No rearrangement is done when a call terminates.
-            return next_cevent[3]
-
-
-class FixedAssign(Strat):
-    """
-    Fixed assignment (FA) channel allocation.
-
-    The set of channels is partitioned, and the partitions are permanently
-    assigned to cells so that every cell can use all of its channels
-    simultanously without interference.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.get_init_action = self.get_action
-
-    def get_action(self, next_cevent, *args):
-        ce_type, next_cell = next_cevent[1:3]
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            # When a call arrives in a cell,
-            # if any pre-assigned channel is unused;
-            # it is assigned, else the call is blocked.
-            for ch, isNom in enumerate(self.grid.nom_chs[next_cell]):
-                if isNom and self.grid.state[next_cell][ch] == 0:
-                    return ch
-            return None
-        elif ce_type == CEvent.END:
-            # No rearrangement is done when a call terminates.
-            return next_cevent[3]
-
-
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
         super().__init__(pp, *args, **kwargs)
+        self.epsilon = pp['epsilon']
+        self.epsilon_decay = pp['epsilon_decay']
+        self.alpha = pp['alpha']
+        self.alpha_decay = pp['alpha_decay']
+        self.gamma = pp['gamma']
+        self.batch_size = pp['batch_size']
+        self.losses = []
+
+        self.exp_replay_store = {
+            'grids': [],
+            'cells': [],
+            'actions': [],
+            'rewards': [],
+            'next_grids': [],
+            'next_cells': []}
 
     def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float64):
         raise NotImplementedError

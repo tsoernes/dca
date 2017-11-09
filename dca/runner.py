@@ -1,7 +1,7 @@
 from gui import Gui
-from grid import FixedGrid, RhombAxGrid, RectOffGrid  # noqa
-from strats import FixedAssign, strat_classes
+from strats import strat_classes
 from net import Net
+import grid
 from params import get_pparams
 
 import cProfile
@@ -46,9 +46,9 @@ class Runner:
     def avg_run(self):
         t = time.time()
         n_eps = self.pp['avg_runs']
-        gridclass, stratclass = self.get_class(self.pp)
+        stratclass = self.get_strat_class(self.pp)
         simproc = partial(
-            self.sim_proc, gridclass, stratclass, self.pp)
+            self.sim_proc, stratclass, self.pp)
         with Pool() as p:
             results = p.map(simproc, range(n_eps))
         n_events = self.pp['n_events']
@@ -75,22 +75,21 @@ class Runner:
                 f"Batch size {bs} took {time.time()-t:.2f} seconds")
 
     @staticmethod
-    def get_class(pp):
+    def get_strat_class(pp):
         s = pp['strat']
-        if s == 'fixed' or s == 'fixedassign':
-            return (FixedGrid, FixedAssign)
         stratcls = strat_classes()
         for name, cls in stratcls:
             if s == name.lower():
-                return(RhombAxGrid, cls)
+                cls
 
     def run(self):
-        gridclass, stratclass = self.get_class(self.pp)
-        grid = gridclass(logger=self.logger, **self.pp)
-        strat = stratclass(self.pp, grid=grid, logger=self.logger)
+        stratclass = self.get_strat_class(self.pp)
+        strat = stratclass(self.pp, logger=self.logger)
         if self.pp['gui']:
-            gui = Gui(grid, strat.exit_handler, grid.print_cell)
-            strat.gui = gui
+            # TODO Fix grid etc
+            # gui = Gui(grid, strat.exit_handler, grid.print_cell)
+            # strat.gui = gui
+            raise NotImplementedError
         if self.pp['profiling']:
             cProfile.runctx('strat.init_sim()', globals(), locals(),
                             sort='tottime')
@@ -98,26 +97,25 @@ class Runner:
             strat.init_sim()
 
     @staticmethod
-    def sim_proc(gridclass, stratclass, pp, pid):
+    def sim_proc(stratclass, pp, pid):
         """
         Allows for running simulation in separate process
         """
         np.random.seed()  # Must reseed lest all results will be the same
         logger = logging.getLogger('')
-        grid = gridclass(logger=logger, **pp)
-        strat = stratclass(pp, grid=grid, logger=logger, pid=pid)
+        strat = stratclass(pp, logger=logger, pid=pid)
         result = strat.init_sim()
         return result
 
     @staticmethod
-    def hopt_proc(gridclass, stratclass, pp, space, n_avg=6):
+    def hopt_proc(stratclass, pp, space, n_avg=6):
         """
         n_avg: Number of runs to run in parallell and take the average of
         """
         for key, val in space.items():
             pp[key] = val
         simproc = partial(
-            Runner.sim_proc, gridclass, stratclass, pp)
+            Runner.sim_proc, stratclass, pp)
         logger = logging.getLogger('')
         logger.error(space)
         with Pool() as p:
@@ -129,8 +127,8 @@ class Runner:
         return result
 
     def show(self):
-        grid = RhombAxGrid(logger=self.logger, **self.pp)
-        gui = Gui(grid, self.logger, grid.print_neighs, "rhomb")
+        g = grid.RhombAxGrid(logger=self.logger, **self.pp)
+        gui = Gui(g, self.logger, g.print_neighs, "rhomb")
         # grid = RectOffGrid(logger=self.logger, **self.pp)
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
         gui.test()
@@ -142,7 +140,7 @@ class Runner:
         automatically resumes if file already exists.
         """
         from hyperopt import fmin, tpe, hp, Trials
-        gridclass, stratclass = Runner.get_class(self.pp)
+        stratclass = Runner.get_strat_class(self.pp)
         if 'net' in self.pp['strat'].lower():
             space = {
                 'net_lr': hp.loguniform(
@@ -175,7 +173,7 @@ class Runner:
             trials = Trials()
 
         fn = partial(
-            Runner.hopt_proc, gridclass, stratclass, self.pp, n_avg=n_avg)
+            Runner.hopt_proc, stratclass, self.pp, n_avg=n_avg)
         prev_best = {}
         while True:
             n_trials = len(trials)

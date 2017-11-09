@@ -29,36 +29,39 @@ class Stats:
         self.n_curr_incoming = 0  # Number of incoming calls last 100 episodes
         self.block_probs = []
         self.block_probs_cum = []
-        self.alphas = []  # Monitor alpha decay
-        self.epsilons = []  # Monitor epsilon decay
         self.i = 0  # Current iteration
         self.t = 0  # Current time
 
-    def new(self):
+        self.alphas = []  # Monitor alpha decay
+        self.epsilons = []  # Monitor epsilon decay
+
+        self.losses = []
+
+    def event_new(self):
         self.n_incoming += 1
         self.n_curr_incoming += 1
 
-    def new_rej(self, cell, n_used):
+    def event_new_reject(self, cell, n_used):
         self.n_rejected += 1
         self.n_curr_rejected += 1
         self.n_inuse_rej += n_used
-        self.rej(cell, n_used)
+        self.event_reject(cell, n_used)
 
-    def end(self):
+    def event_end(self):
         self.n_ended += 1
 
-    def hoff_new(self):
+    def event_hoff_new(self):
         # TODO Because n_incoming/n_rejected does not include
         # handoffs, a significant amount of data, 15 %, is
         # not included when judgning hyperparams.
         # A separate counter for new+hoff should be made.
         self.n_handoffs += 1
 
-    def hoff_rej(self, cell, n_used):
+    def event_hoff_reject(self, cell, n_used):
         self.n_handoffs_rejected += 1
-        self.rej(cell, n_used)
+        self.event_reject(cell, n_used)
 
-    def rej(self, cell, n_used):
+    def event_reject(self, cell, n_used):
         if n_used == 0:
             self.logger.debug(
                 f"Rejected call to {cell} when {n_used}"
@@ -69,28 +72,32 @@ class Stats:
         self.i += 1
         self.logger.debug(ce_str(cevent))
 
-    def n_iter(self, epsilon, alpha, losses):
         niter = self.pp['log_iter']
-        # NOTE excluding handoffs
-        block_prob = self.n_curr_rejected / (self.n_curr_incoming + 1)
-        self.block_probs.append(block_prob)
-        block_prob_cum = self.n_rejected / (self.n_incoming + 1)
-        self.block_probs_cum.append(block_prob_cum)
-        self.logger.info(
-            f"\nBlocking probability events"
-            f" {self.i-niter}-{self.i}:"
-            f" {block_prob:.4f}, cumulative {block_prob_cum:.4f}")
-        if epsilon:
-            self.alphas.append(alpha)
-            self.epsilons.append(epsilon)
-            self.logger.info(f"Epsilon: {epsilon:.5f}," f" Alpha: {alpha:.5f}")
-        if losses:
-            avg_loss = sum(losses[-niter:]) / niter
-            self.logger.info(f"Avg. loss: {avg_loss:.2f}")
-        self.n_curr_rejected = 0
-        self.n_curr_incoming = 0
+        if self.i > 0 and self.i % niter == 0:
+            # NOTE excluding handoffs
+            block_prob = self.n_curr_rejected / (self.n_curr_incoming + 1)
+            self.block_probs.append(block_prob)
+            block_prob_cum = self.n_rejected / (self.n_incoming + 1)
+            self.block_probs_cum.append(block_prob_cum)
+            self.logger.info(
+                f"\nBlocking probability events"
+                f" {self.i-niter}-{self.i}:"
+                f" {block_prob:.4f}, cumulative {block_prob_cum:.4f}")
+            self.n_curr_rejected = 0
+            self.n_curr_incoming = 0
 
-    def end_episode(self, n_inprogress, epsilon, alpha):
+    def report_rl(self, epsilon, alpha):
+        self.alphas.append(alpha)
+        self.epsilons.append(epsilon)
+        self.logger.info(f"Epsilon: {epsilon:.5f}," f" Alpha: {alpha:.5f}")
+
+    def report_net(self, losses):
+        self.losses += losses
+        niter = self.pp['log_iter']
+        avg_loss = sum(losses[-niter:]) / niter
+        self.logger.info(f"Avg. loss last {niter} events: {avg_loss:.2f}")
+
+    def end_episode(self, n_inprogress):
         delta = self.n_incoming + self.n_handoffs \
             - self.n_rejected - self.n_handoffs_rejected - self.n_ended
         self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
@@ -124,8 +131,6 @@ class Stats:
             f"{self.n_inuse_rej/(self.n_rejected+1):.2f}"
 
             f"\n{n_inprogress} calls in progress at simulation end\n")
-        if epsilon:
-            self.logger.warn(f"\nEnd epsilon: {epsilon}\nEnd alpha: {alpha}")
         if self.pp['do_plot']:
             self.plot()
 
@@ -143,5 +148,10 @@ class Stats:
             plt.subplot(224)
             plt.plot(self.epsilons)
             plt.ylabel("Epsilon")
+            plt.xlabel(xlabel_iters)
+        if self.losses:
+            plt.subplot(222)
+            plt.plot(self.losses)
+            plt.ylabel("Loss")
             plt.xlabel(xlabel_iters)
         plt.show()

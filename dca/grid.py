@@ -81,7 +81,7 @@ class Grid:
         return free
 
 
-class RectOffGrid(Grid):
+class RectOffsetGrid(Grid):
     "Rectangular grid with offset coordinates"
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -266,7 +266,7 @@ class RectOffGrid(Grid):
             first_row_center = center
 
 
-class RhombAxGrid(Grid):
+class RhombusAxialGrid(Grid):
     "Rhombus grid with axial coordinates"
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -365,47 +365,3 @@ class RhombAxGrid(Grid):
             for i, neigh in enumerate(
                     self.neighbors1sparse(*center)):
                 label(i + 1, *neigh)
-
-
-class FixedGrid(RectOffGrid):
-    def __init__(self, n_nom_channels=0, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Nominal channels for each cell
-        self.nom_chs = np.zeros(
-            (self.rows, self.cols, self.n_channels), dtype=bool)
-        self.assign_chs(n_nom_channels)
-
-    def assign_chs(self, n_nom_channels=0):
-        """
-        Partition the cells and channels up to and including 'n_channels'
-        into 7 lots, and assign
-        the channels to cells such that they will not interfere with each
-        other within a channel reuse constraint of 3.
-        The channels assigned to a cell are its nominal channels.
-
-        Returns a (rows*cols*n_channels) array
-        where a channel for a cell has value 1 if nominal, 0 otherwise.
-        """
-        if n_nom_channels == 0:
-            n_channels = self.n_channels
-        channels_per_subgrid_cell = []
-        channels_per_subgrid_cell_accu = [0]
-        channels_per_cell = n_channels / 7
-        ceil = math.ceil(channels_per_cell)
-        floor = math.floor(channels_per_cell)
-        tot = 0
-        for i in range(7):
-            if tot + ceil + (6 - i) * floor > n_channels:
-                tot += ceil
-                cell_channels = ceil
-            else:
-                tot += floor
-                cell_channels = floor
-            channels_per_subgrid_cell.append(cell_channels)
-            channels_per_subgrid_cell_accu.append(tot)
-        for r in range(self.rows):
-            for c in range(self.cols):
-                label = self.labels[r][c]
-                lo = channels_per_subgrid_cell_accu[label]
-                hi = channels_per_subgrid_cell_accu[label + 1]
-                self.nom_chs[r][c][lo:hi] = 1

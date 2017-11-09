@@ -4,7 +4,7 @@ from stats import Stats
 import numpy as np
 
 
-class DCAEnv:
+class Env:
     def __init__(self, pp, grid, logger, pid="", gui=None,
                  *args, **kwargs):
         self.rows = pp['rows']
@@ -23,7 +23,7 @@ class DCAEnv:
         # Current call event for which an action must be taken
         self.cevent = None
 
-    def init_sim(self):
+    def init(self):
         """
         Generate initial call events; one for each cell,
         and return the first event.

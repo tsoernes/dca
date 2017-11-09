@@ -84,7 +84,7 @@ class Strat:
                 break  # Gracefully exit to print stats, clean up etc.
 
             t, ce_type, cell = cevent[0:3]
-            self.stats.iter(t, i, cevent)
+            self.stats.iter(t, cevent)
 
             if ch is not None:
                 if self.save or self.batch_size > 1:
