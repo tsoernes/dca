@@ -64,9 +64,9 @@ class Stats:
                 f"Rejected call to {cell} when {n_used}"
                 f" of {self.pp['n_channels']} channels in use")
 
-    def iter(self, t, i, cevent):
+    def iter(self, t, cevent):
         self.t = t
-        self.i = i
+        self.i += 1
         self.logger.debug(ce_str(cevent))
 
     def n_iter(self, epsilon, alpha, losses):
