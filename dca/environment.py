@@ -52,48 +52,42 @@ class Env:
             # Generate next incoming call
             self.eventgen.event_new(t, cell)
             if ch is None:
-                self.stats.new_rej(cell, n_used)
+                self.stats.event_new_reject(cell, n_used)
                 if self.gui:
                     self.gui.hgrid.mark_cell(*cell)
             else:
                 # With some probability, generate a handoff-event
-                # instead of ending the call
+                # instead of just an end event
                 if np.random.random() < self.p_handoff:
                     self.eventgen.event_new_handoff(
                         t, cell, ch, self.grid.neighbors1(*cell))
                 else:
-                    # Generate call duration for call and add end event
                     self.eventgen.event_end(t, cell, ch)
         elif ce_type == CEvent.HOFF:
             self.stats.hoff_new()
             if ch is None:
-                self.stats.hoff_rej(cell, n_used)
+                self.stats.event_hoff_reject(cell, n_used)
                 if self.gui:
                     self.gui.hgrid.mark_cell(*cell)
             else:
-                # Generate call duration for call and add end event
                 self.eventgen.event_end_handoff(t, cell, ch)
         elif ce_type == CEvent.END:
-            self.stats.end()
+            self.stats.event_end()
             if ch is None:
                 self.logger.error("No channel assigned for end event")
                 raise Exception
             if self.gui:
                 self.gui.hgrid.unmark_cell(*cell)
 
-            if self.gui:
-                self.gui.step()
-
         if ch is not None:
             self.execute_action(self.cevent, ch)
+        if self.verify_grid and not self.grid.validate_reuse_constr():
+            self.logger.error(f"Reuse constraint broken")
+            raise Exception
+        if self.gui:
+            self.gui.step()
 
-            if self.verify_grid and not self.grid.validate_reuse_constr():
-                self.logger.error(f"Reuse constraint broken")
-                raise Exception
-
-        # Get next event
         self.cevent = self.eventgen.pop()
-
         return (self.reward(), self.cevent)
 
     def execute_action(self, cevent, ch: int):
@@ -120,7 +114,7 @@ class Env:
             if self.grid.state[cell][reass_ch] == 0:
                 self.logger.error(
                     f"Tried to end call {ce_str(cevent)}"
-                    f"which is not in progress")
+                    f" which is not in progress")
                 raise Exception
             if reass_ch != ch:
                 if self.grid.state[cell][ch] == 0:
@@ -139,8 +133,6 @@ class Env:
 
     def reward(self):
         """
-        Immediate reward
-        dt: Time until next event
+        Immediate reward, which is the number of calls currently in progress
         """
-        # Number of calls currently in progress
         return np.count_nonzero(self.grid.state)

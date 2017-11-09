@@ -23,14 +23,22 @@ class Strat:
         self.logger = logger
 
         grid = RhombusAxialGrid(*pp, logger=self.logger)
-        self.env = Env(self.pp, grid, self.logger, self.pid)
+        self.env = Env(self.pp, grid, self.logger, pid)
 
         self.quit_sim = False
         signal.signal(signal.SIGINT, self.exit_handler)
 
+        self.experience_store = {
+            'grids': [],
+            'cells': [],
+            'actions': [],
+            'rewards': [],
+            'next_grids': [],
+            'next_cells': []}
+
     def exit_handler(self, *args):
         """
-        Graceful exit allowing printing of stats on ctrl-c exit from
+        Graceful exit on ctrl-c signal from
         command line or on 'q' key-event from gui.
         """
         self.logger.warn("\nPremature exit")
@@ -50,10 +58,12 @@ class Strat:
             if ch is not None:
                 if self.save or self.batch_size > 1:
                     s = np.copy(self.grid.state)
-                self.execute_action(cevent, ch)
 
-            next_cevent = self.eventgen.pop()
-            if (self.save or self.batch_size > 1) and ch is not None \
+            reward, next_cevent = self.env.step(ch)
+            next_ch = self.get_action(next_cevent, cell, ch)
+            if (self.save or self.batch_size > 1) \
+                    and ch is not None \
+                    and next_ch is not None \
                     and ce_type != CEvent.END \
                     and next_cevent[1] != CEvent.END:
                 # Only add (s, a, r, s') tuples for which the events in
@@ -61,37 +71,43 @@ class Strat:
                 r = self.reward()
                 s_new = np.copy(self.grid.state)
                 cell_new = next_cevent[2]
-                self.exp_replay_store['grids'].append(s)
-                self.exp_replay_store['cells'].append(cell)
-                self.exp_replay_store['actions'].append(ch)
-                self.exp_replay_store['rewards'].append(r)
-                self.exp_replay_store['next_grids'].append(s_new)
-                self.exp_replay_store['next_cells'].append(cell_new)
+                self.experience_store['grids'].append(s)
+                self.experience_store['cells'].append(cell)
+                self.experience_store['actions'].append(ch)
+                self.experience_store['rewards'].append(r)
+                self.experience_store['next_grids'].append(s_new)
+                self.experience_store['next_cells'].append(cell_new)
 
-            reward, next_cevent = self.env.step(ch)
-            next_ch = self.get_action(next_cevent, cell, ch)
             ch, cevent = next_ch, next_cevent
-            self.env.stats.report_rl(self.epsilon, self.alpha)
-
         self.env.stats.end_episode(reward)
         self.fn_after()
         if self.save:
-            # NOTE UNTESTED. May be better to append to different data sets
-            start = 10000  # Ignore initial period
-            h5py_save_append(
-                "data-experience",
-                map(lambda li: li[start:], self.exp_replay_store.values()))
+            self.save_experience_to_disk()
         if self.quit_sim and self.pp['hopt']:
-            # Don't want to return block prob for incomplete sims when
+            # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
-            return
+            return 1
         return self.stats.block_prob_cum
+
+    def save_experience_to_disk(self):
+        raise NotImplementedError
+        # NOTE UNTESTED. May be better to append to different data sets
+        start = 10000  # Ignore initial period
+        h5py_save_append(
+            "data-experience",
+            map(lambda li: li[start:], self.experience_store.values()))
 
     def get_init_action(self, next_cevent):
         raise NotImplementedError
 
     def get_action(self, next_cevent, cell: Cell, ch: int):
         raise NotImplementedError
+
+    def fn_report(self):
+        """
+        Report stats for different strategies
+        """
+        pass
 
     def fn_after(self):
         """
@@ -108,16 +124,9 @@ class RLStrat(Strat):
         self.alpha = pp['alpha']
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
-        self.batch_size = pp['batch_size']
-        self.losses = []
 
-        self.exp_replay_store = {
-            'grids': [],
-            'cells': [],
-            'actions': [],
-            'rewards': [],
-            'next_grids': [],
-            'next_cells': []}
+    def fn_report(self):
+        self.env.stats.report_rl(self.epsilon, self.alpha)
 
     def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float64):
         raise NotImplementedError
@@ -129,10 +138,10 @@ class RLStrat(Strat):
         ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, cell: Cell, ch: int):
+    def get_action(self, next_cevent, cell: Cell, ch: int, reward):
         """
         Return a channel to be (re)assigned for 'next_cevent'.
-        'cell' and 'ch' specify the previous channel (re)assignment.
+        'cell' and 'ch' specify the previously executed action.
         """
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
@@ -143,7 +152,7 @@ class RLStrat(Strat):
                 and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            target_q = self.reward() + self.discount() * next_qval
+            target_q = reward + self.discount() * next_qval
             self.update_qval(cell, ch, target_q)
         return next_ch
 
@@ -275,6 +284,8 @@ class SARSAQNet(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.batch_size = self.pp['batch_size']
+        self.losses = []
         if self.batch_size > 1:
             self.update_qval = self.update_qval_exp_replay
         else:
@@ -298,6 +309,8 @@ class SARSAQNet(RLStrat):
         state = self.encode_state(cell)
         loss = self.net.backward(*state, ch, q_target)
         self.losses.append(loss)
+        if np.isinf(loss) or np.isnan(loss):
+            self.quit_sim = True
 
     def update_qval_exp_replay(self, *args):
         """
@@ -331,6 +344,8 @@ class SARSAQNet(RLStrat):
         loss = self.net.backward_exp_replay(
             grids, cells, actions, rewards, next_grids, next_cells)
         self.losses.append(loss)
+        if np.isinf(loss) or np.isnan(loss):
+            self.quit_sim = True
 
     def encode_state(self, *args):
         raise NotImplementedError
