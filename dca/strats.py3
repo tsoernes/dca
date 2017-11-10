@@ -1,6 +1,5 @@
-from environment import Env
-from eventgen import CEvent
-from grid import RhombusAxialGrid
+from eventgen import EventGen, CEvent, ce_str
+from stats import Stats
 from utils import h5py_save_append
 
 import signal
@@ -14,38 +13,69 @@ Cell = Tuple[int, int]
 
 
 class Strat:
-    def __init__(self, pp, logger, pid="", gui=None,
+    def __init__(self, pp, grid, logger, pid="",
                  *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
         self.n_channels = pp['n_channels']
+        self.n_events = pp['n_events']
+        self.p_handoff = pp['p_handoff']
+        self.verify_grid = pp['verify_grid']
+        self.save = pp['save_exp_data']
+        self.log_iter = pp['log_iter']
+        self.epsilon = pp['epsilon']
+        self.epsilon_decay = pp['epsilon_decay']
+        self.alpha = pp['alpha']
+        self.alpha_decay = pp['alpha_decay']
+        self.gamma = pp['gamma']
+        self.batch_size = pp['batch_size']
         self.pp = pp
+        self.grid = grid
         self.logger = logger
 
-        grid = RhombusAxialGrid(*pp, logger=self.logger)
-        self.env = Env(self.pp, grid, self.logger, pid)
+        self.gui = None
+        self.losses = []
 
-        self.quit_sim = False
-        signal.signal(signal.SIGINT, self.exit_handler)
-
-        self.experience_store = {
+        self.exp_replay_store = {
             'grids': [],
             'cells': [],
             'actions': [],
             'rewards': [],
             'next_grids': [],
             'next_cells': []}
+        self.quit_sim = False
+        self.stats = Stats(pp=pp, logger=logger, pid=pid)
+        self.eventgen = EventGen(logger=logger, **pp)
 
     def exit_handler(self, *args):
         """
-        Graceful exit on ctrl-c signal from
+        Graceful exit allowing printing of stats on ctrl-c exit from
         command line or on 'q' key-event from gui.
         """
         self.logger.warn("\nPremature exit")
         self.quit_sim = True
 
-    def simulate(self):
-        cevent = self.env.init()
+    def init_sim(self):
+        signal.signal(signal.SIGINT, self.exit_handler)
+        # Generate initial call events; one for each cell
+        for r in range(self.rows):
+            for c in range(self.cols):
+                self.eventgen.event_new(0, (r, c))
+        self._simulate()
+        if self.save:
+            # NOTE UNTESTED. May be better to append to different data sets
+            n_save = 10000  # Ignore initial period
+            h5py_save_append(
+                "data-experience",
+                map(lambda li: li[n_save:], self.exp_replay_store.values()))
+        if self.quit_sim and self.pp['hopt']:
+            # Don't want to return block prob for incomplete sims when
+            # optimizing params, because block prob is much lower at sim start
+            return 1
+        return self.stats.block_prob_cum
+
+    def _simulate(self):
+        cevent = self.eventgen.pop()
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
@@ -54,12 +84,57 @@ class Strat:
                 break  # Gracefully exit to print stats, clean up etc.
 
             t, ce_type, cell = cevent[0:3]
+            self.stats.iter(t, cevent)
 
             if ch is not None:
                 if self.save or self.batch_size > 1:
                     s = np.copy(self.grid.state)
+                self.execute_action(cevent, ch)
 
-            reward, next_cevent = self.env.step(ch)
+                if self.verify_grid and not self.grid.validate_reuse_constr():
+                    self.logger.error(f"Reuse constraint broken")
+                    raise Exception
+
+            n_used = np.count_nonzero(self.grid.state[cell])
+            if ce_type == CEvent.NEW:
+                self.stats.new()
+                # Generate next incoming call
+                self.eventgen.event_new(t, cell)
+                if ch is None:
+                    self.stats.new_rej(cell, n_used)
+                    if self.gui:
+                        self.gui.hgrid.mark_cell(*cell)
+                else:
+                    # With some probability, generate a handoff-event
+                    # instead of ending the call
+                    if np.random.random() < self.p_handoff:
+                        self.eventgen.event_new_handoff(
+                            t, cell, ch, self.grid.neighbors1(*cell))
+                    else:
+                        # Generate call duration for call and add end event
+                        self.eventgen.event_end(t, cell, ch)
+            elif ce_type == CEvent.HOFF:
+                self.stats.hoff_new()
+                if ch is None:
+                    self.stats.hoff_rej(cell, n_used)
+                    if self.gui:
+                        self.gui.hgrid.mark_cell(*cell)
+                else:
+                    # Generate call duration for call and add end event
+                    self.eventgen.event_end_handoff(t, cell, ch)
+            elif ce_type == CEvent.END:
+                self.stats.end()
+                if ch is None:
+                    self.logger.error("No channel assigned for end event")
+                    raise Exception
+                if self.gui:
+                    self.gui.hgrid.unmark_cell(*cell)
+
+            if self.gui:
+                self.gui.step()
+
+            next_cevent = self.eventgen.pop()
+
             next_ch = self.get_action(next_cevent, cell, ch)
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
@@ -71,45 +146,26 @@ class Strat:
                 r = self.reward()
                 s_new = np.copy(self.grid.state)
                 cell_new = next_cevent[2]
-                self.experience_store['grids'].append(s)
-                self.experience_store['cells'].append(cell)
-                self.experience_store['actions'].append(ch)
-                self.experience_store['rewards'].append(r)
-                self.experience_store['next_grids'].append(s_new)
-                self.experience_store['next_cells'].append(cell_new)
-
-            if i % self.pp['log_iter'] == 0 and i > 0:
-                self.fn_report()
+                self.exp_replay_store['grids'].append(s)
+                self.exp_replay_store['cells'].append(cell)
+                self.exp_replay_store['actions'].append(ch)
+                self.exp_replay_store['rewards'].append(r)
+                self.exp_replay_store['next_grids'].append(s_new)
+                self.exp_replay_store['next_cells'].append(cell_new)
             ch, cevent = next_ch, next_cevent
-        self.env.stats.end_episode(reward)
+
+            if i > 0 and i % self.log_iter == 0:
+                self.stats.n_iter(self.epsilon, self.alpha, self.losses)
+
+        self.stats.end_episode(
+            np.count_nonzero(self.grid.state), self.epsilon, self.alpha)
         self.fn_after()
-        if self.save:
-            self.save_experience_to_disk()
-        if self.quit_sim and self.pp['hopt']:
-            # Don't want to return actual block prob for incomplete sims when
-            # optimizing params, because block prob is much lower at sim start
-            return 1
-        return self.stats.block_prob_cum
 
-    def save_experience_to_disk(self):
-        raise NotImplementedError
-        # NOTE UNTESTED. May be better to append to different data sets
-        start = 10000  # Ignore initial period
-        h5py_save_append(
-            "data-experience",
-            map(lambda li: li[start:], self.experience_store.values()))
-
-    def get_init_action(self, next_cevent):
+    def get_init_action(self):
         raise NotImplementedError
 
-    def get_action(self, next_cevent, cell: Cell, ch: int, reward) -> int:
+    def get_action(self, next_cevent, cell: Cell, ch: int):
         raise NotImplementedError
-
-    def fn_report(self):
-        """
-        Report stats for different strategies
-        """
-        pass
 
     def fn_after(self):
         """
@@ -117,37 +173,87 @@ class Strat:
         """
         pass
 
+    def execute_action(self, cevent, ch: int):
+        ce_type, cell = cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            if self.grid.state[cell][ch]:
+                self.logger.error(
+                    f"Tried assigning new call {ce_str(cevent)} to"
+                    f" channel {ch} which is already in use")
+                raise Exception
+            self.logger.debug(f"Assigned ch {ch} to cell {cell}")
+            self.grid.state[cell][ch] = 1
+        else:
+            self.grid.state[cell][ch] = 0
+
+
+class RandomAssign(Strat):
+    """
+    On call arrival, an eligible channel is picked
+    at random.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.get_init_action = self.get_action
+
+    def get_action(self, next_cevent, *args):
+        ce_type, next_cell = next_cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            free = self.grid.get_free_chs(next_cell)
+            if len(free) == 0:
+                return None
+            else:
+                return np.random.choice(free)
+        elif ce_type == CEvent.END:
+            # No rearrangement is done when a call terminates.
+            return next_cevent[3]
+
+
+class FixedAssign(Strat):
+    """
+    Fixed assignment (FA) channel allocation.
+
+    The set of channels is partitioned, and the partitions are permanently
+    assigned to cells so that every cell can use all of its channels
+    simultanously without interference.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.get_init_action = self.get_action
+
+    def get_action(self, next_cevent, *args):
+        ce_type, next_cell = next_cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            # When a call arrives in a cell,
+            # if any pre-assigned channel is unused;
+            # it is assigned, else the call is blocked.
+            for ch, isNom in enumerate(self.grid.nom_chs[next_cell]):
+                if isNom and self.grid.state[next_cell][ch] == 0:
+                    return ch
+            return None
+        elif ce_type == CEvent.END:
+            # No rearrangement is done when a call terminates.
+            return next_cevent[3]
+
 
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
         super().__init__(pp, *args, **kwargs)
-        self.epsilon = pp['epsilon']
-        self.epsilon_decay = pp['epsilon_decay']
-        self.alpha = pp['alpha']
-        self.alpha_decay = pp['alpha_decay']
-        self.gamma = pp['gamma']
-
-    def fn_report(self):
-        self.env.stats.report_rl(self.epsilon, self.alpha)
 
     def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float64):
         raise NotImplementedError
 
-    def get_qvals(self, cell: Cell, *args):
-        """
-        Different strats may use additional arguments,
-        depending on the features
-        """
+    def get_qvals(self, cell: Cell, ch):
         raise NotImplementedError
 
     def get_init_action(self, cevent):
         ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, cell: Cell, ch: int, reward) -> int:
+    def get_action(self, next_cevent, cell: Cell, ch: int):
         """
         Return a channel to be (re)assigned for 'next_cevent'.
-        'cell' and 'ch' specify the previously executed action.
+        'cell' and 'ch' specify the previous channel (re)assignment.
         """
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
@@ -158,11 +264,11 @@ class RLStrat(Strat):
                 and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            target_q = reward + self.gamma * next_qval
+            target_q = self.reward() + self.discount() * next_qval
             self.update_qval(cell, ch, target_q)
         return next_ch
 
-    def optimal_ch(self, ce_type: CEvent, cell: Cell) -> Tuple[int, float]:
+    def optimal_ch(self, ce_type, cell: Cell):
         # TODO this isn't really the 'optimal' ch since
         # it's chosen in an epsilon-greedy fashion
         """
@@ -218,10 +324,46 @@ class RLStrat(Strat):
         self.epsilon *= self.epsilon_decay  # Epsilon decay
         return (ch, qvals[ch])
 
+    def execute_action(self, cevent, ch: int):
+        """
+        Change the grid state according to the given action.
+        """
+        ce_type, cell = cevent[1:3]
+        if ce_type == CEvent.END:
+            end_ch = cevent[3]
+            self.logger.debug(
+                f"Reassigned cell {cell} ch {ch} to ch {end_ch}")
+            assert self.grid.state[cell][end_ch] == 1
+            assert self.grid.state[cell][ch] == 1
+            if end_ch != ch:
+                self.eventgen.reassign(cevent[2], ch, end_ch)
+            self.grid.state[cell][ch] = 0
+        super().execute_action(cevent, ch)
+
+    def reward(self):
+        """
+        Immediate reward
+        dt: Time until next event
+        """
+        # Number of calls currently in progress
+        # TODO try +1 for accepted and -1 for rejected instead
+        return np.count_nonzero(self.grid.state)
+
+    def discount(self):
+        """
+        Discount factor (gamma)
+        """
+        # TODO: Find examples where
+        # gamma is a function of time until next event.
+        # How should gamma increase as a function of dt?
+        # Linearly, exponentially?
+        # discount(0) should probably be 0
+        return self.gamma
+
 
 class SARSA(RLStrat):
     """
-    State consists of coordinates and the number of used channels in that cell.
+    State consists of coordinates + number of used channels.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -290,27 +432,25 @@ class SARSAQNet(RLStrat):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.batch_size = self.pp['batch_size']
-        self.losses = []
         if self.batch_size > 1:
             self.update_qval = self.update_qval_exp_replay
         else:
             self.update_qval = self.update_qval_single
 
-    def fn_report(self):
-        self.env.stats.report_net(self.losses)
-        super().fn_report()
-
     def fn_after(self):
         self.net.do_save()
         self.net.sess.close()
 
-    def get_qvals(self, cell, *args):
+    def get_init_action(self, cevent):
+        ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        return ch
+
+    def get_qvals(self, cell, n_used):
         state = self.encode_state(cell)
         qvals, _, _ = self.net.forward(*state)
         return qvals
 
-    def update_qval_single(self, cell: Cell, ch: int, q_target: float):
+    def update_qval_single(self, cell, ch, q_target):
         """ Update qval for one state-action pair """
         state = self.encode_state(cell)
         loss = self.net.backward(*state, ch, q_target)

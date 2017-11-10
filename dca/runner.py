@@ -1,5 +1,4 @@
 from gui import Gui
-from strats import strat_classes
 from net import Net
 import grid
 from params import get_pparams
@@ -17,7 +16,7 @@ import numpy as np
 
 class Runner:
     def __init__(self):
-        self.pp = get_pparams()
+        self.pp, self.stratclasses = get_pparams()
 
         logging.basicConfig(level=self.pp['log_level'], format='%(message)s')
         self.logger = logging.getLogger('')
@@ -43,10 +42,16 @@ class Runner:
         else:
             self.run()
 
+    def get_strat_class(self):
+        # Override stratname with class reference
+        for name, cls in self.stratclasses:
+            if self.pp['strat'].lower() == name.lower():
+                return cls
+
     def avg_run(self):
         t = time.time()
         n_eps = self.pp['avg_runs']
-        stratclass = self.get_strat_class(self.pp)
+        stratclass = self.get_strat_class()
         simproc = partial(
             self.sim_proc, stratclass, self.pp)
         with Pool() as p:
@@ -74,16 +79,8 @@ class Runner:
             self.logger.error(
                 f"Batch size {bs} took {time.time()-t:.2f} seconds")
 
-    @staticmethod
-    def get_strat_class(pp):
-        s = pp['strat']
-        stratcls = strat_classes()
-        for name, cls in stratcls:
-            if s == name.lower():
-                cls
-
     def run(self):
-        stratclass = self.get_strat_class(self.pp)
+        stratclass = self.get_strat_class()
         strat = stratclass(self.pp, logger=self.logger)
         if self.pp['gui']:
             # TODO Fix grid etc
@@ -91,10 +88,10 @@ class Runner:
             # strat.gui = gui
             raise NotImplementedError
         if self.pp['profiling']:
-            cProfile.runctx('strat.init_sim()', globals(), locals(),
+            cProfile.runctx('strat.simulate()', globals(), locals(),
                             sort='tottime')
         else:
-            strat.init_sim()
+            strat.simulate()
 
     @staticmethod
     def sim_proc(stratclass, pp, pid):
@@ -104,7 +101,7 @@ class Runner:
         np.random.seed()  # Must reseed lest all results will be the same
         logger = logging.getLogger('')
         strat = stratclass(pp, logger=logger, pid=pid)
-        result = strat.init_sim()
+        result = strat.simulate()
         return result
 
     @staticmethod
@@ -140,7 +137,7 @@ class Runner:
         automatically resumes if file already exists.
         """
         from hyperopt import fmin, tpe, hp, Trials
-        stratclass = Runner.get_strat_class(self.pp)
+        stratclass = self.get_strat_class()
         if 'net' in self.pp['strat'].lower():
             space = {
                 'net_lr': hp.loguniform(

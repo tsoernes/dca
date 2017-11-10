@@ -1,9 +1,23 @@
-from strats import strat_classes
+import strats  # noqa
+import fixedstrats  # noqa
 
 import argparse
+import inspect
+import sys
 import logging
 
 import numpy as np
+
+
+def strat_classes(module_name):
+    """
+    Return a list with (name, class) for all the strats
+    """
+    def is_class_member(member):
+        return inspect.isclass(member) and member.__module__ == module_name
+    clsmembers = inspect.getmembers(
+        sys.modules[module_name], is_class_member)
+    return clsmembers
 
 
 def get_pparams():
@@ -14,13 +28,14 @@ def get_pparams():
         description='DCA',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    stratnames = [n[0].lower() for n in strat_classes()]
-    stratnames += ['show', 'random', 'fixed']
+    stratclasses = strat_classes("strats") + strat_classes("fixedstrats")
+    stratnames = [n[0].lower() for n in stratclasses]
+    stratnames = stratnames + ['show']
 
     parser.add_argument(
         '--strat',
         choices=stratnames,
-        default='fixed')
+        default='fixedassign')
     parser.add_argument(
         '--rows', type=int, help="number of rows in grid", default=7)
     parser.add_argument(
@@ -161,7 +176,7 @@ def get_pparams():
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
 
-    return params
+    return params, stratclasses
 
 
 def non_uniform_preset(pp):

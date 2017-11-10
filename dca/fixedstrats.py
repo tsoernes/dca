@@ -1,6 +1,8 @@
 from strats import Strat
 from eventgen import CEvent
 
+import math
+
 import numpy as np
 
 
@@ -16,7 +18,7 @@ class RandomAssign(Strat):
     def get_action(self, next_cevent, *args):
         ce_type, next_cell = next_cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            free = self.grid.get_free_chs(next_cell)
+            free = self.env.grid.get_free_chs(next_cell)
             if len(free) == 0:
                 return None
             else:
@@ -50,7 +52,7 @@ class FixedAssign(Strat):
             # if any pre-assigned channel is unused;
             # it is assigned, else the call is blocked.
             for ch, isNom in enumerate(self.nom_chs[next_cell]):
-                if isNom and self.grid.state[next_cell][ch] == 0:
+                if isNom and self.state[next_cell][ch] == 0:
                     return ch
             return None
         elif ce_type == CEvent.END:
@@ -69,15 +71,15 @@ class FixedAssign(Strat):
         where a channel for a cell has value 1 if nominal, 0 otherwise.
         """
         if n_nom_channels == 0:
-            n_channels = self.n_channels
+            n_nom_channels = self.n_channels
         channels_per_subgrid_cell = []
         channels_per_subgrid_cell_accu = [0]
-        channels_per_cell = n_channels / 7
-        ceil = np.ceil(channels_per_cell)
-        floor = np.floor(channels_per_cell)
+        channels_per_cell = n_nom_channels / 7
+        ceil = math.ceil(channels_per_cell)
+        floor = math.floor(channels_per_cell)
         tot = 0
         for i in range(7):
-            if tot + ceil + (6 - i) * floor > n_channels:
+            if tot + ceil + (6 - i) * floor > n_nom_channels:
                 tot += ceil
                 cell_channels = ceil
             else:
@@ -87,7 +89,7 @@ class FixedAssign(Strat):
             channels_per_subgrid_cell_accu.append(tot)
         for r in range(self.rows):
             for c in range(self.cols):
-                label = self.labels[r][c]
+                label = self.env.grid.labels[r][c]
                 lo = channels_per_subgrid_cell_accu[label]
                 hi = channels_per_subgrid_cell_accu[label + 1]
                 self.nom_chs[r][c][lo:hi] = 1

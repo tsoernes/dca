@@ -48,7 +48,7 @@ class Env:
         # Generate new event, log statistics and update the GUI
         n_used = np.count_nonzero(self.grid.state[cell])
         if ce_type == CEvent.NEW:
-            self.stats.new()
+            self.stats.event_new()
             # Generate next incoming call
             self.eventgen.event_new(t, cell)
             if ch is None:
@@ -64,7 +64,7 @@ class Env:
                 else:
                     self.eventgen.event_end(t, cell, ch)
         elif ce_type == CEvent.HOFF:
-            self.stats.hoff_new()
+            self.stats.event_hoff_new()
             if ch is None:
                 self.stats.event_hoff_reject(cell, n_used)
                 if self.gui:
