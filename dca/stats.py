@@ -92,7 +92,7 @@ class Stats:
         self.logger.info(f"Epsilon: {epsilon:.5f}," f" Alpha: {alpha:.5f}")
 
     def report_net(self, losses):
-        self.losses += losses
+        self.losses = losses
         niter = self.pp['log_iter']
         avg_loss = sum(losses[-niter:]) / niter
         self.logger.info(f"Avg. loss last {niter} events: {avg_loss:.2f}")

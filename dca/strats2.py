@@ -78,6 +78,8 @@ class Strat:
                 self.experience_store['next_grids'].append(s_new)
                 self.experience_store['next_cells'].append(cell_new)
 
+            if i % self.pp['log_iter'] == 0 and i > 0:
+                self.fn_report()
             ch, cevent = next_ch, next_cevent
         self.env.stats.end_episode(reward)
         self.fn_after()
@@ -100,7 +102,7 @@ class Strat:
     def get_init_action(self, next_cevent):
         raise NotImplementedError
 
-    def get_action(self, next_cevent, cell: Cell, ch: int):
+    def get_action(self, next_cevent, cell: Cell, ch: int, reward) -> int:
         raise NotImplementedError
 
     def fn_report(self):
@@ -131,14 +133,18 @@ class RLStrat(Strat):
     def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float64):
         raise NotImplementedError
 
-    def get_qvals(self, cell: Cell, ch):
+    def get_qvals(self, cell: Cell, *args):
+        """
+        Different strats may use additional arguments,
+        depending on the features
+        """
         raise NotImplementedError
 
     def get_init_action(self, cevent):
         ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, cell: Cell, ch: int, reward):
+    def get_action(self, next_cevent, cell: Cell, ch: int, reward) -> int:
         """
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previously executed action.
@@ -152,11 +158,11 @@ class RLStrat(Strat):
                 and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            target_q = reward + self.discount() * next_qval
+            target_q = reward + self.gamma * next_qval
             self.update_qval(cell, ch, target_q)
         return next_ch
 
-    def optimal_ch(self, ce_type, cell: Cell):
+    def optimal_ch(self, ce_type: CEvent, cell: Cell) -> Tuple[int, float]:
         # TODO this isn't really the 'optimal' ch since
         # it's chosen in an epsilon-greedy fashion
         """
@@ -215,7 +221,7 @@ class RLStrat(Strat):
 
 class SARSA(RLStrat):
     """
-    State consists of coordinates + number of used channels.
+    State consists of coordinates and the number of used channels in that cell.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -291,20 +297,20 @@ class SARSAQNet(RLStrat):
         else:
             self.update_qval = self.update_qval_single
 
+    def fn_report(self):
+        self.env.stats.report_net(self.losses)
+        super().fn_report()
+
     def fn_after(self):
         self.net.do_save()
         self.net.sess.close()
 
-    def get_init_action(self, cevent):
-        ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
-        return ch
-
-    def get_qvals(self, cell, n_used):
+    def get_qvals(self, cell, *args):
         state = self.encode_state(cell)
         qvals, _, _ = self.net.forward(*state)
         return qvals
 
-    def update_qval_single(self, cell, ch, q_target):
+    def update_qval_single(self, cell: Cell, ch: int, q_target: float):
         """ Update qval for one state-action pair """
         state = self.encode_state(cell)
         loss = self.net.backward(*state, ch, q_target)
