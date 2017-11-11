@@ -1,19 +1,18 @@
-from environment import Env
-from eventgen import CEvent
-from grid import RhombusAxialGrid
-from utils import h5py_save_append
-
 import signal
 from typing import Tuple
 
 import numpy as np
 
+from environment import Env
+from eventgen import CEvent
+from grid import RhombusAxialGrid
+from utils import h5py_save_append
+
 Cell = Tuple[int, int]
 
 
 class Strat:
-    def __init__(self, pp, logger, pid="", gui=None,
-                 *args, **kwargs):
+    def __init__(self, pp, logger, pid="", gui=None, *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
         self.n_channels = pp['n_channels']
@@ -22,8 +21,8 @@ class Strat:
         self.pp = pp
         self.logger = logger
 
-        grid = RhombusAxialGrid(
-            self.rows, self.cols, self.n_channels, self.logger)
+        grid = RhombusAxialGrid(self.rows, self.cols, self.n_channels,
+                                self.logger)
         self.env = Env(self.pp, grid, self.logger, pid)
         self.state = self.env.grid.state
 
@@ -36,7 +35,8 @@ class Strat:
             'actions': [],
             'rewards': [],
             'next_grids': [],
-            'next_cells': []}
+            'next_cells': []
+        }
 
     def exit_handler(self, *args):
         """
@@ -97,9 +97,9 @@ class Strat:
         raise NotImplementedError
         # NOTE UNTESTED. May be better to append to different data sets
         start = 10000  # Ignore initial period
-        h5py_save_append(
-            "data-experience",
-            map(lambda li: li[start:], self.experience_store.values()))
+        h5py_save_append("data-experience",
+                         map(lambda li: li[start:],
+                             self.experience_store.values()))
 
     def get_init_action(self, next_cevent):
         raise NotImplementedError
@@ -225,20 +225,20 @@ class SARSA(RLStrat):
     """
     State consists of coordinates and the number of used channels in that cell.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # "qvals[r][c][n_used][ch] = v"
         # Assigning channel 'ch' to the cell at row 'r', col 'c'
         # has q-value 'v' given that 'n_used' channels are already
         # in use at that cell.
-        self.qvals = np.zeros((self.rows, self.cols,
-                              self.n_channels, self.n_channels))
+        self.qvals = np.zeros((self.rows, self.cols, self.n_channels,
+                               self.n_channels))
 
     def get_qvals(self, cell: Cell, n_used):
         return self.qvals[cell][n_used]
 
-    def update_qval(self,
-                    cell: Cell, ch: np.int64, target_q: np.float32):
+    def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float32):
         assert type(ch) == np.int64
         n_used = np.count_nonzero(self.state[cell])
         td_err = target_q - self.get_qvals(cell, n_used)[ch]
@@ -252,6 +252,7 @@ class TT_SARSA(RLStrat):
     If the number of used channels exceeds 'k', their values are
     aggregated to 'k'.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.k = 30
@@ -272,6 +273,7 @@ class RS_SARSA(RLStrat):
     """
     State consists of coordinates only
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
@@ -290,6 +292,7 @@ class SARSAQNet(RLStrat):
     """
     State consists of coordinates + number of used channels.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.losses = []
@@ -331,8 +334,7 @@ class SARSAQNet(RLStrat):
         if n < self.batch_size:
             # Don't want to backprop before exp store has enough experiences
             return 0
-        idxs = np.random.randint(
-            0, n, self.batch_size)
+        idxs = np.random.randint(0, n, self.batch_size)
         grids = np.zeros(
             (self.batch_size, self.rows, self.cols, self.n_channels),
             dtype=np.int8)
@@ -350,8 +352,8 @@ class SARSAQNet(RLStrat):
             rewards[i] = self.exp_replay_store['rewards'][idx]
             next_grids[i][:] = self.exp_replay_store['next_grids'][idx]
             next_cells.append(self.exp_replay_store['next_cells'][idx])
-        loss = self.net.backward_exp_replay(
-            grids, cells, actions, rewards, next_grids, next_cells)
+        loss = self.net.backward_exp_replay(grids, cells, actions, rewards,
+                                            next_grids, next_cells)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
@@ -365,6 +367,7 @@ class SARSAQNet_full(SARSAQNet):
     State consists of: Index of cell, one-hot encoded and
     number of channels in use for that cell (integer)
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

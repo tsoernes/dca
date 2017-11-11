@@ -1,9 +1,8 @@
 #!/usr/bin/python3
-from tkinter import (Frame, Tk, Canvas)
-from math import cos, sin, sqrt, radians
+from math import cos, radians, sin, sqrt
+from tkinter import Canvas, Frame, Tk
 
 from grid import Grid
-
 
 label_colors = [
     '#FF2D00', '#FFD800', '#00FF68', '#00FFE4', '#0059FF', '#A200FF', '#FF00F7'
@@ -11,14 +10,22 @@ label_colors = [
 
 
 class Hexagon:
-    def __init__(self, parent, x, y, length, color, outline="gray",
-                 top="pointy", tags=""):
+    def __init__(self,
+                 parent,
+                 x,
+                 y,
+                 length,
+                 color,
+                 outline="gray",
+                 top="pointy",
+                 tags=""):
         '''
         :param Tk parent
         :param int x: Top left x coordinate
         :param int y: Top left y coordinate
         :param int length: Length of a side
         :param str color: Fill color
+        :param str top: 'pointy' or 'flat'
         :param str tags: Tags
         '''
         self.parent = parent
@@ -67,7 +74,8 @@ class HexagonGrid(Frame):
                  bg="#a1e2a1",
                  show_coords=True,
                  shape="rhomb",
-                 *args, **kwargs):
+                 *args,
+                 **kwargs):
         '''
         :param Tk parent
         :param int cols
@@ -193,8 +201,13 @@ class Gui:
         self.grid = grid
         self.root = Tk()
         self.hgrid = HexagonGrid(
-            self.root, grid.rows, grid.cols,
-            grid.labels, cell_printer, show_coords=True, shape=shape)
+            self.root,
+            grid.rows,
+            grid.cols,
+            grid.labels,
+            cell_printer,
+            show_coords=True,
+            shape=shape)
         # Call 'keydown' func for graceful exit on 'q' key
         # or on window close
         self.root.bind("q", exit_handler)

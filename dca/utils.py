@@ -2,8 +2,8 @@ import os
 import threading
 from queue import Queue
 
-import numpy as np
 import h5py
+import numpy as np
 
 
 class BackgroundGenerator(threading.Thread):
@@ -63,8 +63,10 @@ def next_filename(fname, ext=".hdf5"):
     return 'fname.n.ext' where n is the lowest integer that does not
     already exists on the file system
     """
+
     def next_fname(num):
         return fname + "." + str(num) + ext
+
     data_set_number = 0
     n_fname = next_fname(data_set_number)
     while os.path.isfile(n_fname):
@@ -73,24 +75,34 @@ def next_filename(fname, ext=".hdf5"):
     return n_fname
 
 
-def h5py_save(fname, grids, cells, chs, rewards, next_grids, next_cells,
-              chunk_size=100000, n_rows=7, n_cols=7, n_channels=70):
+def h5py_save(fname,
+              grids,
+              cells,
+              chs,
+              rewards,
+              next_grids,
+              next_cells,
+              chunk_size=100000):
     """
     chunk_size: Number of experience tuples to load at a time
     """
     n_fname = next_filename(fname)
     with h5py.File(n_fname, "x") as f:
+
         def create_ds(name, shape, dtype):
             return f.create_dataset(
-                name, (len(grids), *shape), maxshape=(None, *shape),
-                dtype=dtype, chunks=(chunk_size, *shape))
+                name, (len(grids), *shape),
+                maxshape=(None, *shape),
+                dtype=dtype,
+                chunks=(chunk_size, *shape))
+        n_rows, n_cols, n_channels = grids[0].shape
         ds_grids = create_ds("grids", (n_rows, n_cols, n_channels), np.bool)
-        ds_cells = create_ds("cells", (2,), np.int8)
+        ds_cells = create_ds("cells", (2, ), np.int8)
         ds_chs = create_ds("chs", (), np.int8)
         ds_rewards = create_ds("rewards", (), np.int32)
-        ds_next_grids = create_ds(
-            "next_grids", (n_rows, n_cols, n_channels), np.bool)
-        ds_next_cells = create_ds("next_cells", (2,), np.int8)
+        ds_next_grids = create_ds("next_grids", (n_rows, n_cols, n_channels),
+                                  np.bool)
+        ds_next_cells = create_ds("next_cells", (2, ), np.int8)
         ds_grids[:] = grids
         ds_cells[:] = cells
         ds_chs[:] = chs
@@ -100,7 +112,13 @@ def h5py_save(fname, grids, cells, chs, rewards, next_grids, next_cells,
     print(f"Wrote {len(grids)} experience tuples to {n_fname}")
 
 
-def h5py_save_append(fname, grids, cells, chs, rewards, next_grids, next_cells,
+def h5py_save_append(fname,
+                     grids,
+                     cells,
+                     chs,
+                     rewards,
+                     next_grids,
+                     next_cells,
                      chunk_size=100000):
     """
     Append to existing data set

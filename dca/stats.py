@@ -1,8 +1,8 @@
-from eventgen import ce_str
-
 import time
 
 from matplotlib import pyplot as plt
+
+from eventgen import ce_str
 
 
 class Stats:
@@ -10,8 +10,7 @@ class Stats:
     For monitoring (and warning about) simulation statistics
     """
 
-    def __init__(self, pp, logger, pid="",
-                 *args, **kwargs):
+    def __init__(self, pp, logger, pid="", *args, **kwargs):
         self.pp = pp
         self.logger = logger
         self.pid = pid
@@ -63,9 +62,8 @@ class Stats:
 
     def event_reject(self, cell, n_used):
         if n_used == 0:
-            self.logger.debug(
-                f"Rejected call to {cell} when {n_used}"
-                f" of {self.pp['n_channels']} channels in use")
+            self.logger.debug(f"Rejected call to {cell} when {n_used}"
+                              f" of {self.pp['n_channels']} channels in use")
 
     def iter(self, t, cevent):
         self.t = t
@@ -118,7 +116,6 @@ class Stats:
             f" {self.i+1} episodes"
             f" at {self.pp['n_events']/t:.0f}"
             " episodes/second"
-
             f"\nRejected {self.n_rejected} of {self.n_incoming} new calls,"
             f" {self.n_handoffs_rejected} of {self.n_handoffs} handoffs")
         # Avoid zero divisions by adding 1 do dividers
@@ -129,7 +126,6 @@ class Stats:
         self.logger.warn(
             f"\nAverage number of calls in progress when blocking: "
             f"{self.n_inuse_rej/(self.n_rejected+1):.2f}"
-
             f"\n{n_inprogress} calls in progress at simulation end\n")
         if self.pp['do_plot']:
             self.plot()

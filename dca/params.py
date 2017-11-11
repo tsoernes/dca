@@ -1,22 +1,23 @@
-import strats  # noqa
-import fixedstrats  # noqa
-
 import argparse
 import inspect
-import sys
 import logging
+import sys
 
 import numpy as np
+
+import fixedstrats  # noqa
+import strats  # noqa
 
 
 def strat_classes(module_name):
     """
     Return a list with (name, class) for all the strats
     """
+
     def is_class_member(member):
         return inspect.isclass(member) and member.__module__ == module_name
-    clsmembers = inspect.getmembers(
-        sys.modules[module_name], is_class_member)
+
+    clsmembers = inspect.getmembers(sys.modules[module_name], is_class_member)
     return clsmembers
 
 
@@ -32,10 +33,7 @@ def get_pparams():
     stratnames = [n[0].lower() for n in stratclasses]
     stratnames = stratnames + ['show']
 
-    parser.add_argument(
-        '--strat',
-        choices=stratnames,
-        default='fixedassign')
+    parser.add_argument('--strat', choices=stratnames, default='fixedassign')
     parser.add_argument(
         '--rows', type=int, help="number of rows in grid", default=7)
     parser.add_argument(
@@ -73,8 +71,7 @@ def get_pparams():
         default=1)
 
     parser.add_argument(
-        '--alpha', type=float, help="(RL) learning rate",
-        default=0.036)
+        '--alpha', type=float, help="(RL) learning rate", default=0.036)
     parser.add_argument(
         '--alpha_decay',
         type=float,
@@ -91,12 +88,8 @@ def get_pparams():
         help="(RL) factor by which epsilon is multiplied each iter",
         default=0.99999)
     parser.add_argument(
-        '--gamma', type=float, help="(RL) discount factor",
-        default=0.85)
-    parser.add_argument(
-        '--save_exp_data',
-        action='store_true',
-        default=False)
+        '--gamma', type=float, help="(RL) discount factor", default=0.85)
+    parser.add_argument('--save_exp_data', action='store_true', default=False)
     parser.add_argument(
         '--hopt',
         action='store_true',
@@ -105,14 +98,11 @@ def get_pparams():
     parser.add_argument(
         '--hopt_best',
         action='store_true',
-        help="Show best params found and corresponding loss for a given strat",  # noqa
+        help="Show best params found and corresponding loss for a given strat",
         default=False)
 
     parser.add_argument(
-        '--net_lr',
-        type=float,
-        help="(Net) Learning rate",
-        default=9e-5)
+        '--net_lr', type=float, help="(Net) Learning rate", default=9e-5)
     parser.add_argument(
         '--batch_size',
         type=int,
@@ -148,7 +138,8 @@ def get_pparams():
         help="10: Debug,\n20: Info,\n30: Warning",
         default=logging.INFO)
     parser.add_argument(
-        '--log_file', type=str,
+        '--log_file',
+        type=str,
         help="enable logging to file by entering file name")
     parser.add_argument(
         '--log_iter',
@@ -193,12 +184,10 @@ def non_uniform_preset(pp):
     low is 1/3 of high; med is 2/3 of high.
     """
     avg_cr = 120 / 60  # 120 calls/hr
-    patterns = ["mmmm" * 5,
-                "lhlh" * 5,
-                ("llh" * 7)[:20],
-                ("hhl" * 7)[:20],
-                ("lhl" * 7)[:20],
-                ("hlh" * 7)[:20]]
+    patterns = [
+        "mmmm" * 5, "lhlh" * 5, ("llh" * 7)[:20], ("hhl" * 7)[:20],
+        ("lhl" * 7)[:20], ("hlh" * 7)[:20]
+    ]
     pattern_call_rates = []
     for pattern in patterns:
         n_l = pattern.count('l')

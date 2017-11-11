@@ -1,17 +1,17 @@
-from gui import Gui
-from net import Net
-import grid
-from params import get_pparams
-
 import cProfile
 import datetime
-from functools import partial
 import logging
-from multiprocessing import Pool
 import pickle
 import time
+from functools import partial
+from multiprocessing import Pool
 
 import numpy as np
+
+import grid
+from gui import Gui
+from net import Net
+from params import get_pparams
 
 
 class Runner:
@@ -52,8 +52,7 @@ class Runner:
         t = time.time()
         n_eps = self.pp['avg_runs']
         stratclass = self.get_strat_class()
-        simproc = partial(
-            self.sim_proc, stratclass, self.pp)
+        simproc = partial(self.sim_proc, stratclass, self.pp)
         with Pool() as p:
             results = p.map(simproc, range(n_eps))
         n_events = self.pp['n_events']
@@ -88,8 +87,8 @@ class Runner:
             # strat.gui = gui
             raise NotImplementedError
         if self.pp['profiling']:
-            cProfile.runctx('strat.simulate()', globals(), locals(),
-                            sort='tottime')
+            cProfile.runctx(
+                'strat.simulate()', globals(), locals(), sort='tottime')
         else:
             strat.simulate()
 
@@ -111,8 +110,7 @@ class Runner:
         """
         for key, val in space.items():
             pp[key] = val
-        simproc = partial(
-            Runner.sim_proc, stratclass, pp)
+        simproc = partial(Runner.sim_proc, stratclass, pp)
         logger = logging.getLogger('')
         logger.error(space)
         with Pool() as p:
@@ -140,22 +138,18 @@ class Runner:
         stratclass = self.get_strat_class()
         if 'net' in self.pp['strat'].lower():
             space = {
-                'net_lr': hp.loguniform(
-                    'net_lr', np.log(1e-7), np.log(1e-3)),
+                'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(1e-3)),
             }
             self.pp['n_events'] = 100000
             trials_step = 1  # Number of trials to run before saving
             n_avg = 1
         else:
             space = {
-                'alpha': hp.loguniform(
-                    'alpha', np.log(0.001), np.log(0.1)),
-                'alpha_decay': hp.uniform(
-                    'alpha_decay', 0.9999, 0.9999999),
-                'epsilon': hp.loguniform(
-                    'epsilon', np.log(0.2), np.log(0.8)),
-                'epsilon_decay': hp.uniform(
-                    'epsilon_decay', 0.9995, 0.9999999),
+                'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
+                'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
+                'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
+                'epsilon_decay': hp.uniform('epsilon_decay', 0.9995,
+                                            0.9999999),
                 'gamma': hp.uniform('gamma', 0.7, 0.90)
             }
             n_avg = 6
@@ -169,8 +163,7 @@ class Runner:
         except:
             trials = Trials()
 
-        fn = partial(
-            Runner.hopt_proc, stratclass, self.pp, n_avg=n_avg)
+        fn = partial(Runner.hopt_proc, stratclass, self.pp, n_avg=n_avg)
         prev_best = {}
         while True:
             n_trials = len(trials)
@@ -181,8 +174,7 @@ class Runner:
                 space=space,
                 algo=tpe.suggest,
                 max_evals=n_trials + trials_step,
-                trials=trials
-            )
+                trials=trials)
             if prev_best != best:
                 self.logger.error(f"Found new best params: {best}")
                 prev_best = best

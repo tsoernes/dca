@@ -4,8 +4,7 @@ import numpy as np
 
 
 class Grid:
-    def __init__(self, rows, cols, n_channels, logger,
-                 *args, **kwargs):
+    def __init__(self, rows, cols, n_channels, logger, *args, **kwargs):
         self.rows = rows
         self.cols = cols
         self.n_channels = n_channels
@@ -72,8 +71,7 @@ class Grid:
         its neighbors by bitwise ORing all their allocation maps
         """
         neighs = self.neighbors2(*cell)
-        alloc_map = np.bitwise_or(
-            self.state[cell], self.state[neighs[0]])
+        alloc_map = np.bitwise_or(self.state[cell], self.state[neighs[0]])
         for n in neighs[1:]:
             alloc_map = np.bitwise_or(alloc_map, self.state[n])
         free = np.where(alloc_map == 0)[0]
@@ -82,6 +80,7 @@ class Grid:
 
 class RectOffsetGrid(Grid):
     "Rectangular grid with offset coordinates"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -99,8 +98,7 @@ class RectOffsetGrid(Grid):
         for r in range(row - 1, row + 2):
             for c in range(col - 1, col + 2):
                 if not ((r, c) == (cross, col - 1) or
-                        (r, c) == (cross, col + 1) or
-                        (r, c) == (row, col)):
+                        (r, c) == (cross, col + 1) or (r, c) == (row, col)):
                     idxs.append((r, c))
         return idxs
 
@@ -122,8 +120,7 @@ class RectOffsetGrid(Grid):
         for r in range(r_low, r_hi + 1):
             for c in range(c_low, c_hi + 1):
                 if not ((r, c) == (cross, col - 1) or
-                        (r, c) == (cross, col + 1) or
-                        (r, c) == (row, col)):
+                        (r, c) == (cross, col + 1) or (r, c) == (row, col)):
                     idxs.append((r, c))
         return idxs
 
@@ -155,8 +152,7 @@ class RectOffsetGrid(Grid):
             cross2 = row - 2
         for r in range(r_low, r_hi + 1):
             for c in range(c_low, c_hi + 1):
-                if not ((r, c) == (row, col) or
-                        (r, c) == (cross1, col - 2) or
+                if not ((r, c) == (row, col) or (r, c) == (cross1, col - 2) or
                         (r, c) == (cross1, col - 1) or
                         (r, c) == (cross1, col + 1) or
                         (r, c) == (cross1, col + 2) or
@@ -197,7 +193,7 @@ class RectOffsetGrid(Grid):
                     cross2 = row - 2
                 oh_idxs = np.zeros(
                     (self.rows + 2, self.cols + 2), dtype=np.bool)
-                oh_idxs[r_low: r_hi + 1, c_low: c_hi + 1] = True
+                oh_idxs[r_low:r_hi + 1, c_low:c_hi + 1] = True
 
                 oh_idxs[row, col] = False
                 oh_idxs[cross1, col - 2] = False
@@ -267,6 +263,7 @@ class RectOffsetGrid(Grid):
 
 class RhombusAxialGrid(Grid):
     "Rhombus grid with axial coordinates"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -280,8 +277,7 @@ class RhombusAxialGrid(Grid):
         for r in range(row - 1, row + 2):
             for c in range(col - 1, col + 2):
                 if not ((r, c) == (row - 1, col - 1) or
-                        (r, c) == (row + 1, col + 1) or
-                        (r, c) == (row, col)):
+                        (r, c) == (row + 1, col + 1) or (r, c) == (row, col)):
                     idxs.append((r, c))
         return idxs
 
@@ -299,8 +295,7 @@ class RhombusAxialGrid(Grid):
         for r in range(r_low, r_hi + 1):
             for c in range(c_low, c_hi + 1):
                 if not ((r, c) == (row - 1, col - 1) or
-                        (r, c) == (row + 1, col + 1) or
-                        (r, c) == (row, col)):
+                        (r, c) == (row + 1, col + 1) or (r, c) == (row, col)):
                     idxs.append((r, c))
         return idxs
 
@@ -326,8 +321,7 @@ class RhombusAxialGrid(Grid):
         c_hi = min(cols - 1, col + 2)
         for r in range(r_low, r_hi + 1):
             for c in range(c_low, c_hi + 1):
-                if not ((r, c) == (row, col) or
-                        (r, c) == (row - 2, col - 2) or
+                if not ((r, c) == (row, col) or (r, c) == (row - 2, col - 2) or
                         (r, c) == (row - 2, col - 1) or
                         (r, c) == (row - 1, col - 2) or
                         (r, c) == (row + 1, col + 2) or
@@ -351,16 +345,15 @@ class RhombusAxialGrid(Grid):
 
         Returns an n*m array with the label for each cell.
         """
+
         def label(l, y, x):
             # A center and some part of its subgrid may be out of bounds.
             if (x >= 0 and x < self.cols and y >= 0 and y < self.rows):
                 self.labels[y][x] = l
 
-        centers = [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8),
-                   (3, -1), (4, 1), (5, 3), (6, 5), (7, 7),
-                   (-1, 5), (7, 0), (0, 7)]
+        centers = [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8), (3, -1), (4, 1),
+                   (5, 3), (6, 5), (7, 7), (-1, 5), (7, 0), (0, 7)]
         for center in centers:
             label(0, *center)
-            for i, neigh in enumerate(
-                    self.neighbors1sparse(*center)):
+            for i, neigh in enumerate(self.neighbors1sparse(*center)):
                 label(i + 1, *neigh)

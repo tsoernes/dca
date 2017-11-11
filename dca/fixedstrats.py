@@ -1,9 +1,9 @@
-from strats import Strat
-from eventgen import CEvent
-
 import math
 
 import numpy as np
+
+from eventgen import CEvent
+from strats import Strat
 
 
 class RandomAssign(Strat):
@@ -11,6 +11,7 @@ class RandomAssign(Strat):
     On call arrival, an eligible channel is picked
     at random.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.get_init_action = self.get_action
@@ -36,6 +37,7 @@ class FixedAssign(Strat):
     assigned to cells so that every cell can use all of its channels
     simultanously without interference.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.get_init_action = self.get_action

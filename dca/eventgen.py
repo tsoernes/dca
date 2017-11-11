@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import total_ordering
-from heapq import heappush, heappop
+from heapq import heappop, heappush
 
 import numpy as np
 
@@ -20,8 +20,7 @@ class CEvent(Enum):
 
 class EventGen:
     def __init__(self, rows, cols, call_rates, call_duration,
-                 hoff_call_duration, logger,
-                 *args, **kwargs):
+                 hoff_call_duration, logger, *args, **kwargs):
         self.rows = rows
         self.cols = cols
         if type(call_rates) != np.ndarray:

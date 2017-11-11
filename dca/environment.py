@@ -1,12 +1,11 @@
-from eventgen import EventGen, CEvent, ce_str
-from stats import Stats
-
 import numpy as np
+
+from eventgen import CEvent, EventGen, ce_str
+from stats import Stats
 
 
 class Env:
-    def __init__(self, pp, grid, logger, pid="", gui=None,
-                 *args, **kwargs):
+    def __init__(self, pp, grid, logger, pid="", gui=None, *args, **kwargs):
         self.rows = pp['rows']
         self.cols = pp['cols']
         self.p_handoff = pp['p_handoff']
@@ -112,9 +111,8 @@ class Env:
         elif ce_type == CEvent.END:
             reass_ch = cevent[3]
             if self.grid.state[cell][reass_ch] == 0:
-                self.logger.error(
-                    f"Tried to end call {ce_str(cevent)}"
-                    f" which is not in progress")
+                self.logger.error(f"Tried to end call {ce_str(cevent)}"
+                                  f" which is not in progress")
                 raise Exception
             if reass_ch != ch:
                 if self.grid.state[cell][ch] == 0:
@@ -122,13 +120,11 @@ class Env:
                         f"Tried to reassign to call {ce_str(cevent)}"
                         f" from ch {ch} which is not in use")
                     raise Exception
-                self.logger.debug(
-                    f"Reassigned call in cell {cell}"
-                    f" on ch {ch} to ch {reass_ch}")
+                self.logger.debug(f"Reassigned call in cell {cell}"
+                                  f" on ch {ch} to ch {reass_ch}")
                 self.eventgen.reassign(cevent[2], ch, reass_ch)
             else:
-                self.logger.debug(
-                    f"Ended call cell in {cell} on ch {ch}")
+                self.logger.debug(f"Ended call cell in {cell} on ch {ch}")
             self.grid.state[cell][ch] = 0
 
     def reward(self):

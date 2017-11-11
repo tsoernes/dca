@@ -1,5 +1,3 @@
-from utils import BackgroundGenerator
-
 import sys
 
 import h5py
@@ -7,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
 
+from utils import BackgroundGenerator
 """
 consider batch norm [ioffe and szegedy, 2015]
 batch norm is inserted after fully connected or convolutional
@@ -120,8 +119,7 @@ class Net:
             kernel_size=3,
             padding="same",
             activation=tf.nn.relu)
-        stacked = tf.concat(
-            [conv2, self.input_cell], axis=3)
+        stacked = tf.concat([conv2, self.input_cell], axis=3)
         conv2_flat = tf.layers.flatten(stacked)
 
         # Perhaps reducing call rates will increase difference between
@@ -134,19 +132,20 @@ class Net:
         self.q_amax = tf.argmax(self.q_vals, axis=1, name="q_amax")
 
         flat_q_vals = tf.reshape(self.q_vals, [-1])
-        flat_amax = self.q_amax + tf.cast(tf.range(
-            tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1], tf.int64)
+        flat_amax = self.q_amax + tf.cast(
+            tf.range(tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1],
+            tf.int64)
         self.q_max = tf.gather(flat_q_vals, flat_amax)
 
-        flat_target_action = self.target_action + tf.cast(tf.range(
-            tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1], tf.int32)
+        flat_target_action = self.target_action + tf.cast(
+            tf.range(tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1],
+            tf.int32)
         self.predictions = tf.gather(
             flat_q_vals, flat_target_action, name="action_q_vals")
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
-            labels=self.target_q,
-            predictions=self.predictions)
+            labels=self.target_q, predictions=self.predictions)
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
@@ -156,10 +155,9 @@ class Net:
             tf.summary.scalar("loss", self.loss)
             tf.summary.histogram("qvals", self.q_vals)
         self.summaries = tf.summary.merge_all()
-        self.train_writer = tf.summary.FileWriter(
-            self.log_path + '/train', self.sess.graph)
-        self.eval_writer = tf.summary.FileWriter(
-            self.log_path + '/eval')
+        self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
+                                                  self.sess.graph)
+        self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
 
         self.shapes = \
             [tf.shape(stacked),
@@ -202,12 +200,17 @@ class Net:
                     'actions': actions,
                     'rewards': rewards,
                     'next_grids': next_grids,
-                    'next_cells': next_cells}
+                    'next_cells': next_cells
+                }
 
         train_gen = BackgroundGenerator(data_gen(0, split), k=10)
         test_gen = BackgroundGenerator(data_gen(split, end), k=10)
-        return {"n_train_steps": split, "n_test_steps": end - split,
-                "train_gen": train_gen, "test_gen": test_gen}
+        return {
+            "n_train_steps": split,
+            "n_test_steps": end - split,
+            "train_gen": train_gen,
+            "test_gen": test_gen
+        }
 
     def get_data(self):
         data = np.load("data-experience-shuffle-sub.npy")
@@ -227,12 +230,17 @@ class Net:
                     'actions': actions[batch],
                     'rewards': rewards[batch],
                     'next_grids': next_grids[batch],
-                    'next_cells': next_oh_cells[batch]}
+                    'next_cells': next_oh_cells[batch]
+                }
 
         train_gen = data_gen(0, split)
         test_gen = data_gen(split, end)
-        return {"n_train_steps": split, "n_test_steps": end - split,
-                "train_gen": train_gen, "test_gen": test_gen}
+        return {
+            "n_train_steps": split,
+            "n_test_steps": end - split,
+            "train_gen": train_gen,
+            "test_gen": test_gen
+        }
 
     @staticmethod
     def prep_data_grids(grids):
@@ -277,16 +285,17 @@ class Net:
     def train(self):
         self.load_data()
         losses = []
-        self.logger.warn(
-            f"Training {self.n_train_steps} minibatches of size"
-            f" {self.batch_size} for a total of"
-            f" {self.n_train_steps * self.batch_size} examples")
+        self.logger.warn(f"Training {self.n_train_steps} minibatches of size"
+                         f" {self.batch_size} for a total of"
+                         f" {self.n_train_steps * self.batch_size} examples")
         for i in range(self.n_train_steps):
             # Get expected returns following a greedy policy from the
             # next state: max a': Q(s', a', w_old)
             data = next(self.train_gen)
-            next_data = {self.input_grid: data['next_grids'],
-                         self.input_cell: data['next_cells']}
+            next_data = {
+                self.input_grid: data['next_grids'],
+                self.input_cell: data['next_cells']
+            }
             next_q_maxs = self.sess.run(self.q_max, next_data)
             r = data['rewards']
             q_targets = r + self.gamma * next_q_maxs
@@ -294,10 +303,10 @@ class Net:
                 self.input_grid: data['grids'],
                 self.input_cell: data['cells'],
                 self.target_action: data['actions'],
-                self.target_q: q_targets}
+                self.target_q: q_targets
+            }
             _, loss, summary = self.sess.run(
-                [self.do_train, self.loss, self.summaries],
-                curr_data)
+                [self.do_train, self.loss, self.summaries], curr_data)
             if i % 50 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 # run_metadata = tf.RunMetadata()
@@ -320,17 +329,18 @@ class Net:
 
     def eval(self):
         self.load_data()
-        self.logger.warn(
-            f"Evaluating {self.n_test_steps} minibatches of size"
-            f" {self.batch_size} for a total of"
-            f"  {self.n_test_steps * self.batch_size} examples")
+        self.logger.warn(f"Evaluating {self.n_test_steps} minibatches of size"
+                         f" {self.batch_size} for a total of"
+                         f"  {self.n_test_steps * self.batch_size} examples")
         eval_losses = []
         for i in range(self.n_test_steps):
             # Get expected returns following a greedy policy from the
             # next state: max a': Q(s', a', w_old)
             data = next(self.test_gen)
-            next_data = {self.input_grid: data['next_grids'],
-                         self.input_cell: data['next_cells']}
+            next_data = {
+                self.input_grid: data['next_grids'],
+                self.input_cell: data['next_cells']
+            }
             next_q_maxs = self.sess.run(self.q_max, next_data)
             r = data['rewards']
             q_targets = r + self.gamma * next_q_maxs
@@ -338,10 +348,10 @@ class Net:
                 self.input_grid: data['grids'],
                 self.input_cell: data['cells'],
                 self.target_action: data['actions'],
-                self.target_q: q_targets}
-            loss, summary = self.sess.run(
-                [self.loss, self.summaries],
-                curr_data)
+                self.target_q: q_targets
+            }
+            loss, summary = self.sess.run([self.loss, self.summaries],
+                                          curr_data)
             self.eval_writer.add_summary(summary, i)
             eval_losses.append(loss)
             if np.isnan(loss) or np.isinf(loss):
@@ -355,7 +365,8 @@ class Net:
             [self.q_vals, self.q_amax, self.q_max],
             feed_dict={
                 self.input_grid: self.prep_data_grids(grid),
-                self.input_cell: self.prep_data_cells(cell)})
+                self.input_cell: self.prep_data_cells(cell)
+            })
         q_vals = np.reshape(q_vals, [-1])
         return q_vals, q_amax, q_max
 
@@ -364,30 +375,30 @@ class Net:
             self.input_grid: self.prep_data_grids(grid),
             self.input_cell: self.prep_data_cells(cell),
             self.target_action: np.array([action], dtype=np.int32),
-            self.target_q: np.array([q_target], dtype=np.float32)}
-        _, loss = self.sess.run(
-            [self.do_train, self.loss],
-            data)
+            self.target_q: np.array([q_target], dtype=np.float32)
+        }
+        _, loss = self.sess.run([self.do_train, self.loss], data)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
         return loss
 
-    def backward_exp_replay(self, grids, cells, actions, rewards,
-                            next_grids, next_cells):
+    def backward_exp_replay(self, grids, cells, actions, rewards, next_grids,
+                            next_cells):
         # Get expected returns following a greedy policy from the
         # next state: max a': Q(s', a', w_old)
-        next_data = {self.input_grid: self.prep_data_grids(next_grids),
-                     self.input_cell: self.prep_data_cells(next_cells)}
+        next_data = {
+            self.input_grid: self.prep_data_grids(next_grids),
+            self.input_cell: self.prep_data_cells(next_cells)
+        }
         next_q_maxs = self.sess.run(self.q_max, next_data)
         q_targets = rewards + self.gamma * next_q_maxs
         curr_data = {
             self.input_grid: self.prep_data_grids(grids),
             self.input_cell: self.prep_data_cells(cells),
             self.target_action: actions,
-            self.target_q: q_targets}
-        _, loss = self.sess.run(
-            [self.do_train, self.loss],
-            curr_data)
+            self.target_q: q_targets
+        }
+        _, loss = self.sess.run([self.do_train, self.loss], curr_data)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
         return loss
@@ -448,12 +459,9 @@ class FreeChNet:
         # TODO How does this work then there's multiple batches?
         # Should do a manual step through and look
         self.loss = tf.losses.sigmoid_cross_entropy(
-            self.tflabels,
-            logits=logits)
+            self.tflabels, logits=logits)
         # trainer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-        trainer = tf.train.MomentumOptimizer(
-            momentum=0.9,
-            learning_rate=0.001)
+        trainer = tf.train.MomentumOptimizer(momentum=0.9, learning_rate=0.001)
         self.updateModel = trainer.minimize(self.loss)
 
     def predict(self, grids, cells):
@@ -463,9 +471,8 @@ class FreeChNet:
         assert len(cells.shape) == 4
         pgrids, pcells, _ = self.prep_data(grids, cells)
         predictions = self.sess.run(
-            self.inuse,
-            {self.tfinput_grid: pgrids,
-             self.tfinput_cell: pcells})
+            self.inuse, {self.tfinput_grid: pgrids,
+                         self.tfinput_cell: pcells})
         return predictions
 
     def train(self, do_train=True):
@@ -487,14 +494,15 @@ class FreeChNet:
         # steps = len(train_grids) // batch_size
         steps = 20
         for i in range(steps):
-            bgrids = train_grids[i * batch_size: (i + 1) * batch_size]
-            bcells = train_cells[i * batch_size: (i + 1) * batch_size]
-            btargets = train_targets[i * batch_size: (i + 1) * batch_size]
+            bgrids = train_grids[i * batch_size:(i + 1) * batch_size]
+            bcells = train_cells[i * batch_size:(i + 1) * batch_size]
+            btargets = train_targets[i * batch_size:(i + 1) * batch_size]
             _, loss, preds = self.sess.run(
-                [self.updateModel, self.loss, self.inuse],
-                {self.tfinput_grid: bgrids,
-                 self.tfinput_cell: bcells,
-                 self.tflabels: btargets})
+                [self.updateModel, self.loss, self.inuse], {
+                    self.tfinput_grid: bgrids,
+                    self.tfinput_cell: bcells,
+                    self.tflabels: btargets
+                })
             if np.isinf(loss) or np.isnan(loss):
                 print(f"Invalid loss iter {i}: {loss}")
                 invalid = True
@@ -502,11 +510,10 @@ class FreeChNet:
                 # Might do this in tf instead
                 accuracy = np.sum(preds == btargets) / preds.size
                 nonzero = np.sum(np.any(preds, axis=1))
-                print(
-                    f"\nLoss at step {i}: {loss}"
-                    f"\nMinibatch accuracy: {accuracy:.4f}%"
-                    "\nNumber of not all-zero predictions:"
-                    f" {nonzero}/{len(preds)}")
+                print(f"\nLoss at step {i}: {loss}"
+                      f"\nMinibatch accuracy: {accuracy:.4f}%"
+                      "\nNumber of not all-zero predictions:"
+                      f" {nonzero}/{len(preds)}")
         print(f"Finished training. Encountered invalid loss? {invalid}")
         self.saver.save(self.sess, self.model_path)
         print(f"Saving model to {self.model_path}")
@@ -517,14 +524,14 @@ class FreeChNet:
         batch_size = 50
         losses, accuracies, aon_accuracies = [], [], []
         for i in range(len(grids) // batch_size):
-            bgrids = grids[i * batch_size: (i + 1) * batch_size]
-            bcells = cells[i * batch_size: (i + 1) * batch_size]
-            btargets = targets[i * batch_size: (i + 1) * batch_size]
-            loss, preds = self.sess.run(
-                [self.loss, self.inuse],
-                {self.tfinput_grid: bgrids,
-                 self.tfinput_cell: bcells,
-                 self.tflabels: btargets})
+            bgrids = grids[i * batch_size:(i + 1) * batch_size]
+            bcells = cells[i * batch_size:(i + 1) * batch_size]
+            btargets = targets[i * batch_size:(i + 1) * batch_size]
+            loss, preds = self.sess.run([self.loss, self.inuse], {
+                self.tfinput_grid: bgrids,
+                self.tfinput_cell: bcells,
+                self.tflabels: btargets
+            })
             losses.append(loss)
             accuracy = np.sum(preds == btargets) / np.size(preds)
             accuracies.append(accuracy)
@@ -542,11 +549,11 @@ class FreeChNet:
             bgrids = grids[i:i + 1]
             bcells = cells[i:i + 1]
             btargets = targets[i:i + 1]
-            _, preds = self.sess.run(
-                [self.loss, self.inuse],
-                {self.tfinput_grid: bgrids,
-                 self.tfinput_cell: bcells,
-                 self.tflabels: btargets})
+            _, preds = self.sess.run([self.loss, self.inuse], {
+                self.tfinput_grid: bgrids,
+                self.tfinput_cell: bcells,
+                self.tflabels: btargets
+            })
             idx = np.where(bcells[0])
             cell = (idx[0][0], idx[1][0])
             if not (preds == btargets).all():
