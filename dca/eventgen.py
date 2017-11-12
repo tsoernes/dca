@@ -15,7 +15,7 @@ class CEvent(Enum):
     def __lt__(self, other):
         if self.__class__ is other.__class__:
             return self.value < other.value
-        return NotImplemented
+        return NotImplementedError
 
 
 class EventGen:
@@ -23,7 +23,7 @@ class EventGen:
                  hoff_call_duration, logger, *args, **kwargs):
         self.rows = rows
         self.cols = cols
-        if type(call_rates) != np.ndarray:
+        if type(call_rates) == float or type(call_rates) == int:
             # Use uniform call rates through grid
             call_rates = np.ones((rows, cols)) * call_rates
         # Avg. time between arriving calls
