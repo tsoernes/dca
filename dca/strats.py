@@ -59,7 +59,7 @@ class Strat:
 
             if ch is not None:
                 if self.save or self.batch_size > 1:
-                    s = np.copy(self.state)
+                    s = np.copy(self.state)  # Copy before state is modified
 
             reward, next_cevent = self.env.step(ch)
             next_ch = self.get_action(next_cevent, cell, ch, reward)
@@ -164,7 +164,7 @@ class RLStrat(Strat):
         return next_ch
 
     def optimal_ch(self, ce_type: CEvent, cell: Cell) -> Tuple[int, float]:
-        # TODO this isn't really the 'optimal' ch since
+        # NOTE this isn't really the optimal ch since
         # it's chosen in an epsilon-greedy fashion
         """
         Select the channel fitting for assignment that
@@ -312,28 +312,25 @@ class SARSAQNet(RLStrat):
         self.net.sess.close()
 
     def get_qvals(self, cell, *args):
-        state = self.encode_state(cell)
-        qvals, _, _ = self.net.forward(*state)
+        qvals, _, _ = self.net.forward(self.state, cell)
         return qvals
 
     def update_qval_single(self, cell: Cell, ch: int, q_target: float):
-        """ Update qval for one state-action pair """
-        state = self.encode_state(cell)
-        loss = self.net.backward(*state, ch, q_target)
+        """ Update qval for one experience tuple"""
+        loss = self.net.backward(self.state, cell, ch, q_target)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
 
     def update_qval_experience(self, *args):
         """
-        Update qval for pp['batch_size'] state-action
-        pairs, randomly sampled from the experience
-        replay reservoir
+        Update qval for pp['batch_size'] experience tuples,
+        randomly sampled from the experience replay memory.
         """
         n = len(self.experience_store['grids'])
         if n < self.batch_size:
-            # Don't want to backprop before exp store has enough experiences
-            return 0
+            # Can't backprop before exp store has enough experiences
+            return
         idxs = np.random.randint(0, n, self.batch_size)
         grids = np.zeros(
             (self.batch_size, self.rows, self.cols, self.n_channels),
@@ -357,20 +354,3 @@ class SARSAQNet(RLStrat):
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
-
-    def encode_state(self, *args):
-        raise NotImplementedError
-
-
-class SARSAQNet_full(SARSAQNet):
-    """
-    State consists of: Index of cell, one-hot encoded and
-    number of channels in use for that cell (integer)
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def encode_state(self, cell):
-        state = (self.state, cell)
-        return state

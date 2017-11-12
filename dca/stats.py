@@ -115,9 +115,7 @@ class Stats:
             f" {m}m{s}s real,"
             f" {self.i+1} episodes"
             f" at {self.pp['n_events']/t:.0f}"
-            " episodes/second"
-            f"\nRejected {self.n_rejected} of {self.n_incoming} new calls,"
-            f" {self.n_handoffs_rejected} of {self.n_handoffs} handoffs")
+            " episodes/second")
         # Avoid zero divisions by adding 1 do dividers
         self.logger.error(
             f"\nT{self.pid} Blocking probability:"
