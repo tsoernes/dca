@@ -3,6 +3,7 @@ import sys
 import h5py
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.client import timeline
 from matplotlib import pyplot as plt
 
 from utils import BackgroundGenerator
@@ -58,13 +59,24 @@ class Net:
         self.alpha = pp['net_lr']
         self.gamma = pp['gamma']
         self.batch_size = pp['batch_size']
+        self.pp = pp
         main_path = "model/qnet03"
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
 
+        if pp['tfprofiling']:
+            self.options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            self.run_metadata = tf.RunMetadata()
+        else:
+            self.options = None
+            self.run_metadata = None
         tf.logging.set_verbosity(tf.logging.INFO)
         tf.reset_default_graph()
-        self.sess = tf.Session()
+        if pp['no_gpu']:
+            config = tf.ConfigProto(device_count={'GPU': 0})
+            self.sess = tf.Session(config=config)
+        else:
+            self.sess = tf.Session()
         self.build()
         init = tf.global_variables_initializer()
         self.saver = tf.train.Saver()
@@ -86,10 +98,17 @@ class Net:
         self.test_gen = data['test_gen']
         self.data_is_loaded = True
 
-    def do_save(self):
+    def save_model(self):
         if self.save:
             self.logger.error(f"Saving model to path {self.model_path}")
             self.saver.save(self.sess, self.model_path)
+
+    def save_timeline(self):
+        if self.pp['tfprofiling']:
+            fetched_timeline = timeline.Timeline(self.run_metadata.step_stats)
+            chrome_trace = fetched_timeline.generate_chrome_trace_format()
+            with open(self.pp['tfprofiling'], 'w') as f:
+                f.write(chrome_trace)
 
     def build(self):
         self.input_grid = tf.placeholder(
@@ -319,7 +338,7 @@ class Net:
                 self.logger.error(f"Invalid loss: {loss}")
                 sys.exit(0)
                 break
-        self.do_save()
+        self.save_model()
         self.eval()
         if False:
             plt.plot(losses)
@@ -366,7 +385,9 @@ class Net:
             feed_dict={
                 self.input_grid: self.prep_data_grids(grid),
                 self.input_cell: self.prep_data_cells(cell)
-            })
+            },
+            options=self.options,
+            run_metadata=self.run_metadata)
         q_vals = np.reshape(q_vals, [-1])
         return q_vals, q_amax, q_max
 
@@ -377,7 +398,11 @@ class Net:
             self.target_action: np.array([action], dtype=np.int32),
             self.target_q: np.array([q_target], dtype=np.float32)
         }
-        _, loss = self.sess.run([self.do_train, self.loss], data)
+        _, loss = self.sess.run(
+            [self.do_train, self.loss],
+            feed_dict=data,
+            options=self.options,
+            run_metadata=self.run_metadata)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
         return loss
@@ -390,7 +415,11 @@ class Net:
             self.input_grid: self.prep_data_grids(next_grids),
             self.input_cell: self.prep_data_cells(next_cells)
         }
-        next_q_maxs = self.sess.run(self.q_max, next_data)
+        next_q_maxs = self.sess.run(
+            self.q_max,
+            feed_dict=next_data,
+            options=self.options,
+            run_metadata=self.run_metadata)
         q_targets = rewards + self.gamma * next_q_maxs
         curr_data = {
             self.input_grid: self.prep_data_grids(grids),
@@ -398,7 +427,11 @@ class Net:
             self.target_action: actions,
             self.target_q: q_targets
         }
-        _, loss = self.sess.run([self.do_train, self.loss], curr_data)
+        _, loss = self.sess.run(
+            [self.do_train, self.loss],
+            feed_dict=curr_data,
+            options=self.options,
+            run_metadata=self.run_metadata)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
         return loss

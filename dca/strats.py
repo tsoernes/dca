@@ -70,13 +70,12 @@ class Strat:
                     and next_cevent[1] != CEvent.END:
                 # Only add (s, a, r, s') tuples for which the events in
                 # s and s' are not END events
-                r = self.reward()
                 s_new = np.copy(self.state)
                 cell_new = next_cevent[2]
                 self.experience_store['grids'].append(s)
                 self.experience_store['cells'].append(cell)
                 self.experience_store['actions'].append(ch)
-                self.experience_store['rewards'].append(r)
+                self.experience_store['rewards'].append(reward)
                 self.experience_store['next_grids'].append(s_new)
                 self.experience_store['next_cells'].append(cell_new)
 
@@ -297,7 +296,7 @@ class SARSAQNet(RLStrat):
         super().__init__(*args, **kwargs)
         self.losses = []
         if self.batch_size > 1:
-            self.update_qval = self.update_qval_exp_replay
+            self.update_qval = self.update_qval_experience
         else:
             self.update_qval = self.update_qval_single
         from net import Net
@@ -308,7 +307,8 @@ class SARSAQNet(RLStrat):
         super().fn_report()
 
     def fn_after(self):
-        self.net.do_save()
+        self.net.save_model()
+        self.net.save_timeline()
         self.net.sess.close()
 
     def get_qvals(self, cell, *args):
@@ -324,13 +324,13 @@ class SARSAQNet(RLStrat):
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
 
-    def update_qval_exp_replay(self, *args):
+    def update_qval_experience(self, *args):
         """
         Update qval for pp['batch_size'] state-action
         pairs, randomly sampled from the experience
         replay reservoir
         """
-        n = len(self.exp_replay_store['grids'])
+        n = len(self.experience_store['grids'])
         if n < self.batch_size:
             # Don't want to backprop before exp store has enough experiences
             return 0
@@ -346,12 +346,12 @@ class SARSAQNet(RLStrat):
             dtype=np.int8)
         next_cells = []
         for i, idx in enumerate(idxs):
-            grids[i][:] = self.exp_replay_store['grids'][idx]
-            cells.append(self.exp_replay_store['cells'][idx])
-            actions[i] = self.exp_replay_store['actions'][idx]
-            rewards[i] = self.exp_replay_store['rewards'][idx]
-            next_grids[i][:] = self.exp_replay_store['next_grids'][idx]
-            next_cells.append(self.exp_replay_store['next_cells'][idx])
+            grids[i][:] = self.experience_store['grids'][idx]
+            cells.append(self.experience_store['cells'][idx])
+            actions[i] = self.experience_store['actions'][idx]
+            rewards[i] = self.experience_store['rewards'][idx]
+            next_grids[i][:] = self.experience_store['next_grids'][idx]
+            next_cells.append(self.experience_store['next_cells'][idx])
         loss = self.net.backward_exp_replay(grids, cells, actions, rewards,
                                             next_grids, next_cells)
         self.losses.append(loss)

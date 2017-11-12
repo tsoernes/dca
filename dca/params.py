@@ -119,6 +119,12 @@ def get_pparams():
         help="(Net) Train network",
         default=False)
     parser.add_argument(
+        '--no_gpu',
+        action='store_true',
+        help="(Net) Disable TensorFlow GPU usage",
+        default=False)
+
+    parser.add_argument(
         '--verify_grid',
         action='store_true',
         help="verify reuse constraint each iteration",
@@ -129,6 +135,12 @@ def get_pparams():
         action='store_true',
         help="performance profiling",
         default=False)
+    parser.add_argument(
+        '--tfprof',
+        dest='tfprofiling',
+        type=str,
+        help="(Net) performance profiling for TensorFlow. Specify file name",
+        default="")
     parser.add_argument('--gui', action='store_true', default=False)
     parser.add_argument(
         '--plot', action='store_true', dest='do_plot', default=False)
