@@ -159,12 +159,12 @@ class Net:
         flat_target_action = self.target_action + tf.cast(
             tf.range(tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1],
             tf.int32)
-        self.predictions = tf.gather(
+        self.q_pred = tf.gather(
             flat_q_vals, flat_target_action, name="action_q_vals")
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
-            labels=self.target_q, predictions=self.predictions)
+            labels=self.target_q, predictions=self.q_pred)
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
@@ -189,7 +189,7 @@ class Net:
              tf.shape(flat_amax),
              tf.shape(self.q_max),
              tf.shape(flat_target_action),
-             tf.shape(self.predictions),
+             tf.shape(self.q_pred),
              tf.shape(self.loss)]
 
     def get_data_h5py(self):
@@ -408,21 +408,22 @@ class Net:
         return loss
 
     def backward_exp_replay(self, grids, cells, actions, rewards, next_grids,
-                            next_cells):
+                            next_cells, next_actions):
         # TODO Can this be made on-policy, i.e. SARSA? need to store
         # next_actions
         # Get expected returns following a greedy policy from the
         # next state: max a': Q(s', a', w_old)
         next_data = {
             self.input_grid: self.prep_data_grids(next_grids),
-            self.input_cell: self.prep_data_cells(next_cells)
+            self.input_cell: self.prep_data_cells(next_cells),
+            self.target_action: next_actions
         }
-        next_q_maxs = self.sess.run(
-            self.q_max,
+        next_q_pred = self.sess.run(
+            self.q_pred,
             feed_dict=next_data,
             options=self.options,
             run_metadata=self.run_metadata)
-        q_targets = rewards + self.gamma * next_q_maxs
+        q_targets = rewards + self.gamma * next_q_pred
         curr_data = {
             self.input_grid: self.prep_data_grids(grids),
             self.input_cell: self.prep_data_cells(cells),
