@@ -70,7 +70,7 @@ class Net:
         else:
             self.options = None
             self.run_metadata = None
-        tf.logging.set_verbosity(tf.logging.INFO)
+        tf.logging.set_verbosity(tf.logging.WARN)
         tf.reset_default_graph()
         if pp['no_gpu']:
             config = tf.ConfigProto(device_count={'GPU': 0})
@@ -169,8 +169,8 @@ class Net:
         self.loss = tf.losses.mean_squared_error(
             labels=self.target_q, predictions=self.q_pred)
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
-        # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
-        trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
+        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
+        # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
         self.do_train = trainer.minimize(self.loss)
 
         with tf.name_scope("summaries"):
