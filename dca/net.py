@@ -151,14 +151,12 @@ class Net:
         self.q_amax = tf.argmax(self.q_vals, axis=1, name="q_amax")
 
         flat_q_vals = tf.reshape(self.q_vals, [-1])
-        flat_amax = self.q_amax + tf.cast(
-            tf.range(tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1],
-            tf.int64)
+        some_range = tf.range(tf.shape(self.q_vals)[0]) * tf.shape(
+            self.q_vals)[1]
+        flat_amax = self.q_amax + tf.cast(some_range, tf.int64)
         self.q_max = tf.gather(flat_q_vals, flat_amax)
 
-        flat_target_action = self.target_action + tf.cast(
-            tf.range(tf.shape(self.q_vals)[0]) * tf.shape(self.q_vals)[1],
-            tf.int32)
+        flat_target_action = self.target_action + tf.cast(some_range, tf.int32)
         self.q_pred = tf.gather(
             flat_q_vals, flat_target_action, name="action_q_vals")
         # Below we obtain the loss by taking the sum of squares
@@ -169,6 +167,7 @@ class Net:
         trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
         self.do_train = trainer.minimize(self.loss)
+
         with tf.name_scope("summaries"):
             tf.summary.scalar("learning_rate", self.alpha)
             tf.summary.scalar("loss", self.loss)
@@ -408,22 +407,21 @@ class Net:
         return loss
 
     def backward_exp_replay(self, grids, cells, actions, rewards, next_grids,
-                            next_cells, next_actions):
+                            next_cells):
         # TODO Can this be made on-policy, i.e. SARSA? need to store
         # next_actions
         # Get expected returns following a greedy policy from the
         # next state: max a': Q(s', a', w_old)
         next_data = {
             self.input_grid: self.prep_data_grids(next_grids),
-            self.input_cell: self.prep_data_cells(next_cells),
-            self.target_action: next_actions
+            self.input_cell: self.prep_data_cells(next_cells)
         }
-        next_q_pred = self.sess.run(
-            self.q_pred,
+        next_q_maxs = self.sess.run(
+            self.q_max,
             feed_dict=next_data,
             options=self.options,
             run_metadata=self.run_metadata)
-        q_targets = rewards + self.gamma * next_q_pred
+        q_targets = rewards + self.gamma * next_q_maxs
         curr_data = {
             self.input_grid: self.prep_data_grids(grids),
             self.input_cell: self.prep_data_cells(cells),

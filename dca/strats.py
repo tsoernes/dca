@@ -36,7 +36,6 @@ class Strat:
             'rewards': [],
             'next_grids': [],
             'next_cells': [],
-            'next_actions': []
         }
 
     def exit_handler(self, *args):
@@ -87,7 +86,6 @@ class Strat:
                 self.experience_store['rewards'].append(reward)
                 self.experience_store['next_grids'].append(s_new)
                 self.experience_store['next_cells'].append(cell_new)
-                self.experience_store['next_actions'].append(next_ch)
 
             if i % self.pp['log_iter'] == 0 and i > 0:
                 self.fn_report()
@@ -338,7 +336,7 @@ class SARSAQNet(RLStrat):
         randomly sampled from the experience replay memory.
         """
         n = len(self.experience_store['grids'])
-        if n < self.batch_size:
+        if n < 10000:
             # Can't backprop before exp store has enough experiences
             return
         # Only train on the last 1000 tuples
@@ -353,7 +351,6 @@ class SARSAQNet(RLStrat):
             (self.batch_size, self.rows, self.cols, self.n_channels),
             dtype=np.int8)
         next_cells = []
-        next_actions = np.zeros(self.batch_size, dtype=np.int32)
         for i, idx in enumerate(idxs):
             grids[i][:] = self.experience_store['grids'][idx]
             cells.append(self.experience_store['cells'][idx])
@@ -361,10 +358,8 @@ class SARSAQNet(RLStrat):
             rewards[i] = self.experience_store['rewards'][idx]
             next_grids[i][:] = self.experience_store['next_grids'][idx]
             next_cells.append(self.experience_store['next_cells'][idx])
-            next_actions[i] = self.experience_store['next_actions'][idx]
         loss = self.net.backward_exp_replay(grids, cells, actions, rewards,
-                                            next_grids, next_cells,
-                                            next_actions)
+                                            next_grids, next_cells)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
