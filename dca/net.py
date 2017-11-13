@@ -116,8 +116,8 @@ class Net:
         self.input_cell = tf.placeholder(
             shape=[None, 7, 7, 1], dtype=tf.float32, name="input_cell")
         # TODO These are s, not target actions s'.
-        self.target_action = tf.placeholder(
-            shape=[None], dtype=tf.int32, name="target_action")
+        self.action = tf.placeholder(
+            shape=[None], dtype=tf.int32, name="action")
         self.target_q = tf.placeholder(
             shape=[None], dtype=tf.float32, name="target_q")
 
@@ -151,15 +151,9 @@ class Net:
             inputs=conv2_flat, units=70, name="q_vals")
         self.q_amax = tf.argmax(self.q_vals, axis=1, name="q_amax")
 
-        flat_q_vals = tf.reshape(self.q_vals, [-1])
-        some_range = tf.range(tf.shape(self.q_vals)[0]) * tf.shape(
-            self.q_vals)[1]
-        flat_amax = self.q_amax + tf.cast(some_range, tf.int64)
-        self.q_max = tf.gather(flat_q_vals, flat_amax)
-
-        flat_target_action = self.target_action + tf.cast(some_range, tf.int32)
-        self.q_pred = tf.gather(
-            flat_q_vals, flat_target_action, name="action_q_vals")
+        self.q_max = tf.reduce_max(self.q_vals, axis=1)
+        self.q_pred = tf.reduce_sum(
+            self.q_vals * tf.one_hot(self.action, 70), name="action_q_vals")
 
         # q scores for actions which we know were selected in the given state.
         # q_pred = tf.reduce_sum(q_t * tf.one_hot(actions, num_actions), 1)
@@ -171,7 +165,7 @@ class Net:
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
-        self.do_train = trainer.minimize(self.loss)
+        self.do_train = trainer.minimize(self.loss, var_list=None)
 
         with tf.name_scope("summaries"):
             tf.summary.scalar("learning_rate", self.alpha)
@@ -189,11 +183,7 @@ class Net:
              tf.shape(dense),
              tf.shape(self.q_vals),
              tf.shape(self.q_amax),
-             tf.shape(flat_q_vals),
-             tf.shape(flat_amax),
              tf.shape(self.q_max),
-             tf.shape(flat_target_action),
-             tf.shape(self.q_pred),
              tf.shape(self.loss)]
 
         # TODO If possible, do epsilon-greedy action selection in TF.
@@ -204,7 +194,8 @@ class Net:
         # TODO Reproducible results
         # tf.set_random_seed(1)  # Do in numpy for call generation also
         # TODO Keep separate weights for target Q network
-        # update_target_fn will be called periodically to copy Q network to target Q network
+        # update_target_fn will be called periodically to copy Q
+        # network to target Q network
         # q_func_vars = scope_vars(absolute_scope_name("q_func"))
         # target_q_func_vars = scope_vars(absolute_scope_name("target_q_func"))
         # update_target_expr = []
@@ -343,7 +334,7 @@ class Net:
             curr_data = {
                 self.input_grid: data['grids'],
                 self.input_cell: data['cells'],
-                self.target_action: data['actions'],
+                self.action: data['actions'],
                 self.target_q: q_targets
             }
             _, loss, summary = self.sess.run(
@@ -388,7 +379,7 @@ class Net:
             curr_data = {
                 self.input_grid: data['grids'],
                 self.input_cell: data['cells'],
-                self.target_action: data['actions'],
+                self.action: data['actions'],
                 self.target_q: q_targets
             }
             loss, summary = self.sess.run([self.loss, self.summaries],
@@ -417,7 +408,7 @@ class Net:
         data = {
             self.input_grid: self.prep_data_grids(grid),
             self.input_cell: self.prep_data_cells(cell),
-            self.target_action: np.array([action], dtype=np.int32),
+            self.action: np.array([action], dtype=np.int32),
             self.target_q: np.array([q_target], dtype=np.float32)
         }
         _, loss = self.sess.run(
@@ -431,8 +422,6 @@ class Net:
 
     def backward_exp_replay(self, grids, cells, actions, rewards, next_grids,
                             next_cells):
-        # TODO Can this be made on-policy, i.e. SARSA? need to store
-        # next_actions
         # Get expected returns following a greedy policy from the
         # next state: max a': Q(s', a', w_old)
         next_data = {
@@ -448,7 +437,7 @@ class Net:
         curr_data = {
             self.input_grid: self.prep_data_grids(grids),
             self.input_cell: self.prep_data_cells(cells),
-            self.target_action: actions,
+            self.action: actions,
             self.target_q: q_targets
         }
         _, loss = self.sess.run(
@@ -461,7 +450,7 @@ class Net:
         return loss
 
 
-def scope_vars(scope):
+def scope_vars(relative_scope_name):
     """
     Get variables inside a scope
     The scope can be specified as a string
@@ -476,19 +465,8 @@ def scope_vars(scope):
     vars: [tf.Variable]
         list of variables in `scope`.
     """
-    return tf.get_collection(
-        tf.GraphKeys.GLOBAL_VARIABLES,
-        scope=scope if isinstance(scope, str) else scope.name)
-
-
-def scope_name():
-    """Returns the name of current scope as a string, e.g. deepq/q_func"""
-    return tf.get_variable_scope().name
-
-
-def absolute_scope_name(relative_scope_name):
-    """Appends parent scope name to `relative_scope_name`"""
-    return scope_name() + "/" + relative_scope_name
+    scope = tf.get_variable_scope().name + "/" + relative_scope_name
+    return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope)
 
 
 if __name__ == "__main__":
