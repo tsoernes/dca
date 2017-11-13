@@ -115,6 +115,7 @@ class Net:
             shape=[None, 7, 7, 70], dtype=tf.float32, name="input_grid")
         self.input_cell = tf.placeholder(
             shape=[None, 7, 7, 1], dtype=tf.float32, name="input_cell")
+        # TODO These are s, not target actions s'.
         self.target_action = tf.placeholder(
             shape=[None], dtype=tf.int32, name="target_action")
         self.target_q = tf.placeholder(
@@ -159,13 +160,17 @@ class Net:
         flat_target_action = self.target_action + tf.cast(some_range, tf.int32)
         self.q_pred = tf.gather(
             flat_q_vals, flat_target_action, name="action_q_vals")
+
+        # q scores for actions which we know were selected in the given state.
+        # q_pred = tf.reduce_sum(q_t * tf.one_hot(actions, num_actions), 1)
+
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
             labels=self.target_q, predictions=self.q_pred)
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
-        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
-        # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
+        # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
+        trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
         self.do_train = trainer.minimize(self.loss)
 
         with tf.name_scope("summaries"):
@@ -190,6 +195,24 @@ class Net:
              tf.shape(flat_target_action),
              tf.shape(self.q_pred),
              tf.shape(self.loss)]
+
+        # TODO If possible, do epsilon-greedy action selection in TF.
+        # Should reduce the amount of data passed between CPU/GPU.
+        # TODO Calculate loss in graph
+        # q_target = reward + gamma * q_max
+        # td_error = q_pred - tf.stop_gradient(q_target)
+        # TODO Reproducible results
+        # tf.set_random_seed(1)  # Do in numpy for call generation also
+        # TODO Keep separate weights for target Q network
+        # update_target_fn will be called periodically to copy Q network to target Q network
+        # q_func_vars = scope_vars(absolute_scope_name("q_func"))
+        # target_q_func_vars = scope_vars(absolute_scope_name("target_q_func"))
+        # update_target_expr = []
+        # for var, var_target in zip(
+        #         sorted(q_func_vars, key=lambda v: v.name),
+        #         sorted(target_q_func_vars, key=lambda v: v.name)):
+        #     update_target_expr.append(var_target.assign(var))
+        # update_target_expr = tf.group(*update_target_expr)
 
     def get_data_h5py(self):
         # Open file handle, but don't load contents into memory
@@ -436,6 +459,36 @@ class Net:
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
         return loss
+
+
+def scope_vars(scope):
+    """
+    Get variables inside a scope
+    The scope can be specified as a string
+
+    Parameters
+    ----------
+    scope: str or VariableScope
+        scope in which the variables reside.
+
+    Returns
+    -------
+    vars: [tf.Variable]
+        list of variables in `scope`.
+    """
+    return tf.get_collection(
+        tf.GraphKeys.GLOBAL_VARIABLES,
+        scope=scope if isinstance(scope, str) else scope.name)
+
+
+def scope_name():
+    """Returns the name of current scope as a string, e.g. deepq/q_func"""
+    return tf.get_variable_scope().name
+
+
+def absolute_scope_name(relative_scope_name):
+    """Appends parent scope name to `relative_scope_name`"""
+    return scope_name() + "/" + relative_scope_name
 
 
 if __name__ == "__main__":
