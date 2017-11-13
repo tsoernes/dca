@@ -69,8 +69,16 @@ class Strat:
                     and next_ch is not None \
                     and ce_type != CEvent.END \
                     and next_cevent[1] != CEvent.END:
-                # Only add (s, a, r, s') tuples for which the events in
-                # s and s' are not END events
+                # Only add (s, a, r, s', a') tuples for which the events in
+                # s and s' are not END events, and for which there are
+                # available actions a and a'.
+                # If there are no available actions, that is, there are no
+                # free channels which to assign, the neural net is not used
+                # for selection and so it should not be trained on that data.
+                # END events are not trained on either because the network is
+                # supposed to predict the q-values for different channel
+                # assignments; however the channels available for reassignment
+                # are always busy in a grid corresponding to an END event.
                 s_new = np.copy(self.state)
                 cell_new = next_cevent[2]
                 self.experience_store['grids'].append(s)
@@ -333,7 +341,8 @@ class SARSAQNet(RLStrat):
         if n < self.batch_size:
             # Can't backprop before exp store has enough experiences
             return
-        idxs = np.random.randint(0, n, self.batch_size)
+        # Only train on the last 1000 tuples
+        idxs = np.random.randint(max(0, n - 1000), n, self.batch_size)
         grids = np.zeros(
             (self.batch_size, self.rows, self.cols, self.n_channels),
             dtype=np.int8)
