@@ -305,6 +305,8 @@ class SARSAQNet(RLStrat):
         self.losses = []
         if self.batch_size > 1:
             self.update_qval = self.update_qval_experience
+            self.logger.warn("Using experience replay with batch"
+                             f" size of {self.batch_size}")
         else:
             self.update_qval = self.update_qval_single
         from net import Net
@@ -319,13 +321,38 @@ class SARSAQNet(RLStrat):
         self.net.save_timeline()
         self.net.sess.close()
 
+    def get_action(self, next_cevent, cell: Cell, ch: int, reward) -> int:
+        """
+        Return a channel to be (re)assigned for 'next_cevent'.
+        'cell' and 'ch' specify the previously executed action.
+        """
+        # NOTE TODO NOTE TODO
+        # THIS IS NOT CORRECT for SARSAQnet, because the grid has changed
+        # before the qval is updated. That is, the wrong grid is put into
+        # the net.
+
+        next_ce_type, next_cell = next_cevent[1:3]
+        # Choose A' from S'
+        next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
+        # If there's no action to take, or no action was taken,
+        # don't update q-value at all
+        if next_ce_type != CEvent.END \
+                and ch is not None and next_ch is not None:
+            # Observe reward from previous action, and
+            # update q-values with one-step lookahead
+            target_q = reward + self.gamma * next_qval
+            self.update_qval(cell, ch, target_q)
+        return next_ch
+
     def get_qvals(self, cell, *args):
         qvals, _, _ = self.net.forward(self.state, cell)
         return qvals
 
-    def update_qval_single(self, cell: Cell, ch: int, q_target: float):
+    def update_qval_single(self, cell: Cell, ch: int, reward, next_grid,
+                           next_cell):
         """ Update qval for one experience tuple"""
-        loss = self.net.backward(self.state, cell, ch, q_target)
+        loss = self.net.backward(self.state, cell, ch, reward, next_grid,
+                                 next_cell)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True

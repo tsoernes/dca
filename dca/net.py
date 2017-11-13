@@ -59,6 +59,7 @@ class Net:
         self.alpha = pp['net_lr']
         self.gamma = pp['gamma']
         self.batch_size = pp['batch_size']
+        self.n_channels = pp['n_channels']
         self.pp = pp
         main_path = "model/qnet03"
         self.model_path = main_path + "/model.cpkt"
@@ -111,15 +112,20 @@ class Net:
                 f.write(chrome_trace)
 
     def build(self):
-        self.input_grid = tf.placeholder(
-            shape=[None, 7, 7, 70], dtype=tf.float32, name="input_grid")
-        self.input_cell = tf.placeholder(
-            shape=[None, 7, 7, 1], dtype=tf.float32, name="input_cell")
-        # TODO These are s, not target actions s'.
+        gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
+        cellshape = [None, self.pp['rows'], self.pp['cols'], 1]
+        self.grid = tf.placeholder(
+            shape=gridshape, dtype=tf.float32, name="grid")
+        self.cell = tf.placeholder(
+            shape=cellshape, dtype=tf.float32, name="cell")
         self.action = tf.placeholder(
             shape=[None], dtype=tf.int32, name="action")
-        self.target_q = tf.placeholder(
-            shape=[None], dtype=tf.float32, name="target_q")
+        self.reward = tf.placeholder(
+            shape=[None], dtype=tf.float32, name="action")
+        self.next_grid = tf.placeholder(
+            shape=gridshape, dtype=tf.float32, name="next_grid")
+        self.next_cell = tf.placeholder(
+            shape=cellshape, dtype=tf.float32, name="next_cell")
 
         # conv1 = tf.layers.conv2d(
         #     inputs=self.input_grid,
@@ -128,7 +134,7 @@ class Net:
         #     padding="same",
         #     activation=tf.nn.relu)
         conv1 = tf.contrib.layers.conv2d_in_plane(
-            inputs=self.input_grid,
+            inputs=self.grid,
             kernel_size=5,
             stride=1,
             padding="SAME",
@@ -139,25 +145,27 @@ class Net:
             kernel_size=3,
             padding="same",
             activation=tf.nn.relu)
-        stacked = tf.concat([conv2, self.input_cell], axis=3)
+        stacked = tf.concat([conv2, self.cell], axis=3)
         conv2_flat = tf.layers.flatten(stacked)
 
         # Perhaps reducing call rates will increase difference between
         # fixed/random and a good alg, thus making testing nets easier.
         # If so then need to retest sarsa-strats and redo hyperparam opt.
         dense = tf.layers.dense(
-            inputs=conv2_flat, units=128, name="dense", activation=tf.nn.relu)
+            inputs=conv2_flat, units=128, activation=tf.nn.relu, name="dense")
         self.q_vals = tf.layers.dense(
             inputs=conv2_flat, units=70, name="q_vals")
         self.q_amax = tf.argmax(self.q_vals, axis=1, name="q_amax")
-
-        self.q_max = tf.reduce_max(self.q_vals, axis=1)
+        self.q_max = tf.reduce_max(self.q_vals, axis=1, name="q_max")
         self.q_pred = tf.reduce_sum(
-            self.q_vals * tf.one_hot(self.action, 70), name="action_q_vals")
+            self.q_vals * tf.one_hot(self.action, self.pp['n_channels']),
+            axis=1,
+            name="action_q_vals")
 
         # q scores for actions which we know were selected in the given state.
         # q_pred = tf.reduce_sum(q_t * tf.one_hot(actions, num_actions), 1)
 
+        self.q_target = self.reward + self.gamma * self.q_max
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
@@ -167,6 +175,7 @@ class Net:
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
         self.do_train = trainer.minimize(self.loss, var_list=None)
 
+        # Write out statistics to file
         with tf.name_scope("summaries"):
             tf.summary.scalar("learning_rate", self.alpha)
             tf.summary.scalar("loss", self.loss)
@@ -324,18 +333,13 @@ class Net:
             # Get expected returns following a greedy policy from the
             # next state: max a': Q(s', a', w_old)
             data = next(self.train_gen)
-            next_data = {
-                self.input_grid: data['next_grids'],
-                self.input_cell: data['next_cells']
-            }
-            next_q_maxs = self.sess.run(self.q_max, next_data)
-            r = data['rewards']
-            q_targets = r + self.gamma * next_q_maxs
             curr_data = {
-                self.input_grid: data['grids'],
-                self.input_cell: data['cells'],
+                self.grid: data['grids'],
+                self.cell: data['cells'],
                 self.action: data['actions'],
-                self.target_q: q_targets
+                self.reward: data['rewards'],
+                self.next_grid: data['next_grids'],
+                self.next_cell: data['next_cells']
             }
             _, loss, summary = self.sess.run(
                 [self.do_train, self.loss, self.summaries], curr_data)
@@ -370,15 +374,15 @@ class Net:
             # next state: max a': Q(s', a', w_old)
             data = next(self.test_gen)
             next_data = {
-                self.input_grid: data['next_grids'],
-                self.input_cell: data['next_cells']
+                self.grid: data['next_grids'],
+                self.cell: data['next_cells']
             }
             next_q_maxs = self.sess.run(self.q_max, next_data)
             r = data['rewards']
             q_targets = r + self.gamma * next_q_maxs
             curr_data = {
-                self.input_grid: data['grids'],
-                self.input_cell: data['cells'],
+                self.grid: data['grids'],
+                self.cell: data['cells'],
                 self.action: data['actions'],
                 self.target_q: q_targets
             }
@@ -396,20 +400,22 @@ class Net:
         q_vals, q_amax, q_max = self.sess.run(
             [self.q_vals, self.q_amax, self.q_max],
             feed_dict={
-                self.input_grid: self.prep_data_grids(grid),
-                self.input_cell: self.prep_data_cells(cell)
+                self.grid: self.prep_data_grids(grid),
+                self.cell: self.prep_data_cells(cell)
             },
             options=self.options,
             run_metadata=self.run_metadata)
         q_vals = np.reshape(q_vals, [-1])
         return q_vals, q_amax, q_max
 
-    def backward(self, grid, cell, action, q_target):
+    def backward(self, grid, cell, action, reward, next_grid, next_cell):
         data = {
-            self.input_grid: self.prep_data_grids(grid),
-            self.input_cell: self.prep_data_cells(cell),
+            self.grid: self.prep_data_grids(grid),
+            self.cell: self.prep_data_cells(cell),
             self.action: np.array([action], dtype=np.int32),
-            self.target_q: np.array([q_target], dtype=np.float32)
+            self.reward: np.array([reward], dtype=np.float32),
+            self.next_grid: self.prep_data_grids(next_grid),
+            self.next_cell: self.prep_data_cells(next_cell),
         }
         _, loss = self.sess.run(
             [self.do_train, self.loss],
@@ -425,8 +431,8 @@ class Net:
         # Get expected returns following a greedy policy from the
         # next state: max a': Q(s', a', w_old)
         next_data = {
-            self.input_grid: self.prep_data_grids(next_grids),
-            self.input_cell: self.prep_data_cells(next_cells)
+            self.grid: self.prep_data_grids(next_grids),
+            self.cell: self.prep_data_cells(next_cells)
         }
         next_q_maxs = self.sess.run(
             self.q_max,
@@ -435,8 +441,8 @@ class Net:
             run_metadata=self.run_metadata)
         q_targets = rewards + self.gamma * next_q_maxs
         curr_data = {
-            self.input_grid: self.prep_data_grids(grids),
-            self.input_cell: self.prep_data_cells(cells),
+            self.grid: self.prep_data_grids(grids),
+            self.cell: self.prep_data_cells(cells),
             self.action: actions,
             self.target_q: q_targets
         }
