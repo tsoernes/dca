@@ -113,7 +113,7 @@ class Net:
 
     def build(self):
         gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
-        cellshape = [None, self.pp['rows'], self.pp['cols'], 1]
+        cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
         self.grid = tf.placeholder(
             shape=gridshape, dtype=tf.float32, name="grid")
         self.cell = tf.placeholder(
@@ -166,10 +166,12 @@ class Net:
         # q_pred = tf.reduce_sum(q_t * tf.one_hot(actions, num_actions), 1)
 
         self.q_target = self.reward + self.gamma * self.q_max
+        td_error = self.q_pred - tf.stop_gradient(self.q_target)
+        self.loss = tf.reduce_mean(td_error**2)
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
-        self.loss = tf.losses.mean_squared_error(
-            labels=self.target_q, predictions=self.q_pred)
+        # self.loss = tf.losses.mean_squared_error(
+        #     labels=self.q_target, predictions=self.q_pred)
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)

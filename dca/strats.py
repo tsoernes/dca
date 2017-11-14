@@ -58,11 +58,11 @@ class Strat:
             t, ce_type, cell = cevent[0:3]
 
             if ch is not None:
-                if self.save or self.batch_size > 1:
-                    s = np.copy(self.state)  # Copy before state is modified
+                # if self.save or self.batch_size > 1:
+                grid = np.copy(self.state)  # Copy before state is modified
 
             reward, next_cevent = self.env.step(ch)
-            next_ch = self.get_action(next_cevent, cell, ch, reward)
+            next_ch = self.get_action(next_cevent, grid, cell, ch, reward)
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
                     and next_ch is not None \
@@ -80,7 +80,7 @@ class Strat:
                 # are always busy in a grid corresponding to an END event.
                 s_new = np.copy(self.state)
                 cell_new = next_cevent[2]
-                self.experience_store['grids'].append(s)
+                self.experience_store['grids'].append(grid)
                 self.experience_store['cells'].append(cell)
                 self.experience_store['actions'].append(ch)
                 self.experience_store['rewards'].append(reward)
@@ -321,7 +321,8 @@ class SARSAQNet(RLStrat):
         self.net.save_timeline()
         self.net.sess.close()
 
-    def get_action(self, next_cevent, cell: Cell, ch: int, reward) -> int:
+    def get_action(self, next_cevent, grid, cell: Cell, ch: int,
+                   reward) -> int:
         """
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previously executed action.
@@ -341,18 +342,17 @@ class SARSAQNet(RLStrat):
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
             target_q = reward + self.gamma * next_qval
-            self.update_qval(cell, ch, target_q)
+            self.update_qval(grid, cell, ch, reward, self.state, next_cell)
         return next_ch
 
     def get_qvals(self, cell, *args):
         qvals, _, _ = self.net.forward(self.state, cell)
         return qvals
 
-    def update_qval_single(self, cell: Cell, ch: int, reward, next_grid,
+    def update_qval_single(self, grid, cell: Cell, ch: int, reward, next_grid,
                            next_cell):
         """ Update qval for one experience tuple"""
-        loss = self.net.backward(self.state, cell, ch, reward, next_grid,
-                                 next_cell)
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
