@@ -3,10 +3,12 @@ import sys
 import h5py
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.client import timeline
 from matplotlib import pyplot as plt
+from tensorflow.python.client import timeline
 
 from utils import BackgroundGenerator
+
+
 """
 consider batch norm [ioffe and szegedy, 2015]
 batch norm is inserted after fully connected or convolutional
@@ -49,6 +51,13 @@ Batch size 256 took 34.56 seconds
 Batch size 512 took 29.68 seconds
 Batch size 1024 took 27.80 seconds
 Batch size 2048 took 24.63 seconds
+
+Perhaps reducing call rates will increase difference between
+fixed/random and a good alg, thus making testing nets easier.
+If so then need to retest sarsa-strats and redo hyperparam opt.
+
+TODO Reproducible results
+tf.set_random_seed(1)  # Do in numpy for call generation also
 """
 
 
@@ -111,8 +120,46 @@ class Net:
             with open(self.pp['tfprofiling'], 'w') as f:
                 f.write(chrome_trace)
 
+    def _build_qnet(self, grid, cell, name):
+        with tf.variable_scope(name) as scope:
+            # conv1 = tf.layers.conv2d(
+            #     inputs=self.input_grid,
+            #     filters=70,
+            #     kernel_size=5,
+            #     padding="same",
+            #     activation=tf.nn.relu)
+            conv1 = tf.contrib.layers.conv2d_in_plane(
+                inputs=grid,
+                kernel_size=5,
+                stride=1,
+                padding="SAME",
+                activation_fn=tf.nn.relu)
+            conv2 = tf.layers.conv2d(
+                inputs=conv1,
+                filters=140,
+                kernel_size=3,
+                padding="same",
+                activation=tf.nn.relu)
+            stacked = tf.concat([conv2, cell], axis=3)
+            conv2_flat = tf.layers.flatten(stacked)
+
+            dense = tf.layers.dense(
+                inputs=conv2_flat,
+                units=128,
+                activation=tf.nn.relu,
+                name="dense")
+            q_vals = tf.layers.dense(inputs=dense, units=70, name="q_vals")
+        trainable_vars = tf.get_collection(
+            tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
+        trainable_vars_by_name = {
+            var.name[len(scope.name):]: var
+            for var in trainable_vars
+        }
+        return q_vals, trainable_vars_by_name
+
     def build(self):
         gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
+        # TODO Convert to onehot in TF
         cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
         self.grid = tf.placeholder(
             shape=gridshape, dtype=tf.float32, name="grid")
@@ -127,55 +174,46 @@ class Net:
         self.next_cell = tf.placeholder(
             shape=cellshape, dtype=tf.float32, name="next_cell")
 
-        # conv1 = tf.layers.conv2d(
-        #     inputs=self.input_grid,
-        #     filters=70,
-        #     kernel_size=5,
-        #     padding="same",
-        #     activation=tf.nn.relu)
-        conv1 = tf.contrib.layers.conv2d_in_plane(
-            inputs=self.grid,
-            kernel_size=5,
-            stride=1,
-            padding="SAME",
-            activation_fn=tf.nn.relu)
-        conv2 = tf.layers.conv2d(
-            inputs=conv1,
-            filters=140,
-            kernel_size=3,
-            padding="same",
-            activation=tf.nn.relu)
-        stacked = tf.concat([conv2, self.cell], axis=3)
-        conv2_flat = tf.layers.flatten(stacked)
+        # Keep separate weights for target Q network
+        # update_target_fn will be called periodically to copy Q
+        # network to target Q network
+        online_q_vals, online_vars = self._build_qnet(
+            self.grid, self.cell, name="q_networks/online")
+        target_q_vals, target_vars = self._build_qnet(
+            self.next_grid, self.next_cell, name="q_networks/target")
 
-        # Perhaps reducing call rates will increase difference between
-        # fixed/random and a good alg, thus making testing nets easier.
-        # If so then need to retest sarsa-strats and redo hyperparam opt.
-        dense = tf.layers.dense(
-            inputs=conv2_flat, units=128, activation=tf.nn.relu, name="dense")
-        self.q_vals = tf.layers.dense(
-            inputs=conv2_flat, units=70, name="q_vals")
-        self.q_amax = tf.argmax(self.q_vals, axis=1, name="q_amax")
-        self.q_max = tf.reduce_max(self.q_vals, axis=1, name="q_max")
-        self.q_pred = tf.reduce_sum(
-            self.q_vals * tf.one_hot(self.action, self.pp['n_channels']),
+        copy_ops = [
+            target_var.assign(online_vars[var_name])
+            for var_name, target_var in target_vars.items()
+        ]
+        # Run this function to copy weights to target Q net
+        self.copy_online_to_target = tf.group(*copy_ops)
+
+        self.online_q_amax = tf.argmax(
+            self.online_q_vals, axis=1, name="onlne_q_amax")
+        self.target_q_max = tf.reduce_max(
+            self.target_q_vals, axis=1, name="target_q_max")
+        # Q-value for given action
+        self.online_q_selected = tf.reduce_sum(
+            self.online_q_vals * tf.one_hot(self.action,
+                                            self.pp['n_channels']),
             axis=1,
-            name="action_q_vals")
+            name="online_q_selected")
 
         # q scores for actions which we know were selected in the given state.
         # q_pred = tf.reduce_sum(q_t * tf.one_hot(actions, num_actions), 1)
 
-        self.q_target = self.reward + self.gamma * self.q_max
-        td_error = self.q_pred - tf.stop_gradient(self.q_target)
-        self.loss = tf.reduce_mean(td_error**2)
+        self.q_target = self.reward + self.gamma * self.target_q_max
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
-        # self.loss = tf.losses.mean_squared_error(
-        #     labels=self.q_target, predictions=self.q_pred)
+        self.loss = tf.losses.mean_squared_error(
+            labels=tf.stop_gradient(self.q_target),
+            predictions=self.online_q_selected)
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
-        self.do_train = trainer.minimize(self.loss, var_list=None)
+        # trainer = tf.train.MomentumOptimizer(learning_rate=self.alpha, momentum=0.95)
+        self.do_train = trainer.minimize(self.loss, var_list=online_vars)
 
         # Write out statistics to file
         with tf.name_scope("summaries"):
@@ -186,35 +224,6 @@ class Net:
         self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
                                                   self.sess.graph)
         self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
-
-        self.shapes = \
-            [tf.shape(stacked),
-             tf.shape(conv1),
-             tf.shape(conv2_flat),
-             tf.shape(dense),
-             tf.shape(self.q_vals),
-             tf.shape(self.q_amax),
-             tf.shape(self.q_max),
-             tf.shape(self.loss)]
-
-        # TODO If possible, do epsilon-greedy action selection in TF.
-        # Should reduce the amount of data passed between CPU/GPU.
-        # TODO Calculate loss in graph
-        # q_target = reward + gamma * q_max
-        # td_error = q_pred - tf.stop_gradient(q_target)
-        # TODO Reproducible results
-        # tf.set_random_seed(1)  # Do in numpy for call generation also
-        # TODO Keep separate weights for target Q network
-        # update_target_fn will be called periodically to copy Q
-        # network to target Q network
-        # q_func_vars = scope_vars(absolute_scope_name("q_func"))
-        # target_q_func_vars = scope_vars(absolute_scope_name("target_q_func"))
-        # update_target_expr = []
-        # for var, var_target in zip(
-        #         sorted(q_func_vars, key=lambda v: v.name),
-        #         sorted(target_q_func_vars, key=lambda v: v.name)):
-        #     update_target_expr.append(var_target.assign(var))
-        # update_target_expr = tf.group(*update_target_expr)
 
     def get_data_h5py(self):
         # Open file handle, but don't load contents into memory
@@ -456,25 +465,6 @@ class Net:
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
         return loss
-
-
-def scope_vars(relative_scope_name):
-    """
-    Get variables inside a scope
-    The scope can be specified as a string
-
-    Parameters
-    ----------
-    scope: str or VariableScope
-        scope in which the variables reside.
-
-    Returns
-    -------
-    vars: [tf.Variable]
-        list of variables in `scope`.
-    """
-    scope = tf.get_variable_scope().name + "/" + relative_scope_name
-    return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope)
 
 
 if __name__ == "__main__":
