@@ -346,7 +346,7 @@ class SARSAQNet(RLStrat):
         return next_ch
 
     def get_qvals(self, cell, *args):
-        qvals, _, _ = self.net.forward(self.state, cell)
+        qvals = self.net.forward(self.state, cell)
         return qvals
 
     def update_qval_single(self, grid, cell: Cell, ch: int, reward, next_grid,

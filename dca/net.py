@@ -218,7 +218,7 @@ class Net:
         with tf.name_scope("summaries"):
             tf.summary.scalar("learning_rate", self.alpha)
             tf.summary.scalar("loss", self.loss)
-            tf.summary.histogram("qvals", self.q_vals)
+            tf.summary.histogram("qvals", self.online_q_vals)
         self.summaries = tf.summary.merge_all()
         self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
                                                   self.sess.graph)
