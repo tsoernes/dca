@@ -90,6 +90,7 @@ class Net:
         init = tf.global_variables_initializer()
         self.saver = tf.train.Saver()
         self.sess.run(init)
+        self.sess.run(self.copy_online_to_target)
         if restore:
             # Could do a try/except and build if loading fails
             self.logger.error(f"Restoring model from {self.model_path}")
@@ -147,7 +148,7 @@ class Net:
                 units=128,
                 activation=tf.nn.relu,
                 name="dense")
-            q_vals = tf.layers.dense(inputs=dense, units=70, name="q_vals")
+            q_vals = tf.layers.dense(inputs=conv2_flat, units=70, name="q_vals")
         trainable_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
         trainable_vars_by_name = {
@@ -209,9 +210,9 @@ class Net:
             labels=tf.stop_gradient(self.q_target),
             predictions=self.online_q_selected)
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
-        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
+        # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
-        # trainer = tf.train.MomentumOptimizer(learning_rate=self.alpha, momentum=0.95)
+        trainer = tf.train.MomentumOptimizer(learning_rate=self.alpha, momentum=0.95)
         self.do_train = trainer.minimize(self.loss, var_list=online_vars)
 
         # Write out statistics to file
@@ -350,6 +351,7 @@ class Net:
         return q_vals
 
     def backward(self, grid, cell, action, reward, next_grid, next_cell):
+        self.copy_online_to_target
         data = {
             self.grid: self.prep_data_grids(grid),
             self.cell: self.prep_data_cells(cell),

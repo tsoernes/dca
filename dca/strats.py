@@ -62,7 +62,8 @@ class Strat:
                 grid = np.copy(self.state)  # Copy before state is modified
 
             reward, next_cevent = self.env.step(ch)
-            next_ch = self.get_action(next_cevent, grid, cell, ch, reward)
+            next_ch = self.get_action(next_cevent, grid, cell, ch, reward,
+                                      ce_type)
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
                     and next_ch is not None \
@@ -89,6 +90,9 @@ class Strat:
 
             if i % self.pp['log_iter'] == 0 and i > 0:
                 self.fn_report()
+            if self.pp['net'] and \
+                    i % self.pp['net_copy_iter'] == 0 and i > 0:
+                self.update_target()
             ch, cevent = next_ch, next_cevent
         self.env.stats.end_episode(reward)
         self.fn_after()
@@ -153,7 +157,8 @@ class RLStrat(Strat):
         ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, cell: Cell, ch: int, reward) -> int:
+    def get_action(self, next_cevent, grid, cell: Cell, ch: int, reward,
+                   ce_type) -> int:
         """
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previously executed action.
@@ -163,8 +168,7 @@ class RLStrat(Strat):
         next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
-        if next_ce_type != CEvent.END \
-                and ch is not None and next_ch is not None:
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
             target_q = reward + self.gamma * next_qval
@@ -321,27 +325,24 @@ class SARSAQNet(RLStrat):
         self.net.save_timeline()
         self.net.sess.close()
 
-    def get_action(self, next_cevent, grid, cell: Cell, ch: int,
-                   reward) -> int:
+    def update_target(self):
+        self.net.sess.run(self.net.copy_online_to_target)
+
+    def get_action(self, next_cevent, grid, cell: Cell, ch: int, reward,
+                   ce_type) -> int:
         """
         Return a channel to be (re)assigned for 'next_cevent'.
-        'cell' and 'ch' specify the previously executed action.
+        'cell' and 'ch' specify the previously executed action, and 'grid'
+        the state before that action was executed.
         """
-        # NOTE TODO NOTE TODO
-        # THIS IS NOT CORRECT for SARSAQnet, because the grid has changed
-        # before the qval is updated. That is, the wrong grid is put into
-        # the net.
-
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
-        if next_ce_type != CEvent.END \
-                and ch is not None and next_ch is not None:
+        if next_ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            target_q = reward + self.gamma * next_qval
             self.update_qval(grid, cell, ch, reward, self.state, next_cell)
         return next_ch
 

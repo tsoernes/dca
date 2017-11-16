@@ -114,6 +114,9 @@ def get_pparams():
         help="(Net) Benchmark batch size for neural network",
         default=False)
     parser.add_argument(
+        '--net_copy_iter',
+        type=int, help="(Net) Copy weights from online to target every n iter", default=1000)
+    parser.add_argument(
         '--train_net',
         action='store_true',
         help="(Net) Train network",
@@ -164,9 +167,11 @@ def get_pparams():
     args = parser.parse_args()
     params = vars(args)
 
+    params['net'] = False  # Whether net is in use or not
     # Sensible presets / overrides
     if "net" in params['strat'].lower():
         params['log_iter'] = 5000
+        params['net'] = True
     else:
         params['batch_size'] = 1
     if not params['call_rates']:
