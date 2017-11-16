@@ -176,7 +176,7 @@ class Net:
         # Keep separate weights for target Q network
         # update_target_fn will be called periodically to copy Q
         # network to target Q network
-        online_q_vals, online_vars = self._build_qnet(
+        self.online_q_vals, online_vars = self._build_qnet(
             self.grid, self.cell, name="q_networks/online")
         target_q_vals, target_vars = self._build_qnet(
             self.next_grid, self.next_cell, name="q_networks/target")
@@ -191,7 +191,7 @@ class Net:
         self.online_q_amax = tf.argmax(
             self.online_q_vals, axis=1, name="onlne_q_amax")
         self.target_q_max = tf.reduce_max(
-            self.target_q_vals, axis=1, name="target_q_max")
+            target_q_vals, axis=1, name="target_q_max")
         # Q-value for given action
         self.online_q_selected = tf.reduce_sum(
             self.online_q_vals * tf.one_hot(self.action,
@@ -338,8 +338,8 @@ class Net:
             f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
     def forward(self, grid, cell):
-        q_vals, q_amax, q_max = self.sess.run(
-            [self.q_vals, self.q_amax, self.q_max],
+        q_vals = self.sess.run(
+            [self.online_q_vals],
             feed_dict={
                 self.grid: self.prep_data_grids(grid),
                 self.cell: self.prep_data_cells(cell)
@@ -347,7 +347,7 @@ class Net:
             options=self.options,
             run_metadata=self.run_metadata)
         q_vals = np.reshape(q_vals, [-1])
-        return q_vals, q_amax, q_max
+        return q_vals
 
     def backward(self, grid, cell, action, reward, next_grid, next_cell):
         data = {
