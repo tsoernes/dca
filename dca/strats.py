@@ -6,7 +6,7 @@ import numpy as np
 from environment import Env
 from eventgen import CEvent
 from grid import RhombusAxialGrid
-from utils import h5py_save_append
+from replaybuffer import ReplayBuffer
 
 Cell = Tuple[int, int]
 
@@ -25,18 +25,11 @@ class Strat:
                                 self.logger)
         self.env = Env(self.pp, grid, self.logger, pid)
         self.state = self.env.grid.state
+        self.replaybuffer = ReplayBuffer(pp['buffer_size'], self.rows,
+                                         self.cols, self.n_channels)
 
         self.quit_sim = False
         signal.signal(signal.SIGINT, self.exit_handler)
-
-        self.experience_store = {
-            'grids': [],
-            'cells': [],
-            'actions': [],
-            'rewards': [],
-            'next_grids': [],
-            'next_cells': [],
-        }
 
     def exit_handler(self, *args):
         """
@@ -66,11 +59,10 @@ class Strat:
                                       ce_type)
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
-                    and next_ch is not None \
                     and ce_type != CEvent.END \
                     and next_cevent[1] != CEvent.END:
                 # Only add (s, a, r, s', a') tuples for which the events in
-                # s and s' are not END events, and for which there are
+                # s are not END events, and for which there are
                 # available actions a and a'.
                 # If there are no available actions, that is, there are no
                 # free channels which to assign, the neural net is not used
@@ -79,14 +71,10 @@ class Strat:
                 # supposed to predict the q-values for different channel
                 # assignments; however the channels available for reassignment
                 # are always busy in a grid corresponding to an END event.
-                s_new = np.copy(self.state)
-                cell_new = next_cevent[2]
-                self.experience_store['grids'].append(grid)
-                self.experience_store['cells'].append(cell)
-                self.experience_store['actions'].append(ch)
-                self.experience_store['rewards'].append(reward)
-                self.experience_store['next_grids'].append(s_new)
-                self.experience_store['next_cells'].append(cell_new)
+                next_grid = np.copy(self.state)
+                next_cell = next_cevent[2]
+                self.replaybuffer.add(grid, cell, ch, reward, next_grid,
+                                      next_cell)
 
             if i % self.pp['log_iter'] == 0 and i > 0:
                 self.fn_report()
@@ -97,20 +85,12 @@ class Strat:
         self.env.stats.end_episode(reward)
         self.fn_after()
         if self.save:
-            self.save_experience_to_disk()
+            self.replaybuffer.save_experience_to_disk()
         if self.quit_sim and self.pp['hopt']:
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
             return 1
         return self.env.stats.block_prob_cum
-
-    def save_experience_to_disk(self):
-        raise NotImplementedError
-        # NOTE UNTESTED. May be better to append to different data sets
-        start = 10000  # Ignore initial period
-        h5py_save_append("data-experience",
-                         map(lambda li: li[start:],
-                             self.experience_store.values()))
 
     def get_init_action(self, next_cevent):
         raise NotImplementedError
@@ -353,7 +333,8 @@ class SARSAQNet(RLStrat):
     def update_qval_single(self, grid, cell: Cell, ch: int, reward, next_grid,
                            next_cell):
         """ Update qval for one experience tuple"""
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
+        loss = self.net.backward(grid, cell, [ch], [reward], next_grid,
+                                 next_cell)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
@@ -363,31 +344,11 @@ class SARSAQNet(RLStrat):
         Update qval for pp['batch_size'] experience tuples,
         randomly sampled from the experience replay memory.
         """
-        n = len(self.experience_store['grids'])
-        if n < 10000:
+        if len(self.replaybuffer) < 1000:
             # Can't backprop before exp store has enough experiences
             return
-        # Only train on the last 1000 tuples
-        idxs = np.random.randint(max(0, n - 1000), n, self.batch_size)
-        grids = np.zeros(
-            (self.batch_size, self.rows, self.cols, self.n_channels),
-            dtype=np.int8)
-        cells = []
-        actions = np.zeros(self.batch_size, dtype=np.int32)
-        rewards = np.zeros(self.batch_size, dtype=np.float32)
-        next_grids = np.zeros(
-            (self.batch_size, self.rows, self.cols, self.n_channels),
-            dtype=np.int8)
-        next_cells = []
-        for i, idx in enumerate(idxs):
-            grids[i][:] = self.experience_store['grids'][idx]
-            cells.append(self.experience_store['cells'][idx])
-            actions[i] = self.experience_store['actions'][idx]
-            rewards[i] = self.experience_store['rewards'][idx]
-            next_grids[i][:] = self.experience_store['next_grids'][idx]
-            next_cells.append(self.experience_store['next_cells'][idx])
-        loss = self.net.backward_exp_replay(grids, cells, actions, rewards,
-                                            next_grids, next_cells)
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True

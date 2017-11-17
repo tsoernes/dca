@@ -114,6 +114,11 @@ def get_pparams():
         help="(Net) Batch size for experience replay",
         default=10)
     parser.add_argument(
+        '--buffer_size',
+        type=int,
+        help="(Net) Buffer size for experience replay",
+        default=5000)
+    parser.add_argument(
         '--bench_batch_size',
         action='store_true',
         help="(Net) Benchmark batch size for neural network",
