@@ -7,6 +7,7 @@ from functools import partial
 from multiprocessing import Pool
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 import grid
 from gui import Gui
@@ -31,6 +32,8 @@ class Runner:
             self.hopt()
         elif self.pp['hopt_best']:
             self.hopt_best()
+        elif self.pp['hopt_plot']:
+            self.hopt_plot()
         elif self.pp['avg_runs'] > 1:
             self.avg_run()
         elif self.pp['strat'] == 'show':
@@ -138,9 +141,12 @@ class Runner:
         stratclass = self.get_strat_class()
         if 'net' in self.pp['strat'].lower():
             space = {
-                'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(1e-3)),
+                'net_lr':
+                hp.loguniform('net_lr', np.log(1e-5), np.log(1e-3)),
+                'net_copy_iter':
+                hp.loguniform('net_copy_iter', np.log(10), np.log(5000)),
             }
-            self.pp['n_events'] = 100000
+            self.pp['n_events'] = 60000
             trials_step = 1  # Number of trials to run before saving
             n_avg = 1
         else:
@@ -191,6 +197,23 @@ class Runner:
                     f"Loss: {b['result']['loss']}\n{b['misc']['vals']}")
         except FileNotFoundError:
             self.logger.error(f"Could not find {f_name}")
+            raise
+
+    def hopt_plot(self):
+        f_name = f"results-{self.pp['strat']}.pkl"
+        try:
+            with open(f_name, "rb") as f:
+                trials = pickle.load(f)
+        except FileNotFoundError:
+            self.logger.error(f"Could not find {f_name}")
+            raise
+        losses = trials.losses()
+        n_params = len(trials.vals.keys())
+        for i, (param, values) in zip(range(n_params), trials.vals.items()):
+            pl1 = plt.subplot(n_params, 1, i + 1)
+            pl1.plot(values, losses, 'ro')
+            plt.xlabel(param)
+        plt.show()
 
 
 if __name__ == '__main__':
