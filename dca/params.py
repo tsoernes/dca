@@ -107,7 +107,7 @@ def get_pparams():
         default=False)
 
     parser.add_argument(
-        '--net_lr', type=float, help="(Net) Learning rate", default=9e-5)
+        '--net_lr', type=float, help="(Net) Learning rate", default=5e-5)
     parser.add_argument(
         '--batch_size',
         type=int,
@@ -127,7 +127,7 @@ def get_pparams():
         '--net_copy_iter',
         type=int,
         help="(Net) Copy weights from online to target every n iter",
-        default=1000)
+        default=100)
     parser.add_argument(
         '--train_net',
         action='store_true',
@@ -176,6 +176,7 @@ def get_pparams():
 
     # iterations can be approximated from hours with:
     # iters = 7821* hours - 2015
+
     args = parser.parse_args()
     params = vars(args)
 

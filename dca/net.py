@@ -134,18 +134,18 @@ class Net:
                 activation_fn=tf.nn.relu)
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
-                filters=140,
+                filters=70,
                 kernel_size=3,
                 padding="same",
                 activation=tf.nn.relu)
             stacked = tf.concat([conv2, cell], axis=3)
             conv2_flat = tf.layers.flatten(stacked)
 
-            dense = tf.layers.dense(
-                inputs=conv2_flat,
-                units=128,
-                activation=tf.nn.relu,
-                name="dense")
+            # dense = tf.layers.dense(
+            #     inputs=conv2_flat,
+            #     units=128,
+            #     activation=tf.nn.relu,
+            #     name="dense")
             q_vals = tf.layers.dense(
                 inputs=conv2_flat, units=70, name="q_vals")
         trainable_vars = tf.get_collection(
