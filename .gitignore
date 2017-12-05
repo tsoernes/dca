@@ -3,6 +3,8 @@ dca/model/
 *.npy
 data-experience*
 logs/
+*.json
+*.pkl
 
 .idea/
 # Byte-compiled / optimized / DLL files

@@ -141,7 +141,7 @@ class Runner:
         return result
 
     def show(self):
-        g = grid.RhombAxGrid(logger=self.logger, **self.pp)
+        g = grid.RhombusAxialGrid(logger=self.logger, **self.pp)
         gui = Gui(g, self.logger, g.print_neighs, "rhomb")
         # grid = RectOffGrid(logger=self.logger, **self.pp)
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
@@ -161,7 +161,7 @@ class Runner:
                 'net_lr':
                 hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
                 'net_copy_iter':
-                hp.loguniform('net_copy_iter', np.log(20), np.log(200)),
+                hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
                 # 'batch_size':
                 # scope.int(hp.uniform('batch_size', 8, 16)),
                 # 'buffer_size':
