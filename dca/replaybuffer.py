@@ -2,9 +2,11 @@ import numpy as np
 import operator
 import random
 
+from utils import h5py_save_append
+
 
 class ReplayBuffer(object):
-    def __init__(self, size):
+    def __init__(self, size, rows, cols, n_channels):
         """Create Prioritized Replay buffer.
 
         Parameters
@@ -16,6 +18,10 @@ class ReplayBuffer(object):
         self._storage = []
         self._maxsize = size
         self._next_idx = 0
+
+        self.rows = rows
+        self.cols = cols
+        self.n_channels = n_channels
 
     def __len__(self):
         return len(self._storage)
@@ -39,15 +45,15 @@ class ReplayBuffer(object):
         next_grids = np.zeros(
             (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
         next_cells = []
-        for i in idxes:
-            data = self._storage[i]
+        for i, j in enumerate(idxes):
+            data = self._storage[j]
             grid, cell, action, reward, next_grid, next_cell = data
-            grids[i][:] = np.array(grid, copy=False)
+            grids[i][:] = grid
             cells.append(cell)
-            actions[i] = np.array(action, copy=False)
-            rewards[i] = np.array(reward, copy=False)
-            next_grids[i][:] = np.array(next_grid, copy=False)
-            next_cells.append(next_cells)
+            actions[i] = action
+            rewards[i] = reward
+            next_grids[i][:] = next_grid
+            next_cells.append(next_cell)
         return grids, cells, actions, rewards, next_grids, next_cells
 
     def sample(self, batch_size):
@@ -64,6 +70,14 @@ class ReplayBuffer(object):
             for _ in range(batch_size)
         ]
         return self._encode_sample(idxes)
+
+    def save_experience_to_disk(self):
+        raise NotImplementedError
+        # NOTE UNTESTED. May be better to append to different data sets
+        start = 10000  # Ignore initial period
+        h5py_save_append("data-experience",
+                         map(lambda li: li[start:],
+                             self.experience_store.values()))
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):

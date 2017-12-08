@@ -6,8 +6,6 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
-
-
 """
 consider batch norm [ioffe and szegedy, 2015]
 batch norm is inserted after fully connected or convolutional
@@ -136,19 +134,20 @@ class Net:
                 activation_fn=tf.nn.relu)
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
-                filters=140,
+                filters=70,
                 kernel_size=3,
                 padding="same",
                 activation=tf.nn.relu)
             stacked = tf.concat([conv2, cell], axis=3)
             conv2_flat = tf.layers.flatten(stacked)
 
-            dense = tf.layers.dense(
-                inputs=conv2_flat,
-                units=128,
-                activation=tf.nn.relu,
-                name="dense")
-            q_vals = tf.layers.dense(inputs=conv2_flat, units=70, name="q_vals")
+            # dense = tf.layers.dense(
+            #     inputs=conv2_flat,
+            #     units=128,
+            #     activation=tf.nn.relu,
+            #     name="dense")
+            q_vals = tf.layers.dense(
+                inputs=conv2_flat, units=70, name="q_vals")
         trainable_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
         trainable_vars_by_name = {
@@ -212,7 +211,8 @@ class Net:
         # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
-        trainer = tf.train.MomentumOptimizer(learning_rate=self.alpha, momentum=0.95)
+        trainer = tf.train.MomentumOptimizer(
+            learning_rate=self.alpha, momentum=0.95)
         self.do_train = trainer.minimize(self.loss, var_list=online_vars)
 
         # Write out statistics to file
@@ -350,48 +350,20 @@ class Net:
         q_vals = np.reshape(q_vals, [-1])
         return q_vals
 
-    def backward(self, grid, cell, action, reward, next_grid, next_cell):
-        self.copy_online_to_target
+    def backward(self, grids, cells, actions, rewards, next_grids, next_cells):
+        # Get expected returns following a greedy policy from the
+        # next state: max a': Q(s', a', w_old)
         data = {
-            self.grid: self.prep_data_grids(grid),
-            self.cell: self.prep_data_cells(cell),
-            self.action: np.array([action], dtype=np.int32),
-            self.reward: np.array([reward], dtype=np.float32),
-            self.next_grid: self.prep_data_grids(next_grid),
-            self.next_cell: self.prep_data_cells(next_cell),
+            self.grid: self.prep_data_grids(grids),
+            self.cell: self.prep_data_cells(cells),
+            self.action: actions,
+            self.reward: rewards,
+            self.next_grid: self.prep_data_grids(next_grids),
+            self.next_cell: self.prep_data_cells(next_cells),
         }
         _, loss = self.sess.run(
             [self.do_train, self.loss],
             feed_dict=data,
-            options=self.options,
-            run_metadata=self.run_metadata)
-        if np.isnan(loss) or np.isinf(loss):
-            self.logger.error(f"Invalid loss: {loss}")
-        return loss
-
-    def backward_exp_replay(self, grids, cells, actions, rewards, next_grids,
-                            next_cells):
-        # Get expected returns following a greedy policy from the
-        # next state: max a': Q(s', a', w_old)
-        next_data = {
-            self.grid: self.prep_data_grids(next_grids),
-            self.cell: self.prep_data_cells(next_cells)
-        }
-        next_q_maxs = self.sess.run(
-            self.q_max,
-            feed_dict=next_data,
-            options=self.options,
-            run_metadata=self.run_metadata)
-        q_targets = rewards + self.gamma * next_q_maxs
-        curr_data = {
-            self.grid: self.prep_data_grids(grids),
-            self.cell: self.prep_data_cells(cells),
-            self.action: actions,
-            self.target_q: q_targets
-        }
-        _, loss = self.sess.run(
-            [self.do_train, self.loss],
-            feed_dict=curr_data,
             options=self.options,
             run_metadata=self.run_metadata)
         if np.isnan(loss) or np.isinf(loss):

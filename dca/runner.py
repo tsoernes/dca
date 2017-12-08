@@ -7,6 +7,7 @@ from functools import partial
 from multiprocessing import Pool
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 import grid
 from gui import Gui
@@ -31,6 +32,8 @@ class Runner:
             self.hopt()
         elif self.pp['hopt_best']:
             self.hopt_best()
+        elif self.pp['hopt_plot']:
+            self.hopt_plot()
         elif self.pp['avg_runs'] > 1:
             self.avg_run()
         elif self.pp['strat'] == 'show':
@@ -50,16 +53,23 @@ class Runner:
 
     def avg_run(self):
         t = time.time()
-        n_eps = self.pp['avg_runs']
+        n_runs = self.pp['avg_runs']
         stratclass = self.get_strat_class()
         simproc = partial(self.sim_proc, stratclass, self.pp)
+        if self.pp['net']:
+            results = []
+            for i in range(n_runs):
+                res = simproc(i)
+                if np.isnan(res) or np.isinf(res):
+                    break
+                results.append(res)
         with Pool() as p:
-            results = p.map(simproc, range(n_eps))
+            results = p.map(simproc, range(n_runs))
         n_events = self.pp['n_events']
         self.logger.error(
-            f"\n{n_eps}x{n_events} events finished with speed"
-            f" {(n_eps*n_events)/(time.time()-t):.0f} episodes/second"
-            f"\nAverage cumulative block probability over {n_eps} episodes:"
+            f"\n{n_runs}x{n_events} events finished with speed"
+            f" {(n_runs*n_events)/(time.time()-t):.0f} episodes/second"
+            f"\nAverage cumulative block probability over {n_runs} episodes:"
             f" {np.mean(results):.4f}"
             f" with standard deviation {np.std(results):.5f}"
             f"\n{results}")
@@ -106,15 +116,24 @@ class Runner:
     @staticmethod
     def hopt_proc(stratclass, pp, space, n_avg=6):
         """
-        n_avg: Number of runs to run in parallell and take the average of
+        n_avg: Number of runs to take the average of.
+        For non-net strats, these are run in parallell.
         """
         for key, val in space.items():
             pp[key] = val
         simproc = partial(Runner.sim_proc, stratclass, pp)
         logger = logging.getLogger('')
         logger.error(space)
-        with Pool() as p:
-            results = p.map(simproc, range(n_avg))
+        if pp['net']:
+            results = []
+            for i in range(n_avg):
+                res = simproc(pid=i)
+                if np.isnan(res) or np.isinf(res):
+                    break
+                results.append(res)
+        else:
+            with Pool() as p:
+                results = p.map(simproc, range(n_avg))
         for res in results:
             if np.isnan(res) or np.isinf(res):
                 return {"status": "fail"}
@@ -122,7 +141,7 @@ class Runner:
         return result
 
     def show(self):
-        g = grid.RhombAxGrid(logger=self.logger, **self.pp)
+        g = grid.RhombusAxialGrid(logger=self.logger, **self.pp)
         gui = Gui(g, self.logger, g.print_neighs, "rhomb")
         # grid = RectOffGrid(logger=self.logger, **self.pp)
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
@@ -135,14 +154,22 @@ class Runner:
         automatically resumes if file already exists.
         """
         from hyperopt import fmin, tpe, hp, Trials
+        from hyperopt.pyll.base import scope
         stratclass = self.get_strat_class()
-        if 'net' in self.pp['strat'].lower():
+        if self.pp['net']:
             space = {
-                'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(1e-3)),
+                'net_lr':
+                hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
+                'net_copy_iter':
+                hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
+                # 'batch_size':
+                # scope.int(hp.uniform('batch_size', 8, 16)),
+                # 'buffer_size':
+                # scope.int(hp.uniform('buffer_size', 2000, 10000))
             }
             self.pp['n_events'] = 100000
             trials_step = 1  # Number of trials to run before saving
-            n_avg = 1
+            n_avg = 2
         else:
             space = {
                 'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
@@ -191,6 +218,23 @@ class Runner:
                     f"Loss: {b['result']['loss']}\n{b['misc']['vals']}")
         except FileNotFoundError:
             self.logger.error(f"Could not find {f_name}")
+            raise
+
+    def hopt_plot(self):
+        f_name = f"results-{self.pp['strat']}.pkl"
+        try:
+            with open(f_name, "rb") as f:
+                trials = pickle.load(f)
+        except FileNotFoundError:
+            self.logger.error(f"Could not find {f_name}")
+            raise
+        losses = trials.losses()
+        n_params = len(trials.vals.keys())
+        for i, (param, values) in zip(range(n_params), trials.vals.items()):
+            pl1 = plt.subplot(n_params, 1, i + 1)
+            pl1.plot(values, losses, 'ro')
+            plt.xlabel(param)
+        plt.show()
 
 
 if __name__ == '__main__':

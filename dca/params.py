@@ -100,14 +100,24 @@ def get_pparams():
         action='store_true',
         help="Show best params found and corresponding loss for a given strat",
         default=False)
+    parser.add_argument(
+        '--hopt_plot',
+        action='store_true',
+        help="Plot params found and corresponding loss for a given strat",
+        default=False)
 
     parser.add_argument(
-        '--net_lr', type=float, help="(Net) Learning rate", default=9e-5)
+        '--net_lr', type=float, help="(Net) Learning rate", default=5e-5)
     parser.add_argument(
         '--batch_size',
         type=int,
         help="(Net) Batch size for experience replay",
         default=10)
+    parser.add_argument(
+        '--buffer_size',
+        type=int,
+        help="(Net) Buffer size for experience replay",
+        default=5000)
     parser.add_argument(
         '--bench_batch_size',
         action='store_true',
@@ -115,7 +125,9 @@ def get_pparams():
         default=False)
     parser.add_argument(
         '--net_copy_iter',
-        type=int, help="(Net) Copy weights from online to target every n iter", default=1000)
+        type=int,
+        help="(Net) Copy weights from online to target every n iter",
+        default=100)
     parser.add_argument(
         '--train_net',
         action='store_true',
@@ -164,6 +176,7 @@ def get_pparams():
 
     # iterations can be approximated from hours with:
     # iters = 7821* hours - 2015
+
     args = parser.parse_args()
     params = vars(args)
 
