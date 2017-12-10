@@ -2,7 +2,7 @@
 from math import cos, radians, sin, sqrt
 from tkinter import Canvas, Frame, Tk
 
-from grid import Grid
+from grid import RhombusAxialGrid
 
 label_colors = [
     '#FF2D00', '#FFD800', '#00FF68', '#00FFE4', '#0059FF', '#A200FF', '#FF00F7'
@@ -71,12 +71,14 @@ class HexagonGrid(Frame):
                  size=80,
                  color="#a1e2a1",
                  marked_color="#000000",
-                 bg="#a1e2a1",
+                 bg="#ffffff",
                  show_coords=True,
+                 show_labels=False,
                  shape="rhomb",
                  *args,
                  **kwargs):
         '''
+                 bg="#a1e2a1",
         :param Tk parent
         :param int cols
         :param int rows
@@ -104,10 +106,11 @@ class HexagonGrid(Frame):
         elif shape == "rhomb":
             self.left_offset = size
             self.top_offset = 1
-            width = sqrt(3) * size * (rows + cols / 2)
+            width = sqrt(3) * size * (rows + cols)
+            # width = sqrt(3) * size * (rows + cols / 2)
             height = (rows + 1 / 2) * 1.5 * size + self.top_offset
             self.can = Canvas(self, width=width, height=height, bg=bg)
-            self.init_grid_rhomb(rows, cols, size, show_coords)
+            self.init_grid_rhomb(rows, cols, size, show_coords, show_labels)
         else:
             print(f"Invalid shape {shape}")
             raise Exception
@@ -143,7 +146,8 @@ class HexagonGrid(Frame):
                         text=coords)
             self.hexagons.append(hxs)
 
-    def init_grid_rhomb(self, rows, cols, size, show_coords):
+    def init_grid_rhomb(self, rows, cols, size, show_coords,
+                        show_labels=False):
         col_offset = 0
         for r in range(rows):
             hxs = []
@@ -154,7 +158,8 @@ class HexagonGrid(Frame):
                     c * (size * sqrt(3)) + col_offset + self.left_offset,
                     (r * (size * 1.5)) + self.top_offset,
                     size,
-                    color=label_colors[label],
+                    color="white",
+                    # color=label_colors[label],
                     top="pointy",
                     tags="{},{}-{}".format(r, c, label))
                 hxs.append(h)
@@ -166,6 +171,12 @@ class HexagonGrid(Frame):
                         (r * (size * 1.5)) + size / 3,
                         text=coords,
                         font=("Arial", 16, "bold"))
+                if show_labels:
+                    self.can.create_text(
+                        c * (size * sqrt(3)) + size + col_offset,
+                        (r * (size * 1.5)) + size,
+                        text=label,
+                        font=("Arial", 18))
             col_offset += size * sqrt(3) / 2
             self.hexagons.append(hxs)
 
@@ -197,7 +208,11 @@ class HexagonGrid(Frame):
 
 
 class Gui:
-    def __init__(self, grid, exit_handler, cell_printer, shape="rhomb"):
+    def __init__(self, grid, exit_handler, cell_printer):
+        if type(grid) == RhombusAxialGrid:
+            shape = "rhomb"
+        else:
+            shape = "rect"
         self.grid = grid
         self.root = Tk()
         self.hgrid = HexagonGrid(
@@ -207,6 +222,7 @@ class Gui:
             grid.labels,
             cell_printer,
             show_coords=True,
+            show_labels=False,
             shape=shape)
         # Call 'keydown' func for graceful exit on 'q' key
         # or on window close
@@ -246,7 +262,6 @@ class Gui:
 # TODO: Use a gradient color scheme for cells; i.e.
 # the more busy a cell is, the darker/denser its color
 if __name__ == '__main__':
-    g = Grid(7, 7, 70)
-    gui = Gui(g, None, "rhomb")
-    gui.neighs(1)
+    g = RhombusAxialGrid(1, 3, 70, None)
+    gui = Gui(g, None, None)
     gui.test()
