@@ -2,7 +2,7 @@
 from math import cos, radians, sin, sqrt
 from tkinter import Canvas, Frame, Tk
 
-from grid import RhombusAxialGrid
+from grid import RectOffsetGrid, RhombusAxialGrid
 
 label_colors = [
     '#FF2D00', '#FFD800', '#00FF68', '#00FFE4', '#0059FF', '#A200FF', '#FF00F7'
@@ -64,6 +64,7 @@ class Hexagon:
 class HexagonGrid(Frame):
     def __init__(self,
                  parent,
+                 grid,
                  rows,
                  cols,
                  labels,
@@ -94,6 +95,7 @@ class HexagonGrid(Frame):
         self.color = color
         self.marked_color = marked_color
         self.cell_printer = cell_printer
+        self.grid = grid
 
         self.hexagons = []
         if shape == "rect":
@@ -158,8 +160,7 @@ class HexagonGrid(Frame):
                     c * (size * sqrt(3)) + col_offset + self.left_offset,
                     (r * (size * 1.5)) + self.top_offset,
                     size,
-                    color="white",
-                    # color=label_colors[label],
+                    color=label_colors[label],
                     top="pointy",
                     tags="{},{}-{}".format(r, c, label))
                 hxs.append(h)
@@ -192,10 +193,11 @@ class HexagonGrid(Frame):
         for li in self.hexagons:
             for h in li:
                 self.can.itemconfigure(h.tags, fill=h.color)
-        self.can.itemconfigure(clicked, fill=self.marked_color)
+        # self.can.itemconfigure(clicked, fill=self.marked_color)
         tags = self.can.gettags(clicked)[0]
         # TODO find row, col of clicked hexagon
-        self.cell_printer(int(tags[0]), int(tags[2]))
+        self.mark_neighs(int(tags[0]), int(tags[2]))
+        # self.cell_printer(int(tags[0]), int(tags[2]))
         # print(tags)
 
     def mark_cell(self, row, col):
@@ -205,6 +207,22 @@ class HexagonGrid(Frame):
     def unmark_cell(self, row, col):
         h = self.hexagons[row][col]
         self.can.itemconfigure(h.tags, fill=h.color)
+
+    def mark_neighs(self, row, col, delete_other=False):
+        if delete_other:
+            neighs = self.grid.neighbors2(row, col)
+            for r, li in enumerate(self.hexagons):
+                for c, h in enumerate(li):
+                    if (r, c) not in neighs:
+                        self.can.delete(h.shape)
+        h = self.hexagons[row][col]
+        self.can.itemconfigure(h.tags, fill="#808080")
+        for neigh in self.grid.neighbors2(row, col):
+            h = self.hexagons[neigh[0]][neigh[1]]
+            self.can.itemconfigure(h.tags, fill="#DCDCDC")
+        for neigh in self.grid.neighbors1(row, col):
+            h = self.hexagons[neigh[0]][neigh[1]]
+            self.can.itemconfigure(h.tags, fill="#C0C0C0")
 
 
 class Gui:
@@ -217,6 +235,7 @@ class Gui:
         self.root = Tk()
         self.hgrid = HexagonGrid(
             self.root,
+            grid,
             grid.rows,
             grid.cols,
             grid.labels,
@@ -237,31 +256,11 @@ class Gui:
     def test(self):
         self.root.mainloop()
 
-    def neighs(self, radius=1, grayscale=False):
-        raise NotImplementedError
-        x, y = 4, 4
-        neighs = [(x, y)]
-        if radius == 1:
-            neighs += self.grid.neighbors1(x, y)
-        else:
-            neighs += self.grid.neighbors2(x, y)
-        for r, li in enumerate(self.hgrid.hexagons):
-            for c, h in enumerate(li):
-                if (r, c) not in neighs:
-                    self.hgrid.can.delete(h.shape)
-        if grayscale:
-            # TODO Find colors
-            for neigh in self.grid.neighbors1(x, y):
-                h = self.hgrid.hexagons[neigh[0]][neigh[1]]
-                self.hgrid.can.itemconfigure(h.tags, fill="")
-            for neigh in self.grid.neighbors2(x, y):
-                h = self.hgrid.hexagons[neigh[0]][neigh[1]]
-                self.hgrid.can.itemconfigure(h.tags, fill="")
-
 
 # TODO: Use a gradient color scheme for cells; i.e.
 # the more busy a cell is, the darker/denser its color
 if __name__ == '__main__':
-    g = RhombusAxialGrid(1, 3, 70, None)
-    gui = Gui(g, None, None)
+    # g = RhombusAxialGrid(7, 7, 70, None)
+    g = RectOffsetGrid(7, 7, 70, None)
+    gui = Gui(g, None, g.print_cell)
     gui.test()
