@@ -90,17 +90,12 @@ class RectOffsetGrid(Grid):
         Returns a list with indexes of neighbors within a radius of 1,
         not including self. The indexes may not be within grid.
         """
-        idxs = []
         if col % 2 == 0:
-            cross = row - 1
+            return [(row - 1, col), (row, col + 1), (row + 1, col + 1),
+                    (row + 1, col), (row + 1, col - 1), (row, col - 1)]
         else:
-            cross = row + 1
-        for r in range(row - 1, row + 2):
-            for c in range(col - 1, col + 2):
-                if not ((r, c) == (cross, col - 1) or
-                        (r, c) == (cross, col + 1) or (r, c) == (row, col)):
-                    idxs.append((r, c))
-        return idxs
+            return [(row - 1, col), (row - 1, col + 1), (row, col + 1),
+                    (row + 1, col), (row, col - 1), (row - 1, col - 1)]
 
     @functools.lru_cache(maxsize=None)
     def neighbors1(self, row, col):
@@ -133,7 +128,6 @@ class RectOffsetGrid(Grid):
         Returns a list with indices of neighbors within a radius of 2,
         not including self
         """
-        raise Exception
         if separate:
             rs = []
             cs = []
@@ -343,7 +337,7 @@ class RhombusAxialGrid(Grid):
         between cells with the same label ([0..6]) is at least 2
         (which corresponds to a minimum reuse distance of 3).
 
-        Returns an n*m array with the label for each cell.
+        Create an n*m array with the label for each cell.
         """
 
         def label(l, y, x):
