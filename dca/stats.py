@@ -110,12 +110,11 @@ class Stats:
                 f"\nEnded: {self.n_ended}")
         t = time.time() - self.start_time
         m, s = map(int, divmod(t, 60))
-        self.logger.warn(
-            f"\nSimulation duration: {self.t/60:.2f} sim hours(?),"
-            f" {m}m{s}s real,"
-            f" {self.i+1} episodes"
-            f" at {self.pp['n_events']/t:.0f}"
-            " episodes/second")
+        self.logger.warn(f"\nSimulation duration: {self.t/60:.2f} sim hours,"
+                         f" {m}m{s}s real,"
+                         f" {self.i+1} episodes"
+                         f" at {self.pp['n_events']/t:.0f}"
+                         " episodes/second")
         # Avoid zero divisions by adding 1 do dividers
         self.logger.error(
             f"\nT{self.pid} Blocking probability:"

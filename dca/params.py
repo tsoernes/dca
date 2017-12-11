@@ -42,7 +42,7 @@ def get_pparams():
         '--n_channels', type=int, help="number of channels", default=70)
     parser.add_argument(
         '--erlangs',
-        type=int,
+        type=float,
         help="erlangs = call_rate * call_duration"
         "\n 10 erlangs = 200 call rate, given 3 call duration"
         "\n 7.5 erlangs = 150cr, 3cd"
