@@ -96,6 +96,7 @@ class HexagonGrid(Frame):
         self.marked_color = marked_color
         self.cell_printer = cell_printer
         self.grid = grid
+        self.font_size = 28
 
         self.hexagons = []
         if shape == "rect":
@@ -144,7 +145,7 @@ class HexagonGrid(Frame):
                     self.can.create_text(
                         c * (size * 1.5) + (size),
                         (r * (size * sqrt(3))) + offset + (size / 3),
-                        font=("Arial", 16, "bold"),
+                        font=("Arial", self.font_size, "bold"),
                         text=coords)
             self.hexagons.append(hxs)
 
@@ -171,13 +172,13 @@ class HexagonGrid(Frame):
                         c * (size * sqrt(3)) + size + col_offset,
                         (r * (size * 1.5)) + size / 3,
                         text=coords,
-                        font=("Arial", 16, "bold"))
+                        font=("Arial", self.font_size, "bold"))
                 if show_labels:
                     self.can.create_text(
                         c * (size * sqrt(3)) + size + col_offset,
                         (r * (size * 1.5)) + size,
                         text=label,
-                        font=("Arial", 18))
+                        font=("Arial", self.font_size))
             col_offset += size * sqrt(3) / 2
             self.hexagons.append(hxs)
 
