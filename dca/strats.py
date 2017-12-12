@@ -126,7 +126,7 @@ class RLStrat(Strat):
     def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float64):
         raise NotImplementedError
 
-    def get_qvals(self, cell: Cell, *args):
+    def get_qvals(self, cell: Cell, *args, **kwargs):
         """
         Different strats may use additional arguments,
         depending on the features
@@ -188,7 +188,7 @@ class RLStrat(Strat):
             assert ce_type != CEvent.END
             return (None, None)
 
-        qvals = self.get_qvals(cell, n_used)
+        qvals = self.get_qvals(cell=cell, n_used=n_used, ce_type=ce_type)
         # Might do Greedy in the LImit of Exploration (GLIE) here,
         # like Boltzmann Exploration with decaying temperature.
         # Selecting a ch for reassigment is always greedy because no learning
@@ -226,7 +226,7 @@ class SARSA(RLStrat):
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels,
                                self.n_channels))
 
-    def get_qvals(self, cell: Cell, n_used):
+    def get_qvals(self, cell: Cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
 
     def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float32):
@@ -249,7 +249,7 @@ class TT_SARSA(RLStrat):
         self.k = 30
         self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
 
-    def get_qvals(self, cell: Cell, n_used):
+    def get_qvals(self, cell: Cell, n_used, *args, **kwargs):
         return self.qvals[cell][min(self.k - 1, n_used)]
 
     def update_qval(self, cell, ch, target_q):
@@ -269,7 +269,7 @@ class RS_SARSA(RLStrat):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
 
-    def get_qvals(self, cell, *args):
+    def get_qvals(self, cell, *args, **kwargs):
         return self.qvals[cell]
 
     def update_qval(self, cell, ch, target_q):
@@ -326,8 +326,13 @@ class SARSAQNet(RLStrat):
             self.update_qval(grid, cell, ch, reward, self.state, next_cell)
         return next_ch
 
-    def get_qvals(self, cell, *args):
-        qvals = self.net.forward(self.state, cell)
+    def get_qvals(self, cell, ce_type, *args, **kwargs):
+        if ce_type == CEvent.END:
+            state = np.copy(self.state)
+            state[cell] = np.zeros(self.n_channels)
+        else:
+            state = self.state
+        qvals = self.net.forward(state, cell)
         return qvals
 
     def update_qval_single(self, grid, cell: Cell, ch: int, reward, next_grid,

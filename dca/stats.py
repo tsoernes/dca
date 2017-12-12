@@ -122,8 +122,7 @@ class Stats:
             f"{self.n_handoffs_rejected/(self.n_handoffs+1):.4f} for handoffs")
         self.logger.warn(
             f"\nAverage number of calls in progress when blocking: "
-            f"{self.n_inuse_rej/(self.n_rejected+1):.2f}"
-            f"\n{n_inprogress} calls in progress at simulation end\n")
+            f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")
         if self.pp['do_plot']:
             self.plot()
 

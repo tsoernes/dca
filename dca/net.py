@@ -120,18 +120,18 @@ class Net:
 
     def _build_qnet(self, grid, cell, name):
         with tf.variable_scope(name) as scope:
-            # conv1 = tf.layers.conv2d(
-            #     inputs=self.input_grid,
-            #     filters=70,
-            #     kernel_size=5,
-            #     padding="same",
-            #     activation=tf.nn.relu)
-            conv1 = tf.contrib.layers.conv2d_in_plane(
+            conv1 = tf.layers.conv2d(
                 inputs=grid,
+                filters=70,
                 kernel_size=5,
-                stride=1,
-                padding="SAME",
-                activation_fn=tf.nn.relu)
+                padding="same",
+                activation=tf.nn.relu)
+            # conv1 = tf.contrib.layers.conv2d_in_plane(
+            #     inputs=grid,
+            #     kernel_size=5,
+            #     stride=1,
+            #     padding="SAME",
+            #     activation_fn=tf.nn.relu)
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
                 filters=70,

@@ -63,7 +63,7 @@ def get_pparams():
         '--n_events',
         type=int,
         help="number of events to simulate",
-        default=200000)
+        default=470000)
     parser.add_argument(
         '--avg_runs',
         type=int,
@@ -107,12 +107,13 @@ def get_pparams():
         default=False)
 
     parser.add_argument(
-        '--net_lr', type=float, help="(Net) Learning rate", default=5e-5)
+        '--net_lr', type=float, help="(Net) Learning rate", default=3.4e-5)
     parser.add_argument(
         '--batch_size',
         type=int,
-        help="(Net) Batch size for experience replay",
-        default=10)
+        help=
+        "(Net) Batch size for experience replay. A value of 1 disables exp. replay",
+        default=1)
     parser.add_argument(
         '--buffer_size',
         type=int,
@@ -127,7 +128,7 @@ def get_pparams():
         '--net_copy_iter',
         type=int,
         help="(Net) Copy weights from online to target every n iter",
-        default=100)
+        default=45)
     parser.add_argument(
         '--train_net',
         action='store_true',
