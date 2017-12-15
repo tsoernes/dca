@@ -144,8 +144,8 @@ class HexagonGrid(Frame):
                     coords = "{}, {}".format(r, c)
                     self.can.create_text(
                         c * (size * 1.5) + (size),
-                        (r * (size * sqrt(3))) + offset + (size / 3),
-                        font=("Arial", self.font_size, "bold"),
+                        (r * (size * sqrt(3))) + offset + size - size/4,
+                        font=("Times", self.font_size, "bold"),
                         text=coords)
             self.hexagons.append(hxs)
 
@@ -170,15 +170,15 @@ class HexagonGrid(Frame):
                     coords = "{}, {}".format(r, c)
                     self.can.create_text(
                         c * (size * sqrt(3)) + size + col_offset,
-                        (r * (size * 1.5)) + size / 3,
+                        (r * (size * 1.5)) + size,
                         text=coords,
-                        font=("Arial", self.font_size, "bold"))
+                        font=("Times", self.font_size, "bold"))
                 if show_labels:
                     self.can.create_text(
                         c * (size * sqrt(3)) + size + col_offset,
                         (r * (size * 1.5)) + size,
                         text=label,
-                        font=("Arial", self.font_size))
+                        font=("Times", self.font_size))
             col_offset += size * sqrt(3) / 2
             self.hexagons.append(hxs)
 
@@ -261,7 +261,7 @@ class Gui:
 # TODO: Use a gradient color scheme for cells; i.e.
 # the more busy a cell is, the darker/denser its color
 if __name__ == '__main__':
-    # g = RhombusAxialGrid(7, 7, 70, None)
-    g = RectOffsetGrid(7, 7, 70, None)
+    g = RhombusAxialGrid(7, 7, 70, None)
+    # g = RectOffsetGrid(7, 7, 70, None)
     gui = Gui(g, None, g.print_cell)
     gui.test()

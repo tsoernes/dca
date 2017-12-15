@@ -323,7 +323,8 @@ class SARSAQNet(RLStrat):
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, self.state, next_cell)
+            self.update_qval(grid, cell, ch, reward, self.state, next_cell,
+                             next_ch)
         return next_ch
 
     def get_qvals(self, cell, ce_type, *args, **kwargs):
@@ -336,7 +337,7 @@ class SARSAQNet(RLStrat):
         return qvals
 
     def update_qval_single(self, grid, cell: Cell, ch: int, reward, next_grid,
-                           next_cell):
+                           next_cell, next_ch):
         """ Update qval for one experience tuple"""
         loss = self.net.backward(grid, cell, [ch], [reward], next_grid,
                                  next_cell)
@@ -349,8 +350,9 @@ class SARSAQNet(RLStrat):
         Update qval for pp['batch_size'] experience tuples,
         randomly sampled from the experience replay memory.
         """
-        if len(self.replaybuffer) < 1000:
+        if len(self.replaybuffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
+            print("Not training" + str(len(self.replaybuffer)))
             return
         loss = self.net.backward(
             *self.replaybuffer.sample(self.pp['batch_size']))
