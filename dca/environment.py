@@ -22,7 +22,7 @@ class Env:
         # Current call event for which an action must be taken
         self.cevent = None
 
-    def init(self):
+    def init_calls(self):
         """
         Generate initial call events; one for each cell,
         and return the first event.
@@ -33,18 +33,15 @@ class Env:
         self.cevent = self.eventgen.pop()
         return self.cevent
 
-    def reset(self):
-        pass
-
     def step(self, ch: int):
         """
         Execute action 'ch' in the environment and return the
-        reward and next event
+        resulting reward and the next event
         """
         t, ce_type, cell = self.cevent[0:3]
         self.stats.iter(t, self.cevent)
 
-        # Generate new event, log statistics and update the GUI
+        # Generate next event, log statistics and update the GUI
         n_used = np.count_nonzero(self.grid.state[cell])
         if ce_type == CEvent.NEW:
             self.stats.event_new()
@@ -55,8 +52,8 @@ class Env:
                 if self.gui:
                     self.gui.hgrid.mark_cell(*cell)
             else:
-                # With some probability, generate a handoff-event
-                # instead of just an end event
+                # With some probability, hand off call instead
+                # of generating the usual END event
                 if np.random.random() < self.p_handoff:
                     self.eventgen.event_new_handoff(
                         t, cell, ch, self.grid.neighbors1(*cell))
@@ -96,8 +93,8 @@ class Env:
         For NEW or HOFF events, 'ch' specifies the channel to be assigned
         in the cell.
         For END events, 'ch' specifies the channel to be terminated. If 'ch'
-        is not equal to the channel specified to by the END event, 'ch' will
-        be reassigned to that channel.
+        is not equal to the channel specified to by the END event,
+        the call on 'ch' will be reassigned to that channel.
         """
         ce_type, cell = cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
@@ -116,9 +113,8 @@ class Env:
                 raise Exception
             if reass_ch != ch:
                 if self.grid.state[cell][ch] == 0:
-                    self.logger.error(
-                        f"Tried to reassign to call {ce_str(cevent)}"
-                        f" from ch {ch} which is not in use")
+                    self.logger.error(f"Tried to reassign to {ce_str(cevent)}"
+                                      f" from ch {ch} which is not in use")
                     raise Exception
                 self.logger.debug(f"Reassigned call in cell {cell}"
                                   f" on ch {ch} to ch {reass_ch}")

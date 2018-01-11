@@ -29,6 +29,7 @@ class Strat:
                                          self.cols, self.n_channels)
 
         self.quit_sim = False
+        self.t = 1
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -40,7 +41,7 @@ class Strat:
         self.quit_sim = True
 
     def simulate(self):
-        cevent = self.env.init()
+        cevent = self.env.init_calls()
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
@@ -48,7 +49,7 @@ class Strat:
             if self.quit_sim:
                 break  # Gracefully exit to print stats, clean up etc.
 
-            t, ce_type, cell = cevent[0:3]
+            self.t, ce_type, cell = cevent[0:3]
 
             if ch is not None:
                 # if self.save or self.batch_size > 1:
@@ -155,6 +156,37 @@ class RLStrat(Strat):
             self.update_qval(cell, ch, target_q)
         return next_ch
 
+    def policy_eps_greedy_exp(self, qvals, chs):
+        """Epsilon greedy action selection with expontential decay"""
+        if np.random.random() < self.epsilon:
+            # Choose an eligible channel at random
+            ch = np.random.choice(chs)
+        else:
+            # Choose greedily
+            idx = np.argmax(qvals[chs])
+            ch = chs[idx]
+        self.epsilon *= self.epsilon_decay  # Epsilon decay
+
+        return ch
+
+    def policy_eps_greedy_lil(self, qvals, chs):
+        epsilon = self.epsilon / np.sqrt(self.t / 256)
+        if np.random.random() < epsilon:
+            # Choose an eligible channel at random
+            ch = np.random.choice(chs)
+        else:
+            # Choose greedily
+            idx = np.argmax(qvals[chs])
+            ch = chs[idx]
+
+        return ch
+
+    def policy_boltzmann(self, qvals, chs):
+        scaled = np.exp((qvals[chs] - np.max(qvals[chs])) / self.temp)
+        probs = scaled / np.sum(scaled)
+        ch = np.random.choice(chs, p=probs)
+        return ch
+
     def optimal_ch(self, ce_type: CEvent, cell: Cell) -> Tuple[int, float]:
         # NOTE this isn't really the optimal ch since
         # it's chosen in an epsilon-greedy fashion
@@ -173,15 +205,12 @@ class RLStrat(Strat):
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = self.env.grid.get_free_chs(cell)
-            op = np.argmax
         else:
             # Channels in use at cell, including channel scheduled
             # for termination. The latter is included because it might
             # be the least valueable channel, in which case no
             # reassignment is done on call termination.
             chs = inuse
-            op = np.argmin
-
         if len(chs) == 0:
             # No channels available for assignment,
             # or no channels in use to reassign
@@ -189,26 +218,21 @@ class RLStrat(Strat):
             return (None, None)
 
         qvals = self.get_qvals(cell=cell, n_used=n_used, ce_type=ce_type)
-        # Might do Greedy in the LImit of Exploration (GLIE) here,
-        # like Boltzmann Exploration with decaying temperature.
         # Selecting a ch for reassigment is always greedy because no learning
         # is done on the reassignment actions.
-        if ce_type != CEvent.END and np.random.random() < self.epsilon:
-            # Choose an eligible channel at random
-            ch = np.random.choice(chs)
-        else:
-            # Choose greedily (either minimum or maximum)
-            idx = op(qvals[chs])
+        if ce_type == CEvent.END:
+            idx = np.argmin(qvals[chs])
             ch = chs[idx]
-            # If qvals blow up, you get a lot of 'NaN's and 'inf's
-            # in the qvals and ch becomes none.
-            if ch is None:
-                self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
-                raise Exception
+        else:
+            ch = self.policy_eps_greedy_lil(qvals, chs)
+
+        # If qvals blow up ('NaN's and 'inf's), ch becomes none.
+        if ch is None:
+            self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
+            raise Exception
 
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
-        self.epsilon *= self.epsilon_decay  # Epsilon decay
         return (ch, qvals[ch])
 
 
@@ -239,7 +263,7 @@ class SARSA(RLStrat):
 
 class TT_SARSA(RLStrat):
     """
-    State consists of coordinates + the number of used channels.
+    State consists of cell coordinates and the number of used channels.
     If the number of used channels exceeds 'k', their values are
     aggregated to 'k'.
     """
@@ -262,7 +286,7 @@ class TT_SARSA(RLStrat):
 
 class RS_SARSA(RLStrat):
     """
-    State consists of coordinates only
+    State consists of cell coordinates only
     """
 
     def __init__(self, *args, **kwargs):
@@ -354,8 +378,8 @@ class SARSAQNet(RLStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(
+            self.pp['batch_size']))
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True

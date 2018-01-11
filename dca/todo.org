@@ -1,0 +1,13 @@
+Actor-critic, Policy Gradients Etc.
+
+In Future: Distributed system with multiple agents. Cooperation, competition,
+sharing of parameters?
+
+Thesis notes:
+For the memory-less traffic modelled in the simulator, a RL-compatible model
+can be derived by using the fact that a) the minimum of several exponentially
+distributed is itself exp. dist. with some parameter, and b) given an action,
+the next allocation map is deterministic and hence the reward is deterministic.
+However, as previously discussed, this model might not be representable for real-world
+traffic and so this approach could only be used in simulation and 
+not in a deployed system.

@@ -17,7 +17,7 @@ from params import get_pparams
 
 class Runner:
     def __init__(self):
-        self.pp, self.stratclasses = get_pparams()
+        self.pp, self.stratclass = get_pparams()
 
         logging.basicConfig(level=self.pp['log_level'], format='%(message)s')
         self.logger = logging.getLogger('')
@@ -45,17 +45,10 @@ class Runner:
         else:
             self.run()
 
-    def get_strat_class(self):
-        # Override stratname with class reference
-        for name, cls in self.stratclasses:
-            if self.pp['strat'].lower() == name.lower():
-                return cls
-
     def avg_run(self):
         t = time.time()
         n_runs = self.pp['avg_runs']
-        stratclass = self.get_strat_class()
-        simproc = partial(self.sim_proc, stratclass, self.pp)
+        simproc = partial(self.sim_proc, self.stratclass, self.pp)
         if self.pp['net']:
             results = []
             for i in range(n_runs):
@@ -89,8 +82,7 @@ class Runner:
                 f"Batch size {bs} took {time.time()-t:.2f} seconds")
 
     def run(self):
-        stratclass = self.get_strat_class()
-        strat = stratclass(self.pp, logger=self.logger)
+        strat = self.stratclass(self.pp, logger=self.logger)
         if self.pp['gui']:
             # TODO Fix grid etc
             # gui = Gui(grid, strat.exit_handler, grid.print_cell)
@@ -154,8 +146,7 @@ class Runner:
         automatically resumes if file already exists.
         """
         from hyperopt import fmin, tpe, hp, Trials
-        from hyperopt.pyll.base import scope
-        stratclass = self.get_strat_class()
+        from hyperopt.pyll.base import scope  # noqa
         if self.pp['net']:
             space = {
                 'net_lr':
@@ -190,7 +181,7 @@ class Runner:
         except:
             trials = Trials()
 
-        fn = partial(Runner.hopt_proc, stratclass, self.pp, n_avg=n_avg)
+        fn = partial(Runner.hopt_proc, self.stratclass, self.pp, n_avg=n_avg)
         prev_best = {}
         while True:
             n_trials = len(trials)

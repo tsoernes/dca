@@ -23,15 +23,14 @@ def strat_classes(module_name):
 
 def get_pparams():
     """
-    Problem parameters
+    Return problem parameters and chosen strategy class
     """
     parser = argparse.ArgumentParser(
         description='DCA',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     stratclasses = strat_classes("strats") + strat_classes("fixedstrats")
-    stratnames = [n[0].lower() for n in stratclasses]
-    stratnames = stratnames + ['show']
+    stratnames = [n[0].lower() for n in stratclasses] + ['show']
 
     parser.add_argument('--strat', choices=stratnames, default='fixedassign')
     parser.add_argument(
@@ -44,7 +43,7 @@ def get_pparams():
         '--erlangs',
         type=float,
         help="erlangs = call_rate * call_duration"
-        "\n 10 erlangs = 200 call rate, given 3 call duration"
+        "\n 10 erlangs = 200 call rate, given call duration of 3"
         "\n 7.5 erlangs = 150cr, 3cd"
         "\n 5 erlangs = 100cr, 3cd",
         default=10)
@@ -75,30 +74,37 @@ def get_pparams():
     parser.add_argument(
         '--alpha_decay',
         type=float,
-        help="(RL) factor by which alpha is multiplied each iter",
+        help="(RL) factor by which alpha is multiplied each iteration",
         default=0.999998)
     parser.add_argument(
         '--epsilon',
         type=float,
-        help="(RL) probability of choosing random action",
+        help="(RL) (initial) probability of choosing random action",
         default=0.75443)
     parser.add_argument(
         '--epsilon_decay',
         type=float,
-        help="(RL) factor by which epsilon is multiplied each iter",
+        help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.99999)
     parser.add_argument(
         '--gamma', type=float, help="(RL) discount factor", default=0.85)
-    parser.add_argument('--save_exp_data', action='store_true', default=False)
+    parser.add_argument(
+        '--save_exp_data',
+        help="Save experience data to file",
+        action='store_true',
+        default=False)
     parser.add_argument(
         '--hopt',
         action='store_true',
-        help="Override default params by sampling in logspace",  # noqa
+        help="Hyper-parameter optimization with hyperopt."
+        "Saves progress to 'results-{stratname}.pkl' and"
+        "automatically resumes if file already exists.",
         default=False)
     parser.add_argument(
         '--hopt_best',
         action='store_true',
-        help="Show best params found and corresponding loss for a given strat",
+        help="Show best params found and corresponding loss for a"
+        "hopt file corresponding to selected strat",
         default=False)
     parser.add_argument(
         '--hopt_plot',
@@ -111,8 +117,8 @@ def get_pparams():
     parser.add_argument(
         '--batch_size',
         type=int,
-        help=
-        "(Net) Batch size for experience replay. A value of 1 disables exp. replay",
+        help="(Net) Batch size for experience replay."
+        "A value of 1 disables exp. replay",
         default=1)
     parser.add_argument(
         '--buffer_size',
@@ -127,7 +133,7 @@ def get_pparams():
     parser.add_argument(
         '--net_copy_iter',
         type=int,
-        help="(Net) Copy weights from online to target every n iter",
+        help="(Net) Copy weights from online to target every 'n' iterations",
         default=45)
     parser.add_argument(
         '--train_net',
@@ -155,7 +161,8 @@ def get_pparams():
         '--tfprof',
         dest='tfprofiling',
         type=str,
-        help="(Net) performance profiling for TensorFlow. Specify file name",
+        help="(Net) performance profiling for TensorFlow."
+        " Specify ouput file name",
         default="")
     parser.add_argument('--gui', action='store_true', default=False)
     parser.add_argument(
@@ -198,7 +205,10 @@ def get_pparams():
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
 
-    return params, stratclasses
+    for name, cls in stratclasses:
+        if params['strat'].lower() == name.lower():
+            stratclass = cls
+    return params, stratclass
 
 
 def non_uniform_preset(pp):
