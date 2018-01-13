@@ -152,8 +152,7 @@ class RLStrat(Strat):
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            target_q = reward + self.gamma * next_qval
-            self.update_qval(cell, ch, target_q)
+            self.update_qval(cell, ch, reward, next_qval)
         return next_ch
 
     def policy_eps_greedy_exp(self, qvals, chs):
@@ -253,11 +252,53 @@ class SARSA(RLStrat):
     def get_qvals(self, cell: Cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float32):
+    def update_qval(self, cell: Cell, ch: np.int64, reward, next_qval):
         assert type(ch) == np.int64
         n_used = np.count_nonzero(self.state[cell])
+        target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell, n_used)[ch]
         self.qvals[cell][n_used][ch] += self.alpha * td_err
+        self.alpha *= self.alpha_decay
+
+
+class N_STEP_SARSA(RLStrat):
+    """
+    State consists of coordinates and the number of used channels in that cell.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # "qvals[r][c][n_used][ch] = v"
+        # Assigning channel 'ch' to the cell at row 'r', col 'c'
+        # has q-value 'v' given that 'n_used' channels are already
+        # in use at that cell.
+        self.qvals = np.zeros((self.rows, self.cols, self.n_channels,
+                               self.n_channels))
+        self.n = 10
+        self.rewards = []
+        # State-action pairs are not update until n rewards are experienced
+        self.state_actions = []
+
+    def get_qvals(self, cell: Cell, n_used, *args, **kwargs):
+        return self.qvals[cell][n_used]
+
+    def update_qval(self, cell: Cell, ch: np.int64, reward, next_qval):
+        assert type(ch) == np.int64
+        self.rewards.append(reward)
+        n_used = np.count_nonzero(self.state[cell])
+        self.state_actions.append((cell, n_used, ch))
+        if len(self.rewards) < self.n:
+            return
+        if len(self.rewards) > self.n:
+            del self.rewards[0]
+            del self.state_actions[0]
+        target_q = 0  # reward + self.gamma * next_qval
+        for i in range(0, self.n):
+            target_q += (self.gamma**i) * self.rewards[i]
+        target_q += (self.gamma**self.n) * next_qval
+        t_cell, t_n_used, t_ch = self.state_actions[0]
+        td_err = target_q - self.get_qvals(t_cell, t_n_used)[t_ch]
+        self.qvals[t_cell][t_n_used][t_ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
 
@@ -276,9 +317,10 @@ class TT_SARSA(RLStrat):
     def get_qvals(self, cell: Cell, n_used, *args, **kwargs):
         return self.qvals[cell][min(self.k - 1, n_used)]
 
-    def update_qval(self, cell, ch, target_q):
+    def update_qval(self, cell: Cell, ch: np.int64, reward, next_qval):
         assert type(ch) == np.int64
         n_used = np.count_nonzero(self.state[cell])
+        target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell, n_used)[ch]
         self.qvals[cell][min(self.k - 1, n_used)][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
@@ -296,8 +338,9 @@ class RS_SARSA(RLStrat):
     def get_qvals(self, cell, *args, **kwargs):
         return self.qvals[cell]
 
-    def update_qval(self, cell, ch, target_q):
+    def update_qval(self, cell: Cell, ch: np.int64, reward, next_qval):
         assert type(ch) == np.int64
+        target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell)[ch]
         self.qvals[cell][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
