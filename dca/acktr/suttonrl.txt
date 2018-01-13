@@ -1,0 +1,11 @@
+page number
+text from book > correction suggestion
+
+p131
+Q-planning method given in Figure 8.1.
+> should probably reference the algorithm at the top of the page, not the figure
+
+p267
+permited by the parameterization). > permitted
+
+         
