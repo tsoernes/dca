@@ -11,7 +11,6 @@ from matplotlib import pyplot as plt
 
 import grid
 from gui import Gui
-from net import Net
 from params import get_pparams
 
 
@@ -67,19 +66,6 @@ class Runner:
             f" with standard deviation {np.std(results):.5f}"
             f"\n{results}")
         # TODO Plot average cumulative over time
-
-    def train_net(self):
-        n = Net(self.pp, self.logger)
-        n.train()
-
-    def bench_batch_size(self):
-        for bs in [256, 512, 1024, 2048]:
-            self.pp['batch_size'] = bs
-            net = Net(self.pp, self.logger, restore=False, save=False)
-            t = time.time()
-            net.train()
-            self.logger.error(
-                f"Batch size {bs} took {time.time()-t:.2f} seconds")
 
     def run(self):
         strat = self.stratclass(self.pp, logger=self.logger)

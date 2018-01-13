@@ -347,10 +347,6 @@ class RS_SARSA(RLStrat):
 
 
 class SARSAQNet(RLStrat):
-    """
-    State consists of coordinates + number of used channels.
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.losses = []
@@ -360,8 +356,8 @@ class SARSAQNet(RLStrat):
                              f" size of {self.batch_size}")
         else:
             self.update_qval = self.update_qval_single
-        from net import Net
-        self.net = Net(self.pp, self.logger, restore=False, save=False)
+        from nets.qnet import QNet
+        self.net = QNet(True, self.pp, self.logger, restore=False, save=False)
 
     def fn_report(self):
         self.env.stats.report_net(self.losses)
@@ -421,8 +417,8 @@ class SARSAQNet(RLStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(*self.replaybuffer.sample(
-            self.pp['batch_size']))
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True

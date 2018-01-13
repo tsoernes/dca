@@ -30,7 +30,7 @@ def normalized_columns_initializer(std=1.0):
 
 # ### Actor-Critic Network
 class AC_Network:
-    def __init__(self, s_size, a_size, scope, trainer):
+    def __init__(self, s_size, a_size, scope):
         with tf.variable_scope(scope):
             # Input and visual encoding layers
             self.inputs = tf.placeholder(
@@ -106,10 +106,10 @@ class AC_Network:
             self.loss = 0.5 * self.value_loss + \
                 self.policy_loss - self.entropy * 0.01
 
+            trainer = tf.train.AdamOptimizer(learning_rate=1e-4)
             # Get gradients from network using losses
-            trainable_vars = tf.get_collection(
-                tf.GraphKeys.TRAINABLE_VARIABLES)
-            self.gradients = tf.gradients(self.loss, trainable_vars)
+            self.gradients, trainable_vars = zip(
+                *trainer.compute_gradients(self.loss))
             self.var_norms = tf.global_norm(trainable_vars)
             grads, self.grad_norms = tf.clip_by_global_norm(
                 self.gradients, 40.0)
@@ -126,19 +126,16 @@ class Worker():
             game,
             s_size,
             a_size,
-            trainer,
-            model_path,
-    ):
+            model_path, ):
         self.model_path = model_path
-        self.trainer = trainer
         self.episode_rewards = []
         self.episode_lengths = []
         self.episode_mean_values = []
-        self.summary_writer = tf.summary.FileWriter("train_" + str(
-            self.number))
+        self.summary_writer = tf.summary.FileWriter("train_" +
+                                                    str(self.number))
 
         # Create the network and the
-        self.AC = AC_Network(s_size, a_size, trainer)
+        self.AC = AC_Network(s_size, a_size)
 
         self.actions = self.actions = np.identity(a_size, dtype=bool).tolist()
         # End Doom set-up
@@ -297,8 +294,7 @@ model_path = './model'
 tf.reset_default_graph()
 
 with tf.device("/cpu:0"):
-    trainer = tf.train.AdamOptimizer(learning_rate=1e-4)
-    worker = Worker(None, 0, s_size, a_size, trainer, model_path)
+    worker = Worker(None, 0, s_size, a_size, model_path)
     saver = tf.train.Saver(max_to_keep=5)
 
 with tf.Session() as sess:
