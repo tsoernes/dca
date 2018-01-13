@@ -1,11 +1,11 @@
 import multiprocessing
+import threading
+from time import sleep
+
 import numpy as np
+import scipy.signal
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-import scipy.signal
-from helper import *
-
-from time import sleep
 
 
 # ### Helper Functions
@@ -154,8 +154,8 @@ class Worker():
         self.episode_rewards = []
         self.episode_lengths = []
         self.episode_mean_values = []
-        self.summary_writer = tf.summary.FileWriter("train_" +
-                                                    str(self.number))
+        self.summary_writer = tf.summary.FileWriter("train_" + str(
+            self.number))
 
         # Create the local copy of the network and the
         # tensorflow op to copy global paramters to local network
@@ -293,15 +293,6 @@ class Worker():
                 # Periodically save gifs of episodes, model parameters,
                 # and summary statistics.
                 if episode_count % 5 == 0 and episode_count != 0:
-                    if self.name == 'worker_0' and episode_count % 25 == 0:
-                        time_per_step = 0.05
-                        images = np.array(episode_frames)
-                        make_gif(
-                            images,
-                            './frames/image' + str(episode_count) + '.gif',
-                            duration=len(images) * time_per_step,
-                            true_image=True,
-                            salience=False)
                     if episode_count % 250 == 0 and self.name == 'worker_0':
                         saver.save(sess, self.model_path + '/model-' +
                                    str(episode_count) + '.cptk')
@@ -373,8 +364,10 @@ with tf.Session() as sess:
     # Start the "work" process for each worker in a separate threat.
     worker_threads = []
     for worker in workers:
-        worker_work = \
-            lambda: worker.work(max_episode_length, gamma, sess, coord, saver)
+
+        def worker_work():
+            worker.work(max_episode_length, gamma, sess, coord, saver)
+
         t = threading.Thread(target=(worker_work))
         t.start()
         sleep(0.5)
