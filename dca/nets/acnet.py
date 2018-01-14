@@ -33,36 +33,15 @@ class ACNet(Net):
             hidden = slim.fully_connected(
                 slim.flatten(stacked), 256, activation_fn=tf.nn.elu)
 
-            # Recurrent network for temporal dependencies
-            lstm_cell = tf.contrib.rnn.BasicLSTMCell(256, state_is_tuple=True)
-            c_init = np.zeros((1, lstm_cell.state_size.c), np.float32)
-            h_init = np.zeros((1, lstm_cell.state_size.h), np.float32)
-            self.state_init = [c_init, h_init]
-            c_in = tf.placeholder(tf.float32, [1, lstm_cell.state_size.c])
-            h_in = tf.placeholder(tf.float32, [1, lstm_cell.state_size.h])
-            self.state_in = (c_in, h_in)
-            rnn_in = tf.expand_dims(hidden, [0])
-            step_size = tf.shape(grid)[:1]
-            state_in = tf.contrib.rnn.LSTMStateTuple(c_in, h_in)
-            lstm_outputs, lstm_state = tf.nn.dynamic_rnn(
-                lstm_cell,
-                rnn_in,
-                initial_state=state_in,
-                sequence_length=step_size,
-                time_major=False)
-            lstm_c, lstm_h = lstm_state
-            self.state_out = (lstm_c[:1, :], lstm_h[:1, :])
-            rnn_out = tf.reshape(lstm_outputs, [-1, 256])
-
             # Output layers for policy and value estimations
             policy = slim.fully_connected(
-                rnn_out,
+                hidden,
                 70,
                 activation_fn=tf.nn.softmax,
                 weights_initializer=normalized_columns_initializer(0.01),
                 biases_initializer=None)
             value = slim.fully_connected(
-                rnn_out,
+                hidden,
                 1,
                 activation_fn=None,
                 weights_initializer=normalized_columns_initializer(1.0),
@@ -87,6 +66,9 @@ class ACNet(Net):
             shape=[None], dtype=tf.int32, name="action")
         self.reward = tf.placeholder(
             shape=[None], dtype=tf.float32, name="reward")
+
+        # These are not currently in use, but
+        # could perhaps be if stop-gradient is used, and rewards are inputted
         self.next_grid = tf.placeholder(
             shape=gridshape, dtype=tf.float32, name="next_grid")
         self.next_cell = tf.placeholder(
@@ -101,6 +83,9 @@ class ACNet(Net):
             self.grid, self.cell, name="ac_network")
         target_q_vals, target_vars = self._build_qnet(
             self.next_grid, self.next_cell, name="q_networks/target")
+
+        self.responsible_outputs = tf.reduce_sum(self.policy * self.actions,
+                                                 [1])
 
         self.value_loss = 0.5 * tf.reduce_sum(
             tf.square(self.target_v - tf.reshape(self.value, [-1])))
