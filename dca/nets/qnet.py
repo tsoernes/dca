@@ -120,16 +120,16 @@ class QNet(Net):
             labels=tf.stop_gradient(self.q_target),
             predictions=self.online_q_selected)
 
-        # trainer = tf.train.AdamOptimizer(learning_rate=self.alpha)
-        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.alpha)
-        # trainer = tf.train.RMSPropOptimizer(learning_rate=self.alpha)
+        # trainer = tf.train.AdamOptimizer(learning_rate=self.l_rate)
+        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.l_rate)
+        # trainer = tf.train.RMSPropOptimizer(learning_rate=self.l_rate)
         # trainer = tf.train.MomentumOptimizer(
-        #     learning_rate=self.alpha, momentum=0.95)
+        #     learning_rate=self.l_rate, momentum=0.95)
         self.do_train = trainer.minimize(self.loss, var_list=online_vars)
 
         # Write out statistics to file
         with tf.name_scope("summaries"):
-            tf.summary.scalar("learning_rate", self.alpha)
+            tf.summary.scalar("learning_rate", self.l_rate)
             tf.summary.scalar("loss", self.loss)
             tf.summary.histogram("qvals", self.online_q_vals)
         self.summaries = tf.summary.merge_all()

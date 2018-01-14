@@ -1,5 +1,6 @@
 ## Todo DCA
 
+- Make Qnet work again!
 - Actor-Critic
 - Expected SARSA
 - Tree backup

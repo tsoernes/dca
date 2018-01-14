@@ -63,7 +63,7 @@ class Net:
     def __init__(self, pp, logger, name, restore=True, save=True):
         self.logger = logger
         self.save = save
-        self.alpha = pp['net_lr']
+        self.l_rate = pp['net_lr']
         self.gamma = pp['gamma']
         self.batch_size = pp['batch_size']
         self.n_channels = pp['n_channels']

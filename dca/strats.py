@@ -223,7 +223,7 @@ class RLStrat(Strat):
             idx = np.argmin(qvals[chs])
             ch = chs[idx]
         else:
-            ch = self.policy_eps_greedy_lil(qvals, chs)
+            ch = self.policy_eps_greedy_exp(qvals, chs)
 
         # If qvals blow up ('NaN's and 'inf's), ch becomes none.
         if ch is None:
