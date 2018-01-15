@@ -1,4 +1,5 @@
 from nets.net import Net
+from nets.utils import prep_data_grids, prep_data_cells
 
 import tensorflow as tf
 import numpy as np
@@ -141,8 +142,8 @@ class QNet(Net):
         q_vals = self.sess.run(
             [self.online_q_vals],
             feed_dict={
-                self.grid: self.prep_data_grids(grid),
-                self.cell: self.prep_data_cells(cell)
+                self.grid: prep_data_grids(grid),
+                self.cell: prep_data_cells(cell)
             },
             options=self.options,
             run_metadata=self.run_metadata)
@@ -162,12 +163,12 @@ class QNet(Net):
         else greedy selection (Q-Learning)
         """
         data = {
-            self.grid: self.prep_data_grids(grids),
-            self.cell: self.prep_data_cells(cells),
+            self.grid: prep_data_grids(grids),
+            self.cell: prep_data_cells(cells),
             self.action: actions,
             self.reward: rewards,
-            self.next_grid: self.prep_data_grids(next_grids),
-            self.next_cell: self.prep_data_cells(next_cells),
+            self.next_grid: prep_data_grids(next_grids),
+            self.next_cell: prep_data_cells(next_cells),
         }
         if next_actions:
             data[self.next_action] = next_actions
