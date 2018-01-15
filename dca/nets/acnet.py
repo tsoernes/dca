@@ -2,17 +2,15 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
+import nets.utils as nutils
 from nets.net import Net
-from nets.utils import normalized_columns_initializer
 
 
 class ACNet(Net):
-    def __init__(self, max_next_action=True, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
-        Lagging QNet. If 'max_next_action', perform greedy
-        Q-learning updates, else SARSA updates.
         """
-        self.max_next_action = max_next_action
+        self.max_grad_norm = 40.0
         super().__init__(name="ACNet", *args, **kwargs)
 
     def _build_net(self, grid, cell, name):
@@ -38,13 +36,14 @@ class ACNet(Net):
                 hidden,
                 70,
                 activation_fn=tf.nn.softmax,
-                weights_initializer=normalized_columns_initializer(0.01),
+                weights_initializer=nutils.normalized_columns_initializer(
+                    0.01),
                 biases_initializer=None)
             value = slim.fully_connected(
                 hidden,
                 1,
                 activation_fn=None,
-                weights_initializer=normalized_columns_initializer(1.0),
+                weights_initializer=nutils.normalized_columns_initializer(1.0),
                 biases_initializer=None)
         trainable_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
@@ -84,10 +83,12 @@ class ACNet(Net):
         target_q_vals, target_vars = self._build_qnet(
             self.next_grid, self.next_cell, name="q_networks/target")
 
-        self.responsible_outputs = tf.reduce_sum(self.policy * self.actions,
-                                                 [1])
+        action_oh = tf.one_hot(
+            self.actions, self.pp['n_channels'], dtype=tf.float32)
+        self.responsible_outputs = tf.reduce_sum(self.policy * action_oh, [1])
 
-        self.value_loss = 0.5 * tf.reduce_sum(
+        # TODO Perhaps these should be 'reduce_mean' instead.
+        self.value_loss = tf.reduce_sum(
             tf.square(self.target_v - tf.reshape(self.value, [-1])))
         self.entropy = -tf.reduce_sum(self.policy * tf.log(self.policy))
         self.policy_loss = -tf.reduce_sum(
@@ -101,8 +102,7 @@ class ACNet(Net):
         #     learning_rate=self.alpha, momentum=0.95)
         gradients = tf.gradients(self.loss, trainable_vars)
         clipped_grads, self.grad_norms = tf.clip_by_global_norm(
-            gradients, 40.0)
-
+            gradients, self.max_grad_norm)
         # Apply gradients to network
         self.do_train = trainer.apply_gradients(
             zip(clipped_grads, trainable_vars))
@@ -118,16 +118,17 @@ class ACNet(Net):
         self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
 
     def forward(self, grid, cell):
-        q_vals = self.sess.run(
-            [self.online_q_vals],
+        a_dist, val = self.sess.run(
+            [self.policy, self.value],
             feed_dict={
-                self.grid: self.prep_data_grids(grid),
-                self.cell: self.prep_data_cells(cell)
+                self.grid: nutils.prep_data_grids(grid),
+                self.cell: nutils.prep_data_cells(cell)
             },
             options=self.options,
             run_metadata=self.run_metadata)
-        q_vals = np.reshape(q_vals, [-1])
-        return q_vals
+        a = np.random.choice(a_dist[0], p=a_dist[0])
+        a = np.argmax(a_dist == a)
+        return a, val
 
     def backward(self,
                  grids,
@@ -137,17 +138,13 @@ class ACNet(Net):
                  next_grids,
                  next_cells,
                  next_actions=None):
-        """
-        If 'next_actions' are specified, do SARSA update,
-        else greedy selection (Q-Learning)
-        """
         data = {
-            self.grid: self.prep_data_grids(grids),
-            self.cell: self.prep_data_cells(cells),
+            self.grid: nutils.prep_data_grids(grids),
+            self.cell: nutils.prep_data_cells(cells),
             self.action: actions,
             self.reward: rewards,
-            self.next_grid: self.prep_data_grids(next_grids),
-            self.next_cell: self.prep_data_cells(next_cells),
+            self.next_grid: nutils.prep_data_grids(next_grids),
+            self.next_cell: nutils.prep_data_cells(next_cells),
         }
         if next_actions:
             data[self.next_action] = next_actions

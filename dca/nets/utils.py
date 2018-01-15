@@ -1,4 +1,23 @@
+import random
+
 import numpy as np
+import tensorflow as tf
+
+
+def discount(rewards, gamma):
+    discounted = []
+    r = 0
+    for reward in rewards[::-1]:
+        r = reward + gamma * r
+        discounted.append(r)
+    return discounted[::-1]
+
+
+def set_global_seeds(i):
+    "Reproducible results"
+    tf.set_random_seed(i)
+    np.random.seed(i)
+    random.seed(i)
 
 
 # Used to initialize weights for policy and value output layers

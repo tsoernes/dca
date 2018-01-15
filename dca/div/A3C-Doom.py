@@ -262,7 +262,7 @@ class Worker():
                     # is full, then we
                     # make an update step using that experience rollout.
                     if len(episode_buffer) == 30 \
-                       and d is not True \
+                       and d is False\
                        and episode_step_count != max_episode_length - 1:
                         # Since we don't know what the true final return is,
                         # we "bootstrap" from our current value estimation.

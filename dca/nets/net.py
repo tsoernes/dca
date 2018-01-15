@@ -56,8 +56,6 @@ Perhaps reducing call rates will increase difference between
 fixed/random and a good alg, thus making testing nets easier.
 If so then need to retest sarsa-strats and redo hyperparam opt.
 
-TODO Reproducible results
-tf.set_random_seed(1)  # Do in numpy for call generation also
 """
 
 
@@ -81,12 +79,14 @@ class Net:
             self.options = None
             self.run_metadata = None
         tf.logging.set_verbosity(tf.logging.WARN)
-        tf.reset_default_graph()
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
         if pp['no_gpu']:
-            config = tf.ConfigProto(device_count={'GPU': 0})
-            self.sess = tf.Session(config=config)
-        else:
-            self.sess = tf.Session()
+            config.device_count = {'GPU': 0}
+        self.sess = tf.Session(config=config)
+
+        tf.reset_default_graph()
         self.build()
         init = tf.global_variables_initializer()
         self.saver = tf.train.Saver()
