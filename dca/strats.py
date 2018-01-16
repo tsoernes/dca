@@ -412,6 +412,7 @@ class SARSAQNet(NetStrat):
             self.quit_sim = True
 
     def update_qval_experience(self, *args):
+        raise NotImplementedError
         """
         Update qval for pp['batch_size'] experience tuples,
         randomly sampled from the experience replay memory.
@@ -420,8 +421,8 @@ class SARSAQNet(NetStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(*self.replaybuffer.sample(
-            self.pp['batch_size']))
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
