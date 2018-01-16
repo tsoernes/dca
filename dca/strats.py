@@ -6,9 +6,8 @@ import numpy as np
 from environment import Env
 from eventgen import CEvent
 from grid import RhombusAxialGrid
-from replaybuffer import ReplayBuffer
-
-Cell = Tuple[int, int]
+from nets.acnet import ACNet
+from replaybuffer import ExperienceBuffer, ReplayBuffer
 
 
 class Strat:
@@ -24,7 +23,7 @@ class Strat:
         grid = RhombusAxialGrid(self.rows, self.cols, self.n_channels,
                                 self.logger)
         self.env = Env(self.pp, grid, self.logger, pid)
-        self.state = self.env.grid.state
+        self.grid = self.env.grid.state
         self.replaybuffer = ReplayBuffer(pp['buffer_size'], self.rows,
                                          self.cols, self.n_channels)
 
@@ -53,35 +52,35 @@ class Strat:
 
             if ch is not None:
                 # if self.save or self.batch_size > 1:
-                grid = np.copy(self.state)  # Copy before state is modified
+                grid = np.copy(self.grid)  # Copy before state is modified
 
             reward, next_cevent = self.env.step(ch)
             next_ch = self.get_action(next_cevent, grid, cell, ch, reward,
                                       ce_type)
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
-                    and ce_type != CEvent.END \
-                    and next_cevent[1] != CEvent.END:
+                    and ce_type != CEvent.END:
                 # Only add (s, a, r, s', a') tuples for which the events in
-                # s are not END events, and for which there are
-                # available actions a and a'.
-                # If there are no available actions, that is, there are no
+                # s is not an END events, and for which there is an
+                # available action a.
+                # If there is no available action, that is, there are no
                 # free channels which to assign, the neural net is not used
                 # for selection and so it should not be trained on that data.
                 # END events are not trained on either because the network is
                 # supposed to predict the q-values for different channel
                 # assignments; however the channels available for reassignment
                 # are always busy in a grid corresponding to an END event.
-                next_grid = np.copy(self.state)
+                next_grid = np.copy(self.grid)
                 next_cell = next_cevent[2]
                 self.replaybuffer.add(grid, cell, ch, reward, next_grid,
                                       next_cell)
 
             if i % self.pp['log_iter'] == 0 and i > 0:
                 self.fn_report()
-            if self.pp['net'] and \
-                    i % self.pp['net_copy_iter'] == 0 and i > 0:
-                self.update_target()
+            # TODO Do in net class instead
+            # if self.pp['net'] and \
+            #         i % self.pp['net_copy_iter'] == 0 and i > 0:
+            #     self.update_target()
             ch, cevent = next_ch, next_cevent
         self.env.stats.end_episode(reward)
         self.fn_after()
@@ -96,7 +95,7 @@ class Strat:
     def get_init_action(self, next_cevent):
         raise NotImplementedError
 
-    def get_action(self, next_cevent, cell: Cell, ch: int, reward: int) -> int:
+    def get_action(self, next_cevent, cell, ch, reward):
         raise NotImplementedError
 
     def fn_report(self):
@@ -124,10 +123,10 @@ class RLStrat(Strat):
     def fn_report(self):
         self.env.stats.report_rl(self.epsilon, self.alpha)
 
-    def update_qval(self, cell: Cell, ch: np.int64, target_q: np.float64):
+    def update_qval(self, cell, ch, target_q):
         raise NotImplementedError
 
-    def get_qvals(self, cell: Cell, *args, **kwargs):
+    def get_qvals(self, cell, *args, **kwargs):
         """
         Different strats may use additional arguments,
         depending on the features
@@ -138,7 +137,7 @@ class RLStrat(Strat):
         ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, grid, cell: Cell, ch: int, reward,
+    def get_action(self, next_cevent, grid, cell, ch: int, reward,
                    ce_type) -> int:
         """
         Return a channel to be (re)assigned for 'next_cevent'.
@@ -186,7 +185,7 @@ class RLStrat(Strat):
         ch = np.random.choice(chs, p=probs)
         return ch
 
-    def optimal_ch(self, ce_type: CEvent, cell: Cell) -> Tuple[int, float]:
+    def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
         # NOTE this isn't really the optimal ch since
         # it's chosen in an epsilon-greedy fashion
         """
@@ -199,7 +198,7 @@ class RLStrat(Strat):
         selected channel.
         'ch' is None if no channel is eligible for assignment.
         """
-        inuse = np.nonzero(self.state[cell])[0]
+        inuse = np.nonzero(self.grid[cell])[0]
         n_used = len(inuse)
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
@@ -249,12 +248,12 @@ class SARSA(RLStrat):
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels,
                                self.n_channels))
 
-    def get_qvals(self, cell: Cell, n_used, *args, **kwargs):
+    def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, cell: Cell, ch: np.int64, reward, next_qval):
+    def update_qval(self, cell, ch, reward, next_qval):
         assert type(ch) == np.int64
-        n_used = np.count_nonzero(self.state[cell])
+        n_used = np.count_nonzero(self.grid[cell])
         target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell, n_used)[ch]
         self.qvals[cell][n_used][ch] += self.alpha * td_err
@@ -279,13 +278,13 @@ class N_STEP_SARSA(RLStrat):
         # State-action pairs are not update until n rewards are experienced
         self.state_actions = []
 
-    def get_qvals(self, cell: Cell, n_used, *args, **kwargs):
+    def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, cell: Cell, ch: np.int64, reward, next_qval):
+    def update_qval(self, cell, ch: np.int64, reward, next_qval):
         assert type(ch) == np.int64
         self.rewards.append(reward)
-        n_used = np.count_nonzero(self.state[cell])
+        n_used = np.count_nonzero(self.grid[cell])
         self.state_actions.append((cell, n_used, ch))
         if len(self.rewards) < self.n:
             return
@@ -314,12 +313,12 @@ class TT_SARSA(RLStrat):
         self.k = 30
         self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
 
-    def get_qvals(self, cell: Cell, n_used, *args, **kwargs):
+    def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][min(self.k - 1, n_used)]
 
-    def update_qval(self, cell: Cell, ch: np.int64, reward, next_qval):
+    def update_qval(self, cell, ch: np.int64, reward, next_qval):
         assert type(ch) == np.int64
-        n_used = np.count_nonzero(self.state[cell])
+        n_used = np.count_nonzero(self.grid[cell])
         target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell, n_used)[ch]
         self.qvals[cell][min(self.k - 1, n_used)][ch] += self.alpha * td_err
@@ -338,7 +337,7 @@ class RS_SARSA(RLStrat):
     def get_qvals(self, cell, *args, **kwargs):
         return self.qvals[cell]
 
-    def update_qval(self, cell: Cell, ch: np.int64, reward, next_qval):
+    def update_qval(self, cell, ch: np.int64, reward, next_qval):
         assert type(ch) == np.int64
         target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell)[ch]
@@ -346,18 +345,10 @@ class RS_SARSA(RLStrat):
         self.alpha *= self.alpha_decay
 
 
-class SARSAQNet(RLStrat):
+class NetStrat(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.losses = []
-        if self.batch_size > 1:
-            self.update_qval = self.update_qval_experience
-            self.logger.warn("Using experience replay with batch"
-                             f" size of {self.batch_size}")
-        else:
-            self.update_qval = self.update_qval_single
-        from nets.qnet import QNet
-        self.net = QNet(True, self.pp, self.logger, restore=False, save=False)
 
     def fn_report(self):
         self.env.stats.report_net(self.losses)
@@ -368,11 +359,7 @@ class SARSAQNet(RLStrat):
         self.net.save_timeline()
         self.net.sess.close()
 
-    def update_target(self):
-        self.net.sess.run(self.net.copy_online_to_target)
-
-    def get_action(self, next_cevent, grid, cell: Cell, ch: int, reward,
-                   ce_type) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         """
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the previously executed action, and 'grid'
@@ -386,21 +373,37 @@ class SARSAQNet(RLStrat):
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, self.state, next_cell,
+            self.update_qval(grid, cell, ch, reward, self.grid, next_cell,
                              next_ch)
         return next_ch
 
     def get_qvals(self, cell, ce_type, *args, **kwargs):
         if ce_type == CEvent.END:
-            state = np.copy(self.state)
+            state = np.copy(self.grid)
             state[cell] = np.zeros(self.n_channels)
         else:
-            state = self.state
+            state = self.grid
         qvals = self.net.forward(state, cell)
         return qvals
 
-    def update_qval_single(self, grid, cell: Cell, ch: int, reward, next_grid,
-                           next_cell, next_ch):
+
+class SARSAQNet(NetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.batch_size > 1:
+            self.update_qval = self.update_qval_experience
+            self.logger.warn("Using experience replay with batch"
+                             f" size of {self.batch_size}")
+        else:
+            self.update_qval = self.update_qval_single
+        from nets.qnet import QNet
+        self.net = QNet(True, self.pp, self.logger, restore=False, save=False)
+
+    def update_target(self):
+        self.net.sess.run(self.net.copy_online_to_target)
+
+    def update_qval_single(self, grid, cell, ch, reward, next_grid, next_cell,
+                           next_ch):
         """ Update qval for one experience tuple"""
         loss = self.net.backward(grid, cell, [ch], [reward], next_grid,
                                  next_cell)
@@ -417,8 +420,81 @@ class SARSAQNet(RLStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(
+            self.pp['batch_size']))
+        self.losses.append(loss)
+        if np.isinf(loss) or np.isnan(loss):
+            self.quit_sim = True
+
+
+class ACNetStrat(NetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = ACNet(True, self.pp, self.logger, restore=False, save=False)
+        self.exp_buffer = ExperienceBuffer()
+
+    def forward(self, cell, ce_type):
+        if ce_type == CEvent.END:
+            state = np.copy(self.grid)
+            state[cell] = np.zeros(self.n_channels)
+        else:
+            state = self.grid
+        a, v = self.net.forward(state, cell)
+        return a, v
+
+    def get_action(self, next_cevent, grid, cell, ch: int, reward,
+                   ce_type) -> int:
+        """
+        Return a channel to be (re)assigned for 'next_cevent'.
+        'cell' and 'ch' specify the action that was executed on 'grid'
+        resulting in 'reward'.
+        """
+        next_ce_type, next_cell = next_cevent[1:3]
+        # Choose A' from S'
+        next_ch, val = self.optimal_ch(next_ce_type, next_cell)
+        # If there's no action to take, or no action was taken,
+        # don't update q-value at all
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+            # Observe reward from previous action, and
+            # update q-values with one-step lookahead
+            self.update_qval(grid, cell, ch, val, reward, self.grid, next_cell,
+                             next_ch)
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
+        inuse = np.nonzero(self.grid[cell])[0]
+
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = self.env.grid.get_free_chs(cell)
+        else:
+            chs = inuse
+        if len(chs) == 0:
+            assert ce_type != CEvent.END
+            return (None, None)
+
+        ch, val = self.forward(cell=cell, ce_type=ce_type)
+        # Selecting a ch for reassigment is always greedy because no learning
+        # is done on the reassignment actions.
+
+        # If vals blow up ('NaN's and 'inf's), ch becomes none.
+        if np.isinf(val) or np.isnan(val):
+            self.logger.error(f"{ce_type}\n{chs}\n{val}\n\n")
+            raise Exception
+
+        self.logger.debug(
+            f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        return (ch, val)
+
+    def update_qval(self, grid, cell, val, ch, reward, next_grid, next_cell,
+                    next_ch):
+        """
+        Update qval for pp['batch_size'] experience tuple.
+        """
+        self.exp_buffer.add(grid, cell, val, ch, reward)
+        if len(self.exp_buffer) < self.pp['n_step']:
+            # Can't backprop before exp store has enough experiences
+            return
+        loss = self.net.backward(*self.exp_buffer.pop(self.pp['batch_size']))
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True

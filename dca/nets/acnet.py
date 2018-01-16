@@ -130,24 +130,29 @@ class ACNet(Net):
         a = np.argmax(a_dist == a)
         return a, val
 
-    def backward(self,
-                 grids,
-                 cells,
-                 actions,
-                 rewards,
-                 next_grids,
-                 next_cells,
-                 next_actions=None):
+    def backward(self, grids, cells, vals, actions, rewards, next_grid,
+                 next_cell):
+        bootstrap_val = self.sess.run(
+            self.value,
+            feed_dict={
+                self.grid: nutils.prep_data_grids(next_grid),
+                self.cell: nutils.prep_data_cells(next_cell)
+            })
+        rewards_plus = np.asarray(rewards + [bootstrap_val])
+        discounted_rewards = nutils.discount(rewards_plus, self.gamma)[:-1]
+        value_plus = np.asarray(vals + [bootstrap_val])
+        advantages = nutils.discount(
+            rewards + self.gamma * value_plus[1:] - value_plus[:-1],
+            self.gamma)
+
         data = {
             self.grid: nutils.prep_data_grids(grids),
             self.cell: nutils.prep_data_cells(cells),
+            self.target_v: discounted_rewards,
             self.action: actions,
-            self.reward: rewards,
-            self.next_grid: nutils.prep_data_grids(next_grids),
-            self.next_cell: nutils.prep_data_cells(next_cells),
+            self.reward: discounted_rewards,
+            self.advantages: advantages
         }
-        if next_actions:
-            data[self.next_action] = next_actions
         _, loss = self.sess.run(
             [self.do_train, self.loss],
             feed_dict=data,

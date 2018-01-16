@@ -1,13 +1,46 @@
-import numpy as np
 import operator
 import random
+
+import numpy as np
 
 from utils import h5py_save_append
 
 
-class ReplayBuffer(object):
+class ExperienceBuffer():
+    def __init__(self):
+        self.clear()
+
+    def __len__(self):
+        return len(self._storage)
+
+    def add(self, grid, cell, value, ch, reward):
+        self._storage['g'].append(grid)
+        self._storage['c'].append(cell)
+        self._storage['v'].append(value)
+        self._storage['chs'].append(ch)
+        self._storage['r'].append(reward)
+
+    def clear(self):
+        self._storage = {
+            'g': [],  # grids
+            'c': [],  # cells
+            'v': [],  # values
+            'chs': [],  # chs
+            'r': [],  # rewards
+        }
+
+    def pop(self):
+        """Pop (i.e. remove and return) a batch of experiences from the beginning of the queue.
+        """
+        e = self._storage
+        data = e['g'], e['c'], e['v'], e['chs'], e['r']
+        self.clear
+        return data
+
+
+class ReplayBuffer():
     def __init__(self, size, rows, cols, n_channels):
-        """Create Prioritized Replay buffer.
+        """Create Replay buffer.
 
         Parameters
         ----------
@@ -65,11 +98,11 @@ class ReplayBuffer(object):
             How many transitions to sample.
 
         """
-        idxes = [
+        idxs = [
             random.randint(0, len(self._storage) - 1)
             for _ in range(batch_size)
         ]
-        return self._encode_sample(idxes)
+        return self._encode_sample(idxs)
 
     def save_experience_to_disk(self):
         raise NotImplementedError
@@ -108,6 +141,10 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self._it_sum = SumSegmentTree(it_capacity)
         self._it_min = MinSegmentTree(it_capacity)
         self._max_priority = 1.0
+
+    def pop(self):
+        # Not sure if this works correctly
+        raise NotImplementedError
 
     def add(self, *args, **kwargs):
         """See ReplayBuffer.store_effect"""
