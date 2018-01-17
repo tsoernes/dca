@@ -78,9 +78,9 @@ class Strat:
             if i % self.pp['log_iter'] == 0 and i > 0:
                 self.fn_report()
             # TODO Do in net class instead
-            # if self.pp['net'] and \
-            #         i % self.pp['net_copy_iter'] == 0 and i > 0:
-            #     self.update_target()
+            if self.pp['net'] and \
+                    i % self.pp['net_copy_iter'] == 0 and i > 0:
+                self.update_target()
             ch, cevent = next_ch, next_cevent
         self.env.stats.end_episode(reward)
         self.fn_after()
@@ -431,7 +431,7 @@ class SARSAQNet(NetStrat):
 class ACNetStrat(NetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = ACNet(True, self.pp, self.logger, restore=False, save=False)
+        self.net = ACNet(self.pp, self.logger, restore=False, save=False)
         self.exp_buffer = ExperienceBuffer()
 
     def forward(self, cell, ce_type):
@@ -442,6 +442,9 @@ class ACNetStrat(NetStrat):
             state = self.grid
         a, v = self.net.forward(state, cell)
         return a, v
+
+    def update_target(self):
+        pass
 
     def get_action(self, next_cevent, grid, cell, ch: int, reward,
                    ce_type) -> int:
@@ -458,7 +461,7 @@ class ACNetStrat(NetStrat):
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, val, reward, self.grid, next_cell,
+            self.update_qval(grid, cell, val, ch, reward, self.grid, next_cell,
                              next_ch)
         return next_ch
 
@@ -473,9 +476,15 @@ class ACNetStrat(NetStrat):
             assert ce_type != CEvent.END
             return (None, None)
 
-        ch, val = self.forward(cell=cell, ce_type=ce_type)
-        # Selecting a ch for reassigment is always greedy because no learning
-        # is done on the reassignment actions.
+        a_dist, val = self.forward(cell=cell, ce_type=ce_type)
+        if ce_type == CEvent.END:
+            idx = np.argmin(a_dist[chs])
+            ch = chs[idx]
+        else:
+            idx = np.argmax(a_dist[chs])
+            ch = chs[idx]
+        # print(ce_type, a_dist, ch, a_dist[ch], chs)
+        # TODO NOTE verify the above
 
         # If vals blow up ('NaN's and 'inf's), ch becomes none.
         if np.isinf(val) or np.isnan(val):
@@ -495,7 +504,7 @@ class ACNetStrat(NetStrat):
         if len(self.exp_buffer) < self.pp['n_step']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward(*self.exp_buffer.pop(self.pp['batch_size']))
+        loss = self.net.backward(*self.exp_buffer.pop(), next_grid, next_cell)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True

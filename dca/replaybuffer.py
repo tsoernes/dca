@@ -11,7 +11,7 @@ class ExperienceBuffer():
         self.clear()
 
     def __len__(self):
-        return len(self._storage)
+        return len(self._storage['g'])
 
     def add(self, grid, cell, value, ch, reward):
         self._storage['g'].append(grid)
@@ -26,7 +26,7 @@ class ExperienceBuffer():
             'c': [],  # cells
             'v': [],  # values
             'chs': [],  # chs
-            'r': [],  # rewards
+            'r': []  # rewards
         }
 
     def pop(self):
@@ -34,7 +34,7 @@ class ExperienceBuffer():
         """
         e = self._storage
         data = e['g'], e['c'], e['v'], e['chs'], e['r']
-        self.clear
+        self.clear()
         return data
 
 
