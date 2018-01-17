@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import numpy as np
 import tensorflow as tf
 
@@ -34,7 +36,7 @@ class ACNet(Net):
             # Output layers for policy and value estimations
             policy = tf.layers.dense(
                 hidden,
-                units=70,
+                units=self.n_channels,
                 activation=tf.nn.softmax,
                 kernel_initializer=nutils.normalized_columns_initializer(0.01),
                 bias_initializer=None)
@@ -46,12 +48,11 @@ class ACNet(Net):
                 bias_initializer=None)
         trainable_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
-        # NOTE TODO NOTE is returning the above right here?
         trainable_vars_by_name = {
             var.name[len(scope.name):]: var
             for var in trainable_vars
         }
-        return policy, value, trainable_vars
+        return policy, value, trainable_vars_by_name
 
     def build(self):
         gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
@@ -76,7 +77,7 @@ class ACNet(Net):
         self.target_v = tf.placeholder(shape=[None], dtype=tf.float32)
         self.advantages = tf.placeholder(shape=[None], dtype=tf.float32)
 
-        self.policy, self.value, trainable_vars = self._build_net(
+        self.policy, self.value, _ = self._build_net(
             self.grid, self.cell, name="ac_network/online")
 
         action_oh = tf.one_hot(
@@ -89,24 +90,22 @@ class ACNet(Net):
         self.entropy = -tf.reduce_sum(self.policy * tf.log(self.policy))
         self.policy_loss = -tf.reduce_sum(
             tf.log(self.responsible_outputs) * self.advantages)
-        self.loss = 0.5 * self.value_loss + self.policy_loss - self.entropy * 0.01
+        self.loss = 0.25 * self.value_loss + self.policy_loss - self.entropy * 0.01
 
-        # trainer = tf.train.AdamOptimizer(learning_rate=self.l_rate)
-        trainer = tf.train.GradientDescentOptimizer(learning_rate=self.l_rate)
+        trainer = tf.train.AdamOptimizer(learning_rate=self.l_rate)
+        # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.l_rate)
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.l_rate)
         # trainer = tf.train.MomentumOptimizer(
         #     learning_rate=self.l_rate, momentum=0.95)
-        gradients = tf.gradients(self.loss, trainable_vars)
+        gradients, trainable_vars = zip(*trainer.compute_gradients(self.loss))
+        # gradients = tf.gradients(self.loss, trainable_vars)
         clipped_grads, self.grad_norms = tf.clip_by_global_norm(
             gradients, self.max_grad_norm)
         # Apply gradients to network
         self.do_train = trainer.apply_gradients(
             zip(clipped_grads, trainable_vars))
 
-    def copy_online_to_target(self):
-        pass
-
-    def forward(self, grid, cell):
+    def forward(self, grid, cell) -> Tuple[List[float], float]:
         a_dist, val = self.sess.run(
             [self.policy, self.value],
             feed_dict={
@@ -118,7 +117,8 @@ class ACNet(Net):
         return a_dist[0], val[0, 0]
 
     def backward(self, grids, cells, vals, actions, rewards, next_grid,
-                 next_cell):
+                 next_cell) -> float:
+        # Estimated value after trajectory, V(S_t+n)
         bootstrap_val = self.sess.run(
             self.value,
             feed_dict={

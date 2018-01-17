@@ -1,5 +1,5 @@
 import signal
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 
@@ -7,6 +7,7 @@ from environment import Env
 from eventgen import CEvent
 from grid import RhombusAxialGrid
 from nets.acnet import ACNet
+from nets.utils import softmax
 from replaybuffer import ExperienceBuffer, ReplayBuffer
 
 
@@ -421,8 +422,8 @@ class SARSAQNet(NetStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(
+            self.pp['batch_size']))
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
@@ -434,7 +435,7 @@ class ACNetStrat(NetStrat):
         self.net = ACNet(self.pp, self.logger, restore=False, save=False)
         self.exp_buffer = ExperienceBuffer()
 
-    def forward(self, cell, ce_type):
+    def forward(self, cell, ce_type) -> Tuple[List[float], float]:
         if ce_type == CEvent.END:
             state = np.copy(self.grid)
             state[cell] = np.zeros(self.n_channels)
@@ -446,8 +447,7 @@ class ACNetStrat(NetStrat):
     def update_target(self):
         pass
 
-    def get_action(self, next_cevent, grid, cell, ch: int, reward,
-                   ce_type) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         """
         Return a channel to be (re)assigned for 'next_cevent'.
         'cell' and 'ch' specify the action that was executed on 'grid'
@@ -458,6 +458,8 @@ class ACNetStrat(NetStrat):
         next_ch, val = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
+        # TODO perhaps for n-step returns, everything should be included, or
+        # next_ce_type == END should be excluded
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
@@ -477,12 +479,22 @@ class ACNetStrat(NetStrat):
             return (None, None)
 
         a_dist, val = self.forward(cell=cell, ce_type=ce_type)
+        greedy = True
         if ce_type == CEvent.END:
-            idx = np.argmin(a_dist[chs])
-            ch = chs[idx]
+            if greedy:
+                idx = np.argmin(a_dist[chs])
+            else:
+                valid_a_dist = softmax(1 - a_dist[chs])
+                idx = np.random.choice(
+                    np.range(len(valid_a_dist)), p=valid_a_dist)
         else:
-            idx = np.argmax(a_dist[chs])
-            ch = chs[idx]
+            if greedy:
+                idx = np.argmax(a_dist[chs])
+            else:
+                valid_a_dist = softmax(a_dist[chs])
+                idx = np.random.choice(
+                    np.range(len(valid_a_dist)), p=valid_a_dist)
+        ch = chs[idx]
         # print(ce_type, a_dist, ch, a_dist[ch], chs)
         # TODO NOTE verify the above
 
@@ -505,6 +517,7 @@ class ACNetStrat(NetStrat):
             # Can't backprop before exp store has enough experiences
             return
         loss = self.net.backward(*self.exp_buffer.pop(), next_grid, next_cell)
-        self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
+        else:
+            self.losses.append(loss)

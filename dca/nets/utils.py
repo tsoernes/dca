@@ -4,6 +4,13 @@ import numpy as np
 import tensorflow as tf
 
 
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    # Subtract maximum value for numerical stability; result will be the same
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+
+
 def discount(rewards, gamma):
     discounted = []
     r = 0
