@@ -52,9 +52,8 @@ class Runner:
             results = []
             for i in range(n_runs):
                 res = simproc(i)
-                if np.isnan(res) or np.isinf(res):
-                    break
-                results.append(res)
+                if not (np.isnan(res) or np.isinf(res) or res == 1):
+                    results.append(res)
         with Pool() as p:
             results = p.map(simproc, range(n_runs))
         n_events = self.pp['n_events']
@@ -66,6 +65,7 @@ class Runner:
             f" with standard deviation {np.std(results):.5f}"
             f"\n{results}")
         # TODO Plot average cumulative over time
+        # TODO Run until ctrl-c, then present results
 
     def run(self):
         strat = self.stratclass(self.pp, logger=self.logger)
