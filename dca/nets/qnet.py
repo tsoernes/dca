@@ -13,6 +13,7 @@ class QNet(Net):
         """
         self.max_next_action = max_next_action
         super().__init__(name="QNet", *args, **kwargs)
+        self.sess.run(self.copy_online_to_target)
 
     def _build_qnet(self, grid, cell, name):
         with tf.variable_scope(name) as scope:
@@ -31,7 +32,7 @@ class QNet(Net):
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
                 filters=70,
-                kernel_size=4,
+                kernel_size=3,
                 padding="same",
                 activation=tf.nn.relu)
             stacked = tf.concat([conv2, cell], axis=3)

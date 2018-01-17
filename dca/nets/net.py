@@ -89,7 +89,6 @@ class Net:
         init = tf.global_variables_initializer()
         self.saver = tf.train.Saver()
         self.sess.run(init)
-        self.sess.run(self.copy_online_to_target)
         if restore:
             # Could do a try/except and build if loading fails
             self.logger.error(f"Restoring model from {self.model_path}")
