@@ -164,7 +164,6 @@ class RLStrat(Strat):
             idx = np.argmax(qvals[chs])
             ch = chs[idx]
         self.epsilon *= self.epsilon_decay  # Epsilon decay
-
         return ch
 
     def policy_eps_greedy_lil(self, qvals, chs):
@@ -260,7 +259,7 @@ class SARSA(RLStrat):
         self.alpha *= self.alpha_decay
 
 
-class N_STEP_SARSA(SARSA):
+class SARSA_LAMBDA(SARSA):
     """
     State consists of coordinates and the number of used channels in that cell.
     """
@@ -269,40 +268,19 @@ class N_STEP_SARSA(SARSA):
         super().__init__(*args, **kwargs)
         self.el_traces = np.zeros((self.rows, self.cols, self.n_channels,
                                    self.n_channels))
-        self.lambd = 0.8
+        self.lambd = 0.2
 
     def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        next_ce_type, next_cell = next_cevent[1:3]
-        # Choose A' from S'
-        next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
-        # If there's no action to take, or no action was taken,
-        # don't update q-value at all
-        if ce_type != CEvent.END and ch is not None and next_ch is not None:
-            # Observe reward from previous action, and
-            # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, next_qval)
-        return next_ch
-
     def update_qval(self, grid, cell, ch, reward, next_qval):
         assert type(ch) == np.int64
-        self.rewards.append(reward)
         n_used = np.count_nonzero(grid[cell])
-        self.state_actions.append((cell, n_used, ch))
-        if len(self.rewards) < self.n:
-            return
-        if len(self.rewards) > self.n:
-            del self.rewards[0]
-            del self.state_actions[0]
-        target_q = 0
-        for i in range(0, self.n):
-            target_q += (self.gamma**i) * self.rewards[i]
-        target_q += (self.gamma**self.n) * next_qval
-        t_cell, t_n_used, t_ch = self.state_actions[0]
-        td_err = target_q - self.get_qvals(t_cell, t_n_used)[t_ch]
-        self.qvals[t_cell][t_n_used][t_ch] += self.alpha * td_err
+        target_q = reward + self.gamma * next_qval
+        td_err = target_q - self.qvals[cell][n_used][ch]
+        self.el_traces[cell][n_used][ch] += 1
+        self.qvals += self.alpha * td_err * self.el_traces
+        self.el_traces *= self.gamma * self.lambd
         self.alpha *= self.alpha_decay
 
 
