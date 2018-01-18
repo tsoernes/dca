@@ -11,3 +11,6 @@ the next allocation map is deterministic and hence the reward is deterministic.
 However, as previously discussed, this model might not be representable for real-world
 traffic and so this approach could only be used in simulation and 
 not in a deployed system.
+
+dont want to do decision time planning or rollouts, eg mtcs, in deploed sys
+because of response time

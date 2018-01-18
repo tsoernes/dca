@@ -51,9 +51,7 @@ class Strat:
 
             self.t, ce_type, cell = cevent[0:3]
 
-            if ch is not None:
-                # if self.save or self.batch_size > 1:
-                grid = np.copy(self.grid)  # Copy before state is modified
+            grid = np.copy(self.grid)  # Copy before state is modified
 
             reward, next_cevent = self.env.step(ch)
             next_ch = self.get_action(next_cevent, grid, cell, ch, reward,
@@ -78,10 +76,9 @@ class Strat:
 
             if i % self.pp['log_iter'] == 0 and i > 0:
                 self.fn_report()
-            # TODO Do in net class instead
             if self.pp['net'] and \
                     i % self.pp['net_copy_iter'] == 0 and i > 0:
-                self.update_target()
+                self.update_target_net()
             ch, cevent = next_ch, next_cevent
         self.env.stats.end_episode(reward)
         self.fn_after()
@@ -94,9 +91,16 @@ class Strat:
         return self.env.stats.block_prob_cum
 
     def get_init_action(self, next_cevent):
+        """Return a channel to be (re)assigned for 'next_cevent'."""
         raise NotImplementedError
 
-    def get_action(self, next_cevent, cell, ch, reward):
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        """Return a channel to be (re)assigned for 'next_cevent'.
+
+        'cell' and 'ch' specify the action that was previously executed on
+        'grid' in response to an event of type 'ce_type', resulting in
+        'reward'.
+        """
         raise NotImplementedError
 
     def fn_report(self):
@@ -107,7 +111,7 @@ class Strat:
 
     def fn_after(self):
         """
-        Cleanup
+        Cleanup after simulation
         """
         pass
 
@@ -138,12 +142,7 @@ class RLStrat(Strat):
         ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, grid, cell, ch: int, reward,
-                   ce_type) -> int:
-        """
-        Return a channel to be (re)assigned for 'next_cevent'.
-        'cell' and 'ch' specify the previously executed action.
-        """
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
@@ -152,7 +151,7 @@ class RLStrat(Strat):
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(cell, ch, reward, next_qval)
+            self.update_qval(grid, cell, ch, reward, next_qval)
         return next_ch
 
     def policy_eps_greedy_exp(self, qvals, chs):
@@ -252,47 +251,52 @@ class SARSA(RLStrat):
     def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, cell, ch, reward, next_qval):
+    def update_qval(self, grid, cell, ch, reward, next_qval):
         assert type(ch) == np.int64
-        n_used = np.count_nonzero(self.grid[cell])
+        n_used = np.count_nonzero(grid[cell])
         target_q = reward + self.gamma * next_qval
-        td_err = target_q - self.get_qvals(cell, n_used)[ch]
+        td_err = target_q - self.qvals[cell][n_used][ch]
         self.qvals[cell][n_used][ch] += self.alpha * td_err
         self.alpha *= self.alpha_decay
 
 
-class N_STEP_SARSA(RLStrat):
+class N_STEP_SARSA(SARSA):
     """
     State consists of coordinates and the number of used channels in that cell.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # "qvals[r][c][n_used][ch] = v"
-        # Assigning channel 'ch' to the cell at row 'r', col 'c'
-        # has q-value 'v' given that 'n_used' channels are already
-        # in use at that cell.
-        self.qvals = np.zeros((self.rows, self.cols, self.n_channels,
-                               self.n_channels))
-        self.n = 10
-        self.rewards = []
-        # State-action pairs are not update until n rewards are experienced
-        self.state_actions = []
+        self.el_traces = np.zeros((self.rows, self.cols, self.n_channels,
+                                   self.n_channels))
+        self.lambd = 0.8
 
     def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, cell, ch: np.int64, reward, next_qval):
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        # Choose A' from S'
+        next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
+        # If there's no action to take, or no action was taken,
+        # don't update q-value at all
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+            # Observe reward from previous action, and
+            # update q-values with one-step lookahead
+            self.update_qval(grid, cell, ch, reward, next_qval)
+        return next_ch
+
+    def update_qval(self, grid, cell, ch, reward, next_qval):
         assert type(ch) == np.int64
         self.rewards.append(reward)
-        n_used = np.count_nonzero(self.grid[cell])
+        n_used = np.count_nonzero(grid[cell])
         self.state_actions.append((cell, n_used, ch))
         if len(self.rewards) < self.n:
             return
         if len(self.rewards) > self.n:
             del self.rewards[0]
             del self.state_actions[0]
-        target_q = 0  # reward + self.gamma * next_qval
+        target_q = 0
         for i in range(0, self.n):
             target_q += (self.gamma**i) * self.rewards[i]
         target_q += (self.gamma**self.n) * next_qval
@@ -317,7 +321,7 @@ class TT_SARSA(RLStrat):
     def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][min(self.k - 1, n_used)]
 
-    def update_qval(self, cell, ch: np.int64, reward, next_qval):
+    def update_qval(self, grid, cell, ch, reward, next_qval):
         assert type(ch) == np.int64
         n_used = np.count_nonzero(self.grid[cell])
         target_q = reward + self.gamma * next_qval
@@ -338,7 +342,7 @@ class RS_SARSA(RLStrat):
     def get_qvals(self, cell, *args, **kwargs):
         return self.qvals[cell]
 
-    def update_qval(self, cell, ch: np.int64, reward, next_qval):
+    def update_qval(self, grid, cell, ch, reward, next_qval):
         assert type(ch) == np.int64
         target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell)[ch]
@@ -361,11 +365,6 @@ class NetStrat(RLStrat):
         self.net.sess.close()
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        """
-        Return a channel to be (re)assigned for 'next_cevent'.
-        'cell' and 'ch' specify the previously executed action, and 'grid'
-        the state before that action was executed.
-        """
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
@@ -400,7 +399,7 @@ class SARSAQNet(NetStrat):
         from nets.qnet import QNet
         self.net = QNet(True, self.pp, self.logger, restore=False, save=False)
 
-    def update_target(self):
+    def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
     def update_qval_single(self, grid, cell, ch, reward, next_grid, next_cell,
@@ -444,27 +443,29 @@ class ACNetStrat(NetStrat):
         a, v = self.net.forward(state, cell)
         return a, v
 
-    def update_target(self):
+    def update_target_net(self):
         pass
 
+    def get_init_action(self, cevent):
+        ch, self.val = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        return ch
+
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        """
-        Return a channel to be (re)assigned for 'next_cevent'.
-        'cell' and 'ch' specify the action that was executed on 'grid'
-        resulting in 'reward'.
-        """
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
-        next_ch, val = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
         # TODO perhaps for n-step returns, everything should be included, or
-        # next_ce_type == END should be excluded
+        # next_ce_type == END should be excluded.
+        # NEED to sketch things out. The result probably applies to n-step
+        # sarsa as well.
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, val, ch, reward, self.grid, next_cell,
+            self.update_qval(grid, cell, ch, reward, self.grid, next_cell,
                              next_ch)
+            self.val = next_val
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
@@ -507,12 +508,12 @@ class ACNetStrat(NetStrat):
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, val)
 
-    def update_qval(self, grid, cell, val, ch, reward, next_grid, next_cell,
+    def update_qval(self, grid, cell, ch, reward, next_grid, next_cell,
                     next_ch):
         """
         Update qval for pp['batch_size'] experience tuple.
         """
-        self.exp_buffer.add(grid, cell, val, ch, reward)
+        self.exp_buffer.add(grid, cell, self.val, ch, reward)
         if len(self.exp_buffer) < self.pp['n_step']:
             # Can't backprop before exp store has enough experiences
             return
