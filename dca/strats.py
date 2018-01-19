@@ -152,7 +152,8 @@ class RLStrat(Strat):
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, next_qval)
+            self.update_qval(grid, cell, ch, reward, next_qval, next_cell,
+                             next_ch)
         return next_ch
 
     def policy_eps_greedy_exp(self, qvals, chs):
@@ -251,7 +252,7 @@ class SARSA(RLStrat):
     def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
 
-    def update_qval(self, grid, cell, ch, reward, next_qval):
+    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
         assert type(ch) == np.int64
         n_used = np.count_nonzero(grid[cell])
         target_q = reward + self.gamma * next_qval
@@ -267,7 +268,7 @@ class SARSA_LAMBDA(SARSA):
                                    self.n_channels))
         self.lmbda = self.pp['lambda']
 
-    def update_qval(self, grid, cell, ch, reward, next_qval):
+    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
         assert type(ch) == np.int64
         n_used = np.count_nonzero(self.grid[cell])
         target_q = reward + self.gamma * next_qval
@@ -293,7 +294,7 @@ class TT_SARSA(RLStrat):
     def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][min(self.k - 1, n_used)]
 
-    def update_qval(self, grid, cell, ch, reward, next_qval):
+    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
         assert type(ch) == np.int64
         n_used = np.count_nonzero(self.grid[cell])
         target_q = reward + self.gamma * next_qval
@@ -314,7 +315,7 @@ class RS_SARSA(RLStrat):
     def get_qvals(self, cell, *args, **kwargs):
         return self.qvals[cell]
 
-    def update_qval(self, grid, cell, ch, reward, next_qval):
+    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
         assert type(ch) == np.int64
         target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell)[ch]
@@ -328,7 +329,7 @@ class RS_SARSA_LAMBDA(RS_SARSA):
         self.el_traces = np.zeros((self.rows, self.cols, self.n_channels))
         self.lmbda = self.pp['lambda']
 
-    def update_qval(self, grid, cell, ch, reward, next_qval):
+    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
         assert type(ch) == np.int64
         target_q = reward + self.gamma * next_qval
         td_err = target_q - self.qvals[cell][ch]
@@ -351,19 +352,6 @@ class NetStrat(RLStrat):
         self.net.save_model()
         self.net.save_timeline()
         self.net.sess.close()
-
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        next_ce_type, next_cell = next_cevent[1:3]
-        # Choose A' from S'
-        next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
-        # If there's no action to take, or no action was taken,
-        # don't update q-value at all
-        if ce_type != CEvent.END and ch is not None and next_ch is not None:
-            # Observe reward from previous action, and
-            # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, self.grid, next_cell,
-                             next_ch)
-        return next_ch
 
     def get_qvals(self, cell, ce_type, *args, **kwargs):
         if ce_type == CEvent.END:
@@ -390,17 +378,16 @@ class SARSAQNet(NetStrat):
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
-    def update_qval_single(self, grid, cell, ch, reward, next_grid, next_cell,
+    def update_qval_single(self, grid, cell, ch, reward, next_qval, next_cell,
                            next_ch):
         """ Update qval for one experience tuple"""
-        loss = self.net.backward(grid, cell, [ch], [reward], next_grid,
+        loss = self.net.backward(grid, cell, [ch], [reward], self.grid,
                                  next_cell)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
 
     def update_qval_experience(self, *args):
-        raise NotImplementedError
         """
         Update qval for pp['batch_size'] experience tuples,
         randomly sampled from the experience replay memory.
