@@ -14,3 +14,5 @@ T1 Blocking probability: 0.0000 for new calls, 0.0000 for handoffs (inf)
 
 
 Kernel sizes: 4, 3
+T0 Blocking probability: 0.1706 for new calls, 0.1252 for handoffs
+T1 Blocking probability: 0.0000 for new calls, 0.0000 for handoffs (nan)
