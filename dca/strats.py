@@ -363,7 +363,7 @@ class NetStrat(RLStrat):
         return qvals
 
 
-class SARSAQNet(NetStrat):
+class QLearnNet(NetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.batch_size > 1:
@@ -377,6 +377,19 @@ class SARSAQNet(NetStrat):
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        # Choose A' from S'
+        next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
+        # If there's no action to take, or no action was taken,
+        # don't update q-value at all
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+            # Observe reward from previous action, and
+            # update q-values with one-step lookahead
+            self.update_qval(grid, cell, ch, reward, next_qval, next_cell,
+                             next_ch)
+        return next_ch
 
     def update_qval_single(self, grid, cell, ch, reward, next_qval, next_cell,
                            next_ch):

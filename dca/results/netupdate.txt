@@ -15,6 +15,20 @@ are free when sending it through the network for END events, in order to mimick
 assigning a new channel. This leaves two options for training: don't train on
 END events, or do the same to the grid when training.
 
+--------------------------------------------------
+Date: 19.01
+1-step Q-learning Net (kernel sizes 5, 3)
+
+ce_type != CEvent.END and ch is not None and next_ch is not None
+zero end grid: forward, not backward
+
+ce_type != CEvent.END and ch is not None and next_ch is not None
+zero end grid: not forward, not backward
+
+
+--------------------------------------------------
+Old results for non-net strats:
+
 ch, next ch not none
 qnet, batch size 1, 200k events, netlr 9e-5
 All events allowed:
@@ -42,7 +56,3 @@ Average cumulative block probability over 16 episodes: 0.1829 with standard devi
 event != END:
 next event != END:
 event, next event != END:
-
-
-
-----

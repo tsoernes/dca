@@ -1,0 +1,16 @@
+Q-learn net, i.e. max next action (ignore "sarsanet" name)
+
+As usual:
+ce_type != CEvent.END and ch is not None and next_ch is not None
+zero out grid cell forward (not backward)
+
+Kernel sizes: 5, 3
+Starting simulation at 2018-01-19 15:27:04.917971 with params:
+{'strat': 'sarsaqnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'avg_runs': 2, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': 0.22, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 3.4e-05, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'train_net': False, 'no_gpu': False, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 5000, 'net': True}
+T0 Blocking probability: 0.1711 for new calls, 0.1265 for handoffs
+T1 Blocking probability: 0.1733 for new calls, 0.1263 for handoffs
+T0 Blocking probability: 0.1809 for new calls, 0.1292 for handoffs
+T1 Blocking probability: 0.0000 for new calls, 0.0000 for handoffs (inf)
+
+
+Kernel sizes: 4, 3

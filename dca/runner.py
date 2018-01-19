@@ -49,14 +49,21 @@ class Runner:
         n_runs = self.pp['avg_runs']
         simproc = partial(self.sim_proc, self.stratclass, self.pp)
         if self.pp['net']:
+            # Use constant tf seed
+            import tensorflow as tf
+            tf.set_random_seed(0)
             results = []
             for i in range(n_runs):
-                res = simproc(i)
+                # Use constant np seed
+                res = simproc(i, False)
                 if not (np.isnan(res[0]) or np.isinf(res[0]) or res[0] == 1):
                     results.append(res)
         else:
             with Pool() as p:
                 results = p.map(simproc, range(n_runs))
+        if not results:
+            self.logger.error("NO RESULTS")
+            return
         n_events = self.pp['n_events']
         results = np.array(results)
         self.logger.error(
