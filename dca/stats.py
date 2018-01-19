@@ -116,10 +116,11 @@ class Stats:
                          f" at {self.pp['n_events']/t:.0f}"
                          " episodes/second")
         # Avoid zero divisions by adding 1 do dividers
-        self.logger.error(
-            f"\nT{self.pid} Blocking probability:"
-            f" {self.block_prob_cum:.4f} for new calls, "
-            f"{self.n_handoffs_rejected/(self.n_handoffs+1):.4f} for handoffs")
+        self.block_prob_cum_hoff = self.n_handoffs_rejected / (
+            self.n_handoffs + 1)
+        self.logger.error(f"\nT{self.pid} Blocking probability:"
+                          f" {self.block_prob_cum:.4f} for new calls, "
+                          f"{self.block_prob_cum_hoff:.4f} for handoffs")
         self.logger.warn(
             f"\nAverage number of calls in progress when blocking: "
             f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")

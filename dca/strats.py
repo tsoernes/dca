@@ -87,8 +87,9 @@ class Strat:
         if self.quit_sim and self.pp['hopt']:
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
-            return 1
-        return self.env.stats.block_prob_cum
+            return (1, 1)
+        return (self.env.stats.block_prob_cum,
+                self.env.stats.block_prob_cum_hoff)
 
     def get_init_action(self, next_cevent):
         """Return a channel to be (re)assigned for 'next_cevent'."""
@@ -260,27 +261,20 @@ class SARSA(RLStrat):
 
 
 class SARSA_LAMBDA(SARSA):
-    """
-    State consists of coordinates and the number of used channels in that cell.
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.el_traces = np.zeros((self.rows, self.cols, self.n_channels,
                                    self.n_channels))
-        self.lambd = 0.2
-
-    def get_qvals(self, cell, n_used, *args, **kwargs):
-        return self.qvals[cell][n_used]
+        self.lmbda = self.pp['lambda']
 
     def update_qval(self, grid, cell, ch, reward, next_qval):
         assert type(ch) == np.int64
-        n_used = np.count_nonzero(grid[cell])
+        n_used = np.count_nonzero(self.grid[cell])
         target_q = reward + self.gamma * next_qval
         td_err = target_q - self.qvals[cell][n_used][ch]
         self.el_traces[cell][n_used][ch] += 1
         self.qvals += self.alpha * td_err * self.el_traces
-        self.el_traces *= self.gamma * self.lambd
+        self.el_traces *= self.gamma * self.lmbda
         self.alpha *= self.alpha_decay
 
 
@@ -325,6 +319,22 @@ class RS_SARSA(RLStrat):
         target_q = reward + self.gamma * next_qval
         td_err = target_q - self.get_qvals(cell)[ch]
         self.qvals[cell][ch] += self.alpha * td_err
+        self.alpha *= self.alpha_decay
+
+
+class RS_SARSA_LAMBDA(RS_SARSA):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.el_traces = np.zeros((self.rows, self.cols, self.n_channels))
+        self.lmbda = self.pp['lambda']
+
+    def update_qval(self, grid, cell, ch, reward, next_qval):
+        assert type(ch) == np.int64
+        target_q = reward + self.gamma * next_qval
+        td_err = target_q - self.qvals[cell][ch]
+        self.el_traces[cell][ch] += 1
+        self.qvals += self.alpha * td_err * self.el_traces
+        self.el_traces *= self.gamma * self.lmbda
         self.alpha *= self.alpha_decay
 
 

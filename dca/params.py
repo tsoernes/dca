@@ -89,6 +89,11 @@ def get_pparams():
     parser.add_argument(
         '--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
+        '--lambda',
+        type=float,
+        help="(RL) lower lambda weighs fewer step returns higher",
+        default=0.22)
+    parser.add_argument(
         '--save_exp_data',
         help="Save experience data to file",
         action='store_true',

@@ -52,17 +52,21 @@ class Runner:
             results = []
             for i in range(n_runs):
                 res = simproc(i)
-                if not (np.isnan(res) or np.isinf(res) or res == 1):
+                if not (np.isnan(res[0]) or np.isinf(res[0]) or res[0] == 1):
                     results.append(res)
         with Pool() as p:
             results = p.map(simproc, range(n_runs))
         n_events = self.pp['n_events']
+        results = np.array(results)
         self.logger.error(
             f"\n{n_runs}x{n_events} events finished with speed"
-            f" {(n_runs*n_events)/(time.time()-t):.0f} episodes/second"
+            f" {(n_runs*n_events)/(time.time()-t):.0f} events/second"
             f"\nAverage cumulative block probability over {n_runs} episodes:"
-            f" {np.mean(results):.4f}"
-            f" with standard deviation {np.std(results):.5f}"
+            f" {np.mean(results[:,0]):.4f}"
+            f" with standard deviation {np.std(results[:,0]):.5f}"
+            f"\nAverage cumulative handoff block probability"
+            f" {np.mean(results[:,1]):.4f}"
+            f" with standard deviation {np.std(results[:,1]):.5f}"
             f"\n{results}")
         # TODO Plot average cumulative over time
         # TODO Run until ctrl-c, then present results
@@ -81,37 +85,43 @@ class Runner:
             strat.simulate()
 
     @staticmethod
-    def sim_proc(stratclass, pp, pid):
+    def sim_proc(stratclass, pp, pid, reseed=True):
         """
         Allows for running simulation in separate process
         """
-        np.random.seed()  # Must reseed lest all results will be the same
+        if reseed:
+            # Must reseed lest all results will be the same.
+            # Reseeding is wanted for avg runs but not hopt
+            np.random.seed()
         logger = logging.getLogger('')
         strat = stratclass(pp, logger=logger, pid=pid)
         result = strat.simulate()
         return result
 
     @staticmethod
-    def hopt_proc(stratclass, pp, space, n_avg=6):
+    def hopt_proc(stratclass, pp, space, n_avg=4):
         """
         n_avg: Number of runs to take the average of.
         For non-net strats, these are run in parallell.
         """
         for key, val in space.items():
             pp[key] = val
-        simproc = partial(Runner.sim_proc, stratclass, pp)
+        # import psutil
+        # n_avg = psutil.cpu_count(logical=False)
+        simproc = partial(Runner.sim_proc, stratclass, pp, reseed=False)
         logger = logging.getLogger('')
         logger.error(space)
         if pp['net']:
             results = []
             for i in range(n_avg):
-                res = simproc(pid=i)
+                res = simproc(pid=i)[0]
                 if np.isnan(res) or np.isinf(res):
                     break
                 results.append(res)
         else:
-            with Pool() as p:
-                results = p.map(simproc, range(n_avg))
+            # No need to average for table-based methods since they use the same
+            # numpy seed
+            results = [simproc(0)[0]]
         for res in results:
             if np.isnan(res) or np.isinf(res):
                 return {"status": "fail"}
@@ -146,19 +156,18 @@ class Runner:
             }
             self.pp['n_events'] = 100000
             trials_step = 1  # Number of trials to run before saving
-            n_avg = 2
         else:
             space = {
-                'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
-                'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
-                'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
-                'epsilon_decay': hp.uniform('epsilon_decay', 0.9995,
-                                            0.9999999),
-                'gamma': hp.uniform('gamma', 0.7, 0.90)
+                # 'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
+                # 'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
+                # 'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
+                # 'epsilon_decay': hp.uniform('epsilon_decay', 0.9995,
+                #                             0.9999999),
+                'gamma': hp.uniform('gamma', 0.7, 0.90),
+                'lambda': hp.uniform('lambda', 0.0, 1.0)
             }
-            n_avg = 6
-            trials_step = 4
-
+            trials_step = 2
+        np.random.seed(0)
         f_name = f"results-{self.pp['strat']}.pkl"
         try:
             with open(f_name, "rb") as f:
@@ -167,7 +176,7 @@ class Runner:
         except:
             trials = Trials()
 
-        fn = partial(Runner.hopt_proc, self.stratclass, self.pp, n_avg=n_avg)
+        fn = partial(Runner.hopt_proc, self.stratclass, self.pp)
         prev_best = {}
         while True:
             n_trials = len(trials)
