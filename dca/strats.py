@@ -433,8 +433,6 @@ class ACNetStrat(NetStrat):
         # don't update q-value at all
         # TODO perhaps for n-step returns, everything should be included, or
         # next_ce_type == END should be excluded.
-        # NEED to sketch things out. The result probably applies to n-step
-        # sarsa as well.
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead

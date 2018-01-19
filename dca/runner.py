@@ -54,8 +54,9 @@ class Runner:
                 res = simproc(i)
                 if not (np.isnan(res[0]) or np.isinf(res[0]) or res[0] == 1):
                     results.append(res)
-        with Pool() as p:
-            results = p.map(simproc, range(n_runs))
+        else:
+            with Pool() as p:
+                results = p.map(simproc, range(n_runs))
         n_events = self.pp['n_events']
         results = np.array(results)
         self.logger.error(

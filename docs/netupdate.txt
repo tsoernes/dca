@@ -1,12 +1,19 @@
-Assuming the state consists of (grid, event), should the q-value be updated
-when either $s$ or $s'$ in $(s,a,r,s')$ contains an END event?
+Assuming the state consists of (grid, event), should the q-value be updated when
+either s or s' in (s, a, r, s', a') contains an END event, or when either a or
+a' is None?
+
 Intuitively, the network should yield the q-values for assigning each channel
 given a grid and cell; that is, the event is assumed to be a NEW/HOFF event.
 Because the network is used in a feed-forward manner for reassignment on END
 events, perhaps the network should be ignorant of whether channels are available
-or not in the given cell; only the neighbors matter. This hypothesis might be tested
-by comparing the q-values for two equal grids fed through the network, only differing
-on the availability of one channel in the given cell.
+or not in the given cell; only the neighbors matter. This hypothesis might be
+tested by comparing the q-values for two equal grids fed through the network,
+only differing on the availability of one channel in the given cell.
+
+Another approach is to modify the grid such that all channels in the given cell
+are free when sending it through the network for END events, in order to mimick
+assigning a new channel. This leaves two options for training: don't train on
+END events, or do the same to the grid when training.
 
 ch, next ch not none
 qnet, batch size 1, 200k events, netlr 9e-5
@@ -38,8 +45,4 @@ event, next event != END:
 
 
 
-Another approach is to modify the grid such that all channels are available when
-sending it through the network for END events, in order to mimick assigning a new
-channel. This leaves two options for training: don't train on END events, or do
-the same to the grid when training.
 ----
