@@ -47,6 +47,7 @@ class Runner:
     def avg_run(self):
         t = time.time()
         n_runs = self.pp['avg_runs']
+        np.random.seed(0)
         simproc = partial(self.sim_proc, self.stratclass, self.pp)
         if self.pp['net']:
             # Use constant tf seed
@@ -136,13 +137,6 @@ class Runner:
         result = sum(results) / len(results)
         return result
 
-    def show(self):
-        g = grid.RhombusAxialGrid(logger=self.logger, **self.pp)
-        gui = Gui(g, self.logger, g.print_neighs, "rhomb")
-        # grid = RectOffGrid(logger=self.logger, **self.pp)
-        # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
-        gui.test()
-
     def hopt(self, net=False):
         """
         Hyper-parameter optimization with hyperopt.
@@ -229,6 +223,13 @@ class Runner:
             pl1.plot(values, losses, 'ro')
             plt.xlabel(param)
         plt.show()
+
+    def show(self):
+        g = grid.RhombusAxialGrid(logger=self.logger, **self.pp)
+        gui = Gui(g, self.logger, g.print_neighs, "rhomb")
+        # grid = RectOffGrid(logger=self.logger, **self.pp)
+        # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
+        gui.test()
 
 
 if __name__ == '__main__':
