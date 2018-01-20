@@ -7,6 +7,8 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
+
+
 """
 consider batch norm [ioffe and szegedy, 2015]
 batch norm is inserted after fully connected or convolutional
@@ -70,7 +72,6 @@ class Net:
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
 
-        tf.set_random_seed(0)
         tf.reset_default_graph()
         if pp['tfprofiling']:
             self.options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -86,7 +87,6 @@ class Net:
             config.device_count = {'GPU': 0}
         tf.set_random_seed(0)
         self.sess = tf.Session(config=config)
-        tf.set_random_seed(0)
 
         self.build()
         init = tf.global_variables_initializer()
