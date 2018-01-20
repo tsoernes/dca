@@ -84,7 +84,7 @@ class Strat:
         self.fn_after()
         if self.save:
             self.replaybuffer.save_experience_to_disk()
-        if self.quit_sim and self.pp['hopt']:
+        if self.quit_sim and (self.pp['hopt'] or self.pp['avg_runs']):
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
             return (1, 1)
@@ -363,17 +363,12 @@ class NetStrat(RLStrat):
         return qvals
 
 
-class QLearnNet(NetStrat):
-    def __init__(self, *args, **kwargs):
+class QNet(NetStrat):
+    def __init__(self, max_next_action, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.batch_size > 1:
-            self.update_qval = self.update_qval_experience
-            self.logger.warn("Using experience replay with batch"
-                             f" size of {self.batch_size}")
-        else:
-            self.update_qval = self.update_qval_single
         from nets.qnet import QNet
-        self.net = QNet(True, self.pp, self.logger, restore=False, save=False)
+        self.net = QNet(
+            max_next_action, self.pp, self.logger, restore=False, save=False)
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
@@ -391,14 +386,32 @@ class QLearnNet(NetStrat):
                              next_ch)
         return next_ch
 
-    def update_qval_single(self, grid, cell, ch, reward, next_qval, next_cell,
-                           next_ch):
+    def update_qval(self, grid, cell, ch, reward, next_qval, next_cell,
+                    next_ch):
         """ Update qval for one experience tuple"""
-        loss = self.net.backward(grid, cell, [ch], [reward], self.grid,
-                                 next_cell)
+        loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell,
+                             next_ch)
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
+
+    def backward(self, *args):
+        raise NotImplementedError
+
+
+class QLearnNet(QNet):
+    """Update towards greedy action selection"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(True, *args, **kwargs)
+        if self.batch_size > 1:
+            self.update_qval = self.update_qval_experience
+            self.logger.warn("Using experience replay with batch"
+                             f" size of {self.batch_size}")
+
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch):
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
+        return loss
 
     def update_qval_experience(self, *args):
         """
@@ -409,11 +422,22 @@ class QLearnNet(NetStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(*self.replaybuffer.sample(
-            self.pp['batch_size']))
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
+
+
+class SARSANet(QNet):
+    """Update towards policy action selection"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(False, *args, **kwargs)
+
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch):
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
+        return loss
 
 
 class ACNetStrat(NetStrat):

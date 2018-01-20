@@ -6,7 +6,7 @@ from nets.utils import prep_data_cells, prep_data_grids
 
 
 class QNet(Net):
-    def __init__(self, max_next_action=False, *args, **kwargs):
+    def __init__(self, max_next_action, *args, **kwargs):
         """
         Lagging QNet. If 'max_next_action', perform greedy
         Q-learning updates, else SARSA updates.
@@ -20,7 +20,7 @@ class QNet(Net):
             conv1 = tf.layers.conv2d(
                 inputs=grid,
                 filters=70,
-                kernel_size=5,
+                kernel_size=4,
                 padding="same",
                 activation=tf.nn.relu)
             conv2 = tf.layers.conv2d(
@@ -57,8 +57,8 @@ class QNet(Net):
             shape=gridshape, dtype=tf.float32, name="next_grid")
         self.next_cell = tf.placeholder(
             shape=cellshape, dtype=tf.float32, name="next_cell")
-        # self.next_action = tf.placeholder(
-        #     shape=[None], dtype=tf.int32, name="next_action")
+        self.next_action = tf.placeholder(
+            shape=[None], dtype=tf.int32, name="next_action")
 
         # Keep separate weights for target Q network
         self.online_q_vals, online_vars = self._build_qnet(
@@ -88,21 +88,21 @@ class QNet(Net):
             axis=1,
             name="online_q_selected")
         # Target Q-value for given next action
-        # self.target_q_selected = tf.reduce_sum(
-        #     target_q_vals * tf.one_hot(self.next_action,
-        #                                self.pp['n_channels']),
-        #     axis=1,
-        #     name="next_q_selected")
+        self.target_q_selected = tf.reduce_sum(
+            target_q_vals * tf.one_hot(self.next_action,
+                                       self.pp['n_channels']),
+            axis=1,
+            name="next_q_selected")
 
         # q scores for actions which we know were selected in the given state.
         # q_pred = tf.reduce_sum(q_t * tf.one_hot(actions, num_actions), 1)
 
-        # if self.max_next_action:
-        # Target for Q-learning
-        self.q_target = self.reward + self.gamma * self.target_q_max
-        # else:
-        #     # Target for SARSA
-        #     self.q_target = self.reward + self.gamma * self.target_q_selected
+        if self.max_next_action:
+            # Target for Q-learning
+            self.q_target = self.reward + self.gamma * self.target_q_max
+        else:
+            # Target for SARSA
+            self.q_target = self.reward + self.gamma * self.target_q_selected
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
@@ -159,8 +159,8 @@ class QNet(Net):
             self.next_grid: prep_data_grids(next_grids),
             self.next_cell: prep_data_cells(next_cells),
         }
-        # if next_actions:
-        #     data[self.next_action] = next_actions
+        if next_actions:
+            data[self.next_action] = next_actions
         _, loss = self.sess.run(
             [self.do_train, self.loss],
             feed_dict=data,

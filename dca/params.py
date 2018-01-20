@@ -67,7 +67,7 @@ def get_pparams():
         '--avg_runs',
         type=int,
         help="Run simulation 'n' times, report average scores",
-        default=1)
+        default=None)
 
     parser.add_argument(
         '--alpha', type=float, help="(RL) learning rate", default=0.036)
@@ -202,7 +202,7 @@ def get_pparams():
         params['batch_size'] = 1
     if not params['call_rates']:
         params['call_rates'] = params['erlangs'] / params['call_duration']
-    if params['avg_runs'] > 1:
+    if params['avg_runs']:
         params['gui'] = False
         params['log_level'] = logging.ERROR
     if params['hopt']:

@@ -33,7 +33,7 @@ class Runner:
             self.hopt_best()
         elif self.pp['hopt_plot']:
             self.hopt_plot()
-        elif self.pp['avg_runs'] > 1:
+        elif self.pp['avg_runs']:
             self.avg_run()
         elif self.pp['strat'] == 'show':
             self.show()
@@ -50,17 +50,16 @@ class Runner:
         simproc = partial(self.sim_proc, self.stratclass, self.pp)
         if self.pp['net']:
             # Use constant tf seed
-            import tensorflow as tf
-            tf.set_random_seed(0)
+            np.random.seed(0)
             results = []
             for i in range(n_runs):
                 # Use constant np seed
-                res = simproc(i, False)
-                if not (np.isnan(res[0]) or np.isinf(res[0]) or res[0] == 1):
-                    results.append(res)
+                res = simproc(i, reseed=False)
+                results.append(res)
         else:
             with Pool() as p:
                 results = p.map(simproc, range(n_runs))
+        results = list(filter(lambda r: r[0] != 1, results))
         if not results:
             self.logger.error("NO RESULTS")
             return
@@ -123,6 +122,7 @@ class Runner:
             results = []
             for i in range(n_avg):
                 res = simproc(pid=i)[0]
+                # TODO This can probably be handled better
                 if np.isnan(res) or np.isinf(res):
                     break
                 results.append(res)

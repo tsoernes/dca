@@ -58,7 +58,7 @@ If so then need to retest sarsa-strats and redo hyperparam opt.
 
 
 class Net:
-    def __init__(self, pp, logger, name, restore=True, save=True):
+    def __init__(self, pp, logger, name, restore=False, save=False):
         self.logger = logger
         self.save = save
         self.l_rate = pp['net_lr']
@@ -70,6 +70,7 @@ class Net:
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
 
+        tf.set_random_seed(0)
         tf.reset_default_graph()
         if pp['tfprofiling']:
             self.options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -83,11 +84,14 @@ class Net:
         config.gpu_options.allow_growth = True
         if pp['no_gpu']:
             config.device_count = {'GPU': 0}
+        tf.set_random_seed(0)
         self.sess = tf.Session(config=config)
+        tf.set_random_seed(0)
 
         self.build()
         init = tf.global_variables_initializer()
-        self.saver = tf.train.Saver()
+        if self.save or restore:
+            self.saver = tf.train.Saver()
         self.sess.run(init)
         if restore:
             # Could do a try/except and build if loading fails
