@@ -37,10 +37,14 @@ class Strat:
         Graceful exit on ctrl-c signal from
         command line or on 'q' key-event from gui.
         """
-        self.logger.warn("\nPremature exit")
+        self.logger.error("\nPremature exit")
         self.quit_sim = True
 
-    def simulate(self):
+    def simulate(self) -> Tuple[float, float]:
+        """
+        Run simulation and return a tuple with cumulative call
+        block probability and cumulative handoff block probability
+        """
         cevent = self.env.init_calls()
         ch = self.get_init_action(cevent)
 
@@ -87,7 +91,7 @@ class Strat:
         if self.quit_sim and (self.pp['hopt'] or self.pp['avg_runs']):
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
-            return (1, 1)
+            return (1.0, 1.0)
         return (self.env.stats.block_prob_cum,
                 self.env.stats.block_prob_cum_hoff)
 
@@ -177,7 +181,6 @@ class RLStrat(Strat):
             # Choose greedily
             idx = np.argmax(qvals[chs])
             ch = chs[idx]
-
         return ch
 
     def policy_boltzmann(self, qvals, chs):
@@ -187,8 +190,6 @@ class RLStrat(Strat):
         return ch
 
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
-        # NOTE this isn't really the optimal ch since
-        # it's chosen in an epsilon-greedy fashion
         """
         Select the channel fitting for assignment that
         that has the maximum q-value in an epsilon-greedy fasion,
@@ -198,6 +199,9 @@ class RLStrat(Strat):
         Return (ch, qval) where 'qval' is the q-value for the
         selected channel.
         'ch' is None if no channel is eligible for assignment.
+
+        NOTE this isn't necessarily the optimal ch since
+        the policy can be e.g. epsilon-greedy
         """
         inuse = np.nonzero(self.grid[cell])[0]
         n_used = len(inuse)
@@ -229,7 +233,6 @@ class RLStrat(Strat):
         if ch is None:
             self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
             raise Exception
-
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, qvals[ch])
@@ -237,7 +240,7 @@ class RLStrat(Strat):
 
 class SARSA(RLStrat):
     """
-    State consists of coordinates and the number of used channels in that cell.
+    State consists of cell coordinates and the number of used channels in that cell.
     """
 
     def __init__(self, *args, **kwargs):
@@ -264,6 +267,7 @@ class SARSA(RLStrat):
 class SARSA_LAMBDA(SARSA):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Eligibility traces
         self.el_traces = np.zeros((self.rows, self.cols, self.n_channels,
                                    self.n_channels))
         self.lmbda = self.pp['lambda']
@@ -281,9 +285,10 @@ class SARSA_LAMBDA(SARSA):
 
 class TT_SARSA(RLStrat):
     """
+    Table-trimmed SARSA.
     State consists of cell coordinates and the number of used channels.
-    If the number of used channels exceeds 'k', their values are
-    aggregated to 'k'.
+    States where the number of used channels is or exceeds 'k' have their values are
+    aggregated to the state where the number of used channels is 'k-1'.
     """
 
     def __init__(self, *args, **kwargs):
@@ -305,7 +310,8 @@ class TT_SARSA(RLStrat):
 
 class RS_SARSA(RLStrat):
     """
-    State consists of cell coordinates only
+    Reduced-state SARSA.
+    State consists of cell coordinates only.
     """
 
     def __init__(self, *args, **kwargs):
@@ -326,6 +332,7 @@ class RS_SARSA(RLStrat):
 class RS_SARSA_LAMBDA(RS_SARSA):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Eligibility traces
         self.el_traces = np.zeros((self.rows, self.cols, self.n_channels))
         self.lmbda = self.pp['lambda']
 
@@ -353,17 +360,8 @@ class NetStrat(RLStrat):
         self.net.save_timeline()
         self.net.sess.close()
 
-    def get_qvals(self, cell, ce_type, *args, **kwargs):
-        if ce_type == CEvent.END:
-            state = np.copy(self.grid)
-            state[cell] = np.zeros(self.n_channels)
-        else:
-            state = self.grid
-        qvals = self.net.forward(state, cell)
-        return qvals
 
-
-class QNet(NetStrat):
+class QNetStrat(NetStrat):
     def __init__(self, max_next_action, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from nets.qnet import QNet
@@ -386,20 +384,30 @@ class QNet(NetStrat):
                              next_ch)
         return next_ch
 
+    def get_qvals(self, cell, ce_type, *args, **kwargs):
+        if ce_type == CEvent.END:
+            state = np.copy(self.grid)
+            state[cell] = np.zeros(self.n_channels)
+        else:
+            state = self.grid
+        qvals = self.net.forward(state, cell)
+        return qvals
+
     def update_qval(self, grid, cell, ch, reward, next_qval, next_cell,
                     next_ch):
         """ Update qval for one experience tuple"""
         loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell,
                              next_ch)
-        self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
+        else:
+            self.losses.append(loss)
 
     def backward(self, *args):
         raise NotImplementedError
 
 
-class QLearnNet(QNet):
+class QLearnNetStrat(QNetStrat):
     """Update towards greedy action selection"""
 
     def __init__(self, *args, **kwargs):
@@ -424,12 +432,13 @@ class QLearnNet(QNet):
             return
         loss = self.net.backward(
             *self.replaybuffer.sample(self.pp['batch_size']))
-        self.losses.append(loss)
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
+        else:
+            self.losses.append(loss)
 
 
-class SARSANet(QNet):
+class SARSANetStrat(QNetStrat):
     """Update towards policy action selection"""
 
     def __init__(self, *args, **kwargs):
@@ -441,6 +450,8 @@ class SARSANet(QNet):
 
 
 class ACNetStrat(NetStrat):
+    """Actor Critic"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ACNet(self.pp, self.logger, restore=False, save=False)
