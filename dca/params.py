@@ -31,11 +31,13 @@ def get_pparams():
 
     stratclasses = strat_classes("strats") + strat_classes("fixedstrats")
     stratnames = ['show']
-    for s in stratclasses:
+    for i in range(len(stratclasses)):
+        s = stratclasses[i]
         s1 = s[0].lower()
         s2 = s1.replace("strat", "")
         if s2 not in ["net", "qnet", "rl"]:
             stratnames.append(s2)
+        stratclasses[i] = (s2, stratclasses[i][1])
     parser.add_argument('--strat', choices=stratnames, default='fixedassign')
     parser.add_argument(
         '--rows', type=int, help="number of rows in grid", default=7)
