@@ -9,6 +9,11 @@ import fixedstrats  # noqa
 import strats  # noqa
 
 
+import random
+random.seed(0)
+np.random.seed(0)
+
+
 def strat_classes(module_name):
     """
     Return a list with (name, class) for all the strats

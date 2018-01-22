@@ -48,14 +48,14 @@ class Runner:
         t = time.time()
         n_runs = self.pp['avg_runs']
         np.random.seed(0)
-        simproc = partial(self.sim_proc, self.stratclass, self.pp)
+        simproc = partial(self.sim_proc, self.stratclass, self.pp, reseed=False)
         if self.pp['net']:
             # Use constant tf seed
             np.random.seed(0)
             results = []
             for i in range(n_runs):
                 # Use constant np seed
-                res = simproc(i, reseed=False)
+                res = simproc(i)
                 results.append(res)
         else:
             with Pool() as p:

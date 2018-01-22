@@ -124,6 +124,7 @@ class Stats:
         self.logger.warn(
             f"\nAverage number of calls in progress when blocking: "
             f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")
+
         if self.pp['do_plot']:
             self.plot()
 

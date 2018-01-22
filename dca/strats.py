@@ -129,9 +129,13 @@ class RLStrat(Strat):
         self.alpha = pp['alpha']
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
+        self.logger.info(f"NP Rand: {np.random.uniform()}")
 
     def fn_report(self):
         self.env.stats.report_rl(self.epsilon, self.alpha)
+
+    def fn_after(self):
+        self.logger.info(f"NP Rand: {np.random.uniform()}")
 
     def update_qval(self, cell, ch, target_q):
         raise NotImplementedError
@@ -363,6 +367,8 @@ class NetStrat(RLStrat):
         super().fn_report()
 
     def fn_after(self):
+        ra = self.net.rand_uniform()
+        self.logger.info(f"TF Rand: {ra}, NP Rand: {np.random.uniform()}")
         self.net.save_model()
         self.net.save_timeline()
         self.net.sess.close()
@@ -374,6 +380,8 @@ class QNetStrat(NetStrat):
         from nets.qnet import QNet
         self.net = QNet(
             max_next_action, self.pp, self.logger, restore=False, save=False)
+        ra = self.net.rand_uniform()
+        self.logger.info(f"TF Rand: {ra}")
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)

@@ -209,6 +209,12 @@ class Net:
             self.logger.error(
                 f"Batch size {bs} took {time.time()-t:.2f} seconds")
 
+    def rand_uniform(self):
+        """Used for checking if random seeds are set/working"""
+        r = tf.random_uniform([1])
+        ra = self.sess.run(r)
+        return ra
+
 
 if __name__ == "__main__":
     import logging

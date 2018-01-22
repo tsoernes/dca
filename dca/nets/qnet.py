@@ -118,14 +118,14 @@ class QNet(Net):
         self.do_train = trainer.minimize(self.loss, var_list=online_vars)
 
         # Write out statistics to file
-        with tf.name_scope("summaries"):
-            tf.summary.scalar("learning_rate", self.l_rate)
-            tf.summary.scalar("loss", self.loss)
-            tf.summary.histogram("qvals", self.online_q_vals)
-        self.summaries = tf.summary.merge_all()
-        self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
-                                                  self.sess.graph)
-        self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
+        # with tf.name_scope("summaries"):
+        #     tf.summary.scalar("learning_rate", self.l_rate)
+        #     tf.summary.scalar("loss", self.loss)
+        #     tf.summary.histogram("qvals", self.online_q_vals)
+        # self.summaries = tf.summary.merge_all()
+        # self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
+        #                                           self.sess.graph)
+        # self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
 
     def forward(self, grid, cell):
         q_vals = self.sess.run(
@@ -163,9 +163,9 @@ class QNet(Net):
             data[self.next_action] = next_actions
         _, loss = self.sess.run(
             [self.do_train, self.loss],
-            feed_dict=data,
-            options=self.options,
-            run_metadata=self.run_metadata)
+            feed_dict=data)
+            # options=self.options,
+            # run_metadata=self.run_metadata)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
         return loss
