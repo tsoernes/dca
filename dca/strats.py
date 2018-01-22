@@ -398,7 +398,7 @@ class QNetStrat(NetStrat):
                     next_ch):
         """ Update qval for one experience tuple"""
         loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell,
-                             next_ch)
+                             [next_ch])
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
         else:
@@ -446,7 +446,7 @@ class SARSANetStrat(QNetStrat):
         super().__init__(False, *args, **kwargs)
 
     def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell, next_ch)
         return loss
 
 
