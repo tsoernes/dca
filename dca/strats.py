@@ -81,6 +81,14 @@ class Strat:
             if i > 0:
                 if i % self.pp['log_iter'] == 0:
                     self.fn_report()
+                    if self.pp['stop_training_delta'] and not self.stop_training:
+                        bps = self.env.stats.block_probs_cum
+                        if len(bps) > 1 and \
+                           bps[-2] - bps[-1] < self.pp['stop_training_delta']:
+                            self.no_improvements += 1
+                            if self.no_improvements > 10:
+                                self.logger.error("STOPPED TRAINING")
+                                self.stop_training = True
                 if self.pp['net'] and \
                         i % self.pp['net_copy_iter'] == 0:
                     self.update_target_net()
@@ -133,6 +141,9 @@ class RLStrat(Strat):
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
         self.logger.info(f"NP Rand: {np.random.uniform()}")
+        self.stop_training = False
+        self.prev_cum_block = None  # Cumulative block prob at last log iter
+        self.no_improvements = 0
 
     def fn_report(self):
         self.env.stats.report_rl(self.epsilon, self.alpha)
@@ -160,7 +171,8 @@ class RLStrat(Strat):
         next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
-        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+        if ce_type != CEvent.END and ch is not None and next_ch is not None \
+           and not self.stop_training:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
             self.update_qval(grid, cell, ch, reward, next_qval, next_cell,
@@ -457,8 +469,8 @@ class QLearnNetStrat(QNetStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(*self.replaybuffer.sample(
-            self.pp['batch_size']))
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
         else:

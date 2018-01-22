@@ -104,6 +104,12 @@ def get_pparams():
         help="(RL) lower lambda weighs fewer step returns higher",
         default=0.22)
     parser.add_argument(
+        '--stop_training_delta',
+        type=float,
+        help="(RL) Stop training after cumulative block prob decrease"
+        " between 'log_iter' iterations is less than given delta",
+        default=None)
+    parser.add_argument(
         '--save_exp_data',
         help="Save experience data to file",
         action='store_true',
