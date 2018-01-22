@@ -102,13 +102,12 @@ def get_pparams():
         '--lambda',
         type=float,
         help="(RL) lower lambda weighs fewer step returns higher",
-        default=0.22)
-    parser.add_argument(
-        '--stop_training_delta',
-        type=float,
-        help="(RL) Stop training after cumulative block prob decrease"
-        " between 'log_iter' iterations is less than given delta",
         default=None)
+    parser.add_argument(
+        '--min_alpha',
+        type=float,
+        help="(RL) stop decaying alpha beyond this point",
+        default=0.0)
     parser.add_argument(
         '--save_exp_data',
         help="Save experience data to file",
@@ -214,6 +213,10 @@ def get_pparams():
 
     args = parser.parse_args()
     params = vars(args)
+
+    if params['lambda'] is not None:
+        # Computationally expensive, gotta warn
+        print("Using lambda returns")
 
     # Sensible presets / overrides
     params['net'] = False  # Whether net is in use or not

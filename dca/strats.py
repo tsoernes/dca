@@ -81,14 +81,6 @@ class Strat:
             if i > 0:
                 if i % self.pp['log_iter'] == 0:
                     self.fn_report()
-                    if self.pp['stop_training_delta'] and not self.stop_training:
-                        bps = self.env.stats.block_probs_cum
-                        if len(bps) > 1 and \
-                           bps[-2] - bps[-1] < self.pp['stop_training_delta']:
-                            self.no_improvements += 1
-                            if self.no_improvements > 10:
-                                self.logger.error("STOPPED TRAINING")
-                                self.stop_training = True
                 if self.pp['net'] and \
                         i % self.pp['net_copy_iter'] == 0:
                     self.update_target_net()
@@ -141,7 +133,6 @@ class RLStrat(Strat):
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
         self.logger.info(f"NP Rand: {np.random.uniform()}")
-        self.stop_training = False
         self.prev_cum_block = None  # Cumulative block prob at last log iter
         self.no_improvements = 0
 
@@ -150,16 +141,6 @@ class RLStrat(Strat):
 
     def fn_after(self):
         self.logger.info(f"NP Rand: {np.random.uniform()}")
-
-    def update_qval(self, cell, ch, target_q):
-        raise NotImplementedError
-
-    def get_qvals(self, cell, *args, **kwargs):
-        """
-        Different strats may use additional arguments,
-        depending on the features
-        """
-        raise NotImplementedError
 
     def get_init_action(self, cevent):
         ch, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
@@ -171,8 +152,7 @@ class RLStrat(Strat):
         next_ch, next_qval = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
-        if ce_type != CEvent.END and ch is not None and next_ch is not None \
-           and not self.stop_training:
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
             self.update_qval(grid, cell, ch, reward, next_qval, next_cell,
@@ -256,6 +236,37 @@ class RLStrat(Strat):
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, qvals[ch])
 
+
+class QTable(RLStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.old_qvals = None  # Compare policy of current qvals to this
+        self.lmbda = self.pp['lambda']
+
+    def get_qvals(self, cell, n_used, ch=None, *args, **kwargs):
+        rep = self.feature_rep(cell, n_used)
+        if ch is not None:
+            return self.qvals[rep][ch]
+        else:
+            return self.qvals[rep]
+
+    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
+        assert type(ch) == np.int64
+        assert ch is not None
+        # Counting n_used of self.grid instead of grid yields significantly better
+        # performance for unknown reasons.
+        n_used = np.count_nonzero(grid[cell])
+        target_q = reward + self.gamma * next_qval
+        td_err = target_q - self.get_qvals(cell, n_used, ch)
+        frep = self.feature_rep(cell, n_used)
+        if self.lmbda is None:
+            self.qvals[frep][ch] += self.alpha * td_err
+        else:
+            self.el_traces[frep][ch] += 1
+            self.qvals += self.alpha * td_err * self.el_traces
+            self.el_traces *= self.gamma * self.lmbda
+        self.alpha *= self.alpha_decay
+
     def policy_mse(self):
         """
         Calculate the mean squared error between the policy
@@ -271,7 +282,7 @@ class RLStrat(Strat):
         self.old_qvals = np.copy(self.qvals)
 
 
-class SARSA(RLStrat):
+class SARSA(QTable):
     """
     State consists of cell coordinates and the number of used channels in that cell.
     """
@@ -285,36 +296,13 @@ class SARSA(RLStrat):
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels,
                                self.n_channels))
         self.old_qvals = None  # Compare policy of current qvals to this
+        if self.lmbda is not None:
+            # Eligibility traces
+            self.el_traces = np.zeros((self.rows, self.cols, self.n_channels,
+                                       self.n_channels))
 
-    def get_qvals(self, cell, n_used, *args, **kwargs):
-        return self.qvals[cell][n_used]
-
-    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
-        assert type(ch) == np.int64
-        n_used = np.count_nonzero(grid[cell])
-        target_q = reward + self.gamma * next_qval
-        td_err = target_q - self.qvals[cell][n_used][ch]
-        self.qvals[cell][n_used][ch] += self.alpha * td_err
-        self.alpha *= self.alpha_decay
-
-
-class SARSA_LAMBDA(SARSA):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Eligibility traces
-        self.el_traces = np.zeros((self.rows, self.cols, self.n_channels,
-                                   self.n_channels))
-        self.lmbda = self.pp['lambda']
-
-    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
-        assert type(ch) == np.int64
-        n_used = np.count_nonzero(self.grid[cell])
-        target_q = reward + self.gamma * next_qval
-        td_err = target_q - self.qvals[cell][n_used][ch]
-        self.el_traces[cell][n_used][ch] += 1
-        self.qvals += self.alpha * td_err * self.el_traces
-        self.el_traces *= self.gamma * self.lmbda
-        self.alpha *= self.alpha_decay
+    def feature_rep(self, cell, n_used):
+        return (*cell, n_used)
 
 
 class TT_SARSA(RLStrat):
@@ -329,20 +317,16 @@ class TT_SARSA(RLStrat):
         super().__init__(*args, **kwargs)
         self.k = 30
         self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
+        if self.lmbda is not None:
+            # Eligibility traces
+            self.el_traces = np.zeros((self.rows, self.cols, self._k,
+                                       self.n_channels))
 
-    def get_qvals(self, cell, n_used, *args, **kwargs):
-        return self.qvals[cell][min(self.k - 1, n_used)]
-
-    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
-        assert type(ch) == np.int64
-        n_used = np.count_nonzero(self.grid[cell])
-        target_q = reward + self.gamma * next_qval
-        td_err = target_q - self.get_qvals(cell, n_used)[ch]
-        self.qvals[cell][min(self.k - 1, n_used)][ch] += self.alpha * td_err
-        self.alpha *= self.alpha_decay
+    def feature_rep(self, cell, n_used):
+        return (*cell, min(self.k - 1, n_used))
 
 
-class RS_SARSA(RLStrat):
+class RS_SARSA(QTable):
     """
     Reduced-state SARSA.
     State consists of cell coordinates only.
@@ -351,34 +335,12 @@ class RS_SARSA(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
-        self.old_qvals = None  # Compare policy of current qvals to this
+        if self.lmbda is not None:
+            # Eligibility traces
+            self.el_traces = np.zeros((self.rows, self.cols, self.n_channels))
 
-    def get_qvals(self, cell, *args, **kwargs):
-        return self.qvals[cell]
-
-    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
-        assert type(ch) == np.int64
-        target_q = reward + self.gamma * next_qval
-        td_err = target_q - self.get_qvals(cell)[ch]
-        self.qvals[cell][ch] += self.alpha * td_err
-        self.alpha *= self.alpha_decay
-
-
-class RS_SARSA_LAMBDA(RS_SARSA):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Eligibility traces
-        self.el_traces = np.zeros((self.rows, self.cols, self.n_channels))
-        self.lmbda = self.pp['lambda']
-
-    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
-        assert type(ch) == np.int64
-        target_q = reward + self.gamma * next_qval
-        td_err = target_q - self.qvals[cell][ch]
-        self.el_traces[cell][ch] += 1
-        self.qvals += self.alpha * td_err * self.el_traces
-        self.el_traces *= self.gamma * self.lmbda
-        self.alpha *= self.alpha_decay
+    def feature_rep(self, cell, n_used):
+        return cell
 
 
 class NetStrat(RLStrat):
@@ -469,8 +431,8 @@ class QLearnNetStrat(QNetStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(
+            self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
         else:
