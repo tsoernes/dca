@@ -13,9 +13,6 @@ class QNet(Net):
         """
         self.max_next_action = max_next_action
         super().__init__(name="QNet", *args, **kwargs)
-        r = tf.random_uniform([1])
-        ra = self.sess.run(r)
-        self.logger.error(f"TF Random: {ra}")
         self.sess.run(self.copy_online_to_target)
 
     def _build_qnet(self, grid, cell, name):
