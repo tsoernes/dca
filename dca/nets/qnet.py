@@ -115,8 +115,13 @@ class QNet(Net):
         # trainer = tf.train.RMSPropOptimizer(learning_rate=self.l_rate)
         trainer = tf.train.MomentumOptimizer(
             learning_rate=self.l_rate, momentum=0.95)
-        self.do_train = trainer.minimize(self.loss, var_list=online_vars)
 
+        self.max_grad_norm = 10000
+        gradients, trainable_vars = zip(*trainer.compute_gradients(self.loss))
+        clipped_grads, grad_norms = tf.clip_by_global_norm(
+            gradients, self.max_grad_norm)
+        self.do_train = trainer.apply_gradients(
+            zip(clipped_grads, online_vars))
         # Write out statistics to file
         # with tf.name_scope("summaries"):
         #     tf.summary.scalar("learning_rate", self.l_rate)
@@ -163,9 +168,9 @@ class QNet(Net):
             data[self.next_action] = next_actions
         _, loss = self.sess.run(
             [self.do_train, self.loss],
-            feed_dict=data)
-            # options=self.options,
-            # run_metadata=self.run_metadata)
+            feed_dict=data,
+            options=self.options,
+            run_metadata=self.run_metadata)
         if np.isnan(loss) or np.isinf(loss):
             self.logger.error(f"Invalid loss: {loss}")
         return loss
