@@ -4,11 +4,14 @@ import numpy as np
 import tensorflow as tf
 
 
-def softmax(x):
-    """Compute softmax values for each sets of scores in x."""
+def softmax(x, axis=None):
+    """Compute softmax values for each sets of scores in x. If axis is not given,
+    softmax over the last dimension."""
+    if axis is None:
+        axis = np.ndim(x) - 1
     # Subtract maximum value for numerical stability; result will be the same
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum()
+    e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e_x / np.sum(e_x, axis=axis, keepdims=True)
 
 
 def discount(rewards, gamma):

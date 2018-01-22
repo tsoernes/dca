@@ -163,6 +163,12 @@ def get_pparams():
         help="verify reuse constraint each iteration",
         default=False)
     parser.add_argument(
+        '--policy_mse',
+        type=int,
+        help="(RL) Given iterations 'n',"
+        " calculate the MSE between policies at time (0, n), (n, 2n), ...",
+        default=0)
+    parser.add_argument(
         '--prof',
         dest='profiling',
         action='store_true',

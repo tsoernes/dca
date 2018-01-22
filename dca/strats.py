@@ -237,6 +237,13 @@ class RLStrat(Strat):
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, qvals[ch])
 
+    def policy_mse_qvals(self):
+        """
+        For a state-action value function, calculate the mean squared error
+        between the policy at the current time and one from a previous time
+        """
+        raise NotImplementedError
+
 
 class SARSA(RLStrat):
     """
@@ -430,8 +437,8 @@ class QLearnNetStrat(QNetStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(
+            self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
         else:
