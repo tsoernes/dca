@@ -117,15 +117,17 @@ class QNet(Net):
             learning_rate=self.l_rate, momentum=0.95)
 
         self.max_grad_norm = 10000
-        gradients, trainable_vars = zip(*trainer.compute_gradients(self.loss))
+        gradients, trainable_vars = zip(*trainer.compute_gradients(
+            self.loss, var_list=online_vars))
         clipped_grads, grad_norms = tf.clip_by_global_norm(
             gradients, self.max_grad_norm)
         self.do_train = trainer.apply_gradients(
-            zip(clipped_grads, online_vars))
+            zip(clipped_grads, trainable_vars))
         # Write out statistics to file
         # with tf.name_scope("summaries"):
         #     tf.summary.scalar("learning_rate", self.l_rate)
         #     tf.summary.scalar("loss", self.loss)
+        #     tf.summary.scalar("grad_norm", grad_norms)
         #     tf.summary.histogram("qvals", self.online_q_vals)
         # self.summaries = tf.summary.merge_all()
         # self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
