@@ -1,6 +1,7 @@
 import argparse
 import inspect
 import logging
+import random
 import sys
 
 import numpy as np
@@ -8,8 +9,6 @@ import numpy as np
 import fixedstrats  # noqa
 import strats  # noqa
 
-
-import random
 random.seed(0)
 np.random.seed(0)
 
@@ -210,8 +209,8 @@ def get_pparams():
     args = parser.parse_args()
     params = vars(args)
 
-    params['net'] = False  # Whether net is in use or not
     # Sensible presets / overrides
+    params['net'] = False  # Whether net is in use or not
     if "net" in params['strat'].lower():
         params['log_iter'] = 5000
         params['net'] = True

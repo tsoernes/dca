@@ -78,11 +78,14 @@ class Strat:
                 self.replaybuffer.add(grid, cell, ch, reward, next_grid,
                                       next_cell)
 
-            if i % self.pp['log_iter'] == 0 and i > 0:
-                self.fn_report()
-            if self.pp['net'] and \
-                    i % self.pp['net_copy_iter'] == 0 and i > 0:
-                self.update_target_net()
+            if i > 0:
+                if i % self.pp['log_iter'] == 0:
+                    self.fn_report()
+                if self.pp['net'] and \
+                        i % self.pp['net_copy_iter'] == 0:
+                    self.update_target_net()
+            if self.pp['policy_mse'] and i % self.pp['policy_mse'] == 0:
+                self.policy_mse()
             ch, cevent = next_ch, next_cevent
         self.env.stats.end_episode(reward)
         self.fn_after()
@@ -241,12 +244,19 @@ class RLStrat(Strat):
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, qvals[ch])
 
-    def policy_mse_qvals(self):
+    def policy_mse(self):
         """
-        For a state-action value function, calculate the mean squared error
-        between the policy at the current time and one from a previous time
+        Calculate the mean squared error between the policy
+        at the current iteration 'i' and one from iteration 'i-n'
         """
-        raise NotImplementedError
+        if self.old_qvals is None:
+            self.old_qvals = np.copy(self.qvals)
+            return
+        old_policy = softmax(self.old_qvals)
+        policy = softmax(self.qvals)
+        mse = ((old_policy - policy)**2).mean()
+        self.logger.error(f"Policy temporal diff MSE: {mse}")
+        self.old_qvals = np.copy(self.qvals)
 
 
 class SARSA(RLStrat):
@@ -262,6 +272,7 @@ class SARSA(RLStrat):
         # in use at that cell.
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels,
                                self.n_channels))
+        self.old_qvals = None  # Compare policy of current qvals to this
 
     def get_qvals(self, cell, n_used, *args, **kwargs):
         return self.qvals[cell][n_used]
@@ -328,6 +339,7 @@ class RS_SARSA(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
+        self.old_qvals = None  # Compare policy of current qvals to this
 
     def get_qvals(self, cell, *args, **kwargs):
         return self.qvals[cell]
