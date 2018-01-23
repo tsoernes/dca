@@ -60,9 +60,10 @@ If so then need to retest sarsa-strats and redo hyperparam opt.
 
 
 class Net:
-    def __init__(self, pp, logger, name, restore=False, save=False):
+    def __init__(self, pp, logger, name):
         self.logger = logger
-        self.save = save
+        self.save = pp['save_net']
+        restore = pp['restore_net']
         self.l_rate = pp['net_lr']
         self.gamma = pp['gamma']
         self.batch_size = pp['batch_size']

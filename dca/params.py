@@ -135,6 +135,10 @@ def get_pparams():
     parser.add_argument(
         '--net_lr', type=float, help="(Net) Learning rate", default=3.4e-5)
     parser.add_argument(
+        '--save_net', action='store_true', help="(Net) Save network params", default=False)
+    parser.add_argument(
+        '--restore_net', action='store_true', help="(Net) Restore network params", default=False)
+    parser.add_argument(
         '--batch_size',
         type=int,
         help="(Net) Batch size for experience replay."

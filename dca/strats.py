@@ -365,7 +365,7 @@ class QNetStrat(NetStrat):
         super().__init__(*args, **kwargs)
         from nets.qnet import QNet
         self.net = QNet(
-            max_next_action, self.pp, self.logger, restore=False, save=False)
+            max_next_action, self.pp, self.logger)
         ra = self.net.rand_uniform()
         self.logger.info(f"TF Rand: {ra}")
 
@@ -455,7 +455,7 @@ class ACNetStrat(NetStrat):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = ACNet(self.pp, self.logger, restore=False, save=False)
+        self.net = ACNet(self.pp, self.logger)
         self.exp_buffer = ExperienceBuffer()
 
     def forward(self, cell, ce_type) -> Tuple[List[float], float]:
