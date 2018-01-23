@@ -6,6 +6,8 @@ p3 runner.py --strat qlearnnet --n_events 100000
 Starting simulation at 2018-01-23 15:53:33.554786 with params:
 {'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 100000, 'n_hours': None, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.5, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init': 'zeros', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'train_net': False, 'no_gpu': False, 'verify_grid': False, 'policy_mse': 0, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 5000, 'net': True}
 
+all layers same init:
+
 zeros
 Average cumulative block probability over 8 episodes: 0.1813 with standard deviation 0.00359
 Average cumulative handoff block probability 0.1274 with standard deviation 0.00679
@@ -69,3 +71,24 @@ Average cumulative handoff block probability 0.1335 with standard deviation 0.00
  [ 0.18455652  0.13473999]]
 
 conv, conv, dense = glorot_norm, glorot_norm, norm_cols
+2 infs
+Average cumulative block probability over 8 episodes: 0.1862 with standard deviation 0.00308
+Average cumulative handoff block probability 0.1335 with standard deviation 0.00168
+[[ 0.1852475   0.135631  ]
+ [ 0.19009805  0.13362504]
+ [ 0.18023374  0.13408669]
+ [ 0.18624025  0.13111186]
+ [ 0.18710829  0.13144984]
+ [ 0.18831643  0.1349539 ]]
+
+conv, conv, dense = glorot_unif, glorot_unif, zeros
+Average cumulative block probability over 8 episodes: 0.1844 with standard deviation 0.00360
+Average cumulative handoff block probability 0.1299 with standard deviation 0.00397
+[[ 0.18356967  0.12823095]
+ [ 0.18927355  0.13373656]
+ [ 0.18743651  0.12541806]
+ [ 0.1829308   0.129221  ]
+ [ 0.18910328  0.12958227]
+ [ 0.17926777  0.13597304]
+ [ 0.18310232  0.12364966]
+ [ 0.18015575  0.13334449]]

@@ -42,6 +42,8 @@ def get_pparams():
         if s2 not in ["net", "qnet", "rl"]:
             stratnames.append(s2)
         stratclasses[i] = (s2, stratclasses[i][1])
+    weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
+
     parser.add_argument('--strat', choices=stratnames, default='fixedassign')
     parser.add_argument(
         '--rows', type=int, help="number of rows in grid", default=7)
@@ -141,12 +143,12 @@ def get_pparams():
         '--net_lr', type=float, help="(Net) Learning rate", default=3.4e-5)
     parser.add_argument(
         '--weight_init_conv',
-        choices=['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols'],
+        choices=weight_initializers,
         default='glorot_unif')
     parser.add_argument(
         '--weight_init_dense',
-        choices=['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols'],
-        default='zeros')
+        choices=weight_initializers,
+        default='norm_cols')
     parser.add_argument(
         '--save_net',
         action='store_true',
