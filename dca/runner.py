@@ -124,8 +124,6 @@ class Runner:
             for i in range(n_avg):
                 res = simproc(pid=i)[0]
                 # TODO This can probably be handled better
-                if np.isnan(res) or np.isinf(res):
-                    break
                 results.append(res)
         else:
             # No need to average for table-based methods since they use the same
@@ -147,10 +145,12 @@ class Runner:
         from hyperopt.pyll.base import scope  # noqa
         if self.pp['net']:
             space = {
-                'net_lr':
-                hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
-                'net_copy_iter':
-                hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
+                # 'net_lr':
+                # hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
+                # 'net_copy_iter':
+                # hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
+                'net_creep_tau':
+                hp.loguniform('net_creep_tau', np.log(0.1), np.log(0.9)),
                 # 'batch_size':
                 # scope.int(hp.uniform('batch_size', 8, 16)),
                 # 'buffer_size':
