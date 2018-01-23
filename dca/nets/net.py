@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
+from nets.utils import normalized_columns_initializer
 
 
 """
@@ -72,6 +73,17 @@ class Net:
         main_path = "model/" + name
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
+
+        wi = self.pp['weight_init']
+        if wi == "zeros":
+            self.kern_init = tf.zeros_initializer
+        elif wi == "glorot_unif":
+            # The default for dense, perhaps for conv2d also. AKA Xavier.
+            self.kern_init = tf.glorot_uniform_initializer
+        elif wi == "glorot_norm":
+            self.kern_init = tf.glorot_normal_initializer
+        elif wi == "norm_cols":
+            self.kern_init = normalized_columns_initializer
 
         tf.reset_default_graph()
         if pp['tfprofiling']:

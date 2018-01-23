@@ -22,17 +22,22 @@ class QNet(Net):
                 filters=70,
                 kernel_size=4,
                 padding="same",
+                kernel_initializer=self.kern_init,
                 activation=tf.nn.relu)
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
                 filters=70,
                 kernel_size=3,
                 padding="same",
+                kernel_initializer=self.kern_init,
                 activation=tf.nn.relu)
             stacked = tf.concat([conv2, cell], axis=3)
             conv2_flat = tf.layers.flatten(stacked)
             q_vals = tf.layers.dense(
-                inputs=conv2_flat, units=70, name="q_vals")
+                inputs=conv2_flat,
+                units=70,
+                kernel_initializer=self.kern_init,
+                name="q_vals")
         trainable_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
         trainable_vars_by_name = {
@@ -120,8 +125,7 @@ class QNet(Net):
         #     gradients, self.max_grad_norm)
         # self.do_train = trainer.apply_gradients(
         #     zip(clipped_grads, trainable_vars))
-        self.do_train = trainer.minimize(
-            self.loss, var_list=online_vars)
+        self.do_train = trainer.minimize(self.loss, var_list=online_vars)
         # Write out statistics to file
         # with tf.name_scope("summaries"):
         #     tf.summary.scalar("learning_rate", self.l_rate)

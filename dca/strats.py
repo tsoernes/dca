@@ -83,8 +83,12 @@ class Strat:
                 if i % self.pp['log_iter'] == 0:
                     self.fn_report()
                 if self.pp['net'] and \
-                        i % self.pp['net_copy_iter'] == 0:
+                        i % self.net_copy_iter == 0:
                     self.update_target_net()
+                if self.pp['net_copy_iter_decr'] and i % self.pp['net_copy_iter_decr'] == 0:
+                    self.net_copy_iter -= 1
+                    self.logger.warn(
+                        f"Decreased net copy iter to {self.net_copy_iter}")
             if self.pp['policy_mse'] and i % self.pp['policy_mse'] == 0:
                 self.policy_mse()
             ch, cevent = next_ch, next_cevent
@@ -355,6 +359,7 @@ class RS_SARSA(QTable):
 class NetStrat(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.net_copy_iter = self.pp['net_copy_iter']
         self.losses = []
 
     def fn_report(self):
@@ -364,7 +369,7 @@ class NetStrat(RLStrat):
     def fn_after(self):
         ra = self.net.rand_uniform()
         self.logger.info(f"TF Rand: {ra}, NP Rand: {np.random.uniform()}")
-        if self.pp['save']:
+        if self.pp['net_save']:
             inp = ""
             if self.quit_sim:
                 while inp not in ["Y", "N"]:
@@ -379,8 +384,7 @@ class QNetStrat(NetStrat):
     def __init__(self, max_next_action, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from nets.qnet import QNet
-        self.net = QNet(
-            max_next_action, self.pp, self.logger)
+        self.net = QNet(max_next_action, self.pp, self.logger)
         ra = self.net.rand_uniform()
         self.logger.info(f"TF Rand: {ra}")
 
@@ -461,7 +465,8 @@ class SARSANetStrat(QNetStrat):
         super().__init__(False, *args, **kwargs)
 
     def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell, next_ch)
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell,
+                                 next_ch)
         return loss
 
 

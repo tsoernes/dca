@@ -140,9 +140,19 @@ def get_pparams():
     parser.add_argument(
         '--net_lr', type=float, help="(Net) Learning rate", default=3.4e-5)
     parser.add_argument(
-        '--save_net', action='store_true', help="(Net) Save network params", default=False)
+        '--weight_init',
+        choices=['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols'],
+        default='glorot_unif')
     parser.add_argument(
-        '--restore_net', action='store_true', help="(Net) Restore network params", default=False)
+        '--save_net',
+        action='store_true',
+        help="(Net) Save network params",
+        default=False)
+    parser.add_argument(
+        '--restore_net',
+        action='store_true',
+        help="(Net) Restore network params",
+        default=False)
     parser.add_argument(
         '--batch_size',
         type=int,
@@ -164,6 +174,11 @@ def get_pparams():
         type=int,
         help="(Net) Copy weights from online to target every 'n' iterations",
         default=45)
+    parser.add_argument(
+        '--net_copy_iter_decr',
+        type=int,
+        help="(Net) Decrease 'net_copy_iter' every 'n' iterations",
+        default=None)
     parser.add_argument(
         '--train_net',
         action='store_true',
