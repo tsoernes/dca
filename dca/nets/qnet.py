@@ -74,13 +74,12 @@ class QNet(Net):
         # weights from online Q-network to target Q-network
         self.copy_online_to_target = tf.group(*copy_ops)
 
-        # self.online_q_amax = tf.argmax(
-        #     self.online_q_vals, axis=1, name="online_q_amax")
-
+        # Maximum valued action from online network
+        self.online_q_amax = tf.argmax(
+            self.online_q_vals, axis=1, name="online_q_amax")
         # Maximum Q-value for given next state
         self.target_q_max = tf.reduce_max(
             target_q_vals, axis=1, name="target_q_max")
-
         # Q-value for given action
         self.online_q_selected = tf.reduce_sum(
             self.online_q_vals * tf.one_hot(self.action,
@@ -92,17 +91,15 @@ class QNet(Net):
             target_q_vals * tf.one_hot(self.next_action,
                                        self.pp['n_channels']),
             axis=1,
-            name="next_q_selected")
-
-        # q scores for actions which we know were selected in the given state.
-        # q_pred = tf.reduce_sum(q_t * tf.one_hot(actions, num_actions), 1)
+            name="target_q_selected_next")
 
         if self.max_next_action:
             # Target for Q-learning
-            self.q_target = self.reward + self.gamma * self.target_q_max
+            next_actionval = self.target_q_max
         else:
             # Target for SARSA
-            self.q_target = self.reward + self.gamma * self.target_q_selected
+            next_actionval = self.target_q_selected
+        self.q_target = self.reward + self.gamma * next_actionval
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
@@ -116,13 +113,15 @@ class QNet(Net):
         trainer = tf.train.MomentumOptimizer(
             learning_rate=self.l_rate, momentum=0.95)
 
-        self.max_grad_norm = 10000
-        gradients, trainable_vars = zip(*trainer.compute_gradients(
-            self.loss, var_list=online_vars))
-        clipped_grads, grad_norms = tf.clip_by_global_norm(
-            gradients, self.max_grad_norm)
-        self.do_train = trainer.apply_gradients(
-            zip(clipped_grads, trainable_vars))
+        # self.max_grad_norm = 100000
+        # gradients, trainable_vars = zip(*trainer.compute_gradients(
+        #     self.loss, var_list=online_vars))
+        # clipped_grads, grad_norms = tf.clip_by_global_norm(
+        #     gradients, self.max_grad_norm)
+        # self.do_train = trainer.apply_gradients(
+        #     zip(clipped_grads, trainable_vars))
+        self.do_train = trainer.minimize(
+            self.loss, var_list=online_vars)
         # Write out statistics to file
         # with tf.name_scope("summaries"):
         #     tf.summary.scalar("learning_rate", self.l_rate)
@@ -166,7 +165,7 @@ class QNet(Net):
             self.next_grid: prep_data_grids(next_grids),
             self.next_cell: prep_data_cells(next_cells),
         }
-        if next_actions:
+        if next_actions is not None:
             data[self.next_action] = next_actions
         _, loss = self.sess.run(
             [self.do_train, self.loss],
