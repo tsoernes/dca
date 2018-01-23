@@ -183,8 +183,9 @@ def get_pparams():
     parser.add_argument(
         '--net_creep_tau',
         type=float,
-        help="(Net) Creep target net 'tau' percent "
-        "towards online net every 'net_copy_iter' iterations.",
+        help="(Net) Creep target net 'tau' (0, 1] percent towards online "
+        "net every 'net_copy_iter' iterations. "
+        "Net copy iter should be decreased as tau decreases.",
         default=1)
     parser.add_argument(
         '--train_net',

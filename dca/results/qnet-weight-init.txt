@@ -45,4 +45,27 @@ Average cumulative handoff block probability 0.1263 with standard deviation 0.00
 [[ 0.18418316  0.12634364]]
 
 according to docs, norm_cols should be used for dense layers ...
+
 conv, conv, dense = zeros, zeros, norm_cols
+Average cumulative block probability over 8 episodes: 0.1806 with standard deviation 0.00390
+Average cumulative handoff block probability 0.1302 with standard deviation 0.00447
+[[ 0.1832432   0.13491662]
+ [ 0.18649786  0.13489149]
+ [ 0.18414265  0.12985252]
+ [ 0.18210166  0.13257828]
+ [ 0.17897279  0.12907432]
+ [ 0.17722631  0.1205912 ]
+ [ 0.17914466  0.13278496]
+ [ 0.1735832   0.12708368]]
+
+conv, conv, dense = glorot_unif, glorot_unif, norm_cols
+3 infs
+Average cumulative block probability over 8 episodes: 0.1819 with standard deviation 0.00315
+Average cumulative handoff block probability 0.1335 with standard deviation 0.00665
+[[ 0.1818774   0.12324835]
+ [ 0.18584395  0.14248065]
+ [ 0.1768867   0.12927369]
+ [ 0.18055017  0.13751247]
+ [ 0.18455652  0.13473999]]
+
+conv, conv, dense = glorot_norm, glorot_norm, norm_cols
