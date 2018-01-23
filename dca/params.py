@@ -172,12 +172,19 @@ def get_pparams():
     parser.add_argument(
         '--net_copy_iter',
         type=int,
-        help="(Net) Copy weights from online to target every 'n' iterations",
+        help="(Net) Copy weights from online to target "
+        "net every 'n' iterations",
         default=45)
     parser.add_argument(
         '--net_copy_iter_decr',
         type=int,
         help="(Net) Decrease 'net_copy_iter' every 'n' iterations",
+        default=None)
+    parser.add_argument(
+        '--net_creep_tau',
+        type=float,
+        help="(Net) Creep target net 'tau' percent "
+        "towards online net every iteration. (overrides 'net_copy_iter')",
         default=None)
     parser.add_argument(
         '--train_net',
@@ -198,8 +205,8 @@ def get_pparams():
     parser.add_argument(
         '--policy_mse',
         type=int,
-        help="(RL) Given iterations 'n',"
-        " calculate the MSE between policies at time (0, n), (n, 2n), ...",
+        help="(RL) Given 'n',"
+        " calculate the MSE between policies at iterations (0, n), (n, 2n), ...",
         default=0)
     parser.add_argument(
         '--prof',
@@ -258,6 +265,8 @@ def get_pparams():
         params['log_level'] = logging.ERROR
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
+    if params['net_creep_tau']:
+        params['net_copy_iter'] = 1
 
     for name, cls in stratclasses:
         if params['strat'].lower() == name.lower():

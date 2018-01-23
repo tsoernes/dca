@@ -71,10 +71,20 @@ class QNet(Net):
         target_q_vals, target_vars = self._build_qnet(
             self.next_grid, self.next_cell, name="q_networks/target")
 
-        copy_ops = [
-            target_var.assign(online_vars[var_name])
-            for var_name, target_var in target_vars.items()
-        ]
+        tau = self.pp['net_creep_tau']
+        if tau is not None:
+            copy_ops = []
+            for var_name, target_var in target_vars.items():
+                online_val = online_vars[var_name].value()
+                target_val = target_var.value()
+                val = online_val * tau + (1 - tau) * target_val
+                op = target_var.assign(val)
+                copy_ops.append(op)
+        else:
+            copy_ops = [
+                target_var.assign(online_vars[var_name])
+                for var_name, target_var in target_vars.items()
+            ]
         # copy_online_to_target should be called periodically to copy
         # weights from online Q-network to target Q-network
         self.copy_online_to_target = tf.group(*copy_ops)
