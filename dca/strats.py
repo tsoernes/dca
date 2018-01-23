@@ -369,7 +369,7 @@ class NetStrat(RLStrat):
     def fn_after(self):
         ra = self.net.rand_uniform()
         self.logger.info(f"TF Rand: {ra}, NP Rand: {np.random.uniform()}")
-        if self.pp['net_save']:
+        if self.pp['save_net']:
             inp = ""
             if self.quit_sim:
                 while inp not in ["Y", "N"]:
