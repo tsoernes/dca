@@ -150,7 +150,7 @@ class Runner:
                 # 'net_copy_iter':
                 # hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
                 'net_creep_tau':
-                hp.loguniform('net_creep_tau', np.log(0.1), np.log(0.9)),
+                hp.loguniform('net_creep_tau', np.log(0.01), np.log(0.7)),
                 # 'batch_size':
                 # scope.int(hp.uniform('batch_size', 8, 16)),
                 # 'buffer_size':
@@ -170,7 +170,8 @@ class Runner:
             }
             trials_step = 2
         np.random.seed(0)
-        f_name = f"results-{self.pp['strat']}.pkl"
+        pnames = str.join("-", space.keys())
+        f_name = f"results-{self.pp['strat']}-{pnames}.pkl"
         try:
             with open(f_name, "rb") as f:
                 trials = pickle.load(f)

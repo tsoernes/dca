@@ -144,7 +144,7 @@ def get_pparams():
     parser.add_argument(
         '--weight_init_conv',
         choices=weight_initializers,
-        default='glorot_unif')
+        default='zeros')
     parser.add_argument(
         '--weight_init_dense',
         choices=weight_initializers,
@@ -270,6 +270,9 @@ def get_pparams():
         params['log_level'] = logging.ERROR
     if params['hopt']:
         params['log_level'] = logging.ERROR
+        # Since hopt only compares new call block rate,
+        # handoffs are a waste of computational resources.
+        params['p_handoff'] = 0
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
 

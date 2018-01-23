@@ -85,7 +85,9 @@ class Strat:
                 if self.pp['net'] and \
                         i % self.net_copy_iter == 0:
                     self.update_target_net()
-                if self.pp['net_copy_iter_decr'] and i % self.pp['net_copy_iter_decr'] == 0:
+                if self.pp['net_copy_iter_decr'] and \
+                   i % self.pp['net_copy_iter_decr'] == 0 and \
+                   self.net_copy_iter > 0:
                     self.net_copy_iter -= 1
                     self.logger.warn(
                         f"Decreased net copy iter to {self.net_copy_iter}")
@@ -104,18 +106,18 @@ class Strat:
         return (self.env.stats.block_prob_cum,
                 self.env.stats.block_prob_cum_hoff)
 
-    def check_stop(self, i):
+    def check_stop(self, i) -> bool:
         if self.pp['n_hours'] is not None:
             return self.t < self.pp['n_hours']
         else:
             return i < self.pp['n_events']
 
-    def get_init_action(self, next_cevent):
-        """Return a channel to be (re)assigned for 'next_cevent'."""
+    def get_init_action(self, next_cevent) -> int:
+        """Return a channel to be (re)assigned in response to 'next_cevent'."""
         raise NotImplementedError
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        """Return a channel to be (re)assigned for 'next_cevent'.
+        """Return a channel to be (re)assigned in response to 'next_cevent'.
 
         'cell' and 'ch' specify the action that was previously executed on
         'grid' in response to an event of type 'ce_type', resulting in
@@ -450,8 +452,8 @@ class QLearnNetStrat(QNetStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(*self.replaybuffer.sample(
-            self.pp['batch_size']))
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
         else:
