@@ -12,7 +12,11 @@ class QNet(Net):
         Q-learning updates, else SARSA updates.
         """
         self.max_next_action = max_next_action
-        super().__init__(name="QNet", *args, **kwargs)
+        if max_next_action:
+            name = "QLearnNet"
+        else:
+            name = "SarsaNet"
+        super().__init__(name=name, *args, **kwargs)
         self.sess.run(self.copy_online_to_target)
 
     def _build_qnet(self, grid, cell, name):
@@ -22,21 +26,21 @@ class QNet(Net):
                 filters=70,
                 kernel_size=4,
                 padding="same",
-                kernel_initializer=self.kern_init,
+                kernel_initializer=self.kern_init_conv(),
                 activation=tf.nn.relu)
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
                 filters=70,
                 kernel_size=3,
                 padding="same",
-                kernel_initializer=self.kern_init,
+                kernel_initializer=self.kern_init_conv(),
                 activation=tf.nn.relu)
             stacked = tf.concat([conv2, cell], axis=3)
             conv2_flat = tf.layers.flatten(stacked)
             q_vals = tf.layers.dense(
                 inputs=conv2_flat,
                 units=70,
-                kernel_initializer=self.kern_init,
+                kernel_initializer=self.kern_init_dense(),
                 name="q_vals")
         trainable_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)

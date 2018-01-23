@@ -40,6 +40,19 @@ def normalized_columns_initializer(std=1.0):
     return _initializer
 
 
+def get_init_by_name(name):
+    if name == "zeros":
+        init = tf.zeros_initializer
+    elif name == "glorot_unif":
+        # The default for dense, perhaps for conv2d also. AKA Xavier.
+        init = tf.glorot_uniform_initializer
+    elif name == "glorot_norm":
+        init = tf.glorot_normal_initializer
+    elif name == "norm_cols":
+        init = normalized_columns_initializer
+    return init
+
+
 def prep_data_grids(grids, empty_neg=True):
     """
     empty_neg: Represent empty channels as -1 instead of 0

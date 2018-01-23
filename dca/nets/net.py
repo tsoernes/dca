@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
-from nets.utils import normalized_columns_initializer
+from nets.utils import get_init_by_name
 
 
 """
@@ -27,21 +27,6 @@ for softmax classifier: print loss, should be roughly:
 - make sure that it's possible to overfit
 (ie loss of nearly 0, when no regularization)
 a very small portion (eg <20 samples) of the training data
-
-On finding learning rate:
-start very small (eg 1e-6), make sure loss is barely changing
-or decreasing very slowly.
-
-on tuning hyperparams:
-if cost goes over 3x original cost, break out early
-
-big gap between train and test accuracy:
-overfitting. reduce net size or increase regularization
-no gap: increase net size
-
-debugging nets: track ratio of weight updates/weight magnitues
-should be somewhere around 0.001 or so. if too high, decrease
-learning rate, if too log (like 1e-6), increase lr.
 
 Batch size 8 took 307.63 seconds
 Batch size 16 took 163.69 seconds
@@ -74,16 +59,8 @@ class Net:
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
 
-        wi = self.pp['weight_init']
-        if wi == "zeros":
-            self.kern_init = tf.zeros_initializer
-        elif wi == "glorot_unif":
-            # The default for dense, perhaps for conv2d also. AKA Xavier.
-            self.kern_init = tf.glorot_uniform_initializer()
-        elif wi == "glorot_norm":
-            self.kern_init = tf.glorot_normal_initializer()
-        elif wi == "norm_cols":
-            self.kern_init = normalized_columns_initializer()
+        self.kern_init_conv = get_init_by_name(self.pp['weight_init_conv'])
+        self.kern_init_dense = get_init_by_name(self.pp['weight_init_dense'])
 
         tf.reset_default_graph()
         if pp['tfprofiling']:

@@ -140,9 +140,13 @@ def get_pparams():
     parser.add_argument(
         '--net_lr', type=float, help="(Net) Learning rate", default=3.4e-5)
     parser.add_argument(
-        '--weight_init',
+        '--weight_init_conv',
         choices=['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols'],
         default='glorot_unif')
+    parser.add_argument(
+        '--weight_init_dense',
+        choices=['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols'],
+        default='zeros')
     parser.add_argument(
         '--save_net',
         action='store_true',
