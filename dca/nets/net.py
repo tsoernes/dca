@@ -79,11 +79,11 @@ class Net:
             self.kern_init = tf.zeros_initializer
         elif wi == "glorot_unif":
             # The default for dense, perhaps for conv2d also. AKA Xavier.
-            self.kern_init = tf.glorot_uniform_initializer
+            self.kern_init = tf.glorot_uniform_initializer()
         elif wi == "glorot_norm":
-            self.kern_init = tf.glorot_normal_initializer
+            self.kern_init = tf.glorot_normal_initializer()
         elif wi == "norm_cols":
-            self.kern_init = normalized_columns_initializer
+            self.kern_init = normalized_columns_initializer()
 
         tf.reset_default_graph()
         if pp['tfprofiling']:
