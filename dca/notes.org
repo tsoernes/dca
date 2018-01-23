@@ -14,3 +14,6 @@ not in a deployed system.
 
 dont want to do decision time planning or rollouts, eg mtcs, in deploed sys
 because of response time
+
+for lagging qnet, specify which net is used to selection actions which are executed
+and why this net and not the other is used

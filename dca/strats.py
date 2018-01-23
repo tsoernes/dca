@@ -29,7 +29,7 @@ class Strat:
                                          self.cols, self.n_channels)
 
         self.quit_sim = False
-        self.t = 1
+        self.t = 0.1
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -49,7 +49,8 @@ class Strat:
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
-        for i in range(self.pp['n_events']):
+        i = 0
+        while self.check_stop(i):
             if self.quit_sim:
                 break  # Gracefully exit to print stats, clean up etc.
 
@@ -87,6 +88,7 @@ class Strat:
             if self.pp['policy_mse'] and i % self.pp['policy_mse'] == 0:
                 self.policy_mse()
             ch, cevent = next_ch, next_cevent
+            i += 1
         self.env.stats.end_episode(reward)
         self.fn_after()
         if self.save:
@@ -97,6 +99,12 @@ class Strat:
             return (1.0, 1.0)
         return (self.env.stats.block_prob_cum,
                 self.env.stats.block_prob_cum_hoff)
+
+    def check_stop(self, i):
+        if self.pp['n_hours'] is not None:
+            return self.t < self.pp['n_hours']
+        else:
+            return i < self.pp['n_events']
 
     def get_init_action(self, next_cevent):
         """Return a channel to be (re)assigned for 'next_cevent'."""
@@ -265,7 +273,8 @@ class QTable(RLStrat):
             self.el_traces[frep][ch] += 1
             self.qvals += self.alpha * td_err * self.el_traces
             self.el_traces *= self.gamma * self.lmbda
-        self.alpha *= self.alpha_decay
+        if self.alpha > self.pp['min_alpha']:
+            self.alpha *= self.alpha_decay
 
     def policy_mse(self):
         """
@@ -355,7 +364,13 @@ class NetStrat(RLStrat):
     def fn_after(self):
         ra = self.net.rand_uniform()
         self.logger.info(f"TF Rand: {ra}, NP Rand: {np.random.uniform()}")
-        self.net.save_model()
+        if self.pp['save']:
+            inp = ""
+            if self.quit_sim:
+                while inp not in ["Y", "N"]:
+                    inp = input("Premature exit. Save model? Y/N: ")
+            if inp in ["", "Y"]:
+                self.net.save_model()
         self.net.save_timeline()
         self.net.sess.close()
 

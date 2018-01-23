@@ -110,10 +110,9 @@ class Net:
         self.test_gen = data['test_gen']
         self.data_is_loaded = True
 
-    def save_model(self):
-        if self.save:
-            self.logger.error(f"Saving model to path {self.model_path}")
-            self.saver.save(self.sess, self.model_path)
+    def save_model(self, quit_sim):
+        self.logger.error(f"Saving model to path {self.model_path}")
+        self.saver.save(self.sess, self.model_path)
 
     def save_timeline(self):
         if self.pp['tfprofiling']:

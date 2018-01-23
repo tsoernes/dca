@@ -74,6 +74,11 @@ def get_pparams():
         help="number of events to simulate",
         default=470000)
     parser.add_argument(
+        '--n_hours',
+        type=float,
+        help="number of hours to simulate (overrides n_events)",
+        default=None)
+    parser.add_argument(
         '--avg_runs',
         type=int,
         help="Run simulation 'n' times, report average scores",
