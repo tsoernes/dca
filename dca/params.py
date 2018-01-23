@@ -184,8 +184,8 @@ def get_pparams():
         '--net_creep_tau',
         type=float,
         help="(Net) Creep target net 'tau' percent "
-        "towards online net every iteration. (overrides 'net_copy_iter')",
-        default=None)
+        "towards online net every 'net_copy_iter' iterations.",
+        default=1)
     parser.add_argument(
         '--train_net',
         action='store_true',
@@ -265,8 +265,6 @@ def get_pparams():
         params['log_level'] = logging.ERROR
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
-    if params['net_creep_tau']:
-        params['net_copy_iter'] = 1
 
     for name, cls in stratclasses:
         if params['strat'].lower() == name.lower():
