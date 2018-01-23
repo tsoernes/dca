@@ -53,6 +53,17 @@ def get_init_by_name(name):
     return init
 
 
+def copy_net_op(online_vars, target_vars, tau):
+    copy_ops = []
+    for var_name, target_var in target_vars.items():
+        online_val = online_vars[var_name].value()
+        target_val = target_var.value()
+        val = online_val * tau + (1 - tau) * target_val
+        op = target_var.assign(val)
+        copy_ops.append(op)
+    return tf.group(*copy_ops)
+
+
 def prep_data_grids(grids, empty_neg=True):
     """
     empty_neg: Represent empty channels as -1 instead of 0

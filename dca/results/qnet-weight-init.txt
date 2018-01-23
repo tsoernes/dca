@@ -1,0 +1,71 @@
+Kernel sizes 4, 3, zeroing cell on end events forward (not trained on backward)
+
+p3 runner.py --strat qlearnnet --n_events 100000
+--epsilon 0.5 --avg_runs 8 --weight_init zeros
+
+Starting simulation at 2018-01-23 15:53:33.554786 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 100000, 'n_hours': None, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.5, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init': 'zeros', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'train_net': False, 'no_gpu': False, 'verify_grid': False, 'policy_mse': 0, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 5000, 'net': True}
+
+zeros
+Average cumulative block probability over 8 episodes: 0.1813 with standard deviation 0.00359
+Average cumulative handoff block probability 0.1274 with standard deviation 0.00679
+[[ 0.17852335  0.12699748]
+ [ 0.18636751  0.13441227]
+ [ 0.1764056   0.11637212]
+ [ 0.18329362  0.1294628 ]
+ [ 0.1817461   0.11917808]
+ [ 0.18164813  0.13076792]
+ [ 0.17667063  0.12458963]
+ [ 0.18575374  0.13773966]]
+
+glorot_unif, 2 inf losses
+Average cumulative block probability over 8 episodes: 0.1842 with standard deviation 0.00195
+Average cumulative handoff block probability 0.1288 with standard deviation 0.00657
+[[ 0.1859183   0.13980807]
+ [ 0.18665936  0.13443675]
+ [ 0.18463853  0.12928716]
+ [ 0.18136656  0.1221865 ]
+ [ 0.18465511  0.12196356]
+ [ 0.18189389  0.124871  ]]
+
+glorot_norm, 1 inf loss
+Average cumulative block probability over 8 episodes: 0.1849 with standard deviation 0.00430
+Average cumulative handoff block probability 0.1298 with standard deviation 0.00605
+[[ 0.17927434  0.1257777 ]
+ [ 0.18212513  0.13550456]
+ [ 0.19057066  0.1268036 ]
+ [ 0.1845415   0.1248955 ]
+ [ 0.18338615  0.13171724]
+ [ 0.18239697  0.12277731]
+ [ 0.19189627  0.14083804]]
+
+norm_cols, 7 inf
+Average cumulative block probability over 8 episodes: 0.1842 with standard deviation 0.00000
+Average cumulative handoff block probability 0.1263 with standard deviation 0.00000
+[[ 0.18418316  0.12634364]]
+
+according to docs, norm_cols should be used for dense layers ...
+
+conv, conv, dense = zeros, zeros, norm_cols
+Average cumulative block probability over 8 episodes: 0.1806 with standard deviation 0.00390
+Average cumulative handoff block probability 0.1302 with standard deviation 0.00447
+[[ 0.1832432   0.13491662]
+ [ 0.18649786  0.13489149]
+ [ 0.18414265  0.12985252]
+ [ 0.18210166  0.13257828]
+ [ 0.17897279  0.12907432]
+ [ 0.17722631  0.1205912 ]
+ [ 0.17914466  0.13278496]
+ [ 0.1735832   0.12708368]]
+
+conv, conv, dense = glorot_unif, glorot_unif, norm_cols
+3 infs
+Average cumulative block probability over 8 episodes: 0.1819 with standard deviation 0.00315
+Average cumulative handoff block probability 0.1335 with standard deviation 0.00665
+[[ 0.1818774   0.12324835]
+ [ 0.18584395  0.14248065]
+ [ 0.1768867   0.12927369]
+ [ 0.18055017  0.13751247]
+ [ 0.18455652  0.13473999]]
+
+conv, conv, dense = glorot_norm, glorot_norm, norm_cols

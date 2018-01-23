@@ -176,13 +176,21 @@ def get_pparams():
     parser.add_argument(
         '--net_copy_iter',
         type=int,
-        help="(Net) Copy weights from online to target every 'n' iterations",
+        help="(Net) Copy weights from online to target "
+        "net every 'n' iterations",
         default=45)
     parser.add_argument(
         '--net_copy_iter_decr',
         type=int,
         help="(Net) Decrease 'net_copy_iter' every 'n' iterations",
         default=None)
+    parser.add_argument(
+        '--net_creep_tau',
+        type=float,
+        help="(Net) Creep target net 'tau' (0, 1] percent towards online "
+        "net every 'net_copy_iter' iterations. "
+        "Net copy iter should be decreased as tau decreases.",
+        default=1)
     parser.add_argument(
         '--train_net',
         action='store_true',
@@ -202,8 +210,8 @@ def get_pparams():
     parser.add_argument(
         '--policy_mse',
         type=int,
-        help="(RL) Given iterations 'n',"
-        " calculate the MSE between policies at time (0, n), (n, 2n), ...",
+        help="(RL) Given 'n',"
+        " calculate the MSE between policies at iterations (0, n), (n, 2n), ...",
         default=0)
     parser.add_argument(
         '--prof',

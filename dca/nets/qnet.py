@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import prep_data_cells, prep_data_grids
+from nets.utils import copy_net_op, prep_data_cells, prep_data_grids
 
 
 class QNet(Net):
@@ -75,13 +75,10 @@ class QNet(Net):
         target_q_vals, target_vars = self._build_qnet(
             self.next_grid, self.next_cell, name="q_networks/target")
 
-        copy_ops = [
-            target_var.assign(online_vars[var_name])
-            for var_name, target_var in target_vars.items()
-        ]
-        # copy_online_to_target should be called periodically to copy
-        # weights from online Q-network to target Q-network
-        self.copy_online_to_target = tf.group(*copy_ops)
+        # copy_online_to_target should be called periodically to creep
+        # weights in the target Q-network towards the online Q-network
+        self.copy_online_to_target = copy_net_op(online_vars, target_vars,
+                                                 self.pp['net_creep_tau'])
 
         # Maximum valued action from online network
         self.online_q_amax = tf.argmax(
