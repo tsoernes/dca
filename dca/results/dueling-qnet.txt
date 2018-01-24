@@ -1,0 +1,48 @@
+kernel sizes 4,3
+zeroing grid on end-events on forward pass
+
+p3 runner.py --strat qlearnnet --dueling_qnet --avg_runs 8
+Starting simulation at 2018-01-24 15:57:01.582811 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': True, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'train_net': False, 'no_gpu': False, 'verify_grid': False, 'policy_mse': 0, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 5000, 'net': True}
+Average cumulative block probability over 8 episodes: 0.1941 with standard deviation 0.00263
+Average cumulative handoff block probability 0.1372 with standard deviation 0.00385
+[[ 0.18780622  0.13111342]
+ [ 0.19751758  0.14481844]
+ [ 0.1947308   0.13700007]
+ [ 0.19460195  0.13749288]
+ [ 0.19310273  0.14081984]
+ [ 0.19477505  0.1365495 ]
+ [ 0.19447512  0.13506428]
+ [ 0.19546137  0.13490249]]
+
+A single small run got better results than above. Does net diverge or was it a lucky run?
+
+p3 runner.py --strat qlearnnet  --avg_runs 8
+Starting simulation at 2018-01-24 18:29:42.707367 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'train_net': False, 'no_gpu': False, 'verify_grid': False, 'policy_mse': 0, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 5000, 'net': True}
+8x470000 events finished with speed 524 events/second
+Average cumulative block probability over 8 episodes: 0.1727 with standard deviation 0.00288
+Average cumulative handoff block probability 0.1252 with standard deviation 0.00180
+[[ 0.17256141  0.12518587]
+ [ 0.17486497  0.12888341]
+ [ 0.17181202  0.12312037]
+ [ 0.17045285  0.12567071]
+ [ 0.17037453  0.12389349]
+ [ 0.17934859  0.12693629]
+ [ 0.17027025  0.12355035]
+ [ 0.17228891  0.1245407 ]]
+
+ p3 runner.py --strat qlearneligiblenet  --avg_runs 8
+Starting simulation at 2018-01-24 20:30:57.791006 with params:
+{'strat': 'qlearneligiblenet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'train_net': False, 'no_gpu': False, 'verify_grid': False, 'policy_mse': 0, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 5000, 'net': True}
+8x470000 events finished with speed 508 events/second
+Average cumulative block probability over 8 episodes: 0.1738 with standard deviation 0.00203
+Average cumulative handoff block probability 0.1268 with standard deviation 0.00288
+[[ 0.17435716  0.1238913 ]
+ [ 0.1763923   0.13171842]
+ [ 0.17137287  0.12707436]
+ [ 0.17024934  0.12361532]
+ [ 0.17612583  0.13038273]
+ [ 0.17490411  0.12773234]
+ [ 0.17297063  0.12654376]
+ [ 0.17410361  0.12364602]]
