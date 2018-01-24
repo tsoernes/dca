@@ -38,6 +38,23 @@ class ExperienceBuffer():
         return data
 
 
+class ExperienceBuffer_juliani():
+    def __init__(self, buffer_size=50000):
+        self.buffer = []
+        self.buffer_size = buffer_size
+
+    def add(self, experience):
+        "Expect nested array of size 5, e.g. [[0,1,2,3,4,5]]"
+        if len(self.buffer) + len(experience) >= self.buffer_size:
+            self.buffer[0:(
+                len(experience) + len(self.buffer)) - self.buffer_size] = []
+        self.buffer.extend(experience)
+
+    def sample(self, size):
+        return np.reshape(
+            np.array(random.sample(self.buffer, size)), [size, 5])
+
+
 class ReplayBuffer():
     def __init__(self, size, rows, cols, n_channels):
         """Create Replay buffer.

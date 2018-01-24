@@ -35,13 +35,35 @@ class QNet(Net):
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
                 activation=tf.nn.relu)
-            stacked = tf.concat([conv2, cell], axis=3)
-            conv2_flat = tf.layers.flatten(stacked)
-            q_vals = tf.layers.dense(
-                inputs=conv2_flat,
-                units=70,
-                kernel_initializer=self.kern_init_dense(),
-                name="q_vals")
+            if self.pp['dueling_qnet']:
+                stream_adv_conv, stream_val_conv = tf.split(
+                    conv2, num_or_size_splits=2, axis=3)
+                # TODO probably not necessary to flatten
+                stream_adv = tf.layers.flatten(
+                    tf.concat([stream_adv_conv, cell], axis=3))
+                stream_val = tf.layers.flatten(
+                    tf.concat([stream_val_conv, cell], axis=3))
+                value = tf.layers.dense(
+                    inputs=stream_val,
+                    units=1,
+                    kernel_initializer=self.kern_init_dense(),
+                    name="value")
+                advantage = tf.layers.dense(
+                    inputs=stream_adv,
+                    units=self.n_channels,
+                    kernel_initializer=self.kern_init_dense(),
+                    name="advantage")
+                q_vals = value + advantage - tf.reduce_mean(
+                    advantage, axis=1, keep_dims=True)
+            else:
+                stacked = tf.concat([conv2, cell], axis=3)
+                # TODO probably not necessary to flatten
+                conv2_flat = tf.layers.flatten(stacked)
+                q_vals = tf.layers.dense(
+                    inputs=conv2_flat,
+                    units=self.n_channels,
+                    kernel_initializer=self.kern_init_dense(),
+                    name="q_vals")
         trainable_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
         trainable_vars_by_name = {
@@ -81,29 +103,28 @@ class QNet(Net):
                                                  self.pp['net_creep_tau'])
 
         # Maximum valued action from online network
-        self.online_q_amax = tf.argmax(
-            self.online_q_vals, axis=1, name="online_q_amax")
+        # Not in use
+        # self.online_q_amax = tf.argmax(
+        #     self.online_q_vals, axis=1, name="online_q_amax")
         # Maximum Q-value for given next state
         self.target_q_max = tf.reduce_max(
             target_q_vals, axis=1, name="target_q_max")
         # Q-value for given action
         self.online_q_selected = tf.reduce_sum(
-            self.online_q_vals * tf.one_hot(self.action,
-                                            self.pp['n_channels']),
+            self.online_q_vals * tf.one_hot(self.action, self.n_channels),
             axis=1,
             name="online_q_selected")
         # Target Q-value for given next action
         self.target_q_selected = tf.reduce_sum(
-            target_q_vals * tf.one_hot(self.next_action,
-                                       self.pp['n_channels']),
+            target_q_vals * tf.one_hot(self.next_action, self.n_channels),
             axis=1,
-            name="target_q_selected_next")
+            name="target_next_q_selected")
 
         if self.max_next_action:
             # Target for Q-learning
             next_q = self.target_q_max
         else:
-            # Target for SARSA
+            # Target for SARSA and eligibile Q-learning
             next_q = self.target_q_selected
         self.q_target = self.reward + self.gamma * next_q
 
@@ -147,6 +168,7 @@ class QNet(Net):
             },
             options=self.options,
             run_metadata=self.run_metadata)
+        # print(q_vals)
         q_vals = np.reshape(q_vals, [-1])
         return q_vals
 

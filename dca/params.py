@@ -150,6 +150,11 @@ def get_pparams():
         choices=weight_initializers,
         default='norm_cols')
     parser.add_argument(
+        '--dueling_qnet',
+        action='store_true',
+        help="(Net) Dueling QNet",
+        default=False)
+    parser.add_argument(
         '--save_net',
         action='store_true',
         help="(Net) Save network params",
