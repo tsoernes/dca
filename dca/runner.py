@@ -117,6 +117,7 @@ class Runner:
             pp[key] = val
         # import psutil
         # n_avg = psutil.cpu_count(logical=False)
+        np.random.seed(pp['rng_seed'])
         simproc = partial(Runner.sim_proc, stratclass, pp, reseed=False)
         logger = logging.getLogger('')
         logger.error(space)

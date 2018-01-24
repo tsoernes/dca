@@ -38,7 +38,6 @@ class QNet(Net):
             if self.pp['dueling_qnet']:
                 stream_adv_conv, stream_val_conv = tf.split(
                     conv2, num_or_size_splits=2, axis=3)
-                # TODO probably not necessary to flatten
                 stream_adv = tf.layers.flatten(
                     tf.concat([stream_adv_conv, cell], axis=3))
                 stream_val = tf.layers.flatten(
@@ -57,7 +56,6 @@ class QNet(Net):
                     advantage, axis=1, keep_dims=True)
             else:
                 stacked = tf.concat([conv2, cell], axis=3)
-                # TODO probably not necessary to flatten
                 conv2_flat = tf.layers.flatten(stacked)
                 q_vals = tf.layers.dense(
                     inputs=conv2_flat,
@@ -168,7 +166,7 @@ class QNet(Net):
             },
             options=self.options,
             run_metadata=self.run_metadata)
-        # print(q_vals)
+        assert q_vals[0].shape == (1, 70)
         q_vals = np.reshape(q_vals, [-1])
         return q_vals
 
