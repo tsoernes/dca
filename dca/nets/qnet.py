@@ -27,13 +27,16 @@ class QNet(Net):
                 kernel_size=4,
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.regularizer,
                 activation=tf.nn.relu)
+            # TODO test ELU
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
                 filters=70,
                 kernel_size=3,
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.regularizer,
                 activation=tf.nn.relu)
             if self.pp['dueling_qnet']:
                 stream_adv_conv, stream_val_conv = tf.split(
@@ -61,6 +64,7 @@ class QNet(Net):
                     inputs=conv2_flat,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
+                    kernel_regularizer=self.regularizer,
                     name="q_vals")
         trainable_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)

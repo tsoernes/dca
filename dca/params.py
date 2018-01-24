@@ -152,6 +152,11 @@ def get_pparams():
         help="(Net) Dueling QNet",
         default=False)
     parser.add_argument(
+        '--layer_norm',
+        action='store_true',
+        help="(Net) Use layer normalization",
+        default=False)
+    parser.add_argument(
         '--save_net',
         action='store_true',
         help="(Net) Save network params",
@@ -215,15 +220,16 @@ def get_pparams():
     parser.add_argument(
         '--rng_seed',
         type=int,
+        metavar='N',
         nargs='?',
         help="By default, use seed 0. "
         "If specified without a value, use a random seed.",
         default=0,
-        const=np.randint())
+        const=np.random.randint(2000))
     parser.add_argument(
         '--verify_grid',
         action='store_true',
-        help="verify reuse constraint each iteration",
+        help="Verify channel reuse constraint each iteration",
         default=False)
     parser.add_argument(
         '--policy_mse',
@@ -231,7 +237,7 @@ def get_pparams():
         metavar='N',
         help="(RL) Calculate the MSE between policies "
         "at iterations (0, N), (N, 2N), ...",
-        default=0)
+        default=None)
     parser.add_argument(
         '--prof',
         dest='profiling',

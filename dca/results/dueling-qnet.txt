@@ -1,5 +1,7 @@
 kernel sizes 4,3
 zeroing grid on end-events on forward pass
+represent empty channels as -1
+
 
 p3 runner.py --strat qlearnnet --dueling_qnet --avg_runs 8
 Starting simulation at 2018-01-24 15:57:01.582811 with params:
@@ -46,3 +48,12 @@ Average cumulative handoff block probability 0.1268 with standard deviation 0.00
  [ 0.17490411  0.12773234]
  [ 0.17297063  0.12654376]
  [ 0.17410361  0.12364602]]
+
+Test SARSANet while at it ...
+
+Testing layer norm. 
+represent empty channels as -1 (as before)
+
+
+
+represent empty channels as 0

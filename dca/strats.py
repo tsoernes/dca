@@ -91,7 +91,7 @@ class Strat:
                     self.net_copy_iter -= 1
                     self.logger.warn(
                         f"Decreased net copy iter to {self.net_copy_iter}")
-            if self.pp['policy_mse'] and i % self.pp['policy_mse'] == 0:
+            if self.pp['policy_mse'] is not None and i % self.pp['policy_mse'] == 0:
                 self.policy_mse()
             ch, cevent = next_ch, next_cevent
             i += 1

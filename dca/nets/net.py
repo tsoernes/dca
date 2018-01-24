@@ -8,13 +8,7 @@ from tensorflow.python.client import timeline
 
 import dataloader
 from nets.utils import get_init_by_name
-
-
 """
-consider batch norm [ioffe and szegedy, 2015]
-batch norm is inserted after fully connected or convolutional
-layers and before nonlinearity
-
 possible data prep: set unused channels to -1,
 OR make it unit gaussian. refer to alphago paper -- did they prep
 the board? did they use the complete board as input to any of their
@@ -59,8 +53,11 @@ class Net:
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
 
-        self.kern_init_conv = get_init_by_name(self.pp['weight_init_conv'])
-        self.kern_init_dense = get_init_by_name(self.pp['weight_init_dense'])
+        self.kern_init_conv = get_init_by_name(pp['weight_init_conv'])
+        self.kern_init_dense = get_init_by_name(pp['weight_init_dense'])
+        self.regularizer = None
+        if pp['layer_norm']:
+            self.regularizer = tf.contrib.layers.layer_norm
 
         tf.reset_default_graph()
         if pp['tfprofiling']:
@@ -69,13 +66,13 @@ class Net:
         else:
             self.options = None
             self.run_metadata = None
-        tf.logging.set_verbosity(tf.logging.WARN)
+        # tf.logging.set_verbosity(tf.logging.WARN)
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         if pp['no_gpu']:
             config.device_count = {'GPU': 0}
-        tf.set_random_seed(0)
+        tf.set_random_seed(pp['rng_seed'])
         self.sess = tf.Session(config=config)
 
         self.build()
