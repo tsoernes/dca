@@ -39,7 +39,7 @@ def get_pparams():
         s = stratclasses[i]
         s1 = s[0].lower()
         s2 = s1.replace("strat", "")
-        if s2 not in ["net", "qnet", "rl"]:
+        if s2 not in ["net", "qnet", "rl", "qtable"]:
             stratnames.append(s2)
         stratclasses[i] = (s2, stratclasses[i][1])
     weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
@@ -82,8 +82,9 @@ def get_pparams():
         default=None)
     parser.add_argument(
         '--avg_runs',
+        metavar='N',
         type=int,
-        help="Run simulation 'n' times, report average scores",
+        help="Run simulation N times, report average scores",
         default=None)
 
     parser.add_argument(
@@ -124,8 +125,9 @@ def get_pparams():
         '--hopt',
         action='store_true',
         help="Hyper-parameter optimization with hyperopt."
-        "Saves progress to 'results-{stratname}.pkl' and"
-        "automatically resumes if file already exists.",
+        " Saves progress to 'results-{stratname}-{vars}.pkl' and"
+        " automatically resumes if file already exists. Logs to file with "
+        " same name besides extension .log.",
         default=False)
     parser.add_argument(
         '--hopt_best',
@@ -142,9 +144,7 @@ def get_pparams():
     parser.add_argument(
         '--net_lr', type=float, help="(Net) Learning rate", default=3.4e-5)
     parser.add_argument(
-        '--weight_init_conv',
-        choices=weight_initializers,
-        default='zeros')
+        '--weight_init_conv', choices=weight_initializers, default='zeros')
     parser.add_argument(
         '--weight_init_dense',
         choices=weight_initializers,
@@ -178,21 +178,27 @@ def get_pparams():
     parser.add_argument(
         '--net_copy_iter',
         type=int,
+        metavar='N',
         help="(Net) Copy weights from online to target "
-        "net every 'n' iterations",
+        "net every N iterations",
         default=45)
     parser.add_argument(
         '--net_copy_iter_decr',
         type=int,
-        help="(Net) Decrease 'net_copy_iter' every 'n' iterations",
+        metavar='N',
+        help="(Net) Decrease 'net_copy_iter' every N iterations",
         default=None)
     parser.add_argument(
         '--net_creep_tau',
         type=float,
+        nargs='?',
+        metavar='tau',
         help="(Net) Creep target net 'tau' (0, 1] percent towards online "
         "net every 'net_copy_iter' iterations. "
-        "Net copy iter should be decreased as tau decreases.",
-        default=1)
+        "Net copy iter should be decreased as tau decreases. "
+        "'tau' ~ 0.12 when 'net_copy_iter' is 5 is good starting point.",
+        default=1,
+        const=0.12)
     parser.add_argument(
         '--train_net',
         action='store_true',
@@ -212,8 +218,9 @@ def get_pparams():
     parser.add_argument(
         '--policy_mse',
         type=int,
-        help="(RL) Given 'n',"
-        " calculate the MSE between policies at iterations (0, n), (n, 2n), ...",
+        metavar='N',
+        help="(RL) Calculate the MSE between policies "
+        "at iterations (0, N), (N, 2N), ...",
         default=0)
     parser.add_argument(
         '--prof',
@@ -224,6 +231,7 @@ def get_pparams():
     parser.add_argument(
         '--tfprof',
         dest='tfprofiling',
+        metavar='DEST',
         type=str,
         help="(Net) performance profiling for TensorFlow."
         " Specify ouput file name",
@@ -234,16 +242,19 @@ def get_pparams():
     parser.add_argument(
         '--log_level',
         type=int,
+        choices=[10, 20, 30],
         help="10: Debug,\n20: Info,\n30: Warning",
         default=logging.INFO)
     parser.add_argument(
         '--log_file',
+        metavar='DEST',
         type=str,
         help="enable logging to file by entering file name")
     parser.add_argument(
         '--log_iter',
+        metavar='N',
         type=int,
-        help="Show blocking probability every n iterations",
+        help="Show blocking probability every N iterations",
         default=50000)
 
     # iterations can be approximated from hours with:
@@ -275,6 +286,7 @@ def get_pparams():
         params['p_handoff'] = 0
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
+    print(params['net_creep_tau'])
 
     for name, cls in stratclasses:
         if params['strat'].lower() == name.lower():

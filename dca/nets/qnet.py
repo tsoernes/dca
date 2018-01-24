@@ -101,11 +101,11 @@ class QNet(Net):
 
         if self.max_next_action:
             # Target for Q-learning
-            next_actionval = self.target_q_max
+            next_q = self.target_q_max
         else:
             # Target for SARSA
-            next_actionval = self.target_q_selected
-        self.q_target = self.reward + self.gamma * next_actionval
+            next_q = self.target_q_selected
+        self.q_target = self.reward + self.gamma * next_q
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.

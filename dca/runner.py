@@ -48,7 +48,8 @@ class Runner:
         t = time.time()
         n_runs = self.pp['avg_runs']
         np.random.seed(0)
-        simproc = partial(self.sim_proc, self.stratclass, self.pp, reseed=False)
+        simproc = partial(
+            self.sim_proc, self.stratclass, self.pp, reseed=False)
         if self.pp['net']:
             # Use constant tf seed
             np.random.seed(0)
@@ -171,9 +172,12 @@ class Runner:
             trials_step = 2
         np.random.seed(0)
         pnames = str.join("-", space.keys())
-        f_name = f"results-{self.pp['strat']}-{pnames}.pkl"
+        f_name = f"results-{self.pp['strat']}-{pnames}"
+        fh = logging.FileHandler(f_name + ".log")
+        fh.setLevel(logging.ERROR)
+        self.logger.addHandler(fh)
         try:
-            with open(f_name, "rb") as f:
+            with open(f_name + ".pkl", "rb") as f:
                 trials = pickle.load(f)
                 self.logger.error(f"Found {len(trials.trials)} saved trials")
         except:
@@ -194,7 +198,7 @@ class Runner:
             if prev_best != best:
                 self.logger.error(f"Found new best params: {best}")
                 prev_best = best
-            with open(f_name, "wb") as f:
+            with open(f_name + ".pkl", "wb") as f:
                 pickle.dump(trials, f)
 
     def hopt_best(self):
