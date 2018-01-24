@@ -506,7 +506,7 @@ class QLearnNetStrat(QNetStrat):
             self.losses.append(loss)
 
 
-class QLearnEligibleNetStrat(QLearnNetStrat):
+class QLearnEligibleNetStrat(QNetStrat):
     """Update towards greedy, eligible, action selection"""
 
     def __init__(self, *args, **kwargs):

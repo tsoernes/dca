@@ -9,9 +9,6 @@ import numpy as np
 import fixedstrats  # noqa
 import strats  # noqa
 
-random.seed(0)
-np.random.seed(0)
-
 
 def strat_classes(module_name):
     """
@@ -216,6 +213,14 @@ def get_pparams():
         default=False)
 
     parser.add_argument(
+        '--rng_seed',
+        type=int,
+        nargs='?',
+        help="By default, use seed 0. "
+        "If specified without a value, use a random seed.",
+        default=0,
+        const=np.randint())
+    parser.add_argument(
         '--verify_grid',
         action='store_true',
         help="verify reuse constraint each iteration",
@@ -291,7 +296,9 @@ def get_pparams():
         params['p_handoff'] = 0
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
-    print(params['net_creep_tau'])
+    print("Using seed: ", params['rng_seed'])
+    random.seed(params['rng_seed'])
+    np.random.seed(params['rng_seed'])
 
     for name, cls in stratclasses:
         if params['strat'].lower() == name.lower():
