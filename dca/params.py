@@ -157,10 +157,10 @@ def get_pparams():
         help="(Net) Use layer normalization",
         default=False)
     parser.add_argument(
-        '--empty_neg',
-        type=bool,
-        help="(Net) Represent empty channels in grid as -1 instead of 0",
-        default=True)
+        '--no_empty_neg',
+        action='store_true'
+        help="(Net) Represent empty channels in grid as 0 instead of -1",
+        default=False)
     parser.add_argument(
         '--act_fn', choices=['relu', 'elu', 'leaky_relu'], default='relu')
     parser.add_argument(
@@ -309,6 +309,7 @@ def get_pparams():
         params['p_handoff'] = 0
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
+    params['empty_neg'] = not params['no_empty_neg']
     print("Using seed: ", params['rng_seed'])
     random.seed(params['rng_seed'])
     np.random.seed(params['rng_seed'])
