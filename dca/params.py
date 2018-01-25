@@ -158,11 +158,23 @@ def get_pparams():
         default=False)
     parser.add_argument(
         '--no_empty_neg',
-        action='store_true'
+        action='store_true',
         help="(Net) Represent empty channels in grid as 0 instead of -1",
         default=False)
     parser.add_argument(
         '--act_fn', choices=['relu', 'elu', 'leaky_relu'], default='relu')
+    parser.add_argument(
+        '--optimizer',
+        choices=['sgd', 'sgd-m', 'adam', 'rmsprop'],
+        default='sgd-m')
+    parser.add_argument(
+        '--max_grad_norm',
+        type=float,
+        metavar='N',
+        nargs='?',
+        help="(Net) Clip gradient to N",
+        default=None,
+        const=100000)
     parser.add_argument(
         '--save_net',
         action='store_true',

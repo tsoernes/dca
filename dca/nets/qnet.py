@@ -136,23 +136,18 @@ class QNet(Net):
             labels=tf.stop_gradient(self.q_target),
             predictions=self.online_q_selected)
 
-        # trainer = tf.train.AdamOptimizer(learning_rate=self.l_rate)
-        # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.l_rate)
-        # trainer = tf.train.RMSPropOptimizer(learning_rate=self.l_rate)
-        trainer = tf.train.MomentumOptimizer(
-            learning_rate=self.l_rate, momentum=0.95)
-
-        # self.max_grad_norm = 100000
-        # gradients, trainable_vars = zip(*trainer.compute_gradients(
-        #     self.loss, var_list=online_vars))
-        # clipped_grads, grad_norms = tf.clip_by_global_norm(
-        #     gradients, self.max_grad_norm)
-        # self.do_train = trainer.apply_gradients(
-        #     zip(clipped_grads, trainable_vars))
-        self.do_train = trainer.minimize(self.loss, var_list=online_vars)
+        if self.pp['max_grad_norm'] is not None:
+            gradients, trainable_vars = zip(*self.trainer.compute_gradients(
+                self.loss, var_list=online_vars))
+            clipped_grads, grad_norms = tf.clip_by_global_norm(
+                gradients, self.max_grad_norm)
+            self.do_train = self.trainer.apply_gradients(
+                zip(clipped_grads, trainable_vars))
+        else:
+            self.do_train = self.trainer.minimize(
+                self.loss, var_list=online_vars)
         # Write out statistics to file
         # with tf.name_scope("summaries"):
-        #     tf.summary.scalar("learning_rate", self.l_rate)
         #     tf.summary.scalar("loss", self.loss)
         #     tf.summary.scalar("grad_norm", grad_norms)
         #     tf.summary.histogram("qvals", self.online_q_vals)

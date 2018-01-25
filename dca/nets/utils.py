@@ -42,25 +42,34 @@ def normalized_columns_initializer(std=1.0):
 
 def get_init_by_name(name):
     if name == "zeros":
-        init = tf.zeros_initializer
+        return tf.zeros_initializer
     elif name == "glorot_unif":
         # The default for dense, perhaps for conv2d also. AKA Xavier.
-        init = tf.glorot_uniform_initializer
+        return tf.glorot_uniform_initializer
     elif name == "glorot_norm":
-        init = tf.glorot_normal_initializer
+        return tf.glorot_normal_initializer
     elif name == "norm_cols":
-        init = normalized_columns_initializer
-    return init
+        return normalized_columns_initializer
 
 
 def get_act_fn_by_name(name):
     if name == "relu":
-        fn = tf.nn.relu
+        return tf.nn.relu
     elif name == "elu":
-        fn = tf.nn.elu
+        return tf.nn.elu
     elif name == "leaky_relu":
-        fn = tf.nn.leaky_relu
-    return fn
+        return tf.nn.leaky_relu
+
+
+def get_trainer_by_name(name, l_rate):
+    if name == "sgd":
+        return tf.train.GradientDescentOptimizer(learning_rate=l_rate)
+    elif name == "sgd-m":
+        return tf.train.MomentumOptimizer(learning_rate=l_rate, momentum=0.95)
+    elif name == "adam":
+        return tf.train.AdamOptimizer(learning_rate=l_rate)
+    elif name == "rmsprop":
+        return tf.train.RMSPropOptimizer(learning_rate=l_rate)
 
 
 def copy_net_op(online_vars, target_vars, tau):

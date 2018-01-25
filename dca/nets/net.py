@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
-from nets.utils import get_act_fn_by_name, get_init_by_name
+from nets.utils import (get_act_fn_by_name, get_init_by_name,
+                        get_optimizer_by_name)
 
 
 """
@@ -46,7 +47,6 @@ class Net:
         self.logger = logger
         self.save = pp['save_net']
         restore = pp['restore_net']
-        self.l_rate = pp['net_lr']
         self.gamma = pp['gamma']
         self.batch_size = pp['batch_size']
         self.n_channels = pp['n_channels']
@@ -62,6 +62,9 @@ class Net:
             self.regularizer = tf.contrib.layers.layer_norm
         self.act_fn = get_act_fn_by_name(pp['act_fn'])
 
+        self.trainer = get_optimizer_by_name(pp['optimizer'], pp['net_lr'])
+
+        # self.max_grad_norm = 100000
         tf.reset_default_graph()
         if pp['tfprofiling']:
             self.options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
