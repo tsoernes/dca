@@ -157,24 +157,23 @@ class RLStrat(Strat):
         self.logger.info(f"NP Rand: {np.random.uniform()}")
 
     def get_init_action(self, cevent):
-        ch, _, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
-        next_ch, next_qval, next_max_ch = self.optimal_ch(
-            next_ce_type, next_cell)
+        next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, next_qval, next_cell,
-                             next_ch, next_max_ch)
+            self.update_qval(grid, cell, ch, reward, next_cell, next_ch,
+                             next_max_ch)
         return next_ch
 
-    def policy_eps_greedy_exp(self, qvals, chs):
+    def policy_eps_greedy(self, chs, qvals):
         """Epsilon greedy action selection with expontential decay"""
         if np.random.random() < self.epsilon:
             # Choose an eligible channel at random
@@ -186,52 +185,41 @@ class RLStrat(Strat):
         self.epsilon *= self.epsilon_decay  # Epsilon decay
         return ch
 
-    def policy_eps_greedy_lil(self, qvals, chs):
-        epsilon = self.epsilon / np.sqrt(self.t / 256)
-        if np.random.random() < epsilon:
-            # Choose an eligible channel at random
-            ch = np.random.choice(chs)
-        else:
-            # Choose greedily
-            idx = np.argmax(qvals[chs])
-            ch = chs[idx]
-        return ch
-
-    def policy_boltzmann(self, qvals, chs):
+    def policy_boltzmann(self, chs, qvals):
         scaled = np.exp((qvals[chs] - np.max(qvals[chs])) / self.temp)
         probs = scaled / np.sum(scaled)
         ch = np.random.choice(chs, p=probs)
         return ch
 
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float, int]:
-        """
-        Select the channel fitting for assignment that
-        that has the maximum q-value in an epsilon-greedy fasion,
+        """Select the channel fitting for assignment that
+        that has the maximum q-value according to an exploration policy,
         or select the channel for termination that has the minimum
         q-value in a greedy fashion.
 
-        Return (ch, qval, max_ch) where 'qval' is the q-value for the
-        selected channel 'ch'. 'max_ch' is the greedy and eligible channel.
+        Return (ch, max_ch) where 'ch' is the selected channel according to
+        exploration policy and max_ch' is the greedy (still eligible) channel.
         'ch' (and 'max_ch') is None if no channel is eligible for assignment.
-
         """
         inuse = np.nonzero(self.grid[cell])[0]
         n_used = len(inuse)
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = self.env.grid.get_free_chs(cell)
+            if len(chs) == 0:
+                # No channels available for assignment,
+                return (None, None)
         else:
             # Channels in use at cell, including channel scheduled
             # for termination. The latter is included because it might
             # be the least valueable channel, in which case no
             # reassignment is done on call termination.
             chs = inuse
-        if len(chs) == 0:
-            # No channels available for assignment,
             # or no channels in use to reassign
-            assert ce_type != CEvent.END
-            return (None, None, None)
+            assert n_used > 0
 
+        # TODO If 'max_ch' turns out not to be useful, then don't return it and
+        # avoid running a forward pass through the net if a random action is selected.
         qvals = self.get_qvals(cell=cell, n_used=n_used, ce_type=ce_type)
         # Selecting a ch for reassigment is always greedy because no learning
         # is done on the reassignment actions.
@@ -240,17 +228,17 @@ class RLStrat(Strat):
             ch = chs[idx]
             max_ch = ch
         else:
-            ch = self.policy_eps_greedy_exp(qvals, chs)
+            ch = self.policy_eps_greedy(chs, qvals)
             idx = np.argmax(qvals[chs])
             max_ch = chs[idx]
 
         # If qvals blow up ('NaN's and 'inf's), ch becomes none.
         if ch is None:
-            self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
+            self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n")
             raise Exception
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
-        return (ch, qvals[ch], max_ch)
+        return (ch, max_ch)
 
 
 class QTable(RLStrat):
@@ -261,18 +249,20 @@ class QTable(RLStrat):
 
     def get_qvals(self, cell, n_used, ch=None, *args, **kwargs):
         rep = self.feature_rep(cell, n_used)
-        if ch is not None:
-            return self.qvals[rep][ch]
-        else:
+        if ch is None:
             return self.qvals[rep]
+        else:
+            return self.qvals[rep][ch]
 
-    def update_qval(self, grid, cell, ch, reward, next_qval, *args):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, *args):
         assert type(ch) == np.int64
         assert ch is not None
         # Counting n_used of self.grid instead of grid yields significantly better
         # performance for unknown reasons.
-        n_used = np.count_nonzero(grid[cell])
+        next_n_used = np.count_nonzero(self.grid[cell])
+        next_qval = self.get_qvals(next_cell, next_n_used, next_ch)
         target_q = reward + self.gamma * next_qval
+        n_used = np.count_nonzero(grid[cell])
         td_err = target_q - self.get_qvals(cell, n_used, ch)
         frep = self.feature_rep(cell, n_used)
         if self.lmbda is None:
@@ -397,71 +387,15 @@ class QNetStrat(NetStrat):
 
     def get_qvals(self, cell, ce_type, *args, **kwargs):
         if ce_type == CEvent.END:
-            state = np.copy(self.grid)
-            state[cell] = np.zeros(self.n_channels)
+            grid = np.copy(self.grid)
+            grid[cell] = np.zeros(self.n_channels)
         else:
-            state = self.grid
-        qvals = self.net.forward(state, cell)
+            grid = self.grid
+        qvals = self.net.forward(grid, cell)
         return qvals
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        next_ce_type, next_cell = next_cevent[1:3]
-        # Choose A' from S'
-        next_ch, next_qval, next_max_ch = self.optimal_ch(
-            next_ce_type, next_cell)
-        # If there's no action to take, or no action was taken,
-        # don't update q-value at all
-        if ce_type != CEvent.END and ch is not None and next_ch is not None:
-            # Observe reward from previous action, and
-            # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, next_qval, next_cell,
-                             next_ch, next_max_ch)
-        return next_ch
-
-    def policy_eps_greedy_exp(self, qvals, chs):
-        """Epsilon greedy action selection with expontential decay"""
-        if np.random.random() < self.epsilon:
-            # Choose an eligible channel at random
-            ch = np.random.choice(chs)
-        else:
-            # Choose greedily
-            idx = np.argmax(qvals[chs])
-            ch = chs[idx]
-        self.epsilon *= self.epsilon_decay  # Epsilon decay
-        return ch
-
-    def optimal_ch(self, ce_type, cell) -> Tuple[int, float, int]:
-        inuse = np.nonzero(self.grid[cell])[0]
-        n_used = len(inuse)
-
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = self.env.grid.get_free_chs(cell)
-        else:
-            chs = inuse
-        if len(chs) == 0:
-            assert ce_type != CEvent.END
-            return (None, None, None)
-
-        qvals = self.get_qvals(cell=cell, n_used=n_used, ce_type=ce_type)
-        if ce_type == CEvent.END:
-            idx = np.argmin(qvals[chs])
-            ch = chs[idx]
-            max_ch = ch
-        else:
-            ch = self.policy_eps_greedy_exp(qvals, chs)
-            idx = np.argmax(qvals[chs])
-            max_ch = chs[idx]
-
-        # If qvals blow up ('NaN's and 'inf's), ch becomes none.
-        if ch is None:
-            self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n\n")
-            raise Exception
-        self.logger.debug(
-            f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
-        return (ch, qvals[ch], max_ch)
-
-    def update_qval(self, grid, cell, ch, reward, next_qval, next_cell,
-                    next_ch, next_max_ch):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch,
+                    next_max_ch):
         """ Update qval for one experience tuple"""
         loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell,
                              [next_ch], [next_max_ch])
@@ -498,8 +432,8 @@ class QLearnNetStrat(QNetStrat):
             # Can't backprop before exp store has enough experiences
             print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(
+            self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.quit_sim = True
         else:

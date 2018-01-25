@@ -28,7 +28,7 @@ class QNet(Net):
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,
-                activation=tf.nn.relu)
+                activation=self.act_fn)
             # TODO test ELU
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
@@ -37,7 +37,7 @@ class QNet(Net):
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,
-                activation=tf.nn.relu)
+                activation=self.act_fn)
             if self.pp['dueling_qnet']:
                 stream_adv_conv, stream_val_conv = tf.split(
                     conv2, num_or_size_splits=2, axis=3)

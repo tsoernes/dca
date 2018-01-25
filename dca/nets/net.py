@@ -7,7 +7,9 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
-from nets.utils import get_init_by_name
+from nets.utils import get_act_fn_by_name, get_init_by_name
+
+
 """
 possible data prep: set unused channels to -1,
 OR make it unit gaussian. refer to alphago paper -- did they prep
@@ -58,6 +60,7 @@ class Net:
         self.regularizer = None
         if pp['layer_norm']:
             self.regularizer = tf.contrib.layers.layer_norm
+        self.act_fn = get_act_fn_by_name(pp['act_fn'])
 
         tf.reset_default_graph()
         if pp['tfprofiling']:

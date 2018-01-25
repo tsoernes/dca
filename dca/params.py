@@ -157,6 +157,8 @@ def get_pparams():
         help="(Net) Use layer normalization",
         default=False)
     parser.add_argument(
+        '--act_fn', choices=['relu', 'elu', 'leaky_relu'], default='relu')
+    parser.add_argument(
         '--save_net',
         action='store_true',
         help="(Net) Save network params",
