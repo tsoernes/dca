@@ -128,10 +128,10 @@ def get_pparams():
         default=False)
     parser.add_argument(
         '--hopt_best',
-        action='store_true',
+        type=str,
         help="Show best params found and corresponding loss for a"
-        "hopt file corresponding to selected strat",
-        default=False)
+        "given hopt file",
+        default=None)
     parser.add_argument(
         '--hopt_plot',
         action='store_true',

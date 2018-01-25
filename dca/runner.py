@@ -29,7 +29,7 @@ class Runner:
 
         if self.pp['hopt']:
             self.hopt()
-        elif self.pp['hopt_best']:
+        elif self.pp['hopt_best'] is not None:
             self.hopt_best()
         elif self.pp['hopt_plot']:
             self.hopt_plot()
@@ -180,12 +180,13 @@ class Runner:
         try:
             with open(f_name + ".pkl", "rb") as f:
                 trials = pickle.load(f)
+                prev_best = trials.best_trial
                 self.logger.error(f"Found {len(trials.trials)} saved trials")
         except:
             trials = Trials()
+            prev_best = {}
 
         fn = partial(Runner.hopt_proc, self.stratclass, self.pp)
-        prev_best = {}
         while True:
             n_trials = len(trials)
             self.logger.error(
@@ -203,7 +204,7 @@ class Runner:
                 pickle.dump(trials, f)
 
     def hopt_best(self):
-        f_name = f"results-{self.pp['strat']}.pkl"
+        f_name = self.pp['hopt_best']
         try:
             with open(f_name, "rb") as f:
                 trials = pickle.load(f)
