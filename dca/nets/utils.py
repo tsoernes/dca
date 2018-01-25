@@ -53,6 +53,16 @@ def get_init_by_name(name):
     return init
 
 
+def get_act_fn_by_name(name):
+    if name == "relu":
+        fn = tf.nn.relu
+    elif name == "elu":
+        fn = tf.nn.elu
+    elif name == "leaky_relu":
+        fn = tf.nn.leaky_relu
+    return fn
+
+
 def copy_net_op(online_vars, target_vars, tau):
     copy_ops = []
     for var_name, target_var in target_vars.items():
