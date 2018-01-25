@@ -1,0 +1,24 @@
+kernel sizes 4, 3
+empty cells on end event forward pass
+
+p3 runner.py --strat qlearnnet --net_lr 5e-4 --optimizer sgd
+Starting simulation at 2018-01-25 14:33:29.609904 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': None, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 0.0005, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'no_empty_neg': False, 'act_fn': 'relu', 'optimizer': 'sgd', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'train_net': False, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'policy_mse': None, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 20, 'log_file': None, 'log_iter': 5000, 'net': True, 'empty_neg': True}
+Blocking probability events 460000-465000: 0.1711, cumulative 0.1722
+Avg. loss last 5000 events: 85535.02
+Epsilon: 0.09099, Alpha: 0.03600
+T Blocking probability: 0.1720 for new calls, 0.1248 for handoffs
+
+
+p3 runner.py --strat qlearnnet --optimizer adam --net_lr 5e-3
+Starting simulation at 2018-01-25 15:09:32.071060 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': None, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 0.005, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'no_empty_neg': False, 'act_fn': 'relu', 'optimizer': 'adam', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'train_net': False, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'policy_mse': None, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 20, 'log_file': None, 'log_iter': 5000, 'net': True, 'empty_neg': True}
+Blocking probability events 460000-465000: 0.1635, cumulative 0.1705
+Avg. loss last 5000 events: 167027.38
+Epsilon: 0.09082, Alpha: 0.03600
+Blocking probability events 465000-470000: 0.1941, cumulative 0.1708
+T Blocking probability: 0.1708 for new calls, 0.1259 for handoffs
+
+RMS Prop No good.
+
+

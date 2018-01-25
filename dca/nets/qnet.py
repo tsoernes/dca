@@ -51,8 +51,6 @@ class QNet(Net):
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     name="advantage")
-                # Simple Dueling
-                # self.q_vals = value + advantage
                 # Max Dueling
                 # self.q_vals= value + (advantage -
                 #     tf.reduce_max(advantage, axis=1, keep_dims=True))
@@ -135,7 +133,7 @@ class QNet(Net):
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.q_target),
             predictions=self.online_q_selected)
-        self.trainer = self._build_default_trainer(online_vars)
+        self.do_train = self._build_default_trainer(online_vars)
         # Write out statistics to file
         # with tf.name_scope("summaries"):
         #     tf.summary.scalar("loss", self.loss)

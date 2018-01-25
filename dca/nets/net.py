@@ -64,7 +64,6 @@ class Net:
 
         self.trainer = get_optimizer_by_name(pp['optimizer'], pp['net_lr'])
 
-        # self.max_grad_norm = 100000
         tf.reset_default_graph()
         if pp['tfprofiling']:
             self.options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -98,7 +97,7 @@ class Net:
             gradients, trainable_vars = zip(*self.trainer.compute_gradients(
                 self.loss, var_list=var_list))
             clipped_grads, grad_norms = tf.clip_by_global_norm(
-                gradients, self.max_grad_norm)
+                gradients, self.pp['max_grad_norm'])
             do_train = self.trainer.apply_gradients(
                 zip(clipped_grads, trainable_vars))
         else:

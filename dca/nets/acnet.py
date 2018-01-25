@@ -91,7 +91,7 @@ class ACNet(Net):
         self.policy_loss = -tf.reduce_sum(
             tf.log(self.responsible_outputs) * self.advantages)
         self.loss = 0.25 * self.value_loss + self.policy_loss - self.entropy * 0.01
-        self.trainer = self._build_default_trainer()
+        self.do_train = self._build_default_trainer()
 
     def forward(self, grid, cell) -> Tuple[List[float], float]:
         a_dist, val = self.sess.run(
