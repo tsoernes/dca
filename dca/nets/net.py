@@ -92,6 +92,19 @@ class Net:
             self.saver.restore(self.sess, self.model_path)
         self.data_is_loaded = False
 
+    def _build_default_trainer(self, var_list=None):
+        """If var_list is not specified, defaults to GraphKey.TRAINABLE_VARIABLES"""
+        if self.pp['max_grad_norm'] is not None:
+            gradients, trainable_vars = zip(*self.trainer.compute_gradients(
+                self.loss, var_list=var_list))
+            clipped_grads, grad_norms = tf.clip_by_global_norm(
+                gradients, self.max_grad_norm)
+            do_train = self.trainer.apply_gradients(
+                zip(clipped_grads, trainable_vars))
+        else:
+            do_train = self.trainer.minimize(self.loss, var_list=var_list)
+        return do_train
+
     def load_data(self):
         if self.data_is_loaded:
             return

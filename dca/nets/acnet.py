@@ -91,19 +91,7 @@ class ACNet(Net):
         self.policy_loss = -tf.reduce_sum(
             tf.log(self.responsible_outputs) * self.advantages)
         self.loss = 0.25 * self.value_loss + self.policy_loss - self.entropy * 0.01
-
-        trainer = tf.train.AdamOptimizer(learning_rate=self.l_rate)
-        # trainer = tf.train.GradientDescentOptimizer(learning_rate=self.l_rate)
-        # trainer = tf.train.RMSPropOptimizer(learning_rate=self.l_rate)
-        # trainer = tf.train.MomentumOptimizer(
-        #     learning_rate=self.l_rate, momentum=0.95)
-        gradients, trainable_vars = zip(*trainer.compute_gradients(self.loss))
-        # gradients = tf.gradients(self.loss, trainable_vars)
-        clipped_grads, self.grad_norms = tf.clip_by_global_norm(
-            gradients, self.max_grad_norm)
-        # Apply gradients to network
-        self.do_train = trainer.apply_gradients(
-            zip(clipped_grads, trainable_vars))
+        self.trainer = self._build_default_trainer()
 
     def forward(self, grid, cell) -> Tuple[List[float], float]:
         a_dist, val = self.sess.run(

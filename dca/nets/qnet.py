@@ -135,17 +135,7 @@ class QNet(Net):
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.q_target),
             predictions=self.online_q_selected)
-
-        if self.pp['max_grad_norm'] is not None:
-            gradients, trainable_vars = zip(*self.trainer.compute_gradients(
-                self.loss, var_list=online_vars))
-            clipped_grads, grad_norms = tf.clip_by_global_norm(
-                gradients, self.max_grad_norm)
-            self.do_train = self.trainer.apply_gradients(
-                zip(clipped_grads, trainable_vars))
-        else:
-            self.do_train = self.trainer.minimize(
-                self.loss, var_list=online_vars)
+        self.trainer = self._build_default_trainer(online_vars)
         # Write out statistics to file
         # with tf.name_scope("summaries"):
         #     tf.summary.scalar("loss", self.loss)

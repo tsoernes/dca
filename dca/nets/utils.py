@@ -61,7 +61,7 @@ def get_act_fn_by_name(name):
         return tf.nn.leaky_relu
 
 
-def get_trainer_by_name(name, l_rate):
+def get_optimizer_by_name(name, l_rate):
     if name == "sgd":
         return tf.train.GradientDescentOptimizer(learning_rate=l_rate)
     elif name == "sgd-m":
