@@ -38,28 +38,28 @@ class QNet(Net):
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,
                 activation=self.act_fn)
+            stacked = tf.concat([conv2, cell], axis=3)
+            conv2_flat = tf.layers.flatten(stacked)
             if self.pp['dueling_qnet']:
-                stream_adv_conv, stream_val_conv = tf.split(
-                    conv2, num_or_size_splits=2, axis=3)
-                stream_adv = tf.layers.flatten(
-                    tf.concat([stream_adv_conv, cell], axis=3))
-                stream_val = tf.layers.flatten(
-                    tf.concat([stream_val_conv, cell], axis=3))
                 value = tf.layers.dense(
-                    inputs=stream_val,
+                    inputs=conv2_flat,
                     units=1,
                     kernel_initializer=self.kern_init_dense(),
                     name="value")
                 advantage = tf.layers.dense(
-                    inputs=stream_adv,
+                    inputs=conv2_flat,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     name="advantage")
-                q_vals = value + advantage - tf.reduce_mean(
-                    advantage, axis=1, keep_dims=True)
+                # Simple Dueling
+                # self.q_vals = value + advantage
+                # Max Dueling
+                # self.q_vals= value + (advantage -
+                #     tf.reduce_max(advantage, axis=1, keep_dims=True))
+                # Average Dueling
+                q_vals = value + (advantage - tf.reduce_mean(
+                    advantage, axis=1, keep_dims=True))
             else:
-                stacked = tf.concat([conv2, cell], axis=3)
-                conv2_flat = tf.layers.flatten(stacked)
                 q_vals = tf.layers.dense(
                     inputs=conv2_flat,
                     units=self.n_channels,
@@ -165,7 +165,8 @@ class QNet(Net):
         q_vals = self.sess.run(
             [self.online_q_vals],
             feed_dict={
-                self.grid: prep_data_grids(grid),
+                self.grid: prep_data_grids(
+                    grid, empty_neg=self.pp['empty_neg']),
                 self.cell: prep_data_cells(cell)
             },
             options=self.options,
@@ -187,11 +188,11 @@ class QNet(Net):
         else greedy selection (Q-Learning)
         """
         data = {
-            self.grid: prep_data_grids(grids),
+            self.grid: prep_data_grids(grids, self.pp['empty_neg']),
             self.cell: prep_data_cells(cells),
             self.action: actions,
             self.reward: rewards,
-            self.next_grid: prep_data_grids(next_grids),
+            self.next_grid: prep_data_grids(next_grids, self.pp['empty_neg']),
             self.next_cell: prep_data_cells(next_cells),
         }
         if next_actions is not None:

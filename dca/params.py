@@ -157,6 +157,11 @@ def get_pparams():
         help="(Net) Use layer normalization",
         default=False)
     parser.add_argument(
+        '--empty_neg',
+        type=bool,
+        help="(Net) Represent empty channels in grid as -1 instead of 0",
+        default=True)
+    parser.add_argument(
         '--act_fn', choices=['relu', 'elu', 'leaky_relu'], default='relu')
     parser.add_argument(
         '--save_net',
