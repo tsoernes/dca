@@ -1,5 +1,6 @@
 import time
 
+import numpy as np
 from matplotlib import pyplot as plt
 
 from eventgen import ce_str
@@ -33,8 +34,6 @@ class Stats:
 
         self.alphas = []  # Monitor alpha decay
         self.epsilons = []  # Monitor epsilon decay
-
-        self.losses = []
 
     def event_new(self):
         self.n_incoming += 1
@@ -84,16 +83,30 @@ class Stats:
             self.n_curr_rejected = 0
             self.n_curr_incoming = 0
 
-    def report_rl(self, epsilon, alpha):
-        self.alphas.append(alpha)
+    def report_rl(self, epsilon, alpha=None):
+        if alpha:
+            self.alphas.append(alpha)
+            alpha_str = f", Alpha: {alpha:.5f}"
+        else:
+            alpha_str = ""
         self.epsilons.append(epsilon)
-        self.logger.info(f"Epsilon: {epsilon:.5f}," f" Alpha: {alpha:.5f}")
+        self.logger.info(f"Epsilon: {epsilon:.5f}" + alpha_str)
 
     def report_net(self, losses):
-        self.losses = losses
         niter = self.pp['log_iter']
-        avg_loss = sum(losses[-niter:]) / niter
-        self.logger.info(f"Avg. loss last {niter} events: {avg_loss:.2f}")
+        if type(losses[0]) is tuple:
+            avg_losses = np.zeros(len(losses[0]))
+            # Policy net has multiple losses
+            for losses in losses[-niter:]:
+                for i, loss in enumerate(losses):
+                    avg_losses[i] += loss
+            avg_losses /= niter
+            # avg_loss = str.join(", ", [f"{i:.1f}" for i in avg_losses])
+            avg_loss = f"Tot:{avg_losses[0]:.1f}, PG:{avg_losses[1]:.1f}" \
+                       f" Val:{avg_losses[2]:.1f}, Ent:{avg_losses[3]:.3}"
+        else:
+            avg_loss = f"{sum(losses[-niter:]) / niter}:.2f"
+        self.logger.info(f"Avg. loss last {niter} events: {avg_loss}")
 
     def end_episode(self, n_inprogress):
         delta = self.n_incoming + self.n_handoffs \

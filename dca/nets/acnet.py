@@ -75,20 +75,21 @@ class ACNet(Net):
         # [q(s,a) - v(s)], e) the GAE estimator etc. See schulman2016.
         self.psi = tf.placeholder(shape=[None], dtype=tf.float32)
 
-        self.policy, self.value, x = self._build_net(
+        self.policy, self.value, trainable_vars = self._build_net(
             self.grid, self.cell, name="ac_network/online")
 
         action_oh = tf.one_hot(
             self.action, self.pp['n_channels'], dtype=tf.float32)
         self.responsible_outputs = tf.reduce_sum(self.policy * action_oh, [1])
 
-        self.value_loss = tf.losses.mean_squared_error(
+        self.value_loss = self.pp['vf_coeff'] * tf.losses.mean_squared_error(
             tf.squeeze(self.value), self.value_target)
-        self.entropy = -tf.reduce_sum(self.policy * tf.log(self.policy))
+        self.entropy = self.pp['entropy_coeff'] * -tf.reduce_sum(
+            self.policy * tf.log(self.policy))
         self.policy_loss = -tf.reduce_mean(
             self.psi * tf.log(self.responsible_outputs))
-        self.loss = 0.25 * self.value_loss + self.policy_loss  # - self.entropy * 0.01
-        self.do_train = self._build_default_trainer(x)
+        self.loss = self.value_loss + self.policy_loss - self.entropy
+        self.do_train = self._build_default_trainer(trainable_vars)
 
     def forward(self, grid, cell) -> Tuple[List[float], float]:
         a_dist, val = self.sess.run(
@@ -102,6 +103,17 @@ class ACNet(Net):
         assert val.shape == (1, 1)
         assert a_dist.shape == (1, self.n_channels)
         return a_dist[0], val[0, 0]
+
+    def _backward(self, data):
+        _, loss, pg_loss, vf_loss, entropy = self.sess.run(
+            [
+                self.do_train, self.loss, self.policy_loss, self.value_loss,
+                self.entropy
+            ],
+            feed_dict=data,
+            options=self.options,
+            run_metadata=self.run_metadata)
+        return (loss, pg_loss, vf_loss, entropy)
 
     def backward(self, grid, cell, ch, reward, next_grid, next_cell) -> float:
         # TODO Save and pass 'val' from earlier forward pass
@@ -127,12 +139,7 @@ class ACNet(Net):
             self.action: [ch],
             self.psi: advantage
         }
-        _, loss = self.sess.run(
-            [self.do_train, self.loss],
-            feed_dict=data,
-            options=self.options,
-            run_metadata=self.run_metadata)
-        return loss
+        return self._backward(data)
 
     def backward_gae(self, grids, cells, vals, chs, rewards, next_grid,
                      next_cell) -> float:
@@ -158,9 +165,4 @@ class ACNet(Net):
             self.action: chs,
             self.psi: advantages
         }
-        _, loss = self.sess.run(
-            [self.do_train, self.loss],
-            feed_dict=data,
-            options=self.options,
-            run_metadata=self.run_metadata)
-        return loss
+        return self._backward(data)

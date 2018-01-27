@@ -230,6 +230,16 @@ def get_pparams():
         default=1,
         const=0.12)
     parser.add_argument(
+        '--vf_coeff',
+        type=float,
+        help="(Net) Value function coefficient in policy gradient loss",
+        default=0.02)
+    parser.add_argument(
+        '--entropy_coeff',
+        type=float,
+        help="(Net) Entropy coefficient in policy gradient loss",
+        default=1.00)
+    parser.add_argument(
         '--train_net',
         action='store_true',
         help="(Net) Train network",
@@ -287,7 +297,7 @@ def get_pparams():
         metavar='N',
         type=int,
         help="Show blocking probability every N iterations",
-        default=50000)
+        default=None)
 
     # iterations can be approximated from hours with:
     # iters = 7821* hours - 2015
@@ -302,9 +312,12 @@ def get_pparams():
     # Sensible presets / overrides
     params['net'] = False  # Whether net is in use or not
     if "net" in params['strat'].lower():
-        params['log_iter'] = 5000
+        if not params['log_iter']:
+            params['log_iter'] = 5000
         params['net'] = True
     else:
+        if not params['log_iter']:
+            params['log_iter'] = 50000
         params['batch_size'] = 1
     if not params['call_rates']:
         params['call_rates'] = params['erlangs'] / params['call_duration']

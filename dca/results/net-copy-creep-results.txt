@@ -1,0 +1,31 @@
+kernel siz: 4,3
+
+p3 runner.py --strat qlearnnet --net_creep_tau 0.12 --net_copy_iter 5 --avg_runs 8
+Starting simulation at 2018-01-27 18:38:17.505690 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000,
+'n_hours': None, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hop
+t': None, 'hopt_best': None, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'no_empty_neg': False
+, 'act_fn': 'relu', 'optimizer': 'sgd-m', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_
+copy_iter_decr': None, 'net_creep_tau': 0.12, 'train_net': False, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_
+level': 40, 'log_file': None, 'log_iter': 5000, 'net': True, 'empty_neg': True}
+8x470000 events finished with speed 490 events/second
+Average cumulative block probability over 8 episodes: 0.1726 with standard deviation 0.00212
+Average cumulative handoff block probability 0.1263 with standard deviation 0.00274
+[[ 0.17210264  0.12493383]
+ [ 0.17577879  0.13133307]
+ [ 0.1712574   0.12436915]
+ [ 0.16914475  0.12357649]
+ [ 0.17411572  0.13039969]
+ [ 0.1735158   0.12582156]
+ [ 0.17026782  0.12505285]
+ [ 0.17445179  0.12457793]]
+
+
+p3 runner.py --strat qlearnnet --avg_runs 8
+Starting simulation at 2018-01-27 21:02:30.445452 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000,
+'n_hours': None, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'hop
+t': None, 'hopt_best': None, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'no_empty_neg': False
+, 'act_fn': 'relu', 'optimizer': 'sgd-m', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net
+_copy_iter_decr': None, 'net_creep_tau': 1, 'train_net': False, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_le
+vel': 40, 'log_file': None, 'log_iter': 5000, 'net': True, 'empty_neg': True}

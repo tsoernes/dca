@@ -339,7 +339,7 @@ class NetStrat(RLStrat):
 
     def fn_report(self):
         self.env.stats.report_net(self.losses)
-        super().fn_report()
+        self.env.stats.report_rl(self.epsilon)
 
     def fn_after(self):
         ra = self.net.rand_uniform()
@@ -456,6 +456,8 @@ class ACNetStrat(NetStrat):
         super().__init__(*args, **kwargs)
         self.net = ACNet(pp=self.pp, logger=self.logger)
         self.exp_buffer = ExperienceBuffer()
+        self.logger.info(
+            "Loss legend (scaled): [ total, policy_grad, value_fn, entropy ]")
 
     def forward(self, cell, ce_type) -> Tuple[List[float], float]:
         if ce_type == CEvent.END:
@@ -532,7 +534,7 @@ class ACNetStrat(NetStrat):
     def update_qval(self, grid, cell, ch, reward, next_grid, next_cell,
                     next_ch):
         loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
-        if np.isinf(loss) or np.isnan(loss):
+        if np.isinf(loss[0]) or np.isnan(loss[0]):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
         else:
@@ -549,7 +551,7 @@ class ACNetStrat(NetStrat):
             return
         loss = self.net.backward_gae(*self.exp_buffer.pop(), next_grid,
                                      next_cell)
-        if np.isinf(loss) or np.isnan(loss):
+        if np.isinf(loss[0]) or np.isnan(loss[0]):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
         else:
