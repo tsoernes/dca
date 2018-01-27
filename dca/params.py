@@ -120,12 +120,16 @@ def get_pparams():
         default=False)
     parser.add_argument(
         '--hopt',
-        action='store_true',
+        nargs='?',
+        choices=[
+            'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma',
+            'lambda', 'net_lr', 'net_copy_iter', 'net_creep_tau'
+        ],
         help="Hyper-parameter optimization with hyperopt."
         " Saves progress to 'results-{stratname}-{vars}.pkl' and"
         " automatically resumes if file already exists. Logs to file with "
         " same name besides extension .log.",
-        default=False)
+        default=None)
     parser.add_argument(
         '--hopt_best',
         type=str,
@@ -314,15 +318,18 @@ def get_pparams():
     if params['avg_runs']:
         params['gui'] = False
         params['log_level'] = logging.ERROR
-    if params['hopt']:
+    if params['hopt'] is not None:
         params['log_level'] = logging.ERROR
         # Since hopt only compares new call block rate,
         # handoffs are a waste of computational resources.
         params['p_handoff'] = 0
+        # Always log to file so that parameters are recorded
+        pnames = str.join("-", params['hopt'].keys())
+        f_name = f"results-{params['strat']}-{pnames}"
+        params['log_file'] = f_name
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
     params['empty_neg'] = not params['no_empty_neg']
-    print("Using seed: ", params['rng_seed'])
     random.seed(params['rng_seed'])
     np.random.seed(params['rng_seed'])
 

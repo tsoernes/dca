@@ -11,7 +11,6 @@ class ACNet(Net):
     def __init__(self, *args, **kwargs):
         """
         """
-        self.max_grad_norm = 40.0
         super().__init__(name="ACNet", *args, **kwargs)
         self.pp['n_step'] = 10
 
@@ -85,10 +84,10 @@ class ACNet(Net):
         self.responsible_outputs = tf.reduce_sum(self.policy * action_oh, [1])
 
         # TODO Perhaps these should be 'reduce_mean' instead.
-        self.value_loss = tf.reduce_sum(
+        self.value_loss = tf.reduce_mean(
             tf.square(self.target_v - tf.reshape(self.value, [-1])))
         self.entropy = -tf.reduce_sum(self.policy * tf.log(self.policy))
-        self.policy_loss = -tf.reduce_sum(
+        self.policy_loss = -tf.reduce_mean(
             tf.log(self.responsible_outputs) * self.advantages)
         self.loss = 0.25 * self.value_loss + self.policy_loss - self.entropy * 0.01
         self.do_train = self._build_default_trainer()

@@ -21,11 +21,12 @@ class Runner:
         logging.basicConfig(level=self.pp['log_level'], format='%(message)s')
         self.logger = logging.getLogger('')
         if self.pp['log_file']:
-            fh = logging.FileHandler(self.pp['log_file'])
+            fh = logging.FileHandler(self.pp['log_file'] + ".log")
             fh.setLevel(self.pp['log_level'])
             self.logger.addHandler(fh)
-        self.logger.error(f"Starting simulation at {datetime.datetime.now()}"
-                          f" with params:\n{self.pp}")
+        self.logger.error(
+            f"Starting simulation at {datetime.datetime.now()} with params:\n{self.pp}"
+        )
 
         if self.pp['hopt']:
             self.hopt()
@@ -147,10 +148,10 @@ class Runner:
         from hyperopt.pyll.base import scope  # noqa
         if self.pp['net']:
             space = {
-                # 'net_lr':
-                # hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
-                # 'net_copy_iter':
-                # hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
+                'net_lr':
+                hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
+                'net_copy_iter':
+                hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
                 'net_creep_tau':
                 hp.loguniform('net_creep_tau', np.log(0.01), np.log(0.7)),
                 # 'batch_size':
@@ -162,23 +163,20 @@ class Runner:
             trials_step = 1  # Number of trials to run before saving
         else:
             space = {
-                # 'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
-                # 'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
-                # 'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
-                # 'epsilon_decay': hp.uniform('epsilon_decay', 0.9995,
-                #                             0.9999999),
+                'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
+                'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
+                'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
+                'epsilon_decay': hp.uniform('epsilon_decay', 0.9995,
+                                            0.9999999),
                 'gamma': hp.uniform('gamma', 0.7, 0.90),
                 'lambda': hp.uniform('lambda', 0.0, 1.0)
             }
             trials_step = 2
+        # Only optimize parameter specified in args
+        space = {param: space[param] for param in self.pp['hopt']}
         np.random.seed(0)
-        pnames = str.join("-", space.keys())
-        f_name = f"results-{self.pp['strat']}-{pnames}"
-        fh = logging.FileHandler(f_name + ".log")
-        fh.setLevel(logging.ERROR)
-        self.logger.addHandler(fh)
         try:
-            with open(f_name + ".pkl", "rb") as f:
+            with open(self.pp['log_file'] + ".pkl", "rb") as f:
                 trials = pickle.load(f)
                 prev_best = trials.best_trial
                 self.logger.error(f"Found {len(trials.trials)} saved trials")
@@ -200,7 +198,7 @@ class Runner:
             if prev_best != best:
                 self.logger.error(f"Found new best params: {best}")
                 prev_best = best
-            with open(f_name + ".pkl", "wb") as f:
+            with open(self.pp['log_file'] + ".pkl", "wb") as f:
                 pickle.dump(trials, f)
 
     def hopt_best(self):

@@ -89,7 +89,7 @@ class Strat:
                    i % self.pp['net_copy_iter_decr'] == 0 and \
                    self.net_copy_iter > 0:
                     self.net_copy_iter -= 1
-                    self.logger.warn(
+                    self.logger.info(
                         f"Decreased net copy iter to {self.net_copy_iter}")
             if self.pp['policy_mse'] is not None and i % self.pp['policy_mse'] == 0:
                 self.policy_mse()
@@ -147,8 +147,6 @@ class RLStrat(Strat):
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
         self.logger.info(f"NP Rand: {np.random.uniform()}")
-        self.prev_cum_block = None  # Cumulative block prob at last log iter
-        self.no_improvements = 0
 
     def fn_report(self):
         self.env.stats.report_rl(self.epsilon, self.alpha)
@@ -471,7 +469,7 @@ class ACNetStrat(NetStrat):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = ACNet(self.pp, self.logger)
+        self.net = ACNet(pp=self.pp, logger=self.logger)
         self.exp_buffer = ExperienceBuffer()
 
     def forward(self, cell, ce_type) -> Tuple[List[float], float]:

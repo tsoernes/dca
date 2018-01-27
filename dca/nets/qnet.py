@@ -12,10 +12,7 @@ class QNet(Net):
         Q-learning updates, else SARSA updates.
         """
         self.max_next_action = max_next_action
-        if max_next_action:
-            name = "QLearnNet"
-        else:
-            name = "SarsaNet"
+        name = "QLearnNet" if max_next_action else "SarsaNet"
         super().__init__(name=name, *args, **kwargs)
         self.sess.run(self.copy_online_to_target)
 
@@ -23,13 +20,12 @@ class QNet(Net):
         with tf.variable_scope(name) as scope:
             conv1 = tf.layers.conv2d(
                 inputs=grid,
-                filters=70,
+                filters=self.n_channels,
                 kernel_size=4,
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,
                 activation=self.act_fn)
-            # TODO test ELU
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
                 filters=70,
@@ -135,14 +131,14 @@ class QNet(Net):
             predictions=self.online_q_selected)
         self.do_train = self._build_default_trainer(online_vars)
         # Write out statistics to file
-        # with tf.name_scope("summaries"):
-        #     tf.summary.scalar("loss", self.loss)
-        #     tf.summary.scalar("grad_norm", grad_norms)
-        #     tf.summary.histogram("qvals", self.online_q_vals)
-        # self.summaries = tf.summary.merge_all()
-        # self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
-        #                                           self.sess.graph)
-        # self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
+        with tf.name_scope("summaries"):
+            tf.summary.scalar("loss", self.loss)
+            # tf.summary.scalar("grad_norm", grad_norms)
+            tf.summary.histogram("qvals", self.online_q_vals)
+        self.summaries = tf.summary.merge_all()
+        self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
+                                                  self.sess.graph)
+        self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
 
     def forward(self, grid, cell):
         q_vals = self.sess.run(
@@ -154,7 +150,7 @@ class QNet(Net):
             },
             options=self.options,
             run_metadata=self.run_metadata)
-        assert q_vals[0].shape == (1, 70)
+        assert q_vals[0].shape == (1, self.n_channels)
         q_vals = np.reshape(q_vals, [-1])
         return q_vals
 

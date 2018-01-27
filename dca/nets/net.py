@@ -55,25 +55,25 @@ class Net:
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
 
+        self.act_fn = get_act_fn_by_name(pp['act_fn'])
         self.kern_init_conv = get_init_by_name(pp['weight_init_conv'])
         self.kern_init_dense = get_init_by_name(pp['weight_init_dense'])
         self.regularizer = None
         if pp['layer_norm']:
             self.regularizer = tf.contrib.layers.layer_norm
-        self.act_fn = get_act_fn_by_name(pp['act_fn'])
 
         self.trainer = get_optimizer_by_name(pp['optimizer'], pp['net_lr'])
 
         tf.reset_default_graph()
+        self.options = None
+        self.run_metadata = None
         if pp['tfprofiling']:
             self.options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             self.run_metadata = tf.RunMetadata()
-        else:
-            self.options = None
-            self.run_metadata = None
         # tf.logging.set_verbosity(tf.logging.WARN)
 
         config = tf.ConfigProto()
+        # Allocate only minimum amount necessary GPU memory at start, then grow
         config.gpu_options.allow_growth = True
         if pp['no_gpu']:
             config.device_count = {'GPU': 0}

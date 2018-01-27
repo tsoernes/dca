@@ -14,6 +14,14 @@ def softmax(x, axis=None):
     return e_x / np.sum(e_x, axis=axis, keepdims=True)
 
 
+def cat_entropy(logits):
+    a0 = logits - tf.reduce_max(logits, 1, keep_dims=True)
+    ea0 = tf.exp(a0)
+    z0 = tf.reduce_sum(ea0, 1, keep_dims=True)
+    p0 = ea0 / z0
+    return tf.reduce_sum(p0 * (tf.log(z0) - a0), 1)
+
+
 def discount(rewards, gamma):
     discounted = []
     r = 0
@@ -41,35 +49,42 @@ def normalized_columns_initializer(std=1.0):
 
 
 def get_init_by_name(name):
-    if name == "zeros":
-        return tf.zeros_initializer
-    elif name == "glorot_unif":
+    inits = {
+        "zeros":
+        tf.zeros_initializer,
+        "glorot_unif":
         # The default for dense, perhaps for conv2d also. AKA Xavier.
-        return tf.glorot_uniform_initializer
-    elif name == "glorot_norm":
-        return tf.glorot_normal_initializer
-    elif name == "norm_cols":
-        return normalized_columns_initializer
+        tf.glorot_uniform_initializer,
+        "glorot_norm":
+        tf.glorot_normal_initializer,
+        "norm_cols":
+        normalized_columns_initializer,
+        "norm_pos":
+        tf.random_normal_initializer(0., 0.2),  # Try for dense kernel
+        "const_pos":
+        tf.constant_initializer(0.1)  # Try for dense bias
+    }
+    return inits[name]
 
 
 def get_act_fn_by_name(name):
-    if name == "relu":
-        return tf.nn.relu
-    elif name == "elu":
-        return tf.nn.elu
-    elif name == "leaky_relu":
-        return tf.nn.leaky_relu
+    act_fns = {
+        "relu": tf.nn.relu,
+        "elu": tf.nn.elu,
+        "leaky_relu": tf.nn.leaky_relu
+    }
+    return act_fns[name]
 
 
 def get_optimizer_by_name(name, l_rate):
-    if name == "sgd":
-        return tf.train.GradientDescentOptimizer(learning_rate=l_rate)
-    elif name == "sgd-m":
-        return tf.train.MomentumOptimizer(learning_rate=l_rate, momentum=0.95)
-    elif name == "adam":
-        return tf.train.AdamOptimizer(learning_rate=l_rate)
-    elif name == "rmsprop":
-        return tf.train.RMSPropOptimizer(learning_rate=l_rate)
+    optimizers = {
+        "sgd": tf.train.GradientDescentOptimizer(learning_rate=l_rate),
+        "sgd-m": tf.train.MomentumOptimizer(
+            learning_rate=l_rate, momentum=0.95),
+        "adam": tf.train.AdamOptimizer(learning_rate=l_rate),
+        "rmsprop": tf.train.RMSPropOptimizer(learning_rate=l_rate)
+    }
+    return optimizers[name]
 
 
 def copy_net_op(online_vars, target_vars, tau):
