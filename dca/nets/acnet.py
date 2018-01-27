@@ -76,7 +76,7 @@ class ACNet(Net):
         self.target_v = tf.placeholder(shape=[None], dtype=tf.float32)
         self.advantages = tf.placeholder(shape=[None], dtype=tf.float32)
 
-        self.policy, self.value, _ = self._build_net(
+        self.policy, self.value, x = self._build_net(
             self.grid, self.cell, name="ac_network/online")
 
         action_oh = tf.one_hot(
@@ -89,8 +89,8 @@ class ACNet(Net):
         self.entropy = -tf.reduce_sum(self.policy * tf.log(self.policy))
         self.policy_loss = -tf.reduce_mean(
             tf.log(self.responsible_outputs) * self.advantages)
-        self.loss = 0.25 * self.value_loss + self.policy_loss - self.entropy * 0.01
-        self.do_train = self._build_default_trainer()
+        self.loss = 0.25 * self.value_loss + self.policy_loss  # - self.entropy * 0.01
+        self.do_train = self._build_default_trainer(x)
 
     def forward(self, grid, cell) -> Tuple[List[float], float]:
         a_dist, val = self.sess.run(
