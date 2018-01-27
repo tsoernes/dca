@@ -255,13 +255,6 @@ def get_pparams():
         help="Verify channel reuse constraint each iteration",
         default=False)
     parser.add_argument(
-        '--policy_mse',
-        type=int,
-        metavar='N',
-        help="(RL) Calculate the MSE between policies "
-        "at iterations (0, N), (N, 2N), ...",
-        default=None)
-    parser.add_argument(
         '--prof',
         dest='profiling',
         action='store_true',

@@ -35,15 +35,15 @@ class QNet(Net):
                 kernel_regularizer=self.regularizer,
                 activation=self.act_fn)
             stacked = tf.concat([conv2, cell], axis=3)
-            conv2_flat = tf.layers.flatten(stacked)
+            flat = tf.layers.flatten(stacked)
             if self.pp['dueling_qnet']:
                 value = tf.layers.dense(
-                    inputs=conv2_flat,
+                    inputs=flat,
                     units=1,
                     kernel_initializer=self.kern_init_dense(),
                     name="value")
                 advantage = tf.layers.dense(
-                    inputs=conv2_flat,
+                    inputs=flat,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     name="advantage")
@@ -55,17 +55,17 @@ class QNet(Net):
                     advantage, axis=1, keep_dims=True))
             else:
                 q_vals = tf.layers.dense(
-                    inputs=conv2_flat,
+                    inputs=flat,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     kernel_regularizer=self.regularizer,
                     name="q_vals")
-        trainable_vars = tf.get_collection(
-            tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
-        trainable_vars_by_name = {
-            var.name[len(scope.name):]: var
-            for var in trainable_vars
-        }
+            trainable_vars = tf.get_collection(
+                tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
+            trainable_vars_by_name = {
+                var.name[len(scope.name):]: var
+                for var in trainable_vars
+            }
         return q_vals, trainable_vars_by_name
 
     def build(self):

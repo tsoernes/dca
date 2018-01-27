@@ -91,8 +91,6 @@ class Strat:
                     self.net_copy_iter -= 1
                     self.logger.info(
                         f"Decreased net copy iter to {self.net_copy_iter}")
-            if self.pp['policy_mse'] is not None and i % self.pp['policy_mse'] == 0:
-                self.policy_mse()
             ch, cevent = next_ch, next_cevent
             i += 1
         self.env.stats.end_episode(reward)
@@ -242,7 +240,6 @@ class RLStrat(Strat):
 class QTable(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.old_qvals = None  # Compare policy of current qvals to this
         self.lmbda = self.pp['lambda']
 
     def get_qvals(self, cell, n_used, ch=None, *args, **kwargs):
@@ -271,20 +268,6 @@ class QTable(RLStrat):
             self.el_traces *= self.gamma * self.lmbda
         if self.alpha > self.pp['min_alpha']:
             self.alpha *= self.alpha_decay
-
-    def policy_mse(self):
-        """
-        Calculate the mean squared error between the policy
-        at the current iteration 'i' and one from iteration 'i-n'
-        """
-        if self.old_qvals is None:
-            self.old_qvals = np.copy(self.qvals)
-            return
-        old_policy = softmax(self.old_qvals)
-        policy = softmax(self.qvals)
-        mse = ((old_policy - policy)**2).mean()
-        self.logger.error(f"Policy temporal diff MSE: {mse}")
-        self.old_qvals = np.copy(self.qvals)
 
 
 class SARSA(QTable):
@@ -398,6 +381,7 @@ class QNetStrat(NetStrat):
         loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell,
                              [next_ch], [next_max_ch])
         if np.isinf(loss) or np.isnan(loss):
+            self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
         else:
             self.losses.append(loss)
@@ -433,6 +417,7 @@ class QLearnNetStrat(QNetStrat):
         loss = self.net.backward(*self.replaybuffer.sample(
             self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
+            self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
         else:
             self.losses.append(loss)
@@ -546,6 +531,15 @@ class ACNetStrat(NetStrat):
 
     def update_qval(self, grid, cell, ch, reward, next_grid, next_cell,
                     next_ch):
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
+        if np.isinf(loss) or np.isnan(loss):
+            self.logger.error(f"Invalid loss: {loss}")
+            self.quit_sim = True
+        else:
+            self.losses.append(loss)
+
+    def update_qval_n_step(self, grid, cell, ch, reward, next_grid, next_cell,
+                           next_ch):
         """
         Update qval for pp['batch_size'] experience tuple.
         """
@@ -553,8 +547,10 @@ class ACNetStrat(NetStrat):
         if len(self.exp_buffer) < self.pp['n_step']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward(*self.exp_buffer.pop(), next_grid, next_cell)
+        loss = self.net.backward_gae(*self.exp_buffer.pop(), next_grid,
+                                     next_cell)
         if np.isinf(loss) or np.isnan(loss):
+            self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
         else:
             self.losses.append(loss)

@@ -33,6 +33,7 @@ def cat_entropy(logits):
 
 
 value_loss_2 = tf.losses.mean_squared_error(tf.squeeze(value), target_v)
+value_loss_3 = tf.losses.mean_squared_error(value, target_v)
 neglogpac = tf.nn.sparse_softmax_cross_entropy_with_logits(
     logits=policy, labels=actions)
 policy_loss_from_logits_1 = tf.reduce_mean(advantages * neglogpac)
@@ -47,7 +48,7 @@ entropy_3 = -tf.reduce_sum(
 # loss = pg_loss - entropy * ent_coef + vf_loss * vf_coef
 
 tf.global_variables_initializer()
-value_losses = sess.run([value_loss_1, value_loss_2])
+value_losses = sess.run([value_loss_1, value_loss_2, value_loss_3])
 print(value_losses)
 
 policy_losses = sess.run(
