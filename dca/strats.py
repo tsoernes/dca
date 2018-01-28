@@ -7,6 +7,7 @@ from environment import Env
 from eventgen import CEvent
 from grid import RhombusAxialGrid
 from nets.acnet import ACNet
+from nets.qnet import QNet
 from nets.utils import softmax
 from replaybuffer import ExperienceBuffer, ReplayBuffer
 
@@ -63,6 +64,7 @@ class Strat:
                                       ce_type)
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
+                    and next_ch is not None \
                     and ce_type != CEvent.END:
                 # Only add (s, a, r, s', a') tuples for which the events in
                 # s is not an END events, and for which there is an
@@ -335,7 +337,7 @@ class NetStrat(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net_copy_iter = self.pp['net_copy_iter']
-        self.losses = []
+        self.losses = [0]
 
     def fn_report(self):
         self.env.stats.report_net(self.losses)
@@ -358,7 +360,6 @@ class NetStrat(RLStrat):
 class QNetStrat(NetStrat):
     def __init__(self, max_next_action, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from nets.qnet import QNet
         self.net = QNet(max_next_action, self.pp, self.logger)
         ra = self.net.rand_uniform()
         self.logger.info(f"TF Rand: {ra}")
@@ -405,17 +406,16 @@ class QLearnNetStrat(QNetStrat):
         loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
         return loss
 
-    def update_qval_experience(self, *args):
+    def update_qval_experience(self, *args, **kwargs):
         """
         Update qval for pp['batch_size'] experience tuples,
         randomly sampled from the experience replay memory.
         """
         if len(self.replaybuffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
-            print("Not training" + str(len(self.replaybuffer)))
             return
-        loss = self.net.backward(*self.replaybuffer.sample(
-            self.pp['batch_size']))
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True

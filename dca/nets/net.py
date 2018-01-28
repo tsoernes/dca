@@ -70,11 +70,12 @@ class Net:
             self.run_metadata = tf.RunMetadata()
         # tf.logging.set_verbosity(tf.logging.WARN)
 
-        config = tf.ConfigProto()
         # Allocate only minimum amount necessary GPU memory at start, then grow
-        config.gpu_options.allow_growth = True
         if pp['no_gpu']:
-            config.device_count = {'GPU': 0}
+            config = tf.ConfigProto(device_count={'GPU': 0})
+        else:
+            config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
         tf.set_random_seed(pp['rng_seed'])
         self.sess = tf.Session(config=config)
 

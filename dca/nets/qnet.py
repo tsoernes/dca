@@ -78,27 +78,27 @@ class QNet(Net):
 
         # Maximum valued action from online network
         # Not in use
-        # self.online_q_amax = tf.argmax(
-        #     self.online_q_vals, axis=1, name="online_q_amax")
+        self.online_q_amax = tf.argmax(
+            self.online_q_vals, axis=1, name="online_q_amax")
         # Maximum Q-value for given next state
-        self.target_q_max = tf.reduce_max(
-            target_q_vals, axis=1, name="target_q_max")
         # Q-value for given action
         self.online_q_selected = tf.reduce_sum(
             self.online_q_vals * tf.one_hot(self.action, self.n_channels),
             axis=1,
             name="online_q_selected")
-        # Target Q-value for given next action
-        self.target_q_selected = tf.reduce_sum(
-            target_q_vals * tf.one_hot(self.next_action, self.n_channels),
-            axis=1,
-            name="target_next_q_selected")
 
-        if self.max_next_action:
+        if False:  # self.max_next_action:
             # Target for Q-learning
+            self.target_q_max = tf.reduce_max(
+                target_q_vals, axis=1, name="target_q_max")
             next_q = self.target_q_max
         else:
-            # Target for SARSA and eligibile Q-learning
+            # Target Q-value for given next action
+            # (for SARSA and eligibile Q-learning)
+            self.target_q_selected = tf.reduce_sum(
+                target_q_vals * tf.one_hot(self.next_action, self.n_channels),
+                axis=1,
+                name="target_next_q_selected")
             next_q = self.target_q_selected
         self.q_target = self.reward + self.gamma * next_q
 
@@ -128,8 +128,8 @@ class QNet(Net):
             },
             options=self.options,
             run_metadata=self.run_metadata)
-        assert q_vals[0].shape == (1, self.n_channels)
         q_vals = np.reshape(q_vals, [-1])
+        assert q_vals.shape == (self.n_channels, )
         return q_vals
 
     def backward(self,
@@ -144,21 +144,27 @@ class QNet(Net):
         If 'next_actions' are specified, do SARSA update,
         else greedy selection (Q-Learning)
         """
+        p_next_grids = prep_data_grids(next_grids, self.pp['empty_neg'])
+        p_next_cells = prep_data_cells(next_cells)
         data = {
             self.grid: prep_data_grids(grids, self.pp['empty_neg']),
             self.cell: prep_data_cells(cells),
             self.action: actions,
             self.reward: rewards,
-            self.next_grid: prep_data_grids(next_grids, self.pp['empty_neg']),
-            self.next_cell: prep_data_cells(next_cells),
+            self.next_grid: p_next_grids,
+            self.next_cell: p_next_cells,
         }
         if next_actions is not None:
             data[self.next_action] = next_actions
+        else:
+            na = self.sess.run(
+                self.online_q_amax,
+                feed_dict={self.grid: p_next_grids,
+                           self.cell: p_next_cells})
+            data[self.next_action] = na
         _, loss = self.sess.run(
             [self.do_train, self.loss],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
-        if np.isnan(loss) or np.isinf(loss):
-            self.logger.error(f"Invalid loss: {loss}")
         return loss
