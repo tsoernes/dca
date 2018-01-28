@@ -29,3 +29,14 @@ t': None, 'hopt_best': None, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init
 , 'act_fn': 'relu', 'optimizer': 'sgd-m', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net
 _copy_iter_decr': None, 'net_creep_tau': 1, 'train_net': False, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_le
 vel': 40, 'log_file': None, 'log_iter': 5000, 'net': True, 'empty_neg': True}
+8x470000 events finished with speed 505 events/second
+Average cumulative block probability over 8 episodes: 0.1727 with standard deviation 0.00288
+Average cumulative handoff block probability 0.1252 with standard deviation 0.00180
+[[ 0.17256141  0.12518587]
+ [ 0.17486497  0.12888341]
+ [ 0.17181202  0.12312037]
+ [ 0.17045285  0.12567071]
+ [ 0.17037453  0.12389349]
+ [ 0.17934859  0.12693629]
+ [ 0.17027025  0.12355035]
+ [ 0.17228891  0.1245407 ]]

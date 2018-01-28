@@ -123,7 +123,8 @@ def get_pparams():
         nargs='?',
         choices=[
             'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma',
-            'lambda', 'net_lr', 'net_copy_iter', 'net_creep_tau'
+            'lambda', 'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff',
+            'entropy_coeff'
         ],
         help="Hyper-parameter optimization with hyperopt."
         " Saves progress to 'results-{stratname}-{vars}.pkl' and"
@@ -238,7 +239,7 @@ def get_pparams():
         '--entropy_coeff',
         type=float,
         help="(Net) Entropy coefficient in policy gradient loss",
-        default=1.00)
+        default=10.0)
     parser.add_argument(
         '--train_net',
         action='store_true',

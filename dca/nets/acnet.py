@@ -34,21 +34,19 @@ class ACNet(Net):
                 activation=self.act_fn)
             stacked = tf.concat([conv2, cell], axis=3)
             flat = tf.layers.flatten(stacked)
-            hidden = tf.layers.dense(flat, units=256, activation=tf.nn.relu)
+            hidden = tf.layers.dense(flat, units=128, activation=tf.nn.relu)
 
             # Output layers for policy and value estimations
             policy = tf.layers.dense(
                 hidden,
                 units=self.n_channels,
                 activation=tf.nn.softmax,
-                kernel_initializer=nutils.normalized_columns_initializer(0.01),
-                bias_initializer=None)
+                kernel_initializer=nutils.normalized_columns_initializer(0.01))
             value = tf.layers.dense(
                 hidden,
                 units=1,
                 activation=None,
-                kernel_initializer=nutils.normalized_columns_initializer(1.0),
-                bias_initializer=None)
+                kernel_initializer=nutils.normalized_columns_initializer(1.0))
             trainable_vars = tf.get_collection(
                 tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
             trainable_vars_by_name = {

@@ -103,7 +103,7 @@ class Stats:
             avg_losses /= niter
             # avg_loss = str.join(", ", [f"{i:.1f}" for i in avg_losses])
             avg_loss = f"Tot:{avg_losses[0]:.1f}, PG:{avg_losses[1]:.1f}" \
-                       f" Val:{avg_losses[2]:.1f}, Ent:{avg_losses[3]:.3}"
+                       f" Val:{avg_losses[2]:.1f}, Ent:{avg_losses[3]:.1}"
         else:
             avg_loss = f"{sum(losses[-niter:]) / niter}:.2f"
         self.logger.info(f"Avg. loss last {niter} events: {avg_loss}")
@@ -141,7 +141,7 @@ class Stats:
         if self.pp['do_plot']:
             self.plot()
 
-    def plot(self):
+    def plot(self, losses=None):
         xlabel_iters = f"Iterations, in {self.pp['log_iter']}s"
         plt.subplot(221)
         plt.plot(self.block_probs_cum)
@@ -156,7 +156,7 @@ class Stats:
             plt.plot(self.epsilons)
             plt.ylabel("Epsilon")
             plt.xlabel(xlabel_iters)
-        if self.losses:
+        if losses:
             plt.subplot(222)
             plt.plot(self.losses)
             plt.ylabel("Loss")

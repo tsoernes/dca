@@ -158,6 +158,10 @@ class Runner:
                 # scope.int(hp.uniform('batch_size', 8, 16)),
                 # 'buffer_size':
                 # scope.int(hp.uniform('buffer_size', 2000, 10000))
+                'vf_coeff':
+                hp.uniform('vf_coeff', 0.005, 0.5),
+                'entropy_coeff':
+                hp.uniform('entropy_coeff', 1.0, 100.0)
             }
             self.pp['n_events'] = 100000
             trials_step = 1  # Number of trials to run before saving
