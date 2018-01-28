@@ -17,33 +17,16 @@ class QNet(Net):
         self.sess.run(self.copy_online_to_target)
 
     def _build_qnet(self, grid, cell, name):
+        base_net = self._build_base_net(grid, cell, name)
         with tf.variable_scope(name) as scope:
-            conv1 = tf.layers.conv2d(
-                inputs=grid,
-                filters=self.n_channels,
-                kernel_size=4,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                activation=self.act_fn)
-            conv2 = tf.layers.conv2d(
-                inputs=conv1,
-                filters=70,
-                kernel_size=3,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                activation=self.act_fn)
-            stacked = tf.concat([conv2, cell], axis=3)
-            flat = tf.layers.flatten(stacked)
             if self.pp['dueling_qnet']:
                 value = tf.layers.dense(
-                    inputs=flat,
+                    inputs=base_net,
                     units=1,
                     kernel_initializer=self.kern_init_dense(),
                     name="value")
                 advantage = tf.layers.dense(
-                    inputs=flat,
+                    inputs=base_net,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     name="advantage")
@@ -55,17 +38,12 @@ class QNet(Net):
                     advantage, axis=1, keep_dims=True))
             else:
                 q_vals = tf.layers.dense(
-                    inputs=flat,
+                    inputs=base_net,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     kernel_regularizer=self.regularizer,
                     name="q_vals")
-            trainable_vars = tf.get_collection(
-                tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
-            trainable_vars_by_name = {
-                var.name[len(scope.name):]: var
-                for var in trainable_vars
-            }
+            trainable_vars_by_name = self._get_trainable_vars(scope)
         return q_vals, trainable_vars_by_name
 
     def build(self):

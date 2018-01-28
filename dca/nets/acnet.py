@@ -15,27 +15,10 @@ class ACNet(Net):
         self.pp['n_step'] = 10
 
     def _build_net(self, grid, cell, name):
+        base_net = self._build_base_net(grid, cell, name)
         with tf.variable_scope(name) as scope:
-            conv1 = tf.layers.conv2d(
-                inputs=grid,
-                filters=self.n_channels,
-                kernel_size=4,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                activation=self.act_fn)
-            conv2 = tf.layers.conv2d(
-                inputs=conv1,
-                filters=70,
-                kernel_size=3,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                activation=self.act_fn)
-            stacked = tf.concat([conv2, cell], axis=3)
-            flat = tf.layers.flatten(stacked)
-            hidden = tf.layers.dense(flat, units=128, activation=tf.nn.relu)
-
+            hidden = tf.layers.dense(
+                base_net, units=128, activation=tf.nn.relu)
             # Output layers for policy and value estimations
             policy = tf.layers.dense(
                 hidden,
@@ -47,12 +30,7 @@ class ACNet(Net):
                 units=1,
                 activation=None,
                 kernel_initializer=nutils.normalized_columns_initializer(1.0))
-            trainable_vars = tf.get_collection(
-                tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
-            trainable_vars_by_name = {
-                var.name[len(scope.name):]: var
-                for var in trainable_vars
-            }
+            trainable_vars_by_name = self._get_trainable_vars(scope)
         return policy, value, trainable_vars_by_name
 
     def build(self):

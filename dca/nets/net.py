@@ -9,8 +9,6 @@ from tensorflow.python.client import timeline
 import dataloader
 from nets.utils import (get_act_fn_by_name, get_init_by_name,
                         get_optimizer_by_name)
-
-
 """
 possible data prep: set unused channels to -1,
 OR make it unit gaussian. refer to alphago paper -- did they prep
@@ -90,6 +88,28 @@ class Net:
             self.logger.error(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
         self.data_is_loaded = False
+
+    def _build_base_net(self, grid, cell, name):
+        with tf.variable_scope(name):
+            conv1 = tf.layers.conv2d(
+                inputs=grid,
+                filters=self.n_channels,
+                kernel_size=4,
+                padding="same",
+                kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.regularizer,
+                activation=self.act_fn)
+            conv2 = tf.layers.conv2d(
+                inputs=conv1,
+                filters=70,
+                kernel_size=3,
+                padding="same",
+                kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.regularizer,
+                activation=self.act_fn)
+            stacked = tf.concat([conv2, cell], axis=3)
+            flat = tf.layers.flatten(stacked)
+            return flat
 
     def _build_default_trainer(self, var_list=None):
         """If var_list is not specified, defaults to GraphKey.TRAINABLE_VARIABLES"""
@@ -218,6 +238,16 @@ class Net:
         r = tf.random_uniform([1])
         ra = self.sess.run(r)
         return ra
+
+    @staticmethod
+    def _get_trainable_vars(scope):
+        trainable_vars = tf.get_collection(
+            tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
+        trainable_vars_by_name = {
+            var.name[len(scope.name):]: var
+            for var in trainable_vars
+        }
+        return trainable_vars_by_name
 
 
 if __name__ == "__main__":
