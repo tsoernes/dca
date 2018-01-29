@@ -18,17 +18,16 @@ class Strat:
         self.rows = pp['rows']
         self.cols = pp['cols']
         self.n_channels = pp['n_channels']
+        self.dims = self.rows, self.cols, self.n_channels
         self.save = pp['save_exp_data']
         self.batch_size = pp['batch_size']
         self.pp = pp
         self.logger = logger
 
-        grid = RhombusAxialGrid(self.rows, self.cols, self.n_channels,
-                                self.logger)
+        grid = RhombusAxialGrid(*self.dims, self.logger)
         self.env = Env(self.pp, grid, self.logger, pid)
         self.grid = self.env.grid.state
-        self.replaybuffer = ReplayBuffer(pp['buffer_size'], self.rows,
-                                         self.cols, self.n_channels)
+        self.replaybuffer = ReplayBuffer(pp['buffer_size'], *self.dims)
 
         self.quit_sim = False
         self.t = 0.1
@@ -285,13 +284,11 @@ class SARSA(QTable):
         # Assigning channel 'ch' to the cell at row 'r', col 'c'
         # has q-value 'v' given that 'n_used' channels are already
         # in use at that cell.
-        self.qvals = np.zeros((self.rows, self.cols, self.n_channels,
-                               self.n_channels))
+        self.qvals = np.zeros(self.dims)
         self.old_qvals = None  # Compare policy of current qvals to this
         if self.lmbda is not None:
             # Eligibility traces
-            self.el_traces = np.zeros((self.rows, self.cols, self.n_channels,
-                                       self.n_channels))
+            self.el_traces = np.zeros(self.dims)
 
     def feature_rep(self, cell, n_used):
         return (*cell, n_used)
@@ -326,10 +323,10 @@ class RS_SARSA(QTable):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.qvals = np.zeros((self.rows, self.cols, self.n_channels))
+        self.qvals = np.zeros(self.dims)
         if self.lmbda is not None:
             # Eligibility traces
-            self.el_traces = np.zeros((self.rows, self.cols, self.n_channels))
+            self.el_traces = np.zeros(self.dims)
 
     def feature_rep(self, cell, n_used):
         return cell
@@ -607,7 +604,7 @@ class VNetStrat(NetStrat):
             np.expand_dims(np.copy(self.grid), axis=0), len(chs), axis=0)
         for i, ch in enumerate(chs):
             grids[i][cell][ch] = targ_val
-        assert grids.shape == (len(chs), self.rows, self.cols, self.n_channels)
+        assert grids.shape == (len(chs), *self.dims)
         qvals_sparse = self.net.forward(grids)
         assert qvals_sparse.shape == (len(chs), )
         qvals = np.zeros(self.n_channels, dtype=np.float64)

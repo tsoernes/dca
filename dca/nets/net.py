@@ -9,6 +9,8 @@ from tensorflow.python.client import timeline
 import dataloader
 from nets.utils import (get_act_fn_by_name, get_init_by_name,
                         get_optimizer_by_name)
+
+
 """
 possible data prep: set unused channels to -1,
 OR make it unit gaussian. refer to alphago paper -- did they prep
@@ -99,6 +101,7 @@ class Net:
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,
+                use_bias=True,  # Default setting
                 activation=self.act_fn)
             conv2 = tf.layers.conv2d(
                 inputs=conv1,
@@ -107,6 +110,7 @@ class Net:
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,
+                use_bias=True,
                 activation=self.act_fn)
             stacked = tf.concat([conv2, cell], axis=3)
             flat = tf.layers.flatten(stacked)

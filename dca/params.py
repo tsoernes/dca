@@ -158,6 +158,11 @@ def get_pparams():
         help="(Net) Dueling QNet",
         default=False)
     parser.add_argument(
+        '--no_double_qnet',
+        action='store_true',
+        help="(Net) Disable Double QNet",
+        default=False)
+    parser.add_argument(
         '--layer_norm',
         action='store_true',
         help="(Net) Use layer normalization",
@@ -307,6 +312,11 @@ def get_pparams():
     args = parser.parse_args()
     params = vars(args)
 
+    params['empty_neg'] = not params['no_empty_neg']
+    del params['no_empty_neg']
+    params['double_qnet'] = not params['no_double_qnet']
+    del params['no_double_qnet']
+
     if params['lambda'] is not None:
         # Computationally expensive, gotta warn
         print("Using lambda returns")
@@ -337,7 +347,7 @@ def get_pparams():
         params['log_file'] = f_name
     if params['bench_batch_size']:
         params['log_level'] = logging.WARN
-    params['empty_neg'] = not params['no_empty_neg']
+
     random.seed(params['rng_seed'])
     np.random.seed(params['rng_seed'])
 

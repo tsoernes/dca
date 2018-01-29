@@ -20,16 +20,26 @@ class QNet(Net):
         base_net = self._build_base_net(grid, cell, name)
         with tf.variable_scope(name) as scope:
             if self.pp['dueling_qnet']:
-                value = tf.layers.dense(
+                h1 = tf.layers.dense(
                     inputs=base_net,
+                    units=490,
+                    kernel_initializer=self.kern_init_dense(),
+                    name="value")
+                h2 = tf.layers.dense(
+                    inputs=base_net,
+                    units=490,
+                    kernel_initializer=self.kern_init_dense(),
+                    name="value")
+                value = tf.layers.dense(
+                    inputs=h1,
                     units=1,
                     kernel_initializer=self.kern_init_dense(),
                     name="value")
                 advantages = tf.layers.dense(
-                    inputs=base_net,
+                    inputs=h2,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
-                    name="advantage")
+                    name="advantages")
                 # Max Dueling
                 q_vals = value + (advantages - tf.reduce_max(
                     advantages, axis=1, keep_dims=True))
@@ -47,6 +57,30 @@ class QNet(Net):
                     name="q_vals")
             trainable_vars_by_name = self._get_trainable_vars(scope)
         return q_vals, trainable_vars_by_name
+
+    def _build_net2(self, grid, cell, name):
+        with tf.variable_scope(name):
+            conv1 = tf.layers.conv2d(
+                inputs=grid,
+                filters=self.n_channels,
+                kernel_size=4,
+                padding="same",
+                kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.regularizer,
+                use_bias=True,  # Default setting
+                activation=self.act_fn)
+            conv2 = tf.layers.conv2d(
+                inputs=conv1,
+                filters=70,
+                kernel_size=3,
+                padding="same",
+                kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.regularizer,
+                use_bias=True,
+                activation=self.act_fn)
+            stacked = tf.concat([conv2, cell], axis=3)
+            flat = tf.layers.flatten(stacked)
+            return flat
 
     def build(self):
         gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
@@ -66,16 +100,19 @@ class QNet(Net):
         self.next_action = tf.placeholder(
             shape=[None], dtype=tf.int32, name="next_action")
 
-        # Keep separate weights for target Q network
         self.online_q_vals, online_vars = self._build_net(
             self.grid, self.cell, name="q_networks/online")
-        target_q_vals, target_vars = self._build_net(
-            self.next_grid, self.next_cell, name="q_networks/target")
-
-        # copy_online_to_target should be called periodically to creep
-        # weights in the target Q-network towards the online Q-network
-        self.copy_online_to_target = copy_net_op(online_vars, target_vars,
-                                                 self.pp['net_creep_tau'])
+        if self.pp['double_qnet']:
+            # Keep separate weights for target Q network
+            target_q_vals, target_vars = self._build_net(
+                self.next_grid, self.next_cell, name="q_networks/target")
+            # copy_online_to_target should be called periodically to creep
+            # weights in the target Q-network towards the online Q-network
+            self.copy_online_to_target = copy_net_op(online_vars, target_vars,
+                                                     self.pp['net_creep_tau'])
+        else:
+            target_q_vals = self.online_q_vals
+            self.copy_online_to_target = tf.no_op()
 
         # Maximum valued action from online network
         # Not in use

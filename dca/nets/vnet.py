@@ -56,7 +56,7 @@ class VNet(Net):
 
         self.value, online_vars = self._build_net(self.grid, "online_vnet")
         self.loss = tf.losses.mean_squared_error(
-            labels=self.value_target, predictions=self.value)
+            labels=tf.stop_gradient(self.value_target), predictions=self.value)
         self.do_train = self._build_default_trainer(online_vars)
 
     def forward(self, grids):
