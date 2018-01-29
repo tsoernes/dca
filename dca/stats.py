@@ -111,7 +111,6 @@ class Stats:
     def end_episode(self, n_inprogress):
         delta = self.n_incoming + self.n_handoffs \
             - self.n_rejected - self.n_handoffs_rejected - self.n_ended
-        self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         if delta != n_inprogress:
             self.logger.error(
                 f"\nSome calls were lost. Counted in progress {delta}. "
@@ -128,6 +127,7 @@ class Stats:
                          f" {self.i+1} episodes"
                          f" at {self.pp['n_events']/t:.0f}"
                          " episodes/second")
+        self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         # Avoid zero divisions by adding 1 do dividers
         self.block_prob_cum_hoff = self.n_handoffs_rejected / (
             self.n_handoffs + 1)

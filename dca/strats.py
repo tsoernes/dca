@@ -9,6 +9,7 @@ from grid import RhombusAxialGrid
 from nets.acnet import ACNet
 from nets.qnet import QNet
 from nets.utils import softmax
+from nets.vnet import VNet
 from replaybuffer import ExperienceBuffer, ReplayBuffer
 
 
@@ -95,7 +96,7 @@ class Strat:
                         f"Decreased net copy iter to {self.net_copy_iter}")
             ch, cevent = next_ch, next_cevent
             i += 1
-        self.env.stats.end_episode(reward)
+        self.env.stats.end_episode(np.count_nonzero(self.grid))
         self.fn_after()
         if self.save:
             self.replaybuffer.save_experience_to_disk()
@@ -218,21 +219,22 @@ class RLStrat(Strat):
 
         # TODO If 'max_ch' turns out not to be useful, then don't return it and
         # avoid running a forward pass through the net if a random action is selected.
-        qvals = self.get_qvals(cell=cell, n_used=n_used, ce_type=ce_type)
+        qvals = self.get_qvals(
+            cell=cell, n_used=n_used, ce_type=ce_type, chs=chs)
         # Selecting a ch for reassigment is always greedy because no learning
         # is done on the reassignment actions.
         if ce_type == CEvent.END:
-            idx = np.argmin(qvals[chs])
-            ch = chs[idx]
+            amin_idx = np.argmin(qvals[chs])
+            ch = chs[amin_idx]
             max_ch = ch
         else:
             ch = self.policy_eps_greedy(chs, qvals)
-            idx = np.argmax(qvals[chs])
-            max_ch = chs[idx]
+            amax_idx = np.argmax(qvals[chs])
+            max_ch = chs[amax_idx]
 
         # If qvals blow up ('NaN's and 'inf's), ch becomes none.
         if ch is None:
-            self.logger.error(f"{ce_type}\n{chs}\n{qvals}\n")
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals}\n")
             raise Exception
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
@@ -414,8 +416,8 @@ class QLearnNetStrat(QNetStrat):
         if len(self.replaybuffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(
+            self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
@@ -552,6 +554,47 @@ class ACNetStrat(NetStrat):
         loss = self.net.backward_gae(*self.exp_buffer.pop(), next_grid,
                                      next_cell)
         if np.isinf(loss[0]) or np.isnan(loss[0]):
+            self.logger.error(f"Invalid loss: {loss}")
+            self.quit_sim = True
+        else:
+            self.losses.append(loss)
+
+
+class VNetStrat(NetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = VNet(self.pp, self.logger)
+
+    def update_target_net(self):
+        pass
+
+    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
+        # Make an afterstate (resulting grid) for each possible,
+        # eligible action in 'chs'
+        if ce_type == CEvent.END:
+            targ_val = 0
+        else:
+            targ_val = 1
+        grids = np.repeat(
+            np.expand_dims(np.copy(self.grid), axis=0), len(chs), axis=0)
+        for i, ch in enumerate(chs):
+            grids[i][cell][ch] = targ_val
+        assert grids.shape == (len(chs), self.rows, self.cols, self.n_channels)
+        qvals_sparse = self.net.forward(grids)
+        assert qvals_sparse.shape == (len(chs), )
+        qvals = np.zeros(self.n_channels, dtype=np.float64)
+        for ch, qval in zip(chs, qvals_sparse):
+            qvals[ch] = qval
+        return qvals
+
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch,
+                    next_max_ch):
+        """ Update qval for one experience tuple"""
+        # TODO assert that grid and self.grid only differs by ch in cell
+        assert not (grid == self.grid).all()
+        loss = self.net.backward(grid, [reward], self.grid)
+        assert np.min(self.grid) >= 0
+        if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
         else:

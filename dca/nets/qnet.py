@@ -16,7 +16,7 @@ class QNet(Net):
         super().__init__(name=name, *args, **kwargs)
         self.sess.run(self.copy_online_to_target)
 
-    def _build_qnet(self, grid, cell, name):
+    def _build_net(self, grid, cell, name):
         base_net = self._build_base_net(grid, cell, name)
         with tf.variable_scope(name) as scope:
             if self.pp['dueling_qnet']:
@@ -66,9 +66,9 @@ class QNet(Net):
             shape=[None], dtype=tf.int32, name="next_action")
 
         # Keep separate weights for target Q network
-        self.online_q_vals, online_vars = self._build_qnet(
+        self.online_q_vals, online_vars = self._build_net(
             self.grid, self.cell, name="q_networks/online")
-        target_q_vals, target_vars = self._build_qnet(
+        target_q_vals, target_vars = self._build_net(
             self.next_grid, self.next_cell, name="q_networks/target")
 
         # copy_online_to_target should be called periodically to creep
@@ -159,8 +159,10 @@ class QNet(Net):
         else:
             na = self.sess.run(
                 self.online_q_amax,
-                feed_dict={self.grid: p_next_grids,
-                           self.cell: p_next_cells})
+                feed_dict={
+                    self.grid: p_next_grids,
+                    self.cell: p_next_cells
+                })
             data[self.next_action] = na
         _, loss = self.sess.run(
             [self.do_train, self.loss],
