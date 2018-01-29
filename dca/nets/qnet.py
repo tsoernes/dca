@@ -38,6 +38,7 @@ class QNet(Net):
                 advantages = tf.layers.dense(
                     inputs=h2,
                     units=self.n_channels,
+                    bias_initializer=None,
                     kernel_initializer=self.kern_init_dense(),
                     name="advantages")
                 # Max Dueling
@@ -115,7 +116,6 @@ class QNet(Net):
             self.copy_online_to_target = tf.no_op()
 
         # Maximum valued action from online network
-        # Not in use
         self.online_q_amax = tf.argmax(
             self.online_q_vals, axis=1, name="online_q_amax")
         # Maximum Q-value for given next state
