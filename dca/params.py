@@ -70,6 +70,8 @@ def get_pparams():
         default=1)
     parser.add_argument(
         '--n_events',
+        '-i',
+        dest='n_events',
         type=int,
         help="number of events to simulate",
         default=470000)
@@ -94,6 +96,8 @@ def get_pparams():
         default=0.999998)
     parser.add_argument(
         '--epsilon',
+        '-eps',
+        dest='epsilon',
         type=float,
         help="(RL) (initial) probability of choosing random action",
         default=0.75443)
@@ -145,7 +149,12 @@ def get_pparams():
         default=False)
 
     parser.add_argument(
-        '--net_lr', type=float, help="(Net) Learning rate", default=3.4e-5)
+        '--net_lr',
+        '-lr',
+        dest='net_lr',
+        type=float,
+        help="(Net) Learning rate",
+        default=3.4e-5)
     parser.add_argument(
         '--weight_init_conv', choices=weight_initializers, default='zeros')
     parser.add_argument(
@@ -154,6 +163,8 @@ def get_pparams():
         default='norm_cols')
     parser.add_argument(
         '--dueling_qnet',
+        '-duel',
+        dest='dueling_qnet',
         action='store_true',
         help="(Net) Dueling QNet",
         default=False)
@@ -176,10 +187,14 @@ def get_pparams():
         '--act_fn', choices=['relu', 'elu', 'leaky_relu'], default='relu')
     parser.add_argument(
         '--optimizer',
+        '-opt',
+        dest='optimizer',
         choices=['sgd', 'sgd-m', 'adam', 'rmsprop'],
         default='sgd-m')
     parser.add_argument(
         '--max_grad_norm',
+        '-norm',
+        dest='max_grad_norm',
         type=float,
         metavar='N',
         nargs='?',
@@ -227,6 +242,8 @@ def get_pparams():
         default=None)
     parser.add_argument(
         '--net_creep_tau',
+        '-tau',
+        dest='net_creep_tau',
         type=float,
         nargs='?',
         metavar='tau',

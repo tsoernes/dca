@@ -24,12 +24,12 @@ class QNet(Net):
                     inputs=base_net,
                     units=490,
                     kernel_initializer=self.kern_init_dense(),
-                    name="value")
+                    name="h1")
                 h2 = tf.layers.dense(
                     inputs=base_net,
                     units=490,
                     kernel_initializer=self.kern_init_dense(),
-                    name="value")
+                    name="h2")
                 value = tf.layers.dense(
                     inputs=h1,
                     units=1,
@@ -41,11 +41,11 @@ class QNet(Net):
                     kernel_initializer=self.kern_init_dense(),
                     name="advantages")
                 # Max Dueling
-                q_vals = value + (advantages - tf.reduce_max(
-                    advantages, axis=1, keep_dims=True))
-                # Average Dueling
-                # q_vals = value + (advantages - tf.reduce_mean(
+                # q_vals = value + (advantages - tf.reduce_max(
                 #     advantages, axis=1, keep_dims=True))
+                # Average Dueling
+                q_vals = value + (advantages - tf.reduce_mean(
+                    advantages, axis=1, keep_dims=True))
                 if "online" in name:
                     self.advantages = advantages
             else:
