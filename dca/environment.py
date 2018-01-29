@@ -125,6 +125,7 @@ class Env:
 
     def reward(self):
         """
-        Immediate reward, which is the number of calls currently in progress
+        Immediate reward, which is the total number of calls
+        currently in progress system-wide
         """
         return np.count_nonzero(self.grid.state)

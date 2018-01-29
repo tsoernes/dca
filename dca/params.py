@@ -41,11 +41,12 @@ def get_pparams():
         stratclasses[i] = (s2, stratclasses[i][1])
     weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
 
-    parser.add_argument('--strat', choices=stratnames, default='fixedassign')
+    parser.add_argument(
+        '--strat', type=str, choices=stratnames, default="rs_sarsa")
     parser.add_argument(
         '--rows', type=int, help="number of rows in grid", default=7)
     parser.add_argument(
-        '--cols', type=int, help="number of cols in grid", default=7)
+        '--cols', type=int, help="number of columns in grid", default=7)
     parser.add_argument(
         '--n_channels', type=int, help="number of channels", default=70)
     parser.add_argument(

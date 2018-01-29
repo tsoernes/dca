@@ -25,17 +25,19 @@ class QNet(Net):
                     units=1,
                     kernel_initializer=self.kern_init_dense(),
                     name="value")
-                advantage = tf.layers.dense(
+                advantages = tf.layers.dense(
                     inputs=base_net,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     name="advantage")
                 # Max Dueling
-                # self.q_vals= value + (advantage -
-                #     tf.reduce_max(advantage, axis=1, keep_dims=True))
+                q_vals = value + (advantages - tf.reduce_max(
+                    advantages, axis=1, keep_dims=True))
                 # Average Dueling
-                q_vals = value + (advantage - tf.reduce_mean(
-                    advantage, axis=1, keep_dims=True))
+                # q_vals = value + (advantages - tf.reduce_mean(
+                #     advantages, axis=1, keep_dims=True))
+                if "online" in name:
+                    self.advantages = advantages
             else:
                 q_vals = tf.layers.dense(
                     inputs=base_net,
@@ -48,7 +50,6 @@ class QNet(Net):
 
     def build(self):
         gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
-        # TODO Convert to onehot in TF
         cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
         self.grid = tf.placeholder(
             shape=gridshape, dtype=tf.float32, name="grid")
@@ -119,8 +120,12 @@ class QNet(Net):
         self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
 
     def forward(self, grid, cell):
+        if self.pp['dueling_qnet']:
+            q_vals_op = self.advantages
+        else:
+            q_vals_op = self.online_q_vals
         q_vals = self.sess.run(
-            [self.online_q_vals],
+            [q_vals_op],
             feed_dict={
                 self.grid: prep_data_grids(
                     grid, empty_neg=self.pp['empty_neg']),

@@ -568,6 +568,34 @@ class VNetStrat(NetStrat):
     def update_target_net(self):
         pass
 
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        # Choose A' from S'
+        next_ch, _ = self.optimal_ch(next_ce_type, next_cell)
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+            self.update_qval(grid, cell, ch, reward, self.grid, next_cell,
+                             next_ch)
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
+        inuse = np.nonzero(self.grid[cell])[0]
+
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = self.env.grid.get_free_chs(cell)
+        else:
+            chs = inuse
+        if len(chs) == 0:
+            assert ce_type != CEvent.END
+            return (None, None)
+
+        qvals = self.get_qvals(cell, ce_type, chs)
+        if ce_type == CEvent.END:
+            idx = np.argmin(qvals[chs])
+        else:
+            idx = np.argmax(qvals[chs])
+        ch = chs[idx]
+        return ch, None
+
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
         # Make an afterstate (resulting grid) for each possible,
         # eligible action in 'chs'
@@ -591,7 +619,7 @@ class VNetStrat(NetStrat):
                     next_max_ch):
         """ Update qval for one experience tuple"""
         # TODO assert that grid and self.grid only differs by ch in cell
-        assert not (grid == self.grid).all()
+        # assert not (grid == self.grid).all()
         loss = self.net.backward(grid, [reward], self.grid)
         assert np.min(self.grid) >= 0
         if np.isinf(loss) or np.isnan(loss):
