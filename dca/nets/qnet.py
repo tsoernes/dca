@@ -125,18 +125,15 @@ class QNet(Net):
             axis=1,
             name="online_q_selected")
 
-        if False:  # self.max_next_action:
-            # Target for Q-learning
-            self.target_q_max = tf.reduce_max(
-                target_q_vals, axis=1, name="target_q_max")
-            next_q = self.target_q_max
+        # Target Q-value for given next action
+        # (for SARSA and eligibile Q-learning)
+        self.target_q_selected = tf.reduce_sum(
+            target_q_vals * tf.one_hot(self.next_action, self.n_channels),
+            axis=1,
+            name="target_next_q_selected")
+        if self.pp['dueling']:
+            next_q = self.value
         else:
-            # Target Q-value for given next action
-            # (for SARSA and eligibile Q-learning)
-            self.target_q_selected = tf.reduce_sum(
-                target_q_vals * tf.one_hot(self.next_action, self.n_channels),
-                axis=1,
-                name="target_next_q_selected")
             next_q = self.target_q_selected
         self.q_target = self.reward + self.gamma * next_q
 
