@@ -22,9 +22,10 @@ def strat_classes(module_name):
     return clsmembers
 
 
-def get_pparams():
+def get_pparams(defaults=False):
     """
-    Return problem parameters and chosen strategy class
+    Return problem parameters and chosen strategy class. If 'defaults' is True,
+    just return the default params.
     """
     parser = argparse.ArgumentParser(
         description='DCA',
@@ -326,13 +327,17 @@ def get_pparams():
     # iterations can be approximated from hours with:
     # iters = 7821* hours - 2015
 
-    args = parser.parse_args()
+    if defaults:
+        args = parser.parse_args([])
+    else:
+        args = parser.parse_args()
     params = vars(args)
 
     params['empty_neg'] = not params['no_empty_neg']
     del params['no_empty_neg']
     params['double_qnet'] = not params['no_double_qnet']
     del params['no_double_qnet']
+    params['dims'] = [params['rows'], params['cols'], params['n_channels']]
 
     if params['lambda'] is not None:
         # Computationally expensive, gotta warn

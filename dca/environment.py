@@ -22,6 +22,18 @@ class Env:
         # Current call event for which an action must be taken
         self.cevent = None
 
+    def init_marker_calls(self):
+        """
+        Generate DETERMINISTIC initial call events, in
+        and return the first event.
+        TODO
+        """
+        for r in range(self.rows):
+            for c in range(self.cols):
+                self.eventgen.event_new(0, (r, c))
+        self.cevent = self.eventgen.pop()
+        return self.cevent
+
     def init_calls(self):
         """
         Generate initial call events; one for each cell,

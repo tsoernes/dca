@@ -2,6 +2,8 @@ import functools
 
 import numpy as np
 
+from eventgen import CEvent
+
 
 class Grid:
     def __init__(self, rows, cols, n_channels, logger, *args, **kwargs):
@@ -76,6 +78,20 @@ class Grid:
             alloc_map = np.bitwise_or(alloc_map, self.state[n])
         free = np.where(alloc_map == 0)[0]
         return free
+
+    def afterstates(self, cell, ce_type, chs):
+        """Make an afterstate (resulting grid) for each possible,
+        # eligible action in 'chs'"""
+        if ce_type == CEvent.END:
+            targ_val = 0
+        else:
+            targ_val = 1
+        grids = np.repeat(
+            np.expand_dims(np.copy(self.state), axis=0), len(chs), axis=0)
+        for i, ch in enumerate(chs):
+            grids[i][cell][ch] = targ_val
+        assert grids.shape == (len(chs), self.rows, self.cols, self.n_channels)
+        return grids
 
 
 class RectOffsetGrid(Grid):
@@ -275,27 +291,17 @@ class RhombusAxialGrid(Grid):
                     idxs.append((r, c))
         return idxs
 
-    @functools.lru_cache(maxsize=None)
-    def neighbors1(self, row, col):
+    @staticmethod
+    def neighbors1(row, col, rows=7, cols=7):
         """
         Returns a list with indexes of neighbors within a radius of 1,
         not including self
         """
-        idxs = []
-        r_low = max(0, row - 1)
-        r_hi = min(self.rows - 1, row + 1)
-        c_low = max(0, col - 1)
-        c_hi = min(self.cols - 1, col + 1)
-        for r in range(r_low, r_hi + 1):
-            for c in range(c_low, c_hi + 1):
-                if not ((r, c) == (row - 1, col - 1) or
-                        (r, c) == (row + 1, col + 1) or (r, c) == (row, col)):
-                    idxs.append((r, c))
-        return idxs
+        return RhombusAxialGrid.neighbors(1, row, col)
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def neighbors2(row, col, separate=False, rows=7, cols=7):
+    def neighbors2(row, col, separate=False):
         """
         If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),
         else return [(r1, c1), (r2, c2), ...]
@@ -303,33 +309,41 @@ class RhombusAxialGrid(Grid):
         Returns a list with indices of neighbors within a radius of 2,
         not including self
         """
-        if separate:
+        return RhombusAxialGrid.neighbors(
+            2, row, col, separate=separate, include_self=False)
+
+    @staticmethod
+    def hex_distance(a, b):
+        r1, c1 = a
+        r2, c2 = b
+        return (abs(r1 - r2) + abs(r1 + c1 - r2 - c2) + abs(c1 - c2)) / 2
+
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def neighbors(dist,
+                  row,
+                  col,
+                  separate=False,
+                  include_self=False,
+                  rows=7,
+                  cols=7):
+        if separate is True:
             rs = []
             cs = []
         else:
             idxs = []
-
-        r_low = max(0, row - 2)
-        r_hi = min(rows - 1, row + 2)
-        c_low = max(0, col - 2)
-        c_hi = min(cols - 1, col + 2)
-        for r in range(r_low, r_hi + 1):
-            for c in range(c_low, c_hi + 1):
-                if not ((r, c) == (row, col) or (r, c) == (row - 2, col - 2) or
-                        (r, c) == (row - 2, col - 1) or
-                        (r, c) == (row - 1, col - 2) or
-                        (r, c) == (row + 1, col + 2) or
-                        (r, c) == (row + 2, col + 1) or
-                        (r, c) == (row + 2, col + 2)):
-                    if separate:
-                        rs.append(r)
-                        cs.append(c)
+        for r2 in range(rows):
+            for c2 in range(cols):
+                if (include_self or (row, col) != (r2, c2)) \
+                   and RhombusAxialGrid.hex_distance((row, col), (r2, c2)) <= dist:
+                    if separate is True:
+                        rs.append(r2)
+                        cs.append(c2)
                     else:
-                        idxs.append((r, c))
-        if separate:
+                        idxs.append((r2, c2))
+        if separate is True:
             return (rs, cs)
-        else:
-            return idxs
+        return idxs
 
     def _partition_cells(self):
         """
