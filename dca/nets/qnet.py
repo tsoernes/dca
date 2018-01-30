@@ -19,28 +19,33 @@ class QNet(Net):
     def _build_net(self, grid, cell, name):
         base_net = self._build_base_net(grid, cell, name)
         with tf.variable_scope(name) as scope:
+            h1 = tf.layers.dense(
+                inputs=base_net,
+                units=490,
+                kernel_initializer=self.kern_init_dense(),
+                use_bias=False,
+                activation=self.act_fn,
+                name="h1")
             if self.pp['dueling_qnet']:
-                h1 = tf.layers.dense(
-                    inputs=base_net,
-                    units=490,
-                    kernel_initializer=self.kern_init_dense(),
-                    name="h1")
                 h2 = tf.layers.dense(
                     inputs=base_net,
                     units=490,
                     kernel_initializer=self.kern_init_dense(),
+                    use_bias=False,
                     name="h2")
                 value = tf.layers.dense(
                     inputs=h1,
                     units=1,
                     kernel_initializer=self.kern_init_dense(),
+                    use_bias=False,
                     name="value")
                 advantages = tf.layers.dense(
                     inputs=h2,
                     units=self.n_channels,
-                    bias_initializer=None,
+                    use_bias=False,
                     kernel_initializer=self.kern_init_dense(),
                     name="advantages")
+                # Avg. dueling supposedly more stable than max according to paper
                 # Max Dueling
                 # q_vals = value + (advantages - tf.reduce_max(
                 #     advantages, axis=1, keep_dims=True))
@@ -49,39 +54,18 @@ class QNet(Net):
                     advantages, axis=1, keep_dims=True))
                 if "online" in name:
                     self.advantages = advantages
+                if "target" in name:
+                    self.value = value
             else:
                 q_vals = tf.layers.dense(
                     inputs=base_net,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     kernel_regularizer=self.regularizer,
+                    use_bias=False,
                     name="q_vals")
             trainable_vars_by_name = self._get_trainable_vars(scope)
         return q_vals, trainable_vars_by_name
-
-    def _build_net2(self, grid, cell, name):
-        with tf.variable_scope(name):
-            conv1 = tf.layers.conv2d(
-                inputs=grid,
-                filters=self.n_channels,
-                kernel_size=4,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                use_bias=True,  # Default setting
-                activation=self.act_fn)
-            conv2 = tf.layers.conv2d(
-                inputs=conv1,
-                filters=70,
-                kernel_size=3,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                use_bias=True,
-                activation=self.act_fn)
-            stacked = tf.concat([conv2, cell], axis=3)
-            flat = tf.layers.flatten(stacked)
-            return flat
 
     def build(self):
         gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
@@ -131,8 +115,8 @@ class QNet(Net):
             target_q_vals * tf.one_hot(self.next_action, self.n_channels),
             axis=1,
             name="target_next_q_selected")
-        if self.pp['dueling']:
-            next_q = self.value
+        if self.pp['dueling_qnet']:
+            next_q = tf.squeeze(self.value)
         else:
             next_q = self.target_q_selected
         self.q_target = self.reward + self.gamma * next_q
@@ -168,7 +152,8 @@ class QNet(Net):
             options=self.options,
             run_metadata=self.run_metadata)
         q_vals = np.reshape(q_vals, [-1])
-        assert q_vals.shape == (self.n_channels, )
+        assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
+
         return q_vals
 
     def backward(self,
@@ -198,10 +183,8 @@ class QNet(Net):
         else:
             na = self.sess.run(
                 self.online_q_amax,
-                feed_dict={
-                    self.grid: p_next_grids,
-                    self.cell: p_next_cells
-                })
+                feed_dict={self.grid: p_next_grids,
+                           self.cell: p_next_cells})
             data[self.next_action] = na
         _, loss = self.sess.run(
             [self.do_train, self.loss],
