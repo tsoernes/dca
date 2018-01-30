@@ -19,7 +19,7 @@ class Strat:
         self.rows = pp['rows']
         self.cols = pp['cols']
         self.n_channels = pp['n_channels']
-        self.dims = self.rows, self.cols, self.n_channels
+        self.dims = pp['dims']
         self.save = pp['save_exp_data']
         self.batch_size = pp['batch_size']
         self.pp = pp
@@ -165,7 +165,8 @@ class RLStrat(Strat):
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
-        if ce_type != CEvent.END and next_ce_type != CEvent.END and ch is not None and next_ch is not None:
+        if ce_type != CEvent.END and next_ce_type != CEvent.END and \
+           ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
             self.update_qval(grid, cell, ch, reward, next_cell, next_ch,
@@ -631,11 +632,12 @@ class SinghStrat(VNetStrat):
             dtype=np.int32)
         for i, grid in enumerate(grids):
             # For each cell, the number of FREE channels in that cell.
-            # Should it be the number of ELIGIBLE channels instead??
+            # NOTE Should it be the number of ELIGIBLE channels instead??
             fgrids[i, :, :, self.n_channels] = self.n_channels \
                 - np.count_nonzero(grid, axis=2)
             # For each cell-channel pair, the number of times that channel is
-            # used by neighbors with a distance of 4 or less. Should that include
+            # used by neighbors with a distance of 4 or less.
+            # NOTE Should that include
             # whether or not the channel is in use by the cell itself??
             for r in range(self.rows):
                 for c in range(self.cols):

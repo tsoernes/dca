@@ -9,10 +9,11 @@ import numpy as np
 class CEvent(Enum):
     NEW = 0  # Incoming call
     END = 1  # End a current call
-    # Denotes the incoming part to the receiving cell of a handoff event
-    HOFF = 2
+    HOFF = 2  # Incoming call, handed off from another cell
 
     def __lt__(self, other):
+        """Allows for handling the END event part of a handoff before the
+        HOFF part (i.e. incoming call)"""
         if self.__class__ is other.__class__:
             return self.value < other.value
         return NotImplementedError
@@ -64,11 +65,12 @@ class EventGen:
         event at the entering cell is generated, both with the same event time
         some time 'dt' from now.
 
-        The END event, having lower enum (1) than the handoff
+        The END event, having lower enum (1) than the HOFF
         event (2), is handled first due to the minheap sorting
-        on the second tuple element if the first element (time) is equal.
+        on the second tuple element if the first element (timestamp) is equal.
         Keeping handoff events separate from new events makes it possible
-        to reward handoff acceptance/rejectance different from new calls.
+        to reward or log handoff acceptance/rejectance differently from regular
+        new calls.
         """
         neigh_idx = np.random.randint(0, len(neighs))
         end_event = self.event_end(t, cell, ch)

@@ -22,7 +22,7 @@ def strat_classes(module_name):
     return clsmembers
 
 
-def get_pparams(defaults=True):
+def get_pparams(defaults=False):
     """
     Return problem parameters and chosen strategy class. If 'defaults' is True,
     just return the default params.
