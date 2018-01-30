@@ -4,5 +4,6 @@ import numpy as np
 
 import utils
 import imp
-tf.InteractiveSession()
+sess = tf.InteractiveSession()
+init = tf.global_variables_initializer()
 rel = imp.reload

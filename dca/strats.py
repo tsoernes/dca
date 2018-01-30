@@ -415,8 +415,8 @@ class QLearnNetStrat(QNetStrat):
         if len(self.replaybuffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward(*self.replaybuffer.sample(
-            self.pp['batch_size']))
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
@@ -596,7 +596,7 @@ class VNetStrat(NetStrat):
 
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
         grids = self.env.grid.afterstates(cell, ce_type, chs)
-        qvals_sparse = self.net.forward(self.feature_rep(grids))
+        qvals_sparse = self.forward(grids)
         assert qvals_sparse.shape == (len(chs), )
         qvals = np.zeros(self.n_channels, dtype=np.float64)
         for ch, qval in zip(chs, qvals_sparse):
@@ -608,8 +608,7 @@ class VNetStrat(NetStrat):
         """ Update qval for one experience tuple"""
         # TODO assert that grid and self.grid only differs by ch in cell
         # assert not (grid == self.grid).all()
-        loss = self.net.backward(
-            self.feature_rep(grid), [reward], self.feature_rep(self.grid))
+        loss = self.backward(grid, reward, self.grid)
         assert np.min(self.grid) >= 0
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
@@ -623,18 +622,24 @@ class SinghStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
 
+    def forward(self, grids):
+        pass
+
+    def backward(self, grid, reward, next_grid):
+        pass
+
     def feature_rep(self, grids):
         assert type(grids) == np.ndarray
         if grids.ndim == 3:
             grids = np.expand_dims(grids, axis=0)
         fgrids = np.zeros(
-            (len(grids), self.rows, self.cols, self.n_channels + 1),
+            (len(grids), self.rows, self.cols, self.n_channels),
             dtype=np.int32)
         for i, grid in enumerate(grids):
             # For each cell, the number of FREE channels in that cell.
             # NOTE Should it be the number of ELIGIBLE channels instead??
-            fgrids[i, :, :, self.n_channels] = self.n_channels \
-                - np.count_nonzero(grid, axis=2)
+            # fgrids[i, :, :, self.n_channels] = self.n_channels \
+            #     - np.count_nonzero(grid, axis=2)
             # For each cell-channel pair, the number of times that channel is
             # used by neighbors with a distance of 4 or less.
             # NOTE Should that include
@@ -643,7 +648,7 @@ class SinghStrat(VNetStrat):
                 for c in range(self.cols):
                     neighs = self.env.grid.neighbors(4, r, c, separate=True)
                     for ch in range(self.n_channels):
-                        n_used = np.sum(grid[(*neighs, np.repeat(
-                            ch, len(neighs[0])))])
+                        n_used = np.sum(
+                            grid[(*neighs, np.repeat(ch, len(neighs[0])))])
                         fgrids[i][r][c][ch] = n_used
         return fgrids

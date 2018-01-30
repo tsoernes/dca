@@ -13,17 +13,21 @@ class SinghNet(Net):
         super().__init__(name="VNet", *args, **kwargs)
 
     def build(self):
-        gridshape = [
-            None, self.pp['rows'], self.pp['cols'], self.n_channels + 1
-        ]
+        gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
         self.grid = tf.placeholder(
             shape=gridshape, dtype=tf.float32, name="grid")
         self.value_target = tf.placeholder(
             shape=[None, 1], dtype=tf.float32, name="value_target")
+        self.n_used_neighs = tf.placeholder(
+            shape=gridshape, dtype=tf.float32, name="grid")
+        n_free_self = tf.expand_dims(
+            tf.count_nonzero(self.grid, axis=3, dtype=tf.float32), axis=3)
 
+        inp = tf.layers.flatten(
+            tf.concat([n_free_self, self.n_used_neighs], axis=3))
         with tf.variable_scope(self.name) as scope:
             self.value = tf.layers.dense(
-                inputs=tf.layers.flatten(self.grid),
+                inputs=inp,
                 units=1,
                 kernel_initializer=self.kern_init_dense(),
                 kernel_regularizer=self.regularizer,
@@ -47,9 +51,7 @@ class SinghNet(Net):
 
     def backward(self, grid, reward, next_grid):
         next_value = self.sess.run(
-            self.value, feed_dict={
-                self.grid: next_grid
-            })
+            self.value, feed_dict={self.grid: next_grid})
         value_target = reward + self.gamma * next_value
         data = {
             self.grid: grid,
