@@ -633,24 +633,24 @@ class SinghStrat(VNetStrat):
         return loss
 
     def feature_rep(self, grids):
+        # For each cell, the number of FREE channels in that cell.
+        # NOTE Should it be the number of ELIGIBLE channels instead??
+        # fgrids[i, :, :, self.n_channels] = self.n_channels \
+        #     - np.count_nonzero(grid, axis=2)
+        # For each cell-channel pair, the number of times that channel is
+        # used by neighbors with a distance of 4 or less.
+        # NOTE Should that include
+        # whether or not the channel is in use by the cell itself??
         assert type(grids) == np.ndarray
         if grids.ndim == 3:
             grids = np.expand_dims(grids, axis=0)
         fgrids = np.zeros(
             (len(grids), self.rows, self.cols, self.n_channels),
             dtype=np.int32)
-        for i, grid in enumerate(grids):
-            # For each cell, the number of FREE channels in that cell.
-            # NOTE Should it be the number of ELIGIBLE channels instead??
-            # fgrids[i, :, :, self.n_channels] = self.n_channels \
-            #     - np.count_nonzero(grid, axis=2)
-            # For each cell-channel pair, the number of times that channel is
-            # used by neighbors with a distance of 4 or less.
-            # NOTE Should that include
-            # whether or not the channel is in use by the cell itself??
-            for r in range(self.rows):
-                for c in range(self.cols):
-                    neighs = self.env.grid.neighbors(4, r, c, separate=True)
-                    n_used = np.count_nonzero(grid[neighs], axis=0)
-                    fgrids[i][r][c] = n_used
+        for r in range(self.rows):
+            for c in range(self.cols):
+                neighs = self.env.grid.neighbors(4, r, c, separate=True)
+                n_used = np.count_nonzero(
+                    grids[:, neighs[0], neighs[1]], axis=1)
+                fgrids[:, r, c] = n_used
         return fgrids
