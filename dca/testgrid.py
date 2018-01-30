@@ -1,70 +1,76 @@
-from grid import Grid, BDCLGrid, FixedGrid
-
-import unittest
 import logging
+import unittest
 
 import numpy as np
+
+from grid import BDCLGrid, FixedGrid, Grid
 
 
 class TestGrid(unittest.TestCase):
     def setUp(self):
-        self.grid = Grid(rows=7, cols=7, n_channels=70,
-                         logger=logging.getLogger(""))
+        self.grid = Grid(
+            rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
 
     def test_neighbors1(self):
         neighs = self.grid.neighbors1
+        # yapf: disable
         self._li_set_eq(
-                [(0, 1), (1, 1), (1, 0)],
-                neighs(0, 0))
+            [(0, 1), (1, 1), (1, 0)],
+            neighs(0, 0))
         self._li_set_eq(
-                [(2, 3), (3, 3), (3, 2), (3, 1), (2, 1), (1, 2)],
-                neighs(2, 2))
+            [(2, 3), (3, 3), (3, 2), (3, 1), (2, 1), (1, 2)],
+            neighs(2, 2))
         self._li_set_eq(
-                [(1, 4), (2, 4), (3, 3), (2, 2), (1, 2), (1, 3)],
-                neighs(2, 3))
+            [(1, 4), (2, 4), (3, 3), (2, 2), (1, 2), (1, 3)],
+            neighs(2, 3))
         self._li_set_eq(
-                [(6, 5), (5, 6)],
-                neighs(6, 6))
+            [(6, 5), (5, 6)],
+            neighs(6, 6))
         self._li_set_eq(
-                [(5, 6), (6, 6), (6, 4), (5, 4), (5, 5)],
-                neighs(6, 5))
+            [(5, 6), (6, 6), (6, 4), (5, 4), (5, 5)],
+            neighs(6, 5))
         self._li_set_eq(
-                [(6, 6), (6, 5), (5, 5), (4, 6)],
-                neighs(5, 6))
+            [(6, 6), (6, 5), (5, 5), (4, 6)],
+            neighs(5, 6))
+        # yapf: enable
 
     def test_neighbors1sparse(self):
         neighs = self.grid.neighbors1sparse
+        # yapf: disable
         self._li_set_eq(
-                [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, 0)],
-                neighs(0, 0))
+            [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, 0)],
+            neighs(0, 0))
         self._li_set_eq(
-                [(2, 3), (3, 3), (3, 2), (3, 1), (2, 1), (1, 2)],
-                neighs(2, 2))
+            [(2, 3), (3, 3), (3, 2), (3, 1), (2, 1), (1, 2)],
+            neighs(2, 2))
         self._li_set_eq(
-                [(1, 4), (2, 4), (3, 3), (2, 2), (1, 2), (1, 3)],
-                neighs(2, 3))
+            [(1, 4), (2, 4), (3, 3), (2, 2), (1, 2), (1, 3)],
+            neighs(2, 3))
         self._li_set_eq(
-                [(6, 7), (7, 7), (7, 6), (7, 5), (6, 5), (5, 6)],
-                neighs(6, 6))
+            [(6, 7), (7, 7), (7, 6), (7, 5), (6, 5), (5, 6)],
+            neighs(6, 6))
+        # yapf: enable
 
     def test_neighbors2(self):
         neighs = self.grid.neighbors2
+        # yapf: disable
         self._li_set_eq(
-                [(0, 1), (1, 1), (1, 0), (0, 2), (1, 2), (2, 1), (2, 0)],
-                neighs(0, 0))
+            [(0, 1), (1, 1), (1, 0), (0, 2), (1, 2), (2, 1), (2, 0)],
+            neighs(0, 0))
         self._li_set_eq(
-                [(2, 3), (3, 3), (3, 2), (3, 1), (2, 1), (1, 2),
-                    (1, 3), (1, 4), (2, 4), (3, 4), (4, 3), (4, 2),
-                    (4, 1), (3, 0), (2, 0), (1, 0), (1, 1), (0, 2)],
-                neighs(2, 2))
+            [(2, 3), (3, 3), (3, 2), (3, 1), (2, 1), (1, 2),
+             (1, 3), (1, 4), (2, 4), (3, 4), (4, 3), (4, 2),
+             (4, 1), (3, 0), (2, 0), (1, 0), (1, 1), (0, 2)],
+            neighs(2, 2))
         self._li_set_eq(
-                [(1, 4), (2, 4), (3, 3), (2, 2), (1, 2), (1, 3),
-                    (0, 4), (1, 5), (2, 5), (3, 5), (3, 4), (4, 3),
-                    (3, 2), (3, 1), (2, 1), (1, 1), (0, 2), (0, 3)],
-                neighs(2, 3))
+            [(1, 4), (2, 4), (3, 3), (2, 2), (1, 2), (1, 3),
+             (0, 4), (1, 5), (2, 5), (3, 5), (3, 4), (4, 3),
+             (3, 2), (3, 1), (2, 1), (1, 1), (0, 2), (0, 3)],
+            neighs(2, 3))
         self._li_set_eq(
-                [(6, 5), (5, 6), (6, 4), (5, 4), (5, 5), (4, 6)],
-                neighs(6, 6))
+            [(6, 5), (5, 6), (6, 4), (5, 4), (5, 5), (4, 6)],
+            neighs(6, 6))
+        # yapf: enable
 
     def _li_set_eq(self, targ, act):
         self.assertSetEqual(set(targ), set(act))
@@ -89,8 +95,8 @@ class TestGrid(unittest.TestCase):
         self.grid.state[(0, 1)][ch] = 1
         self.assertTrue(self.grid.validate_reuse_constr())
 
-        self.grid.state[(1, 4)][ch+1] = 1
-        self.grid.state[(1, 4)][ch-1] = 1
+        self.grid.state[(1, 4)][ch + 1] = 1
+        self.grid.state[(1, 4)][ch - 1] = 1
         self.assertTrue(self.grid.validate_reuse_constr())
 
         self.grid.state[(1, 4)][ch] = 1
@@ -109,8 +115,8 @@ class TestGrid(unittest.TestCase):
 
 class TestFixedGrid(unittest.TestCase):
     def setUp(self):
-        self.grid = FixedGrid(rows=7, cols=7, n_channels=70,
-                              logger=logging.getLogger(""))
+        self.grid = FixedGrid(
+            rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
 
     def _li_set_eq(self, targ, act):
         self.assertSetEqual(set(targ), set(act))
@@ -143,24 +149,23 @@ class TestFixedGrid(unittest.TestCase):
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
                 neighs = self.grid.neighbors2(r, c)
-                f = np.bitwise_or(
-                        self.grid.state[r][c], self.grid.state[neighs[0]])
+                f = np.bitwise_or(self.grid.state[r][c],
+                                  self.grid.state[neighs[0]])
                 for n in neighs[1:]:
                     f = np.bitwise_or(f, self.grid.state[n])
                 # There should not be any channels that are free
                 # in the cell (r, c) and all of its neighbors
                 if np.any(f == 0):
                     self.grid.print_neighs2(r, c)
-                    self.assertTrue(
-                            False,
-                            "Grid not maximum utilized under FA")
+                    self.assertTrue(False,
+                                    "Grid not maximum utilized under FA")
 
 
 # class TestBDCLGrid(unittest.TestCase):
 class TestBDCLGrid():
     def setUp(self):
-        self.grid = BDCLGrid(rows=7, cols=7, n_channels=70,
-                             logger=logging.getLogger(""))
+        self.grid = BDCLGrid(
+            rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
 
     def _li_set_eq(self, targ, act):
         self.assertSetEqual(set(targ), set(act))
@@ -169,23 +174,15 @@ class TestBDCLGrid():
         raise NotImplementedError  # not implemented correctly
         self.grid._partition_cells()
         self._li_set_eq(
-                self.grid.cochannel_cells((3, 2), (3, 3)),
-                [(1, 3), (3, 5)])
+            self.grid.cochannel_cells((3, 2), (3, 3)), [(1, 3), (3, 5)])
         self._li_set_eq(
-                self.grid.cochannel_cells((3, 2), (4, 3)),
-                [(3, 5), (5, 4)])
+            self.grid.cochannel_cells((3, 2), (4, 3)), [(3, 5), (5, 4)])
         self._li_set_eq(
-                self.grid.cochannel_cells((3, 2), (4, 2)),
-                [(5, 4), (6, 1)])
+            self.grid.cochannel_cells((3, 2), (4, 2)), [(5, 4), (6, 1)])
+        self._li_set_eq(self.grid.cochannel_cells((3, 2), (4, 1)), [(6, 1)])
+        self._li_set_eq(self.grid.cochannel_cells((3, 2), (3, 1)), [(1, 0)])
         self._li_set_eq(
-                self.grid.cochannel_cells((3, 2), (4, 1)),
-                [(6, 1)])
-        self._li_set_eq(
-                self.grid.cochannel_cells((3, 2), (3, 1)),
-                [(1, 0)])
-        self._li_set_eq(
-                self.grid.cochannel_cells((3, 2), (2, 2)),
-                [(1, 0), (1, 3)])
+            self.grid.cochannel_cells((3, 2), (2, 2)), [(1, 0), (1, 3)])
 
 
 if __name__ == '__main__':

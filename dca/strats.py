@@ -8,6 +8,7 @@ from eventgen import CEvent
 from grid import RhombusAxialGrid
 from nets.acnet import ACNet
 from nets.qnet import QNet
+from nets.singh import SinghNet
 from nets.utils import softmax
 from nets.vnet import VNet
 from replaybuffer import ExperienceBuffer, ReplayBuffer
@@ -560,7 +561,6 @@ class ACNetStrat(NetStrat):
 class VNetStrat(NetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = VNet(self.pp, self.logger)
 
     def update_target_net(self):
         pass
@@ -594,18 +594,8 @@ class VNetStrat(NetStrat):
         return ch, None
 
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
-        # Make an afterstate (resulting grid) for each possible,
-        # eligible action in 'chs'
-        if ce_type == CEvent.END:
-            targ_val = 0
-        else:
-            targ_val = 1
-        grids = np.repeat(
-            np.expand_dims(np.copy(self.grid), axis=0), len(chs), axis=0)
-        for i, ch in enumerate(chs):
-            grids[i][cell][ch] = targ_val
-        assert grids.shape == (len(chs), *self.dims)
-        qvals_sparse = self.net.forward(grids)
+        grids = self.env.grid.afterstates(cell, ce_type, chs)
+        qvals_sparse = self.net.forward(self.feature_rep(grids))
         assert qvals_sparse.shape == (len(chs), )
         qvals = np.zeros(self.n_channels, dtype=np.float64)
         for ch, qval in zip(chs, qvals_sparse):
@@ -617,10 +607,41 @@ class VNetStrat(NetStrat):
         """ Update qval for one experience tuple"""
         # TODO assert that grid and self.grid only differs by ch in cell
         # assert not (grid == self.grid).all()
-        loss = self.net.backward(grid, [reward], self.grid)
+        loss = self.net.backward(
+            self.feature_rep(grid), [reward], self.feature_rep(self.grid))
         assert np.min(self.grid) >= 0
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
         else:
             self.losses.append(loss)
+
+
+class SinghStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(self.pp, self.logger)
+
+    def feature_rep(self, grids):
+        assert type(grids) == np.ndarray
+        if grids.ndim == 3:
+            grids = np.expand_dims(grids, axis=0)
+        fgrids = np.zeros(
+            (len(grids), self.rows, self.cols, self.n_channels + 1),
+            dtype=np.int32)
+        for i, grid in enumerate(grids):
+            # For each cell, the number of FREE channels in that cell.
+            # Should it be the number of ELIGIBLE channels instead??
+            fgrids[i, :, :, self.n_channels] = self.n_channels \
+                - np.count_nonzero(grid, axis=2)
+            # For each cell-channel pair, the number of times that channel is
+            # used by neighbors with a distance of 4 or less. Should that include
+            # whether or not the channel is in use by the cell itself??
+            for r in range(self.rows):
+                for c in range(self.cols):
+                    neighs = self.env.grid.neighbors(4, r, c, separate=True)
+                    for ch in range(self.n_channels):
+                        n_used = np.sum(grid[(*neighs, np.repeat(
+                            ch, len(neighs[0])))])
+                        fgrids[i][r][c][ch] = n_used
+        return fgrids
