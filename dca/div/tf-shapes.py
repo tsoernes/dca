@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
+from grid import RhombusAxialGrid
+
 sess = tf.Session()
 
 grids = np.random.uniform(size=(2, 3, 3, 4)).astype(np.float32)
@@ -18,5 +20,26 @@ stacked = tf.concat([conv1, inp_cells], axis=3)
 sess.run(tf.global_variables_initializer())
 npconv = sess.run(conv1)
 npstacked = sess.run(stacked)
-print(npconv[0])
-print(npstacked[0])
+# Works as expected:
+# print(npconv[0])
+# print(npstacked[0])
+
+########################
+# On gathering neighbors ..
+
+grid = np.random.uniform(size=(7, 7, 3)).astype(np.float32)
+neighs2i_sep = RhombusAxialGrid.neighbors(2, 2, 3, separate=True)
+neighs2i = RhombusAxialGrid.neighbors(2, 2, 3, separate=False)
+tf_grid = tf.constant(grid)
+tf_neighs2i = tf.constant(neighs2i)
+tf_neighs = sess.run(tf.gather_nd(tf_grid, tf_neighs2i))
+# OK
+print((tf_neighs == grid[neighs2i_sep]).all())
+
+# With batches
+grids = np.random.uniform(size=(2, 7, 7, 3)).astype(np.float32)
+tf_grids = tf.constant(grids)
+neighs = grids[(np.repeat(0, len(neighs2i_sep[0])), *neighs2i_sep)]
+tf_neighs2 = sess.run(tf.gather_nd(tf_grids[0], tf_neighs2i))
+# OK
+print((tf_neighs2 == neighs).all())

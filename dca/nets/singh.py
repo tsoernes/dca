@@ -38,23 +38,30 @@ class SinghNet(Net):
             labels=tf.stop_gradient(self.value_target), predictions=self.value)
         self.do_train = self._build_default_trainer(online_vars)
 
-    def forward(self, grids, *args):
+    def forward(self, grids, n_used_neighs):
         values = self.sess.run(
             self.value,
             feed_dict={
                 self.grid: grids,
+                self.n_used_neighs: n_used_neighs,
             },
             options=self.options,
             run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, grid, reward, next_grid):
+    def backward(self, grid, n_used_neighs, reward, next_grid,
+                 next_n_used_neighs):
         next_value = self.sess.run(
-            self.value, feed_dict={self.grid: next_grid})
+            self.value,
+            feed_dict={
+                self.grid: next_grid,
+                self.n_used_neighs: next_n_used_neighs,
+            })
         value_target = reward + self.gamma * next_value
         data = {
             self.grid: grid,
+            self.n_used_neighs: n_used_neighs,
             self.value_target: value_target,
         }
         _, loss = self.sess.run(

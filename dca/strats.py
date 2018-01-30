@@ -415,8 +415,8 @@ class QLearnNetStrat(QNetStrat):
         if len(self.replaybuffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(
+            self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
@@ -623,10 +623,14 @@ class SinghStrat(VNetStrat):
         self.net = SinghNet(self.pp, self.logger)
 
     def forward(self, grids):
-        pass
+        vals = self.net.forward(grids, self.feature_rep(grids))
+        return vals
 
     def backward(self, grid, reward, next_grid):
-        pass
+        loss = self.net.backward([grid],
+                                 self.feature_rep(grid), reward, [next_grid],
+                                 self.feature_rep(next_grid))
+        return loss
 
     def feature_rep(self, grids):
         assert type(grids) == np.ndarray
@@ -648,7 +652,7 @@ class SinghStrat(VNetStrat):
                 for c in range(self.cols):
                     neighs = self.env.grid.neighbors(4, r, c, separate=True)
                     for ch in range(self.n_channels):
-                        n_used = np.sum(
-                            grid[(*neighs, np.repeat(ch, len(neighs[0])))])
+                        n_used = np.sum(grid[(*neighs, np.repeat(
+                            ch, len(neighs[0])))])
                         fgrids[i][r][c][ch] = n_used
         return fgrids
