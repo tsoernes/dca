@@ -300,7 +300,6 @@ class RhombusAxialGrid(Grid):
         return RhombusAxialGrid.neighbors(1, row, col)
 
     @staticmethod
-    @functools.lru_cache(maxsize=None)
     def neighbors2(row, col, separate=False):
         """
         If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),

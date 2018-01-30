@@ -651,8 +651,6 @@ class SinghStrat(VNetStrat):
             for r in range(self.rows):
                 for c in range(self.cols):
                     neighs = self.env.grid.neighbors(4, r, c, separate=True)
-                    for ch in range(self.n_channels):
-                        n_used = np.sum(grid[(*neighs, np.repeat(
-                            ch, len(neighs[0])))])
-                        fgrids[i][r][c][ch] = n_used
+                    n_used = np.count_nonzero(grid[neighs], axis=0)
+                    fgrids[i][r][c] = n_used
         return fgrids
