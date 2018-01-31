@@ -48,16 +48,14 @@ class Runner:
     def avg_run(self):
         t = time.time()
         n_runs = self.pp['avg_runs']
-        np.random.seed(0)
-        simproc = partial(
-            self.sim_proc, self.stratclass, self.pp, reseed=False)
+        simproc = partial(self.sim_proc, self.stratclass, self.pp)
         if self.pp['net']:
             # Use constant tf seed
             np.random.seed(0)
             results = []
             for i in range(n_runs):
                 # Use constant np seed
-                res = simproc(i)
+                res = simproc(i, reseed=False)
                 results.append(res)
         else:
             with Pool() as p:
@@ -79,7 +77,6 @@ class Runner:
             f" with standard deviation {np.std(results[:,1]):.5f}"
             f"\n{results}")
         # TODO Plot average cumulative over time
-        # TODO Run until ctrl-c, then present results
 
     def run(self):
         strat = self.stratclass(self.pp, logger=self.logger)

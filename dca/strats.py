@@ -31,7 +31,6 @@ class Strat:
         self.replaybuffer = ReplayBuffer(pp['buffer_size'], *self.dims)
 
         self.quit_sim = False
-        self.t = 0.1
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -51,15 +50,13 @@ class Strat:
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
-        i = 0
-        while self.check_stop(i):
+        i, t = 0, 0
+        while self.continue_sim(i, t):
             if self.quit_sim:
                 break  # Gracefully exit to print stats, clean up etc.
 
-            self.t, ce_type, cell = cevent[0:3]
-
+            t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
-
             reward, next_cevent = self.env.step(ch)
             next_ch = self.get_action(next_cevent, grid, cell, ch, reward,
                                       ce_type)
@@ -107,9 +104,9 @@ class Strat:
         return (self.env.stats.block_prob_cum,
                 self.env.stats.block_prob_cum_hoff)
 
-    def check_stop(self, i) -> bool:
+    def continue_sim(self, i, t) -> bool:
         if self.pp['n_hours'] is not None:
-            return self.t < self.pp['n_hours']
+            return (t / 60) < self.pp['n_hours']
         else:
             return i < self.pp['n_events']
 
@@ -577,34 +574,6 @@ class VNetStrat(NetStrat):
                              next_ch)
         return next_ch
 
-    def optimal_ch2(self, ce_type, cell) -> Tuple[int, float]:
-        inuse = np.nonzero(self.grid[cell])[0]
-
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = self.env.grid.get_eligible_chs(cell)
-        else:
-            chs = inuse
-        if len(chs) == 0:
-            assert ce_type != CEvent.END
-            return (None, None)
-
-        qvals = self.get_qvals(cell, ce_type, chs)
-        if ce_type == CEvent.END:
-            idx = np.argmin(qvals[chs])
-        else:
-            idx = np.argmax(qvals[chs])
-        ch = chs[idx]
-        return ch, None
-
-    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
-        grids = self.env.grid.afterstates(cell, ce_type, chs)
-        qvals_sparse = self.forward(grids)
-        assert qvals_sparse.shape == (len(chs), )
-        qvals = np.zeros(self.n_channels, dtype=np.float64)
-        for ch, qval in zip(chs, qvals_sparse):
-            qvals[ch] = qval
-        return qvals
-
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch,
                     next_max_ch):
         """ Update qval for one experience tuple"""
@@ -624,16 +593,8 @@ class SinghStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
 
-    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
-        qvals_sparse = self.forward(cell, ce_type, chs)
-        assert qvals_sparse.shape == (len(chs), )
-        qvals = np.zeros(self.n_channels, dtype=np.float64)
-        for ch, qval in zip(chs, qvals_sparse):
-            qvals[ch] = qval
-        return qvals
-
-    def forward(self, cell, ce_type, chs):
-        # TODO Make 1 afterstate then make all feature reps from that one
+    def get_qvals(self, cell, ce_type, chs):
+        # Make 1 afterstate then make all feature reps from that one
         fgrid = self.feature_rep(self.grid)
         eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(self.grid, cell)
         if ce_type == CEvent.END:
@@ -645,14 +606,15 @@ class SinghStrat(VNetStrat):
             n_elig_self_diff = -1
             n_used_neighs_diff = 1
         neighs = self.env.grid.neighbors(
-            2, *cell, separate=True, include_self=True)
+            dist=2, *cell, separate=True, include_self=True)
         fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
         for i, ch in enumerate(chs):
             fgrids[i, neighs[0], neighs[1], ch] += n_used_neighs_diff
             if ch in eligible_chs:
                 fgrids[i, cell[0], cell[1], -1] += n_elig_self_diff
-        vals = self.net.forward(fgrids)
-        return vals
+        qvals_sparse = self.net.forward(fgrids)
+        assert qvals_sparse.shape == (len(chs), )
+        return qvals_sparse
 
     def backward(self, grid, reward, next_grid):
         loss = self.net.backward([self.feature_rep(grid)], reward,
@@ -666,6 +628,7 @@ class SinghStrat(VNetStrat):
         # NOTE Should that include
         # whether or not the channel is in use by the cell itself??
         assert type(grid) == np.ndarray
+        assert grid.shape == self.dims
         fgrid = np.zeros(
             (self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
         # fgrids[:, :, :, self.n_channels] = self.n_channels \
@@ -683,6 +646,7 @@ class SinghStrat(VNetStrat):
         return fgrid
 
     def feature_reps(self, grids):
+        raise NotImplementedError  # Uses free not eligible
         # For each cell, the number of FREE channels in that cell.
         # NOTE Should it be the number of ELIGIBLE channels instead??
         # For each cell-channel pair, the number of times that channel is
