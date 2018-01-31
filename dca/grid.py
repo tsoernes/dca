@@ -67,17 +67,23 @@ class Grid:
                     return False
         return True
 
-    def get_free_chs(self, cell):
+    def get_eligible_chs(self, cell):
+        return self.get_eligible_chs_stat(self.state, cell)
+
+    @staticmethod
+    def get_eligible_chs_stat(grid, cell):
         """
         Find the channels that are free in 'cell' and all of
-        its neighbors by bitwise ORing all their allocation maps
+        its neighbors by bitwise ORing their allocation maps.
+        These are the eligible channels, i.e. those that can be assigned
+        without violating the reuse constraint.
         """
-        neighs = self.neighbors2(*cell)
-        alloc_map = np.bitwise_or(self.state[cell], self.state[neighs[0]])
+        neighs = RhombusAxialGrid.neighbors2(*cell)
+        alloc_map = np.bitwise_or(grid[cell], grid[neighs[0]])
         for n in neighs[1:]:
-            alloc_map = np.bitwise_or(alloc_map, self.state[n])
-        free = np.where(alloc_map == 0)[0]
-        return free
+            alloc_map = np.bitwise_or(alloc_map, grid[n])
+        eligible = np.where(alloc_map == 0)[0]
+        return eligible
 
     def afterstates(self, cell, ce_type, chs):
         """Make an afterstate (resulting grid) for each possible,

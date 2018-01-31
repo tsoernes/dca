@@ -90,7 +90,7 @@ class Strat:
                     self.update_target_net()
                 if self.pp['net_copy_iter_decr'] and \
                    i % self.pp['net_copy_iter_decr'] == 0 and \
-                   self.net_copy_iter > 0:
+                   self.net_copy_iter > 1:
                     self.net_copy_iter -= 1
                     self.logger.info(
                         f"Decreased net copy iter to {self.net_copy_iter}")
@@ -152,8 +152,8 @@ class RLStrat(Strat):
     def fn_report(self):
         self.env.stats.report_rl(self.epsilon, self.alpha)
 
-    def fn_after(self):
-        self.logger.info(f"NP Rand: {np.random.uniform()}")
+    # def fn_after(self):
+    #     self.logger.info(f"NP Rand: {np.random.uniform()}")
 
     def get_init_action(self, cevent):
         ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
@@ -165,7 +165,7 @@ class RLStrat(Strat):
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
-        if ce_type != CEvent.END and next_ce_type != CEvent.END and \
+        if ce_type != CEvent.END and  \
            ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
@@ -173,20 +173,20 @@ class RLStrat(Strat):
                              next_max_ch)
         return next_ch
 
-    def policy_eps_greedy(self, chs, qvals):
+    def policy_eps_greedy(self, chs, qvals_sparse):
         """Epsilon greedy action selection with expontential decay"""
         if np.random.random() < self.epsilon:
             # Choose an eligible channel at random
             ch = np.random.choice(chs)
         else:
             # Choose greedily
-            idx = np.argmax(qvals[chs])
+            idx = np.argmax(qvals_sparse)
             ch = chs[idx]
         self.epsilon *= self.epsilon_decay  # Epsilon decay
         return ch
 
-    def policy_boltzmann(self, chs, qvals):
-        scaled = np.exp((qvals[chs] - np.max(qvals[chs])) / self.temp)
+    def policy_boltzmann(self, chs, qvals_sparse):
+        scaled = np.exp((qvals_sparse - np.max(qvals_sparse)) / self.temp)
         probs = scaled / np.sum(scaled)
         ch = np.random.choice(chs, p=probs)
         return ch
@@ -205,7 +205,7 @@ class RLStrat(Strat):
         n_used = len(inuse)
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = self.env.grid.get_free_chs(cell)
+            chs = self.env.grid.get_eligible_chs(cell)
             if len(chs) == 0:
                 # No channels available for assignment,
                 return (None, None)
@@ -220,22 +220,24 @@ class RLStrat(Strat):
 
         # TODO If 'max_ch' turns out not to be useful, then don't return it and
         # avoid running a forward pass through the net if a random action is selected.
-        qvals = self.get_qvals(
+        qvals_sparse = self.get_qvals(
             cell=cell, n_used=n_used, ce_type=ce_type, chs=chs)
         # Selecting a ch for reassigment is always greedy because no learning
         # is done on the reassignment actions.
         if ce_type == CEvent.END:
-            amin_idx = np.argmin(qvals[chs])
+            amin_idx = np.argmin(qvals_sparse)
             ch = chs[amin_idx]
             max_ch = ch
         else:
-            ch = self.policy_eps_greedy(chs, qvals)
-            amax_idx = np.argmax(qvals[chs])
+            # print(qvals_sparse.shape, chs.shape)
+            ch = self.policy_eps_greedy(chs, qvals_sparse)
+            amax_idx = np.argmax(qvals_sparse)
             max_ch = chs[amax_idx]
 
         # If qvals blow up ('NaN's and 'inf's), ch becomes none.
         if ch is None:
-            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals}\n")
+            self.logger.error(
+                f"ch is none for {ce_type}\n{chs}\n{qvals_sparse}\n")
             raise Exception
         self.logger.debug(
             f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
@@ -247,12 +249,12 @@ class QTable(RLStrat):
         super().__init__(*args, **kwargs)
         self.lmbda = self.pp['lambda']
 
-    def get_qvals(self, cell, n_used, ch=None, *args, **kwargs):
+    def get_qvals(self, cell, n_used, chs=None, *args, **kwargs):
         rep = self.feature_rep(cell, n_used)
-        if ch is None:
+        if chs is None:
             return self.qvals[rep]
         else:
-            return self.qvals[rep][ch]
+            return self.qvals[rep][chs]
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, *args):
         assert type(ch) == np.int64
@@ -286,8 +288,9 @@ class SARSA(QTable):
         # Assigning channel 'ch' to the cell at row 'r', col 'c'
         # has q-value 'v' given that 'n_used' channels are already
         # in use at that cell.
-        self.qvals = np.zeros(self.dims)
-        self.old_qvals = None  # Compare policy of current qvals to this
+        self.qvals = np.zeros(
+            (self.rows, self.cols, self.n_channels, self.n_channels),
+            dtype=np.float32)
         if self.lmbda is not None:
             # Eligibility traces
             self.el_traces = np.zeros(self.dims)
@@ -296,7 +299,7 @@ class SARSA(QTable):
         return (*cell, n_used)
 
 
-class TT_SARSA(RLStrat):
+class TT_SARSA(QTable):
     """
     Table-trimmed SARSA.
     State consists of cell coordinates and the number of used channels.
@@ -345,8 +348,8 @@ class NetStrat(RLStrat):
         self.env.stats.report_rl(self.epsilon)
 
     def fn_after(self):
-        ra = self.net.rand_uniform()
-        self.logger.info(f"TF Rand: {ra}, NP Rand: {np.random.uniform()}")
+        # ra = self.net.rand_uniform()
+        # self.logger.info(f"TF Rand: {ra}, NP Rand: {np.random.uniform()}")
         if self.pp['save_net']:
             inp = ""
             if self.quit_sim:
@@ -359,17 +362,22 @@ class NetStrat(RLStrat):
 
 
 class QNetStrat(NetStrat):
-    def __init__(self, max_next_action, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = QNet(max_next_action, self.pp, self.logger)
-        ra = self.net.rand_uniform()
-        self.logger.info(f"TF Rand: {ra}")
+        self.net = QNet(name, self.pp, self.logger)
+        # ra = self.net.rand_uniform()
+        # self.logger.info(f"TF Rand: {ra}")
+        if self.batch_size > 1:
+            self.update_qval = self.update_qval_experience
+            self.logger.warn("Using experience replay with batch"
+                             f" size of {self.batch_size}")
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
     def get_qvals(self, cell, ce_type, *args, **kwargs):
         if ce_type == CEvent.END:
+            # Zero out channel usage in cell of END event
             grid = np.copy(self.grid)
             grid[cell] = np.zeros(self.n_channels)
         else:
@@ -388,25 +396,6 @@ class QNetStrat(NetStrat):
         else:
             self.losses.append(loss)
 
-    def backward(self, *args):
-        raise NotImplementedError
-
-
-class QLearnNetStrat(QNetStrat):
-    """Update towards greedy, possibly illegal, action selection"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(True, *args, **kwargs)
-        if self.batch_size > 1:
-            self.update_qval = self.update_qval_experience
-            self.logger.warn("Using experience replay with batch"
-                             f" size of {self.batch_size}")
-
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, *args,
-                 **kwargs):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
-        return loss
-
     def update_qval_experience(self, *args, **kwargs):
         """
         Update qval for pp['batch_size'] experience tuples,
@@ -424,11 +413,23 @@ class QLearnNetStrat(QNetStrat):
             self.losses.append(loss)
 
 
+class QLearnNetStrat(QNetStrat):
+    """Update towards greedy, possibly illegal, action selection"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__("QLearnNet", *args, **kwargs)
+
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, *args,
+                 **kwargs):
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
+        return loss
+
+
 class QLearnEligibleNetStrat(QNetStrat):
     """Update towards greedy, eligible, action selection"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(False, *args, **kwargs)
+        super().__init__("QlearnEligibleNet", *args, **kwargs)
 
     def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
                  next_max_ch):
@@ -441,7 +442,7 @@ class SARSANetStrat(QNetStrat):
     """Update towards policy action selection"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(False, *args, **kwargs)
+        super().__init__("SARSANet", *args, **kwargs)
 
     def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
                  next_max_ch):
@@ -496,7 +497,7 @@ class ACNetStrat(NetStrat):
         inuse = np.nonzero(self.grid[cell])[0]
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = self.env.grid.get_free_chs(cell)
+            chs = self.env.grid.get_eligible_chs(cell)
         else:
             chs = inuse
         if len(chs) == 0:
@@ -570,16 +571,17 @@ class VNetStrat(NetStrat):
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, _ = self.optimal_ch(next_ce_type, next_cell)
-        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+        if ce_type != CEvent.END and \
+           ch is not None and next_ch is not None:
             self.update_qval(grid, cell, ch, reward, self.grid, next_cell,
                              next_ch)
         return next_ch
 
-    def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
+    def optimal_ch2(self, ce_type, cell) -> Tuple[int, float]:
         inuse = np.nonzero(self.grid[cell])[0]
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = self.env.grid.get_free_chs(cell)
+            chs = self.env.grid.get_eligible_chs(cell)
         else:
             chs = inuse
         if len(chs) == 0:
@@ -622,21 +624,67 @@ class SinghStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
 
-    def forward(self, grids):
-        vals = self.net.forward(grids, self.feature_rep(grids))
+    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
+        qvals_sparse = self.forward(cell, ce_type, chs)
+        assert qvals_sparse.shape == (len(chs), )
+        qvals = np.zeros(self.n_channels, dtype=np.float64)
+        for ch, qval in zip(chs, qvals_sparse):
+            qvals[ch] = qval
+        return qvals
+
+    def forward(self, cell, ce_type, chs):
+        # TODO Make 1 afterstate then make all feature reps from that one
+        fgrid = self.feature_rep(self.grid)
+        eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(self.grid, cell)
+        if ce_type == CEvent.END:
+            # One more channel might become eligible
+            n_elig_self_diff = 1
+            # One less channel will be used
+            n_used_neighs_diff = -1
+        else:
+            n_elig_self_diff = -1
+            n_used_neighs_diff = 1
+        neighs = self.env.grid.neighbors(
+            2, *cell, separate=True, include_self=True)
+        fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
+        for i, ch in enumerate(chs):
+            fgrids[i, neighs[0], neighs[1], ch] += n_used_neighs_diff
+            if ch in eligible_chs:
+                fgrids[i, cell[0], cell[1], -1] += n_elig_self_diff
+        vals = self.net.forward(fgrids)
         return vals
 
     def backward(self, grid, reward, next_grid):
-        loss = self.net.backward([grid],
-                                 self.feature_rep(grid), reward, [next_grid],
-                                 self.feature_rep(next_grid))
+        loss = self.net.backward([self.feature_rep(grid)], reward,
+                                 [self.feature_rep(next_grid)])
         return loss
 
-    def feature_rep(self, grids):
+    def feature_rep(self, grid):
+        # For each cell, the number of ELIGBLE channels in that cell.
+        # For each cell-channel pair, the number of times that channel is
+        # used by neighbors with a distance of 4 or less.
+        # NOTE Should that include
+        # whether or not the channel is in use by the cell itself??
+        assert type(grid) == np.ndarray
+        fgrid = np.zeros(
+            (self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
+        # fgrids[:, :, :, self.n_channels] = self.n_channels \
+        #     - np.count_nonzero(grids, axis=3)
+        for r in range(self.rows):
+            for c in range(self.cols):
+                # Used neighs
+                neighs = self.env.grid.neighbors(4, r, c, separate=True)
+                n_used = np.count_nonzero(grid[neighs], axis=0)
+                fgrid[r, c, :-1] = n_used
+                # Eligible self
+                eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(
+                    grid, (r, c))
+                fgrid[:, :, -1] = self.n_channels - len(eligible_chs)
+        return fgrid
+
+    def feature_reps(self, grids):
         # For each cell, the number of FREE channels in that cell.
         # NOTE Should it be the number of ELIGIBLE channels instead??
-        # fgrids[i, :, :, self.n_channels] = self.n_channels \
-        #     - np.count_nonzero(grid, axis=2)
         # For each cell-channel pair, the number of times that channel is
         # used by neighbors with a distance of 4 or less.
         # NOTE Should that include
@@ -645,12 +693,16 @@ class SinghStrat(VNetStrat):
         if grids.ndim == 3:
             grids = np.expand_dims(grids, axis=0)
         fgrids = np.zeros(
-            (len(grids), self.rows, self.cols, self.n_channels),
+            (len(grids), self.rows, self.cols, self.n_channels + 1),
             dtype=np.int32)
+        # fgrids[:, :, :, self.n_channels] = self.n_channels \
+        #     - np.count_nonzero(grids, axis=3)
         for r in range(self.rows):
             for c in range(self.cols):
                 neighs = self.env.grid.neighbors(4, r, c, separate=True)
                 n_used = np.count_nonzero(
                     grids[:, neighs[0], neighs[1]], axis=1)
-                fgrids[:, r, c] = n_used
+                fgrids[:, r, c, :-1] = n_used
+                fgrids[:, :, :, self.n_channels] = self.n_channels \
+                    - np.count_nonzero(grids, axis=3)
         return fgrids

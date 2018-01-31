@@ -6,13 +6,11 @@ from nets.utils import copy_net_op, prep_data_cells, prep_data_grids
 
 
 class QNet(Net):
-    def __init__(self, max_next_action, *args, **kwargs):
+    def __init__(self, name="QNet", *args, **kwargs):
         """
         Lagging QNet. If 'max_next_action', perform greedy
         Q-learning updates, else SARSA updates.
         """
-        self.max_next_action = max_next_action
-        name = "QLearnNet" if max_next_action else "SarsaNet"
         super().__init__(name=name, *args, **kwargs)
         self.sess.run(self.copy_online_to_target)
 
@@ -110,11 +108,10 @@ class QNet(Net):
             name="online_q_selected")
 
         # Target Q-value for given next action
-        # (for SARSA and eligibile Q-learning)
         self.target_q_selected = tf.reduce_sum(
             target_q_vals * tf.one_hot(self.next_action, self.n_channels),
             axis=1,
-            name="target_next_q_selected")
+            name="target_q_selected")
         if self.pp['dueling_qnet']:
             next_q = tf.squeeze(self.value)
         else:
@@ -153,7 +150,6 @@ class QNet(Net):
             run_metadata=self.run_metadata)
         q_vals = np.reshape(q_vals, [-1])
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
-
         return q_vals
 
     def backward(self,
@@ -170,6 +166,13 @@ class QNet(Net):
         """
         p_next_grids = prep_data_grids(next_grids, self.pp['empty_neg'])
         p_next_cells = prep_data_cells(next_cells)
+        if next_actions is None:
+            next_actions = self.sess.run(
+                self.online_q_amax,
+                feed_dict={
+                    self.grid: p_next_grids,
+                    self.cell: p_next_cells
+                })
         data = {
             self.grid: prep_data_grids(grids, self.pp['empty_neg']),
             self.cell: prep_data_cells(cells),
@@ -177,15 +180,8 @@ class QNet(Net):
             self.reward: rewards,
             self.next_grid: p_next_grids,
             self.next_cell: p_next_cells,
+            self.next_action: next_actions
         }
-        if next_actions is not None:
-            data[self.next_action] = next_actions
-        else:
-            na = self.sess.run(
-                self.online_q_amax,
-                feed_dict={self.grid: p_next_grids,
-                           self.cell: p_next_cells})
-            data[self.next_action] = na
         _, loss = self.sess.run(
             [self.do_train, self.loss],
             feed_dict=data,
