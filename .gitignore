@@ -1,5 +1,5 @@
 # projectile tags
-TAGS/
+TAGS
 dca/model/
 # Numpy data sets
 *.npy
