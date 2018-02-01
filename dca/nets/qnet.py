@@ -113,13 +113,14 @@ class QNet(Net):
             axis=1,
             name="target_q_selected")
         if self.pp['dueling_qnet']:
-            next_q = tf.squeeze(self.value)
+            self.next_q = tf.squeeze(self.value)
+        elif self.pp['train_net']:
+            self.next_q = tf.placeholder(
+                shape=[None], dtype=tf.float32, name="qtarget")
         else:
-            next_q = self.target_q_selected
+            self.next_q = self.target_q_selected
 
-        # self.q_target = self.reward + self.gamma * next_q
-        self.q_target = tf.placeholder(
-            shape=[None], dtype=tf.float32, name="qtarget")
+        self.q_target = self.reward + self.gamma * self.next_q
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
@@ -172,10 +173,8 @@ class QNet(Net):
         if next_actions is None:
             next_actions = self.sess.run(
                 self.online_q_amax,
-                feed_dict={
-                    self.grid: p_next_grids,
-                    self.cell: p_next_cells
-                })
+                feed_dict={self.grid: p_next_grids,
+                           self.cell: p_next_cells})
         data = {
             self.grid: prep_data_grids(grids, self.pp['empty_neg']),
             self.cell: prep_data_cells(cells),

@@ -79,7 +79,7 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--n_hours',
         type=float,
-        help="number of hours to simulate (overrides n_events)",
+        help="Number of hours to simulate (overrides n_events)",
         default=None)
     parser.add_argument(
         '--avg_runs',
@@ -89,11 +89,11 @@ def get_pparams(defaults=False):
         default=None)
 
     parser.add_argument(
-        '--alpha', type=float, help="(RL) learning rate", default=0.036)
+        '--alpha', type=float, help="(RL/Table) learning rate", default=0.036)
     parser.add_argument(
         '--alpha_decay',
         type=float,
-        help="(RL) factor by which alpha is multiplied each iteration",
+        help="(RL/Table) factor by which alpha is multiplied each iteration",
         default=0.999998)
     parser.add_argument(
         '--epsilon',
@@ -112,7 +112,7 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--lambda',
         type=float,
-        help="(RL) lower lambda weighs fewer step returns higher",
+        help="(RL/Table) lower lambda weighs fewer step returns higher",
         default=None)
     parser.add_argument(
         '--min_alpha',
@@ -125,6 +125,13 @@ def get_pparams(defaults=False):
         action='store_true',
         default=False)
     parser.add_argument(
+        '--restore_qtable',
+        nargs='?',
+        type=str,
+        help="(RL/Table) Restore q-values from file",
+        default="",
+        const="qtable.npy")
+    parser.add_argument(
         '--hopt',
         nargs='?',
         choices=[
@@ -132,7 +139,7 @@ def get_pparams(defaults=False):
             'lambda', 'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff',
             'entropy_coeff'
         ],
-        help="Hyper-parameter optimization with hyperopt."
+        help="(Hopt) Hyper-parameter optimization with hyperopt."
         " Saves progress to 'results-{stratname}-{vars}.pkl' and"
         " automatically resumes if file already exists. Logs to file with "
         " same name besides extension .log.",
@@ -140,13 +147,14 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--hopt_best',
         type=str,
-        help="Show best params found and corresponding loss for a"
+        help="(Hopt) Show best params found and corresponding loss for a"
         "given hopt file",
         default=None)
     parser.add_argument(
         '--hopt_plot',
         action='store_true',
-        help="Plot params found and corresponding loss for a given strat",
+        help="(Hopt) Plot params found and "
+        "corresponding loss for a given strat",
         default=False)
 
     parser.add_argument(
@@ -154,7 +162,7 @@ def get_pparams(defaults=False):
         '-lr',
         dest='net_lr',
         type=float,
-        help="(Net) Learning rate",
+        help="(Net) Learning rate. Overrides 'alpha'.",
         default=3.4e-5)
     parser.add_argument(
         '--weight_init_conv', choices=weight_initializers, default='zeros')
@@ -167,12 +175,12 @@ def get_pparams(defaults=False):
         '-duel',
         dest='dueling_qnet',
         action='store_true',
-        help="(Net) Dueling QNet",
+        help="(Net/Duel) Dueling QNet",
         default=False)
     parser.add_argument(
         '--no_double_qnet',
         action='store_true',
-        help="(Net) Disable Double QNet",
+        help="(Net/Double) Disable Double QNet",
         default=False)
     parser.add_argument(
         '--layer_norm',
@@ -185,7 +193,10 @@ def get_pparams(defaults=False):
         help="(Net) Represent empty channels in grid as 0 instead of -1",
         default=False)
     parser.add_argument(
-        '--act_fn', choices=['relu', 'elu', 'leaky_relu'], default='relu')
+        '--act_fn',
+        help="(Net) Activation function",
+        choices=['relu', 'elu', 'leaky_relu'],
+        default='relu')
     parser.add_argument(
         '--optimizer',
         '-opt',
@@ -215,13 +226,13 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--batch_size',
         type=int,
-        help="(Net) Batch size for experience replay."
+        help="(Net/Exp) Batch size for experience replay or training."
         "A value of 1 disables exp. replay",
         default=1)
     parser.add_argument(
         '--buffer_size',
         type=int,
-        help="(Net) Buffer size for experience replay",
+        help="(Net/Exp) Buffer size for experience replay",
         default=5000)
     parser.add_argument(
         '--bench_batch_size',
@@ -232,14 +243,14 @@ def get_pparams(defaults=False):
         '--net_copy_iter',
         type=int,
         metavar='N',
-        help="(Net) Copy weights from online to target "
+        help="(Net/Double) Copy weights from online to target "
         "net every N iterations",
         default=45)
     parser.add_argument(
         '--net_copy_iter_decr',
         type=int,
         metavar='N',
-        help="(Net) Decrease 'net_copy_iter' every N iterations",
+        help="(Net/Double) Decrease 'net_copy_iter' every N iterations",
         default=None)
     parser.add_argument(
         '--net_creep_tau',
@@ -248,27 +259,30 @@ def get_pparams(defaults=False):
         type=float,
         nargs='?',
         metavar='tau',
-        help="(Net) Creep target net 'tau' (0, 1] percent towards online "
-        "net every 'net_copy_iter' iterations. "
+        help="(Net/Double) Creep target net 'tau' (0, 1] percent "
+        "towards online net every 'net_copy_iter' iterations. "
         "Net copy iter should be decreased as tau decreases. "
-        "'tau' ~ 0.12 when 'net_copy_iter' is 5 is good starting point.",
+        "'tau' ~ 0.1 when 'net_copy_iter' is 5 is good starting point.",
         default=1,
         const=0.12)
     parser.add_argument(
         '--vf_coeff',
         type=float,
-        help="(Net) Value function coefficient in policy gradient loss",
+        help="(Net/Pol) Value function coefficient in policy gradient loss",
         default=0.02)
     parser.add_argument(
         '--entropy_coeff',
         type=float,
-        help="(Net) Entropy coefficient in policy gradient loss",
+        help="(Net/Pol) Entropy coefficient in policy gradient loss",
         default=10.0)
     parser.add_argument(
         '--train_net',
-        action='store_true',
-        help="(Net) Train network",
-        default=False)
+        type=int,
+        metavar='N',
+        nargs="?",
+        help="(Net) Train network for 'N' passes",
+        default=0,
+        const=1)
     parser.add_argument(
         '--no_gpu',
         action='store_true',
@@ -316,16 +330,14 @@ def get_pparams(defaults=False):
         '--log_file',
         metavar='DEST',
         type=str,
-        help="enable logging to file by entering file name")
+        help="enable logging to given file name")
     parser.add_argument(
         '--log_iter',
         metavar='N',
         type=int,
-        help="Show blocking probability every N iterations",
+        help="Show blocking probability and stats such as "
+        "epsilon, learning rate and loss every N iterations",
         default=None)
-
-    # iterations can be approximated from hours with:
-    # iters = 7821* hours - 2015
 
     if defaults:
         args = parser.parse_args([])
@@ -338,10 +350,6 @@ def get_pparams(defaults=False):
     params['double_qnet'] = not params['no_double_qnet']
     del params['no_double_qnet']
     params['dims'] = [params['rows'], params['cols'], params['n_channels']]
-
-    if params['lambda'] is not None:
-        # Computationally expensive, gotta warn
-        print("Using lambda returns")
 
     # Sensible presets / overrides
     params['net'] = False  # Whether net is in use or not
@@ -359,6 +367,7 @@ def get_pparams(defaults=False):
         params['gui'] = False
         params['log_level'] = logging.ERROR
     if params['hopt'] is not None:
+        params['gui'] = False
         params['log_level'] = logging.ERROR
         # Since hopt only compares new call block rate,
         # handoffs are a waste of computational resources.
