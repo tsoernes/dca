@@ -46,9 +46,10 @@ def shuffle_in_unison(arrs):
         np.random.shuffle(arr)
 
 
-def h5py_shuffle_in_unison(fname):
+def h5py_shuffle_in_unison(fname="data-experience.0"):
     """
     Shuffle a hdf5 dataset inplace and in unison. fname without file ext.
+    inplace means that it doesnt load everything into ram.
     """
     with h5py.File(fname + ".hdf5", "r+", driver="core") as f:
         rng_state = np.random.get_state()
