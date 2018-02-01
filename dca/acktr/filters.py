@@ -122,5 +122,4 @@ class StackFilter(Filter):
         return np.concatenate(self.stack, axis=-1)
 
     def output_shape(self, input_space):
-        return input_space.shape[:-1] + (
-            input_space.shape[-1] * self.stack.maxlen, )
+        return input_space.shape[:-1] + (input_space.shape[-1] * self.stack.maxlen, )

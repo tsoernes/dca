@@ -33,8 +33,7 @@ class AC_Network:
     def __init__(self, s_size, a_size, scope):
         with tf.variable_scope(scope):
             # Input and visual encoding layers
-            self.inputs = tf.placeholder(
-                shape=[None, s_size], dtype=tf.float32)
+            self.inputs = tf.placeholder(shape=[None, s_size], dtype=tf.float32)
             self.imageIn = tf.reshape(self.inputs, shape=[-1, 84, 84, 1])
             self.conv1 = slim.conv2d(
                 activation_fn=tf.nn.elu,
@@ -50,8 +49,7 @@ class AC_Network:
                 kernel_size=[4, 4],
                 stride=[2, 2],
                 padding='VALID')
-            hidden = slim.fully_connected(
-                slim.flatten(self.conv2), 256, activation_fn=tf.nn.elu)
+            hidden = slim.fully_connected(slim.flatten(self.conv2), 256, activation_fn=tf.nn.elu)
 
             # Recurrent network for temporal dependencies
             lstm_cell = tf.contrib.rnn.BasicLSTMCell(256, state_is_tuple=True)
@@ -89,34 +87,28 @@ class AC_Network:
                 biases_initializer=None)
 
             self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
-            self.actions_onehot = tf.one_hot(
-                self.actions, a_size, dtype=tf.float32)
+            self.actions_onehot = tf.one_hot(self.actions, a_size, dtype=tf.float32)
             self.target_v = tf.placeholder(shape=[None], dtype=tf.float32)
             self.advantages = tf.placeholder(shape=[None], dtype=tf.float32)
 
-            self.responsible_outputs = tf.reduce_sum(
-                self.policy * self.actions_onehot, [1])
+            self.responsible_outputs = tf.reduce_sum(self.policy * self.actions_onehot, [1])
 
             # Loss functions
             self.value_loss = 0.5 * tf.reduce_sum(
                 tf.square(self.target_v - tf.reshape(self.value, [-1])))
             self.entropy = -tf.reduce_sum(self.policy * tf.log(self.policy))
-            self.policy_loss = -tf.reduce_sum(
-                tf.log(self.responsible_outputs) * self.advantages)
+            self.policy_loss = -tf.reduce_sum(tf.log(self.responsible_outputs) * self.advantages)
             self.loss = 0.5 * self.value_loss + \
                 self.policy_loss - self.entropy * 0.01
 
             trainer = tf.train.AdamOptimizer(learning_rate=1e-4)
             # Get gradients from network using losses
-            self.gradients, trainable_vars = zip(
-                *trainer.compute_gradients(self.loss))
+            self.gradients, trainable_vars = zip(*trainer.compute_gradients(self.loss))
             self.var_norms = tf.global_norm(trainable_vars)
-            grads, self.grad_norms = tf.clip_by_global_norm(
-                self.gradients, 40.0)
+            grads, self.grad_norms = tf.clip_by_global_norm(self.gradients, 40.0)
 
             # Apply gradients to network
-            self.apply_grads = trainer.apply_gradients(
-                zip(grads, trainable_vars))
+            self.apply_grads = trainer.apply_gradients(zip(grads, trainable_vars))
 
 
 # ### Worker Agent
@@ -126,13 +118,13 @@ class Worker():
             game,
             s_size,
             a_size,
-            model_path, ):
+            model_path,
+    ):
         self.model_path = model_path
         self.episode_rewards = []
         self.episode_lengths = []
         self.episode_mean_values = []
-        self.summary_writer = tf.summary.FileWriter("train_" +
-                                                    str(self.number))
+        self.summary_writer = tf.summary.FileWriter("train_" + str(self.number))
 
         # Create the network and the
         self.AC = AC_Network(s_size, a_size)
@@ -155,9 +147,7 @@ class Worker():
         self.rewards_plus = np.asarray(rewards.tolist() + [bootstrap_value])
         discounted_rewards = discount(self.rewards_plus, gamma)[:-1]
         self.value_plus = np.asarray(values.tolist() + [bootstrap_value])
-        advantages = discount(
-            rewards + gamma * self.value_plus[1:] - self.value_plus[:-1],
-            gamma)
+        advantages = discount(rewards + gamma * self.value_plus[1:] - self.value_plus[:-1], gamma)
 
         # Update the network using gradients from loss
         # Generate network statistics to periodically save
@@ -171,13 +161,11 @@ class Worker():
         }
         v_l, p_l, e_l, g_n, v_n, self.batch_rnn_state, _ = sess.run(
             [
-                self.AC.value_loss, self.AC.policy_loss, self.AC.entropy,
-                self.AC.grad_norms, self.AC.var_norms, self.AC.state_out,
-                self.AC.apply_grads
+                self.AC.value_loss, self.AC.policy_loss, self.AC.entropy, self.AC.grad_norms,
+                self.AC.var_norms, self.AC.state_out, self.AC.apply_grads
             ],
             feed_dict=feed_dict)
-        return v_l / len(rollout), p_l / len(rollout), e_l / len(
-            rollout), g_n, v_n
+        return v_l / len(rollout), p_l / len(rollout), e_l / len(rollout), g_n, v_n
 
     def work(self, max_episode_length, gamma, sess, saver):
         total_steps = 0
@@ -224,9 +212,7 @@ class Worker():
 
                 # If the episode hasn't ended, but the experience buffer
                 # is full, then we make an update step using that experience rollout.
-                if len(
-                        episode_buffer
-                ) == 30 and episode_step_count != max_episode_length - 1:
+                if len(episode_buffer) == 30 and episode_step_count != max_episode_length - 1:
                     # Since we don't know what the true final return is,
                     # we "bootstrap" from our current value estimation.
                     v1 = sess.run(
@@ -236,8 +222,7 @@ class Worker():
                             self.AC.state_in[0]: rnn_state[0],
                             self.AC.state_in[1]: rnn_state[1]
                         })[0, 0]
-                    v_l, p_l, e_l, g_n, v_n = self.train(
-                        episode_buffer, sess, gamma, v1)
+                    v_l, p_l, e_l, g_n, v_n = self.train(episode_buffer, sess, gamma, v1)
                     episode_buffer = []
                     sess.run(self.update_local_ops)
 
@@ -248,36 +233,26 @@ class Worker():
             # Update the network using the episode buffer at the end
             # of the episode.
             if len(episode_buffer) != 0:
-                v_l, p_l, e_l, g_n, v_n = self.train(episode_buffer, sess,
-                                                     gamma, 0.0)
+                v_l, p_l, e_l, g_n, v_n = self.train(episode_buffer, sess, gamma, 0.0)
 
             # Periodically save model parameters and summary statistics.
             if episode_count % 5 == 0 and episode_count != 0:
                 if episode_count % 250 == 0 and self.name == 'worker_0':
-                    saver.save(sess, self.model_path + '/model-' +
-                               str(episode_count) + '.cptk')
+                    saver.save(sess, self.model_path + '/model-' + str(episode_count) + '.cptk')
                     print("Saved Model")
 
                 mean_reward = np.mean(self.episode_rewards[-5:])
                 mean_length = np.mean(self.episode_lengths[-5:])
                 mean_value = np.mean(self.episode_mean_values[-5:])
                 summary = tf.Summary()
-                summary.value.add(
-                    tag='Perf/Reward', simple_value=float(mean_reward))
-                summary.value.add(
-                    tag='Perf/Length', simple_value=float(mean_length))
-                summary.value.add(
-                    tag='Perf/Value', simple_value=float(mean_value))
-                summary.value.add(
-                    tag='Losses/Value Loss', simple_value=float(v_l))
-                summary.value.add(
-                    tag='Losses/Policy Loss', simple_value=float(p_l))
-                summary.value.add(
-                    tag='Losses/Entropy', simple_value=float(e_l))
-                summary.value.add(
-                    tag='Losses/Grad Norm', simple_value=float(g_n))
-                summary.value.add(
-                    tag='Losses/Var Norm', simple_value=float(v_n))
+                summary.value.add(tag='Perf/Reward', simple_value=float(mean_reward))
+                summary.value.add(tag='Perf/Length', simple_value=float(mean_length))
+                summary.value.add(tag='Perf/Value', simple_value=float(mean_value))
+                summary.value.add(tag='Losses/Value Loss', simple_value=float(v_l))
+                summary.value.add(tag='Losses/Policy Loss', simple_value=float(p_l))
+                summary.value.add(tag='Losses/Entropy', simple_value=float(e_l))
+                summary.value.add(tag='Losses/Grad Norm', simple_value=float(g_n))
+                summary.value.add(tag='Losses/Var Norm', simple_value=float(v_n))
                 self.summary_writer.add_summary(summary, episode_count)
 
                 self.summary_writer.flush()

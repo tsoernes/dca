@@ -102,16 +102,15 @@ class BDCLGrid(FixedGrid):
             else:
                 pass
         return distance
+
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
         super().__init__(*args, **kwargs)
         # For each channel, a direction is locked if entry is True
-        self.locks = np.zeros(
-            (self.rows, self.cols, self.n_channels, 7), dtype=bool)
+        self.locks = np.zeros((self.rows, self.cols, self.n_channels, 7), dtype=bool)
         # A cell and a channel is locked by cell coordinates in entry
         # (-1, -1) if not locked.
-        self.locked_by = np.zeros(
-            (self.rows, self.cols, self.n_channels, 2), dtype=int)
+        self.locked_by = np.zeros((self.rows, self.cols, self.n_channels, 2), dtype=int)
 
     def cochannel_cells(self, cell, cell_neigh):
         """

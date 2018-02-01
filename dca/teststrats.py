@@ -28,25 +28,20 @@ class TestSinghStrat(unittest.TestCase):
 
         # Three grids in one array. They should not affect each other's
         # feature representation
-        grids = np.zeros((3, self.pp['rows'], self.pp['cols'],
-                          self.pp['n_channels']))
+        grids = np.zeros((3, self.pp['rows'], self.pp['cols'], self.pp['n_channels']))
         grids[1, :, :, 0] = 1
         grids[2, 1, 2, 9] = 1
         fgrids = self.strat.feature_rep(grids)
 
         # Verify Grid #1
         # No cell has any channels in use, i.e. all are free
-        check_n_free_self(fgrids[0],
-                          np.ones((self.rows, self.cols)) * self.n_channels)
+        check_n_free_self(fgrids[0], np.ones((self.rows, self.cols)) * self.n_channels)
         # No cell has a channel in use by any of its neighbors
-        check_n_used_neighs(fgrids[0],
-                            np.zeros((self.rows, self.cols, self.n_channels)))
+        check_n_used_neighs(fgrids[0], np.zeros((self.rows, self.cols, self.n_channels)))
 
         # Verify Grid #2
         # All cells have one channel in use
-        check_n_free_self(fgrids[1],
-                          np.ones((self.rows,
-                                   self.cols)) * (self.n_channels - 1))
+        check_n_free_self(fgrids[1], np.ones((self.rows, self.cols)) * (self.n_channels - 1))
         # Every cell has 'n_neighs(cell)' neighbors4 who uses channel 0
         # ('n_neighs(cell)' depends on cell coordinates)
         n_used2 = np.zeros((self.rows, self.cols, self.n_channels))

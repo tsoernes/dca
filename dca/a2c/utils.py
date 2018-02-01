@@ -45,14 +45,11 @@ def ortho_init(scale=1.0):
     return _ortho_init
 
 
-def conv(x, scope, nf, rf, stride, pad='VALID', act=tf.nn.relu,
-         init_scale=1.0):
+def conv(x, scope, nf, rf, stride, pad='VALID', act=tf.nn.relu, init_scale=1.0):
     with tf.variable_scope(scope):
         nin = x.get_shape()[3].value
-        w = tf.get_variable(
-            "w", [rf, rf, nin, nf], initializer=ortho_init(init_scale))
-        b = tf.get_variable(
-            "b", [nf], initializer=tf.constant_initializer(0.0))
+        w = tf.get_variable("w", [rf, rf, nin, nf], initializer=ortho_init(init_scale))
+        b = tf.get_variable("b", [nf], initializer=tf.constant_initializer(0.0))
         z = tf.nn.conv2d(x, w, strides=[1, stride, stride, 1], padding=pad) + b
         h = act(z)
         return h
@@ -62,8 +59,7 @@ def fc(x, scope, nh, act=tf.nn.relu, init_scale=1.0):
     with tf.variable_scope(scope):
         nin = x.get_shape()[1].value
         w = tf.get_variable("w", [nin, nh], initializer=ortho_init(init_scale))
-        b = tf.get_variable(
-            "b", [nh], initializer=tf.constant_initializer(0.0))
+        b = tf.get_variable("b", [nh], initializer=tf.constant_initializer(0.0))
         z = tf.matmul(x, w) + b
         h = act(z)
         return h
@@ -74,10 +70,7 @@ def batch_to_seq(h, nbatch, nsteps, flat=False):
         h = tf.reshape(h, [nbatch, nsteps])
     else:
         h = tf.reshape(h, [nbatch, nsteps, -1])
-    return [
-        tf.squeeze(v, [1])
-        for v in tf.split(axis=1, num_or_size_splits=nsteps, value=h)
-    ]
+    return [tf.squeeze(v, [1]) for v in tf.split(axis=1, num_or_size_splits=nsteps, value=h)]
 
 
 def seq_to_batch(h, flat=False):
@@ -94,12 +87,9 @@ def lstm(xs, ms, s, scope, nh, init_scale=1.0):
     nbatch, nin = [v.value for v in xs[0].get_shape()]
     nsteps = len(xs)
     with tf.variable_scope(scope):
-        wx = tf.get_variable(
-            "wx", [nin, nh * 4], initializer=ortho_init(init_scale))
-        wh = tf.get_variable(
-            "wh", [nh, nh * 4], initializer=ortho_init(init_scale))
-        b = tf.get_variable(
-            "b", [nh * 4], initializer=tf.constant_initializer(0.0))
+        wx = tf.get_variable("wx", [nin, nh * 4], initializer=ortho_init(init_scale))
+        wh = tf.get_variable("wh", [nh, nh * 4], initializer=ortho_init(init_scale))
+        b = tf.get_variable("b", [nh * 4], initializer=tf.constant_initializer(0.0))
 
     c, h = tf.split(axis=1, num_or_size_splits=2, value=s)
     for idx, (x, m) in enumerate(zip(xs, ms)):
@@ -129,27 +119,18 @@ def lnlstm(xs, ms, s, scope, nh, init_scale=1.0):
     nbatch, nin = [v.value for v in xs[0].get_shape()]
     nsteps = len(xs)
     with tf.variable_scope(scope):
-        wx = tf.get_variable(
-            "wx", [nin, nh * 4], initializer=ortho_init(init_scale))
-        gx = tf.get_variable(
-            "gx", [nh * 4], initializer=tf.constant_initializer(1.0))
-        bx = tf.get_variable(
-            "bx", [nh * 4], initializer=tf.constant_initializer(0.0))
+        wx = tf.get_variable("wx", [nin, nh * 4], initializer=ortho_init(init_scale))
+        gx = tf.get_variable("gx", [nh * 4], initializer=tf.constant_initializer(1.0))
+        bx = tf.get_variable("bx", [nh * 4], initializer=tf.constant_initializer(0.0))
 
-        wh = tf.get_variable(
-            "wh", [nh, nh * 4], initializer=ortho_init(init_scale))
-        gh = tf.get_variable(
-            "gh", [nh * 4], initializer=tf.constant_initializer(1.0))
-        bh = tf.get_variable(
-            "bh", [nh * 4], initializer=tf.constant_initializer(0.0))
+        wh = tf.get_variable("wh", [nh, nh * 4], initializer=ortho_init(init_scale))
+        gh = tf.get_variable("gh", [nh * 4], initializer=tf.constant_initializer(1.0))
+        bh = tf.get_variable("bh", [nh * 4], initializer=tf.constant_initializer(0.0))
 
-        b = tf.get_variable(
-            "b", [nh * 4], initializer=tf.constant_initializer(0.0))
+        b = tf.get_variable("b", [nh * 4], initializer=tf.constant_initializer(0.0))
 
-        gc = tf.get_variable(
-            "gc", [nh], initializer=tf.constant_initializer(1.0))
-        bc = tf.get_variable(
-            "bc", [nh], initializer=tf.constant_initializer(0.0))
+        gc = tf.get_variable("gc", [nh], initializer=tf.constant_initializer(1.0))
+        bc = tf.get_variable("bc", [nh], initializer=tf.constant_initializer(0.0))
 
     c, h = tf.split(axis=1, num_or_size_splits=2, value=s)
     for idx, (x, m) in enumerate(zip(xs, ms)):
@@ -269,8 +250,8 @@ def get_by_index(x, idx):
 def check_shape(ts, shapes):
     i = 0
     for (t, shape) in zip(ts, shapes):
-        assert t.get_shape().as_list() == shape, "id " + str(
-            i) + " shape " + str(t.get_shape()) + str(shape)
+        assert t.get_shape().as_list() == shape, "id " + str(i) + " shape " + str(
+            t.get_shape()) + str(shape)
         i += 1
 
 

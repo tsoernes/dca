@@ -25,8 +25,7 @@ class Runner:
             fh.setLevel(self.pp['log_level'])
             self.logger.addHandler(fh)
         self.logger.error(
-            f"Starting simulation at {datetime.datetime.now()} with params:\n{self.pp}"
-        )
+            f"Starting simulation at {datetime.datetime.now()} with params:\n{self.pp}")
 
         if self.pp['hopt']:
             self.hopt()
@@ -66,16 +65,15 @@ class Runner:
             return
         n_events = self.pp['n_events']
         results = np.array(results)
-        self.logger.error(
-            f"\n{n_runs}x{n_events} events finished with speed"
-            f" {(n_runs*n_events)/(time.time()-t):.0f} events/second"
-            f"\nAverage cumulative block probability over {n_runs} episodes:"
-            f" {np.mean(results[:,0]):.4f}"
-            f" with standard deviation {np.std(results[:,0]):.5f}"
-            f"\nAverage cumulative handoff block probability"
-            f" {np.mean(results[:,1]):.4f}"
-            f" with standard deviation {np.std(results[:,1]):.5f}"
-            f"\n{results}")
+        self.logger.error(f"\n{n_runs}x{n_events} events finished with speed"
+                          f" {(n_runs*n_events)/(time.time()-t):.0f} events/second"
+                          f"\nAverage cumulative block probability over {n_runs} episodes:"
+                          f" {np.mean(results[:,0]):.4f}"
+                          f" with standard deviation {np.std(results[:,0]):.5f}"
+                          f"\nAverage cumulative handoff block probability"
+                          f" {np.mean(results[:,1]):.4f}"
+                          f" with standard deviation {np.std(results[:,1]):.5f}"
+                          f"\n{results}")
         # TODO Plot average cumulative over time
 
     def train_net(self):
@@ -90,8 +88,7 @@ class Runner:
             # strat.gui = gui
             raise NotImplementedError
         if self.pp['profiling']:
-            cProfile.runctx(
-                'strat.simulate()', globals(), locals(), sort='tottime')
+            cProfile.runctx('strat.simulate()', globals(), locals(), sort='tottime')
         else:
             strat.simulate()
 
@@ -149,20 +146,15 @@ class Runner:
         from hyperopt.pyll.base import scope  # noqa
         if self.pp['net']:
             space = {
-                'net_lr':
-                hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
-                'net_copy_iter':
-                hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
-                'net_creep_tau':
-                hp.loguniform('net_creep_tau', np.log(0.01), np.log(0.7)),
+                'net_lr': hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
+                'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
+                'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01), np.log(0.7)),
                 # 'batch_size':
                 # scope.int(hp.uniform('batch_size', 8, 16)),
                 # 'buffer_size':
                 # scope.int(hp.uniform('buffer_size', 2000, 10000))
-                'vf_coeff':
-                hp.uniform('vf_coeff', 0.005, 0.5),
-                'entropy_coeff':
-                hp.uniform('entropy_coeff', 1.0, 100.0)
+                'vf_coeff': hp.uniform('vf_coeff', 0.005, 0.5),
+                'entropy_coeff': hp.uniform('entropy_coeff', 1.0, 100.0)
             }
             self.pp['n_events'] = 100000
             trials_step = 1  # Number of trials to run before saving
@@ -171,8 +163,7 @@ class Runner:
                 'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
                 'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
                 'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
-                'epsilon_decay': hp.uniform('epsilon_decay', 0.9995,
-                                            0.9999999),
+                'epsilon_decay': hp.uniform('epsilon_decay', 0.9995, 0.9999999),
                 'gamma': hp.uniform('gamma', 0.7, 0.90),
                 'lambda': hp.uniform('lambda', 0.0, 1.0)
             }
@@ -192,8 +183,7 @@ class Runner:
         fn = partial(Runner.hopt_proc, self.stratclass, self.pp)
         while True:
             n_trials = len(trials)
-            self.logger.error(
-                f"Running trials {n_trials+1}-{n_trials+trials_step}")
+            self.logger.error(f"Running trials {n_trials+1}-{n_trials+trials_step}")
             best = fmin(
                 fn=fn,
                 space=space,
@@ -212,8 +202,7 @@ class Runner:
             with open(f_name, "rb") as f:
                 trials = pickle.load(f)
                 b = trials.best_trial
-                self.logger.error(
-                    f"Loss: {b['result']['loss']}\n{b['misc']['vals']}")
+                self.logger.error(f"Loss: {b['result']['loss']}\n{b['misc']['vals']}")
         except FileNotFoundError:
             self.logger.error(f"Could not find {f_name}")
             raise

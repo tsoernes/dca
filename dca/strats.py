@@ -61,8 +61,7 @@ class Strat:
             t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
             reward, next_cevent = self.env.step(ch)
-            next_ch = self.get_action(next_cevent, grid, cell, ch, reward,
-                                      ce_type)
+            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type)
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
                     and next_ch is not None \
@@ -79,8 +78,7 @@ class Strat:
                 # are always busy in a grid corresponding to an END event.
                 next_grid = np.copy(self.grid)
                 next_cell = next_cevent[2]
-                self.replaybuffer.add(grid, cell, ch, reward, next_grid,
-                                      next_cell)
+                self.replaybuffer.add(grid, cell, ch, reward, next_grid, next_cell)
 
             if i > 0:
                 if i % self.pp['log_iter'] == 0:
@@ -92,8 +90,7 @@ class Strat:
                    i % self.pp['net_copy_iter_decr'] == 0 and \
                    self.net_copy_iter > 1:
                     self.net_copy_iter -= 1
-                    self.logger.info(
-                        f"Decreased net copy iter to {self.net_copy_iter}")
+                    self.logger.info(f"Decreased net copy iter to {self.net_copy_iter}")
             ch, cevent = next_ch, next_cevent
             i += 1
         self.env.stats.end_episode(np.count_nonzero(self.grid))
@@ -104,8 +101,7 @@ class Strat:
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
             return (1.0, 1.0)
-        return (self.env.stats.block_prob_cum,
-                self.env.stats.block_prob_cum_hoff)
+        return (self.env.stats.block_prob_cum, self.env.stats.block_prob_cum_hoff)
 
     def continue_sim(self, i, t) -> bool:
         if self.pp['n_hours'] is not None:
@@ -169,8 +165,7 @@ class RLStrat(Strat):
            ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, next_cell, next_ch,
-                             next_max_ch)
+            self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch)
         return next_ch
 
     def policy_eps_greedy(self, chs, qvals_sparse):
@@ -220,8 +215,7 @@ class RLStrat(Strat):
 
         # TODO If 'max_ch' turns out not to be useful, then don't return it and
         # avoid running a forward pass through the net if a random action is selected.
-        qvals_sparse = self.get_qvals(
-            cell=cell, n_used=n_used, ce_type=ce_type, chs=chs)
+        qvals_sparse = self.get_qvals(cell=cell, n_used=n_used, ce_type=ce_type, chs=chs)
         # Selecting a ch for reassigment is always greedy because no learning
         # is done on the reassignment actions.
         if ce_type == CEvent.END:
@@ -236,11 +230,9 @@ class RLStrat(Strat):
 
         # If qvals blow up ('NaN's and 'inf's), ch becomes none.
         if ch is None:
-            self.logger.error(
-                f"ch is none for {ce_type}\n{chs}\n{qvals_sparse}\n")
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_sparse}\n")
             raise Exception
-        self.logger.debug(
-            f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        self.logger.debug(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, max_ch)
 
 
@@ -296,8 +288,7 @@ class QTable(RLStrat):
             self.alpha *= self.alpha_decay
         next_frep = self.feature_rep(next_cell, next_n_used)
         self.logger.debug(
-            f"Q[{frep}][{ch}]:{q:.1f} -> {reward:.1f} + Q[{next_frep}][{next_ch}]:{next_qval:.1f}"
-        )
+            f"Q[{frep}][{ch}]:{q:.1f} -> {reward:.1f} + Q[{next_frep}][{next_ch}]:{next_qval:.1f}")
 
 
 class SARSA(QTable):
@@ -312,8 +303,7 @@ class SARSA(QTable):
         # has q-value 'v' given that 'n_used' channels are already
         # in use at that cell.
         self.qvals = np.zeros(
-            (self.rows, self.cols, self.n_channels, self.n_channels),
-            dtype=np.float32)
+            (self.rows, self.cols, self.n_channels, self.n_channels), dtype=np.float32)
         self.load_qvals()
         if self.lmbda is not None:
             # Eligibility traces
@@ -338,8 +328,7 @@ class TT_SARSA(QTable):
         self.load_qvals()
         if self.lmbda is not None:
             # Eligibility traces
-            self.el_traces = np.zeros((self.rows, self.cols, self._k,
-                                       self.n_channels))
+            self.el_traces = np.zeros((self.rows, self.cols, self._k, self.n_channels))
 
     def feature_rep(self, cell, n_used):
         return (*cell, min(self.k - 1, n_used))
@@ -395,8 +384,7 @@ class QNetStrat(NetStrat):
         # self.logger.info(f"TF Rand: {ra}")
         if self.batch_size > 1:
             self.update_qval = self.update_qval_experience
-            self.logger.warn("Using experience replay with batch"
-                             f" size of {self.batch_size}")
+            self.logger.warn("Using experience replay with batch" f" size of {self.batch_size}")
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
@@ -411,11 +399,10 @@ class QNetStrat(NetStrat):
         qvals = self.net.forward(grid, cell)
         return qvals[chs]
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch,
-                    next_max_ch):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
-        loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell,
-                             [next_ch], [next_max_ch])
+        loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch],
+                             [next_max_ch])
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
@@ -430,8 +417,7 @@ class QNetStrat(NetStrat):
         if len(self.replaybuffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward(
-            *self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(*self.replaybuffer.sample(self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
@@ -445,8 +431,7 @@ class QLearnNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("QLearnNet", *args, **kwargs)
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, *args,
-                 **kwargs):
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, *args, **kwargs):
         loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
         return loss
 
@@ -457,10 +442,8 @@ class QLearnEligibleNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("QlearnEligibleNet", *args, **kwargs)
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
-                 next_max_ch):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell,
-                                 next_max_ch)
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch, next_max_ch):
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell, next_max_ch)
         return loss
 
 
@@ -470,10 +453,8 @@ class SARSANetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("SARSANet", *args, **kwargs)
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
-                 next_max_ch):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell,
-                                 next_ch)
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch, next_max_ch):
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell, next_ch)
         return loss
 
 
@@ -484,8 +465,7 @@ class ACNetStrat(NetStrat):
         super().__init__(*args, **kwargs)
         self.net = ACNet(pp=self.pp, logger=self.logger)
         self.exp_buffer = ExperienceBuffer()
-        self.logger.info(
-            "Loss legend (scaled): [ total, policy_grad, value_fn, entropy ]")
+        self.logger.info("Loss legend (scaled): [ total, policy_grad, value_fn, entropy ]")
 
     def forward(self, cell, ce_type) -> Tuple[List[float], float]:
         if ce_type == CEvent.END:
@@ -514,8 +494,7 @@ class ACNetStrat(NetStrat):
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, self.grid, next_cell,
-                             next_ch)
+            self.update_qval(grid, cell, ch, reward, self.grid, next_cell, next_ch)
             self.val = next_val
         return next_ch
 
@@ -537,15 +516,13 @@ class ACNetStrat(NetStrat):
                 idx = np.argmin(a_dist[chs])
             else:
                 valid_a_dist = softmax(1 - a_dist[chs])
-                idx = np.random.choice(
-                    np.range(len(valid_a_dist)), p=valid_a_dist)
+                idx = np.random.choice(np.range(len(valid_a_dist)), p=valid_a_dist)
         else:
             if greedy:
                 idx = np.argmax(a_dist[chs])
             else:
                 valid_a_dist = softmax(a_dist[chs])
-                idx = np.random.choice(
-                    np.range(len(valid_a_dist)), p=valid_a_dist)
+                idx = np.random.choice(np.range(len(valid_a_dist)), p=valid_a_dist)
         ch = chs[idx]
         # print(ce_type, a_dist, ch, a_dist[ch], chs)
         # TODO NOTE verify the above
@@ -555,12 +532,10 @@ class ACNetStrat(NetStrat):
             self.logger.error(f"{ce_type}\n{chs}\n{val}\n\n")
             raise Exception
 
-        self.logger.debug(
-            f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        self.logger.debug(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, val)
 
-    def update_qval(self, grid, cell, ch, reward, next_grid, next_cell,
-                    next_ch):
+    def update_qval(self, grid, cell, ch, reward, next_grid, next_cell, next_ch):
         loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
         if np.isinf(loss[0]) or np.isnan(loss[0]):
             self.logger.error(f"Invalid loss: {loss}")
@@ -568,8 +543,7 @@ class ACNetStrat(NetStrat):
         else:
             self.losses.append(loss)
 
-    def update_qval_n_step(self, grid, cell, ch, reward, next_grid, next_cell,
-                           next_ch):
+    def update_qval_n_step(self, grid, cell, ch, reward, next_grid, next_cell, next_ch):
         """
         Update qval for pp['batch_size'] experience tuple.
         """
@@ -577,8 +551,7 @@ class ACNetStrat(NetStrat):
         if len(self.exp_buffer) < self.pp['n_step']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward_gae(*self.exp_buffer.pop(), next_grid,
-                                     next_cell)
+        loss = self.net.backward_gae(*self.exp_buffer.pop(), next_grid, next_cell)
         if np.isinf(loss[0]) or np.isnan(loss[0]):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
@@ -599,12 +572,10 @@ class VNetStrat(NetStrat):
         next_ch, _ = self.optimal_ch(next_ce_type, next_cell)
         if ce_type != CEvent.END and \
            ch is not None and next_ch is not None:
-            self.update_qval(grid, cell, ch, reward, self.grid, next_cell,
-                             next_ch)
+            self.update_qval(grid, cell, ch, reward, self.grid, next_cell, next_ch)
         return next_ch
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch,
-                    next_max_ch):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
         # TODO assert that grid and self.grid only differs by ch in cell
         # assert not (grid == self.grid).all()
@@ -634,8 +605,7 @@ class SinghStrat(VNetStrat):
         else:
             n_elig_self_diff = -1
             n_used_neighs_diff = 1
-        neighs = self.env.grid.neighbors(
-            dist=2, *cell, separate=True, include_self=True)
+        neighs = self.env.grid.neighbors(dist=2, *cell, separate=True, include_self=True)
         fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
         for i, ch in enumerate(chs):
             fgrids[i, neighs[0], neighs[1], ch] += n_used_neighs_diff
@@ -646,8 +616,7 @@ class SinghStrat(VNetStrat):
         return qvals_sparse
 
     def backward(self, grid, reward, next_grid):
-        loss = self.net.backward([self.feature_rep(grid)], reward,
-                                 [self.feature_rep(next_grid)])
+        loss = self.net.backward([self.feature_rep(grid)], reward, [self.feature_rep(next_grid)])
         return loss
 
     def feature_rep(self, grid):
@@ -658,8 +627,7 @@ class SinghStrat(VNetStrat):
         # whether or not the channel is in use by the cell itself??
         assert type(grid) == np.ndarray
         assert grid.shape == self.dims
-        fgrid = np.zeros(
-            (self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
+        fgrid = np.zeros((self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
         # fgrids[:, :, :, self.n_channels] = self.n_channels \
         #     - np.count_nonzero(grids, axis=3)
         for r in range(self.rows):
@@ -669,8 +637,7 @@ class SinghStrat(VNetStrat):
                 n_used = np.count_nonzero(grid[neighs], axis=0)
                 fgrid[r, c, :-1] = n_used
                 # Eligible self
-                eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(
-                    grid, (r, c))
+                eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(grid, (r, c))
                 fgrid[:, :, -1] = self.n_channels - len(eligible_chs)
         return fgrid
 
@@ -685,16 +652,13 @@ class SinghStrat(VNetStrat):
         assert type(grids) == np.ndarray
         if grids.ndim == 3:
             grids = np.expand_dims(grids, axis=0)
-        fgrids = np.zeros(
-            (len(grids), self.rows, self.cols, self.n_channels + 1),
-            dtype=np.int32)
+        fgrids = np.zeros((len(grids), self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
         # fgrids[:, :, :, self.n_channels] = self.n_channels \
         #     - np.count_nonzero(grids, axis=3)
         for r in range(self.rows):
             for c in range(self.cols):
                 neighs = self.env.grid.neighbors(4, r, c, separate=True)
-                n_used = np.count_nonzero(
-                    grids[:, neighs[0], neighs[1]], axis=1)
+                n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
                 fgrids[:, r, c, :-1] = n_used
                 fgrids[:, :, :, self.n_channels] = self.n_channels \
                     - np.count_nonzero(grids, axis=3)

@@ -43,13 +43,11 @@ class Model(object):
         PG_LR = tf.placeholder(tf.float32, [])
         VF_LR = tf.placeholder(tf.float32, [])
 
-        self.model = step_model = policy(
-            sess, ob_space, ac_space, nenvs, 1, nstack, reuse=False)
+        self.model = step_model = policy(sess, ob_space, ac_space, nenvs, 1, nstack, reuse=False)
         self.model2 = train_model = policy(
             sess, ob_space, ac_space, nenvs, nsteps, nstack, reuse=True)
 
-        logpac = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=train_model.pi, labels=A)
+        logpac = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=train_model.pi, labels=A)
         self.logits = logits = train_model.pi
 
         # training loss
@@ -61,8 +59,7 @@ class Model(object):
 
         # Fisher loss construction
         self.pg_fisher = pg_fisher_loss = -tf.reduce_mean(logpac)
-        sample_net = train_model.vf + tf.random_normal(
-            tf.shape(train_model.vf))
+        sample_net = train_model.vf + tf.random_normal(tf.shape(train_model.vf))
         self.vf_fisher = vf_fisher_loss = -vf_fisher_coef * tf.reduce_mean(
             tf.pow(train_model.vf - tf.stop_gradient(sample_net), 2))
         self.joint_fisher = joint_fisher_loss = pg_fisher_loss + vf_fisher_loss
@@ -83,10 +80,8 @@ class Model(object):
                 cold_iter=10,
                 max_grad_norm=max_grad_norm)
 
-            update_stats_op = optim.compute_and_apply_stats(
-                joint_fisher_loss, var_list=params)
-            train_op, q_runner = optim.apply_gradients(
-                list(zip(grads, params)))
+            update_stats_op = optim.compute_and_apply_stats(joint_fisher_loss, var_list=params)
+            train_op, q_runner = optim.apply_gradients(list(zip(grads, params)))
         self.q_runner = q_runner
         self.lr = Scheduler(v=lr, nvalues=total_timesteps, schedule=lrschedule)
 
@@ -95,13 +90,7 @@ class Model(object):
             for step in range(len(obs)):
                 cur_lr = self.lr.value()
 
-            td_map = {
-                train_model.X: obs,
-                A: actions,
-                ADV: advs,
-                R: rewards,
-                PG_LR: cur_lr
-            }
+            td_map = {train_model.X: obs, A: actions, ADV: advs, R: rewards, PG_LR: cur_lr}
             if states != []:
                 td_map[train_model.S] = states
                 td_map[train_model.M] = masks
@@ -155,8 +144,7 @@ class Runner(object):
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones = [], [], [], [], []
         mb_states = self.states
         for n in range(self.nsteps):
-            actions, values, states = self.model.step(self.obs, self.states,
-                                                      self.dones)
+            actions, values, states = self.model.step(self.obs, self.states, self.dones)
             mb_obs.append(np.copy(self.obs))
             mb_actions.append(actions)
             mb_values.append(values)
@@ -171,25 +159,20 @@ class Runner(object):
             mb_rewards.append(rewards)
         mb_dones.append(self.dones)
         # batch of steps to batch of rollouts
-        mb_obs = np.asarray(
-            mb_obs, dtype=np.uint8).swapaxes(1, 0).reshape(
-                self.batch_ob_shape)
+        mb_obs = np.asarray(mb_obs, dtype=np.uint8).swapaxes(1, 0).reshape(self.batch_ob_shape)
         mb_rewards = np.asarray(mb_rewards, dtype=np.float32).swapaxes(1, 0)
         mb_actions = np.asarray(mb_actions, dtype=np.int32).swapaxes(1, 0)
         mb_values = np.asarray(mb_values, dtype=np.float32).swapaxes(1, 0)
         mb_dones = np.asarray(mb_dones, dtype=np.bool).swapaxes(1, 0)
         mb_masks = mb_dones[:, :-1]
         mb_dones = mb_dones[:, 1:]
-        last_values = self.model.value(self.obs, self.states,
-                                       self.dones).tolist()
+        last_values = self.model.value(self.obs, self.states, self.dones).tolist()
         # discount/bootstrap off value fn
-        for n, (rewards, dones, value) in enumerate(
-                zip(mb_rewards, mb_dones, last_values)):
+        for n, (rewards, dones, value) in enumerate(zip(mb_rewards, mb_dones, last_values)):
             rewards = rewards.tolist()
             dones = dones.tolist()
             if dones[-1] == 0:
-                rewards = discount_with_dones(rewards + [value], dones + [0],
-                                              self.gamma)[:-1]
+                rewards = discount_with_dones(rewards + [value], dones + [0], self.gamma)[:-1]
             else:
                 rewards = discount_with_dones(rewards, dones, self.gamma)
             mb_rewards[n] = rewards
@@ -238,12 +221,11 @@ def learn(policy,
     nbatch = nenvs * nsteps
     tstart = time.time()
     coord = tf.train.Coordinator()
-    enqueue_threads = model.q_runner.create_threads(
-        model.sess, coord=coord, start=True)
+    enqueue_threads = model.q_runner.create_threads(model.sess, coord=coord, start=True)
     for update in range(1, total_timesteps // nbatch + 1):
         obs, states, rewards, masks, actions, values = runner.run()
-        policy_loss, value_loss, policy_entropy = model.train(
-            obs, states, rewards, masks, actions, values)
+        policy_loss, value_loss, policy_entropy = model.train(obs, states, rewards, masks, actions,
+                                                              values)
         model.old_obs = obs
         nseconds = time.time() - tstart
         fps = int((update * nbatch) / nseconds)
@@ -258,8 +240,7 @@ def learn(policy,
             logger.record_tabular("explained_variance", float(ev))
             logger.dump_tabular()
 
-        if save_interval and (update % save_interval == 0
-                              or update == 1) and logger.get_dir():
+        if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir():
             savepath = osp.join(logger.get_dir(), 'checkpoint%.5i' % update)
             print('Saving to', savepath)
             model.save(savepath)

@@ -48,8 +48,7 @@ class AC_Network:
     def __init__(self, s_size, a_size, scope, trainer):
         with tf.variable_scope(scope):
             # Input and visual encoding layers
-            self.inputs = tf.placeholder(
-                shape=[None, s_size], dtype=tf.float32)
+            self.inputs = tf.placeholder(shape=[None, s_size], dtype=tf.float32)
             self.imageIn = tf.reshape(self.inputs, shape=[-1, 84, 84, 1])
             self.conv1 = slim.conv2d(
                 activation_fn=tf.nn.elu,
@@ -65,8 +64,7 @@ class AC_Network:
                 kernel_size=[4, 4],
                 stride=[2, 2],
                 padding='VALID')
-            hidden = slim.fully_connected(
-                slim.flatten(self.conv2), 256, activation_fn=tf.nn.elu)
+            hidden = slim.fully_connected(slim.flatten(self.conv2), 256, activation_fn=tf.nn.elu)
 
             # Recurrent network for temporal dependencies
             lstm_cell = tf.contrib.rnn.BasicLSTMCell(256, state_is_tuple=True)
@@ -107,44 +105,35 @@ class AC_Network:
             # and gradient updating.
             if scope != 'global':
                 self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
-                self.actions_onehot = tf.one_hot(
-                    self.actions, a_size, dtype=tf.float32)
+                self.actions_onehot = tf.one_hot(self.actions, a_size, dtype=tf.float32)
                 self.target_v = tf.placeholder(shape=[None], dtype=tf.float32)
-                self.advantages = tf.placeholder(
-                    shape=[None], dtype=tf.float32)
+                self.advantages = tf.placeholder(shape=[None], dtype=tf.float32)
 
-                self.responsible_outputs = tf.reduce_sum(
-                    self.policy * self.actions_onehot, [1])
+                self.responsible_outputs = tf.reduce_sum(self.policy * self.actions_onehot, [1])
 
                 # Loss functions
                 self.value_loss = 0.5 * tf.reduce_sum(
                     tf.square(self.target_v - tf.reshape(self.value, [-1])))
-                self.entropy = -tf.reduce_sum(
-                    self.policy * tf.log(self.policy))
+                self.entropy = -tf.reduce_sum(self.policy * tf.log(self.policy))
                 self.policy_loss = -tf.reduce_sum(
                     tf.log(self.responsible_outputs) * self.advantages)
                 self.loss = 0.5 * self.value_loss + \
                     self.policy_loss - self.entropy * 0.01
 
                 # Get gradients from local network using local losses
-                local_vars = tf.get_collection(
-                    tf.GraphKeys.TRAINABLE_VARIABLES, scope)
+                local_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
                 self.gradients = tf.gradients(self.loss, local_vars)
                 self.var_norms = tf.global_norm(local_vars)
-                grads, self.grad_norms = tf.clip_by_global_norm(
-                    self.gradients, 40.0)
+                grads, self.grad_norms = tf.clip_by_global_norm(self.gradients, 40.0)
 
                 # Apply local gradients to global network
-                global_vars = tf.get_collection(
-                    tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
-                self.apply_grads = trainer.apply_gradients(
-                    zip(grads, global_vars))
+                global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
+                self.apply_grads = trainer.apply_gradients(zip(grads, global_vars))
 
 
 # ### Worker Agent
 class Worker():
-    def __init__(self, game, name, s_size, a_size, trainer, model_path,
-                 global_episodes):
+    def __init__(self, game, name, s_size, a_size, trainer, model_path, global_episodes):
         self.name = "worker_" + str(name)
         self.number = name
         self.model_path = model_path
@@ -154,8 +143,7 @@ class Worker():
         self.episode_rewards = []
         self.episode_lengths = []
         self.episode_mean_values = []
-        self.summary_writer = tf.summary.FileWriter("train_" + str(
-            self.number))
+        self.summary_writer = tf.summary.FileWriter("train_" + str(self.number))
 
         # Create the local copy of the network and the
         # tensorflow op to copy global paramters to local network
@@ -196,14 +184,12 @@ class Worker():
         }
         v_l, p_l, e_l, g_n, v_n, self.batch_rnn_state, _ = sess.run(
             [
-                self.local_AC.value_loss, self.local_AC.policy_loss,
-                self.local_AC.entropy, self.local_AC.grad_norms,
-                self.local_AC.var_norms, self.local_AC.state_out,
+                self.local_AC.value_loss, self.local_AC.policy_loss, self.local_AC.entropy,
+                self.local_AC.grad_norms, self.local_AC.var_norms, self.local_AC.state_out,
                 self.local_AC.apply_grads
             ],
             feed_dict=feed_dict)
-        return v_l / len(rollout), p_l / len(rollout), e_l / len(
-            rollout), g_n, v_n
+        return v_l / len(rollout), p_l / len(rollout), e_l / len(rollout), g_n, v_n
 
     def work(self, max_episode_length, gamma, sess, coord, saver):
         episode_count = sess.run(self.global_episodes)
@@ -229,10 +215,7 @@ class Worker():
                     # Take an action using probabilities from policy
                     # network output.
                     a_dist, v, rnn_state = sess.run(
-                        [
-                            self.local_AC.policy, self.local_AC.value,
-                            self.local_AC.state_out
-                        ],
+                        [self.local_AC.policy, self.local_AC.value, self.local_AC.state_out],
                         feed_dict={
                             self.local_AC.inputs: [s],
                             self.local_AC.state_in[0]: rnn_state[0],
@@ -273,8 +256,7 @@ class Worker():
                                 self.local_AC.state_in[0]: rnn_state[0],
                                 self.local_AC.state_in[1]: rnn_state[1]
                             })[0, 0]
-                        v_l, p_l, e_l, g_n, v_n = self.train(
-                            episode_buffer, sess, gamma, v1)
+                        v_l, p_l, e_l, g_n, v_n = self.train(episode_buffer, sess, gamma, v1)
                         episode_buffer = []
                         sess.run(self.update_local_ops)
                     if d is True:
@@ -287,37 +269,28 @@ class Worker():
                 # Update the network using the episode buffer at the end
                 # of the episode.
                 if len(episode_buffer) != 0:
-                    v_l, p_l, e_l, g_n, v_n = self.train(
-                        episode_buffer, sess, gamma, 0.0)
+                    v_l, p_l, e_l, g_n, v_n = self.train(episode_buffer, sess, gamma, 0.0)
 
                 # Periodically save gifs of episodes, model parameters,
                 # and summary statistics.
                 if episode_count % 5 == 0 and episode_count != 0:
                     if episode_count % 250 == 0 and self.name == 'worker_0':
-                        saver.save(sess, self.model_path + '/model-' +
-                                   str(episode_count) + '.cptk')
+                        saver.save(sess,
+                                   self.model_path + '/model-' + str(episode_count) + '.cptk')
                         print("Saved Model")
 
                     mean_reward = np.mean(self.episode_rewards[-5:])
                     mean_length = np.mean(self.episode_lengths[-5:])
                     mean_value = np.mean(self.episode_mean_values[-5:])
                     summary = tf.Summary()
-                    summary.value.add(
-                        tag='Perf/Reward', simple_value=float(mean_reward))
-                    summary.value.add(
-                        tag='Perf/Length', simple_value=float(mean_length))
-                    summary.value.add(
-                        tag='Perf/Value', simple_value=float(mean_value))
-                    summary.value.add(
-                        tag='Losses/Value Loss', simple_value=float(v_l))
-                    summary.value.add(
-                        tag='Losses/Policy Loss', simple_value=float(p_l))
-                    summary.value.add(
-                        tag='Losses/Entropy', simple_value=float(e_l))
-                    summary.value.add(
-                        tag='Losses/Grad Norm', simple_value=float(g_n))
-                    summary.value.add(
-                        tag='Losses/Var Norm', simple_value=float(v_n))
+                    summary.value.add(tag='Perf/Reward', simple_value=float(mean_reward))
+                    summary.value.add(tag='Perf/Length', simple_value=float(mean_length))
+                    summary.value.add(tag='Perf/Value', simple_value=float(mean_value))
+                    summary.value.add(tag='Losses/Value Loss', simple_value=float(v_l))
+                    summary.value.add(tag='Losses/Policy Loss', simple_value=float(p_l))
+                    summary.value.add(tag='Losses/Entropy', simple_value=float(e_l))
+                    summary.value.add(tag='Losses/Grad Norm', simple_value=float(g_n))
+                    summary.value.add(tag='Losses/Var Norm', simple_value=float(v_n))
                     self.summary_writer.add_summary(summary, episode_count)
 
                     self.summary_writer.flush()
@@ -336,19 +309,14 @@ model_path = './model'
 tf.reset_default_graph()
 
 with tf.device("/cpu:0"):
-    global_episodes = tf.Variable(
-        0, dtype=tf.int32, name='global_episodes', trainable=False)
+    global_episodes = tf.Variable(0, dtype=tf.int32, name='global_episodes', trainable=False)
     trainer = tf.train.AdamOptimizer(learning_rate=1e-4)
-    master_network = AC_Network(s_size, a_size, 'global',
-                                None)  # Generate global network
-    num_workers = multiprocessing.cpu_count(
-    )  # Set workers to number of available CPU threads
+    master_network = AC_Network(s_size, a_size, 'global', None)  # Generate global network
+    num_workers = multiprocessing.cpu_count()  # Set workers to number of available CPU threads
     workers = []
     # Create worker classes
     for i in range(num_workers):
-        workers.append(
-            Worker(None, i, s_size, a_size, trainer, model_path,
-                   global_episodes))
+        workers.append(Worker(None, i, s_size, a_size, trainer, model_path, global_episodes))
     saver = tf.train.Saver(max_to_keep=5)
 
 with tf.Session() as sess:

@@ -68,19 +68,14 @@ def get_init_by_name(name):
 
 
 def get_act_fn_by_name(name):
-    act_fns = {
-        "relu": tf.nn.relu,
-        "elu": tf.nn.elu,
-        "leaky_relu": tf.nn.leaky_relu
-    }
+    act_fns = {"relu": tf.nn.relu, "elu": tf.nn.elu, "leaky_relu": tf.nn.leaky_relu}
     return act_fns[name]
 
 
 def get_optimizer_by_name(name, l_rate):
     optimizers = {
         "sgd": tf.train.GradientDescentOptimizer(learning_rate=l_rate),
-        "sgd-m": tf.train.MomentumOptimizer(
-            learning_rate=l_rate, momentum=0.95),
+        "sgd-m": tf.train.MomentumOptimizer(learning_rate=l_rate, momentum=0.95),
         "adam": tf.train.AdamOptimizer(learning_rate=l_rate),
         "rmsprop": tf.train.RMSPropOptimizer(learning_rate=l_rate)
     }
@@ -126,8 +121,7 @@ def prep_data_cells(cells):
     if type(cells) == tuple:
         cells = [cells]
     if type(cells[0]) != tuple:
-        raise Exception(
-            "WHOAH WHOAH using np arrays for indexing works differently")
+        raise Exception("WHOAH WHOAH using np arrays for indexing works differently")
     oh_cells = np.zeros((len(cells), 7, 7), dtype=np.float16)
     # One-hot grid encoding
     for i, cell in enumerate(cells):
@@ -138,8 +132,7 @@ def prep_data_cells(cells):
     return oh_cells
 
 
-def prep_data(grids, cells, actions, rewards, next_grids=None,
-              next_cells=None):
+def prep_data(grids, cells, actions, rewards, next_grids=None, next_cells=None):
     assert type(actions) == np.ndarray
     assert type(rewards) == np.ndarray
     actions = actions.astype(np.int32)

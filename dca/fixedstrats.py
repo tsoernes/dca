@@ -43,8 +43,7 @@ class FixedAssign(Strat):
         self.get_init_action = self.get_action
 
         # Nominal channels for each cell
-        self.nom_chs = np.zeros(
-            (self.rows, self.cols, self.n_channels), dtype=bool)
+        self.nom_chs = np.zeros((self.rows, self.cols, self.n_channels), dtype=bool)
         self.assign_chs()
 
     def get_action(self, next_cevent, *args):

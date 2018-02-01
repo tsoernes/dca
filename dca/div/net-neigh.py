@@ -25,45 +25,34 @@ class NeighNet:
             padding="same",  # pad with 0's
             activation=tf.nn.relu)
         conv1_flat = tf.contrib.layers.flatten(conv1)
-        logits = tf.layers.dense(
-            inputs=conv1_flat, units=1)
+        logits = tf.layers.dense(inputs=conv1_flat, units=1)
         # Probability of channel not being free for assignment,
         # i.e. it is in use in cell or its neighs2
         inuse = tf.nn.sigmoid(logits, name="sigmoid_tensor")
         self.pred_class = tf.greater(inuse, tf.constant(0.5))
-        predictions = {
-            "class": tf.greater(inuse, tf.constant(0.5)),
-            "probability": inuse
-        }
+        predictions = {"class": tf.greater(inuse, tf.constant(0.5)), "probability": inuse}
 
         if mode == tf.estimator.ModeKeys.PREDICT:
-            return tf.estimator.EstimatorSpec(
-                mode=mode, predictions=predictions)
+            return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-        loss = tf.losses.sigmoid_cross_entropy(
-            multi_class_labels=labels,
-            logits=logits)
+        loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=logits)
         trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
 
         if mode == tf.estimator.ModeKeys.TRAIN:
-            train_op = trainer.minimize(
-                loss=loss,
-                global_step=tf.train.get_global_step())
-            return tf.estimator.EstimatorSpec(
-                mode=mode, loss=loss, train_op=train_op)
+            train_op = trainer.minimize(loss=loss, global_step=tf.train.get_global_step())
+            return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
         elif mode == tf.estimator.ModeKeys.EVAL:
             eval_metric_ops = {
-                "accuracy": tf.metrics.accuracy(
-                    labels=labels,
-                    predictions=predictions["class"])}
+                "accuracy": tf.metrics.accuracy(labels=labels, predictions=predictions["class"])
+            }
             return tf.estimator.EstimatorSpec(
                 mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
     def forward(self, chgrid, cell):
         cg, ce, _ = self.prep_data(chgrid, cell)
         pred_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x={"input_grid": cg, "input_cell": ce},
-            shuffle=False)
+            x={"input_grid": cg,
+               "input_cell": ce}, shuffle=False)
         preds = self.classifier.predict(input_fn=pred_input_fn)
         prediction = list(p["class"][0] for p in preds)
         return prediction[0]
@@ -116,30 +105,19 @@ class NeighNet:
         chgridsneg, oh_cells, targets = self.prep_data(chgrids, cells, targets)
         # self.verify_data(chgrids, cells, targets)
         split = -10000
-        train_data = {"input_grid": chgridsneg[:split],
-                      "input_cell": oh_cells[:split]}
-        test_data = {"input_grid": chgridsneg[split:],
-                     "input_cell": oh_cells[split:]}
+        train_data = {"input_grid": chgridsneg[:split], "input_cell": oh_cells[:split]}
+        test_data = {"input_grid": chgridsneg[split:], "input_cell": oh_cells[split:]}
         test_targets = targets[split:]
 
         # Train the model
         if do_train:
             train_input_fn = tf.estimator.inputs.numpy_input_fn(
-                x=train_data,
-                y=targets[:split],
-                batch_size=100,
-                num_epochs=None,
-                shuffle=True)
-            self.classifier.train(
-                input_fn=train_input_fn,
-                steps=50000)
+                x=train_data, y=targets[:split], batch_size=100, num_epochs=None, shuffle=True)
+            self.classifier.train(input_fn=train_input_fn, steps=50000)
 
         # Evaluate the model and print results
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-            x=test_data,
-            y=test_targets,
-            num_epochs=1,
-            shuffle=False)
+            x=test_data, y=test_targets, num_epochs=1, shuffle=False)
         eval_results = self.classifier.evaluate(input_fn=eval_input_fn)
         print(eval_results)
 

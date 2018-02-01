@@ -2,8 +2,7 @@ def all_neighs(self):
     # neighs = tf.zeros((self.rows, self.cols, 19, 2))
     # mask = None
     mesh = tf.transpose(
-        tf.meshgrid(tf.range(self.rows), tf.range(self.cols), indexing="ij"),
-        [1, 2, 0])
+        tf.meshgrid(tf.range(self.rows), tf.range(self.cols), indexing="ij"), [1, 2, 0])
     res = tf.map_fn(self.neighbors2, mesh)
 
     init_op = tf.global_variables_initializer()
@@ -16,8 +15,7 @@ def all_neighs(self):
 
 def n2run(self):
     mesh = tf.transpose(
-        tf.meshgrid(tf.range(self.rows), tf.range(self.cols), indexing="ij"),
-        [1, 2, 0])
+        tf.meshgrid(tf.range(self.rows), tf.range(self.cols), indexing="ij"), [1, 2, 0])
     tf_cell = mesh[1][1]
     fn = self.neighbors2(tf_cell)
     init_op = tf.global_variables_initializer()
@@ -58,11 +56,9 @@ def neighbors2(self, cell):
     # tf.scatter_nd_update(oh_idxs, [[r_low, c_low]], [True])
 
     cross1 = tf.cond(
-        tf.equal(tf.mod(col, 2), 0), lambda: tf.subtract(row, 2),
-        lambda: tf.add(row, 2))
+        tf.equal(tf.mod(col, 2), 0), lambda: tf.subtract(row, 2), lambda: tf.add(row, 2))
     cross2 = tf.cond(
-        tf.equal(tf.mod(col, 2), 0), lambda: tf.add(row, 2),
-        lambda: tf.subtract(row, 2))
+        tf.equal(tf.mod(col, 2), 0), lambda: tf.add(row, 2), lambda: tf.subtract(row, 2))
 
     oh_idxs[row, col].assign(False)
     oh_idxs[cross1, col - 2].assign(False)
@@ -83,8 +79,7 @@ def forward_ch():
 
     def neighbors2(self, cell):
         return tf.boolean_mask(
-            tf.gather_nd(self.neighs2, cell),
-            tf.gather_nd(self.neighs2mask, cell))
+            tf.gather_nd(self.neighs2, cell), tf.gather_nd(self.neighs2mask, cell))
 
     def forward_ch(self, ce_type, grid, cell, features):
         """
@@ -184,7 +179,6 @@ def forward_ch():
         random_actions = tf.random_uniform(
             tf.stack([batch_size]), maxval=self.n_channels, dtype=tf.int64)
         choose_random = tf.random_uniform(
-            tf.stack([batch_size]), minval=0, maxval=1,
-            dtype=tf.float32) < self.epsilon
+            tf.stack([batch_size]), minval=0, maxval=1, dtype=tf.float32) < self.epsilon
         # Epsilon-greedy action
         self.q_eps_amax = tf.where(choose_random, random_actions, self.q_amax)

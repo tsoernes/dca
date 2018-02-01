@@ -7,10 +7,7 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
-from nets.utils import (get_act_fn_by_name, get_init_by_name,
-                        get_optimizer_by_name)
-
-
+from nets.utils import (get_act_fn_by_name, get_init_by_name, get_optimizer_by_name)
 """
 possible data prep: set unused channels to -1,
 OR make it unit gaussian. refer to alphago paper -- did they prep
@@ -120,12 +117,10 @@ class Net:
     def _build_default_trainer(self, var_list=None):
         """If var_list is not specified, defaults to GraphKey.TRAINABLE_VARIABLES"""
         if self.pp['max_grad_norm'] is not None:
-            gradients, trainable_vars = zip(*self.trainer.compute_gradients(
-                self.loss, var_list=var_list))
-            clipped_grads, grad_norms = tf.clip_by_global_norm(
-                gradients, self.pp['max_grad_norm'])
-            do_train = self.trainer.apply_gradients(
-                zip(clipped_grads, trainable_vars))
+            gradients, trainable_vars = zip(
+                *self.trainer.compute_gradients(self.loss, var_list=var_list))
+            clipped_grads, grad_norms = tf.clip_by_global_norm(gradients, self.pp['max_grad_norm'])
+            do_train = self.trainer.apply_gradients(zip(clipped_grads, trainable_vars))
         else:
             do_train = self.trainer.minimize(self.loss, var_list=var_list)
         return do_train
@@ -149,9 +144,8 @@ class Net:
         n_path = path
         if os.path.isdir(path):
             while inp not in ["Y", "N", "A"]:
-                inp = input(
-                    "A model exists in {path}. Overwrite (Y), Don't save (N), "
-                    "or Save to directory (A): ")
+                inp = input("A model exists in {path}. Overwrite (Y), Don't save (N), "
+                            "or Save to directory (A): ")
             if inp == "A":
                 i = 0
                 while os.path.isdir(n_path):
@@ -196,8 +190,7 @@ class Net:
                 # self.next_grid: data['next_grids'],
                 # self.next_cell: data['next_cells']
             }
-            _, loss, summary = self.sess.run(
-                [self.do_train, self.loss, self.summaries], curr_data)
+            _, loss, summary = self.sess.run([self.do_train, self.loss, self.summaries], curr_data)
             if i % 50 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 # run_metadata = tf.RunMetadata()
@@ -239,10 +232,7 @@ class Net:
             # Get expected returns following a greedy policy from the
             # next state: max a': Q(s', a', w_old)
             data = next(self.test_gen)
-            next_data = {
-                self.grid: data['next_grids'],
-                self.cell: data['next_cells']
-            }
+            next_data = {self.grid: data['next_grids'], self.cell: data['next_cells']}
             next_q_maxs = self.sess.run(self.q_max, next_data)
             r = data['rewards']
             q_targets = r + self.gamma * next_q_maxs
@@ -252,15 +242,13 @@ class Net:
                 self.action: data['actions'],
                 self.target_q: q_targets
             }
-            loss, summary = self.sess.run([self.loss, self.summaries],
-                                          curr_data)
+            loss, summary = self.sess.run([self.loss, self.summaries], curr_data)
             self.eval_writer.add_summary(summary, i)
             eval_losses.append(loss)
             if np.isnan(loss) or np.isinf(loss):
                 self.logger.error(f"Invalid loss: {loss}")
                 break
-        self.logger.error(
-            f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
+        self.logger.error(f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
     def forward(self, grid, cell):
         raise NotImplementedError
@@ -270,8 +258,7 @@ class Net:
             self.pp['batch_size'] = bs
             t = time.time()
             self.train()
-            self.logger.error(
-                f"Batch size {bs} took {time.time()-t:.2f} seconds")
+            self.logger.error(f"Batch size {bs} took {time.time()-t:.2f} seconds")
 
     def rand_uniform(self):
         """Used for checking if random seeds are set/working"""
@@ -281,12 +268,8 @@ class Net:
 
     @staticmethod
     def _get_trainable_vars(scope):
-        trainable_vars = tf.get_collection(
-            tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
-        trainable_vars_by_name = {
-            var.name[len(scope.name):]: var
-            for var in trainable_vars
-        }
+        trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
+        trainable_vars_by_name = {var.name[len(scope.name):]: var for var in trainable_vars}
         return trainable_vars_by_name
 
 

@@ -76,10 +76,9 @@ class Stats:
             self.block_probs.append(block_prob)
             block_prob_cum = self.n_rejected / (self.n_incoming + 1)
             self.block_probs_cum.append(block_prob_cum)
-            self.logger.info(
-                f"\nBlocking probability events"
-                f" {self.i-niter}-{self.i}:"
-                f" {block_prob:.4f}, cumulative {block_prob_cum:.4f}")
+            self.logger.info(f"\nBlocking probability events"
+                             f" {self.i-niter}-{self.i}:"
+                             f" {block_prob:.4f}, cumulative {block_prob_cum:.4f}")
             self.n_curr_rejected = 0
             self.n_curr_incoming = 0
 
@@ -112,14 +111,13 @@ class Stats:
         delta = self.n_incoming + self.n_handoffs \
             - self.n_rejected - self.n_handoffs_rejected - self.n_ended
         if delta != n_inprogress:
-            self.logger.error(
-                f"\nSome calls were lost. Counted in progress {delta}. "
-                f" Actual in progress: {n_inprogress}"
-                f"\nIncoming: {self.n_incoming}"
-                f"\nIncoming handoffs: {self.n_handoffs}"
-                f"\nRejected: {self.n_rejected}"
-                f"\nRejected handoffs: {self.n_handoffs_rejected}"
-                f"\nEnded: {self.n_ended}")
+            self.logger.error(f"\nSome calls were lost. Counted in progress {delta}. "
+                              f" Actual in progress: {n_inprogress}"
+                              f"\nIncoming: {self.n_incoming}"
+                              f"\nIncoming handoffs: {self.n_handoffs}"
+                              f"\nRejected: {self.n_rejected}"
+                              f"\nRejected handoffs: {self.n_handoffs_rejected}"
+                              f"\nEnded: {self.n_ended}")
         t = time.time() - self.start_time
         m, s = map(int, divmod(t, 60))
         self.logger.warn(f"\nSimulation duration: {self.t/60:.2f} sim hours,"
@@ -129,14 +127,12 @@ class Stats:
                          " events/second")
         self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         # Avoid zero divisions by adding 1 do dividers
-        self.block_prob_cum_hoff = self.n_handoffs_rejected / (
-            self.n_handoffs + 1)
+        self.block_prob_cum_hoff = self.n_handoffs_rejected / (self.n_handoffs + 1)
         self.logger.error(f"\nT{self.pid} Blocking probability:"
                           f" {self.block_prob_cum:.4f} for new calls, "
                           f"{self.block_prob_cum_hoff:.4f} for handoffs")
-        self.logger.warn(
-            f"\nAverage number of calls in progress when blocking: "
-            f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")
+        self.logger.warn(f"\nAverage number of calls in progress when blocking: "
+                         f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")
 
         if self.pp['do_plot']:
             self.plot()

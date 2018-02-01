@@ -20,12 +20,9 @@ def neighbors(row, col):
         cross2 = row - 2
     for r in range(r_low, r_hi + 1):
         for c in range(c_low, c_hi + 1):
-            if not ((r, c) == (row, col) or
-                    (r, c) == (cross1, col - 2) or
-                    (r, c) == (cross1, col - 1) or
-                    (r, c) == (cross1, col + 1) or
-                    (r, c) == (cross1, col + 2) or
-                    (r, c) == (cross2, col - 2) or
+            if not ((r, c) == (row, col) or (r, c) == (cross1, col - 2) or
+                    (r, c) == (cross1, col - 1) or (r, c) == (cross1, col + 1) or
+                    (r, c) == (cross1, col + 2) or (r, c) == (cross2, col - 2) or
                     (r, c) == (cross2, col + 2)):
                 idxs.append((r, c))
 
@@ -50,7 +47,7 @@ def neighbors2all():
                 cross1 = row + 2
                 cross2 = row - 2
             oh_idxs = np.zeros((rows + 2, cols + 2), dtype=np.bool)
-            oh_idxs[r_low: r_hi + 1, c_low: c_hi + 1] = True
+            oh_idxs[r_low:r_hi + 1, c_low:c_hi + 1] = True
 
             oh_idxs[row, col] = False
             oh_idxs[cross1, col - 2] = False
@@ -79,7 +76,7 @@ def neighbors2(row, col):
         cross1 = row + 2
         cross2 = row - 2
     oh_idxs = np.zeros((rows + 2, cols + 2), dtype=np.bool)
-    oh_idxs[r_low: r_hi + 1, c_low: c_hi + 1] = True
+    oh_idxs[r_low:r_hi + 1, c_low:c_hi + 1] = True
 
     oh_idxs[row, col] = False
     oh_idxs[cross1, col - 2] = False

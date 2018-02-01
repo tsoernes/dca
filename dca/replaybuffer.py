@@ -46,13 +46,11 @@ class ExperienceBuffer_juliani():
     def add(self, experience):
         "Expect nested array of size 5, e.g. [[0,1,2,3,4,5]]"
         if len(self.buffer) + len(experience) >= self.buffer_size:
-            self.buffer[0:(
-                len(experience) + len(self.buffer)) - self.buffer_size] = []
+            self.buffer[0:(len(experience) + len(self.buffer)) - self.buffer_size] = []
         self.buffer.extend(experience)
 
     def sample(self, size):
-        return np.reshape(
-            np.array(random.sample(self.buffer, size)), [size, 5])
+        return np.reshape(np.array(random.sample(self.buffer, size)), [size, 5])
 
 
 class ReplayBuffer():
@@ -90,13 +88,11 @@ class ReplayBuffer():
 
     def _encode_sample(self, idxes):
         n_samples = len(idxes)
-        grids = np.zeros(
-            (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
+        grids = np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
         cells = []
         actions = np.zeros(n_samples, dtype=np.int32)
         rewards = np.zeros(n_samples, dtype=np.float32)
-        next_grids = np.zeros(
-            (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
+        next_grids = np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
         next_cells = []
         has_next = len(self._storage[0]) > 4
         for i, j in enumerate(idxes):
@@ -129,10 +125,7 @@ class ReplayBuffer():
         """
         if include_freshest:
             batch_size -= 1
-        idxs = [
-            random.randint(0, len(self._storage) - 1)
-            for _ in range(batch_size)
-        ]
+        idxs = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
         if include_freshest:
             idxs.append(len(self._storage) - 1)
         return self._encode_sample(idxs)
@@ -190,8 +183,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         res = []
         for _ in range(batch_size):
             # TODO(szymon): should we ensure no repeats?
-            mass = random.random() * self._it_sum.sum(0,
-                                                      len(self._storage) - 1)
+            mass = random.random() * self._it_sum.sum(0, len(self._storage) - 1)
             idx = self._it_sum.find_prefixsum_idx(mass)
             res.append(idx)
         return res
@@ -305,13 +297,11 @@ class SegmentTree(object):
             return self._reduce_helper(start, end, 2 * node, node_start, mid)
         else:
             if mid + 1 <= start:
-                return self._reduce_helper(start, end, 2 * node + 1, mid + 1,
-                                           node_end)
+                return self._reduce_helper(start, end, 2 * node + 1, mid + 1, node_end)
             else:
                 return self._operation(
                     self._reduce_helper(start, mid, 2 * node, node_start, mid),
-                    self._reduce_helper(mid + 1, end, 2 * node + 1, mid + 1,
-                                        node_end))
+                    self._reduce_helper(mid + 1, end, 2 * node + 1, mid + 1, node_end))
 
     def reduce(self, start=0, end=None):
         """Returns result of applying `self.operation`
@@ -344,8 +334,7 @@ class SegmentTree(object):
         self._value[idx] = val
         idx //= 2
         while idx >= 1:
-            self._value[idx] = self._operation(self._value[2 * idx],
-                                               self._value[2 * idx + 1])
+            self._value[idx] = self._operation(self._value[2 * idx], self._value[2 * idx + 1])
             idx //= 2
 
     def __getitem__(self, idx):

@@ -20,12 +20,9 @@ class SinghNet(Net):
         #     name="free_self")
         # self.n_used_neighs = tf.placeholder(
         #     shape=gridshape, dtype=tf.float32, name="used_neighs")
-        self.value_target = tf.placeholder(
-            shape=[None, 1], dtype=tf.float32, name="value_target")
+        self.value_target = tf.placeholder(shape=[None, 1], dtype=tf.float32, name="value_target")
         self.freps = tf.placeholder(
-            shape=[
-                None, self.pp['rows'], self.pp['cols'], self.n_channels + 1
-            ],
+            shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
             dtype=tf.float32,
             name="feature_representations")
 

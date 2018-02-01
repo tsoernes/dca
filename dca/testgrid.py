@@ -8,8 +8,7 @@ from grid import BDCLGrid, FixedGrid, Grid
 
 class TestGrid(unittest.TestCase):
     def setUp(self):
-        self.grid = Grid(
-            rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
+        self.grid = Grid(rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
 
     def test_neighbors1(self):
         neighs = self.grid.neighbors1
@@ -115,8 +114,7 @@ class TestGrid(unittest.TestCase):
 
 class TestFixedGrid(unittest.TestCase):
     def setUp(self):
-        self.grid = FixedGrid(
-            rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
+        self.grid = FixedGrid(rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
 
     def _li_set_eq(self, targ, act):
         self.assertSetEqual(set(targ), set(act))
@@ -149,23 +147,20 @@ class TestFixedGrid(unittest.TestCase):
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
                 neighs = self.grid.neighbors2(r, c)
-                f = np.bitwise_or(self.grid.state[r][c],
-                                  self.grid.state[neighs[0]])
+                f = np.bitwise_or(self.grid.state[r][c], self.grid.state[neighs[0]])
                 for n in neighs[1:]:
                     f = np.bitwise_or(f, self.grid.state[n])
                 # There should not be any channels that are free
                 # in the cell (r, c) and all of its neighbors
                 if np.any(f == 0):
                     self.grid.print_neighs2(r, c)
-                    self.assertTrue(False,
-                                    "Grid not maximum utilized under FA")
+                    self.assertTrue(False, "Grid not maximum utilized under FA")
 
 
 # class TestBDCLGrid(unittest.TestCase):
 class TestBDCLGrid():
     def setUp(self):
-        self.grid = BDCLGrid(
-            rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
+        self.grid = BDCLGrid(rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
 
     def _li_set_eq(self, targ, act):
         self.assertSetEqual(set(targ), set(act))
@@ -173,16 +168,12 @@ class TestBDCLGrid():
     def test_cochannel_cells(self):
         raise NotImplementedError  # not implemented correctly
         self.grid._partition_cells()
-        self._li_set_eq(
-            self.grid.cochannel_cells((3, 2), (3, 3)), [(1, 3), (3, 5)])
-        self._li_set_eq(
-            self.grid.cochannel_cells((3, 2), (4, 3)), [(3, 5), (5, 4)])
-        self._li_set_eq(
-            self.grid.cochannel_cells((3, 2), (4, 2)), [(5, 4), (6, 1)])
+        self._li_set_eq(self.grid.cochannel_cells((3, 2), (3, 3)), [(1, 3), (3, 5)])
+        self._li_set_eq(self.grid.cochannel_cells((3, 2), (4, 3)), [(3, 5), (5, 4)])
+        self._li_set_eq(self.grid.cochannel_cells((3, 2), (4, 2)), [(5, 4), (6, 1)])
         self._li_set_eq(self.grid.cochannel_cells((3, 2), (4, 1)), [(6, 1)])
         self._li_set_eq(self.grid.cochannel_cells((3, 2), (3, 1)), [(1, 0)])
-        self._li_set_eq(
-            self.grid.cochannel_cells((3, 2), (2, 2)), [(1, 0), (1, 3)])
+        self._li_set_eq(self.grid.cochannel_cells((3, 2), (2, 2)), [(1, 0), (1, 3)])
 
 
 if __name__ == '__main__':

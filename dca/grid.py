@@ -12,8 +12,7 @@ class Grid:
         self.n_channels = n_channels
         self.logger = logger
 
-        self.state = np.zeros(
-            (self.rows, self.cols, self.n_channels), dtype=bool)
+        self.state = np.zeros((self.rows, self.cols, self.n_channels), dtype=bool)
         self.labels = np.zeros((self.rows, self.cols), dtype=int)
         self._partition_cells()
 
@@ -92,8 +91,7 @@ class Grid:
             targ_val = 0
         else:
             targ_val = 1
-        grids = np.repeat(
-            np.expand_dims(np.copy(self.state), axis=0), len(chs), axis=0)
+        grids = np.repeat(np.expand_dims(np.copy(self.state), axis=0), len(chs), axis=0)
         for i, ch in enumerate(chs):
             grids[i][cell][ch] = targ_val
         assert grids.shape == (len(chs), self.rows, self.cols, self.n_channels)
@@ -113,11 +111,11 @@ class RectOffsetGrid(Grid):
         not including self. The indexes may not be within grid.
         """
         if col % 2 == 0:
-            return [(row - 1, col), (row, col + 1), (row + 1, col + 1),
-                    (row + 1, col), (row + 1, col - 1), (row, col - 1)]
+            return [(row - 1, col), (row, col + 1), (row + 1, col + 1), (row + 1, col),
+                    (row + 1, col - 1), (row, col - 1)]
         else:
-            return [(row - 1, col), (row - 1, col + 1), (row, col + 1),
-                    (row + 1, col), (row, col - 1), (row - 1, col - 1)]
+            return [(row - 1, col), (row - 1, col + 1), (row, col + 1), (row + 1, col),
+                    (row, col - 1), (row - 1, col - 1)]
 
     @functools.lru_cache(maxsize=None)
     def neighbors1(self, row, col):
@@ -136,8 +134,8 @@ class RectOffsetGrid(Grid):
             cross = row + 1
         for r in range(r_low, r_hi + 1):
             for c in range(c_low, c_hi + 1):
-                if not ((r, c) == (cross, col - 1) or
-                        (r, c) == (cross, col + 1) or (r, c) == (row, col)):
+                if not ((r, c) == (cross, col - 1) or (r, c) == (cross, col + 1) or
+                        (r, c) == (row, col)):
                     idxs.append((r, c))
         return idxs
 
@@ -169,10 +167,8 @@ class RectOffsetGrid(Grid):
         for r in range(r_low, r_hi + 1):
             for c in range(c_low, c_hi + 1):
                 if not ((r, c) == (row, col) or (r, c) == (cross1, col - 2) or
-                        (r, c) == (cross1, col - 1) or
-                        (r, c) == (cross1, col + 1) or
-                        (r, c) == (cross1, col + 2) or
-                        (r, c) == (cross2, col - 2) or
+                        (r, c) == (cross1, col - 1) or (r, c) == (cross1, col + 1) or
+                        (r, c) == (cross1, col + 2) or (r, c) == (cross2, col - 2) or
                         (r, c) == (cross2, col + 2)):
                     if separate:
                         rs.append(r)
@@ -207,8 +203,7 @@ class RectOffsetGrid(Grid):
                 else:
                     cross1 = row + 2
                     cross2 = row - 2
-                oh_idxs = np.zeros(
-                    (self.rows + 2, self.cols + 2), dtype=np.bool)
+                oh_idxs = np.zeros((self.rows + 2, self.cols + 2), dtype=np.bool)
                 oh_idxs[r_low:r_hi + 1, c_low:c_hi + 1] = True
 
                 oh_idxs[row, col] = False
@@ -266,8 +261,7 @@ class RectOffsetGrid(Grid):
             while (center[0] <= self.cols) and (center[1] >= -1):
                 # Label cells 0..6 with given center as 0
                 label(0, *center)
-                for i, neigh in enumerate(
-                        self.neighbors1sparse(center[1], center[0])):
+                for i, neigh in enumerate(self.neighbors1sparse(center[1], center[0])):
                     label(i + 1, neigh[1], neigh[0])
                 center = right_up(*center)
             center = down_left(*first_row_center)
@@ -292,8 +286,8 @@ class RhombusAxialGrid(Grid):
         idxs = []
         for r in range(row - 1, row + 2):
             for c in range(col - 1, col + 2):
-                if not ((r, c) == (row - 1, col - 1) or
-                        (r, c) == (row + 1, col + 1) or (r, c) == (row, col)):
+                if not ((r, c) == (row - 1, col - 1) or (r, c) == (row + 1, col + 1) or
+                        (r, c) == (row, col)):
                     idxs.append((r, c))
         return idxs
 
@@ -314,8 +308,7 @@ class RhombusAxialGrid(Grid):
         Returns a list with indices of neighbors within a radius of 2,
         not including self
         """
-        return RhombusAxialGrid.neighbors(
-            2, row, col, separate=separate, include_self=False)
+        return RhombusAxialGrid.neighbors(2, row, col, separate=separate, include_self=False)
 
     @staticmethod
     def hex_distance(a, b):
@@ -325,13 +318,7 @@ class RhombusAxialGrid(Grid):
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def neighbors(dist,
-                  row,
-                  col,
-                  separate=False,
-                  include_self=False,
-                  rows=7,
-                  cols=7):
+    def neighbors(dist, row, col, separate=False, include_self=False, rows=7, cols=7):
         if separate is True:
             rs = []
             cs = []
@@ -364,8 +351,8 @@ class RhombusAxialGrid(Grid):
             if (x >= 0 and x < self.cols and y >= 0 and y < self.rows):
                 self.labels[y][x] = l
 
-        centers = [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8), (3, -1), (4, 1),
-                   (5, 3), (6, 5), (7, 7), (-1, 5), (7, 0), (0, 7)]
+        centers = [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8), (3, -1), (4, 1), (5, 3), (6, 5), (7, 7),
+                   (-1, 5), (7, 0), (0, 7)]
         for center in centers:
             label(0, *center)
             for i, neigh in enumerate(self.neighbors1sparse(*center)):

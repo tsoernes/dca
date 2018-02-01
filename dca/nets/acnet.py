@@ -17,8 +17,7 @@ class ACNet(Net):
     def _build_net(self, grid, cell, name):
         base_net = self._build_base_net(grid, cell, name)
         with tf.variable_scope(name) as scope:
-            hidden = tf.layers.dense(
-                base_net, units=128, activation=tf.nn.relu)
+            hidden = tf.layers.dense(base_net, units=128, activation=tf.nn.relu)
             # Output layers for policy and value estimations
             policy = tf.layers.dense(
                 hidden,
@@ -37,12 +36,9 @@ class ACNet(Net):
         gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
         # TODO Convert to onehot in TF
         cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
-        self.grid = tf.placeholder(
-            shape=gridshape, dtype=tf.float32, name="grid")
-        self.cell = tf.placeholder(
-            shape=cellshape, dtype=tf.float32, name="cell")
-        self.action = tf.placeholder(
-            shape=[None], dtype=tf.int32, name="action")
+        self.grid = tf.placeholder(shape=gridshape, dtype=tf.float32, name="grid")
+        self.cell = tf.placeholder(shape=cellshape, dtype=tf.float32, name="cell")
+        self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
 
         self.value_target = tf.placeholder(shape=[None], dtype=tf.float32)
         # 'psi' may be a) The return R_t (reward from time t onward), optionally
@@ -54,16 +50,13 @@ class ACNet(Net):
         self.policy, self.value, trainable_vars = self._build_net(
             self.grid, self.cell, name="ac_network/online")
 
-        action_oh = tf.one_hot(
-            self.action, self.pp['n_channels'], dtype=tf.float32)
+        action_oh = tf.one_hot(self.action, self.pp['n_channels'], dtype=tf.float32)
         self.responsible_outputs = tf.reduce_sum(self.policy * action_oh, [1])
 
         self.value_loss = self.pp['vf_coeff'] * tf.losses.mean_squared_error(
             tf.squeeze(self.value), self.value_target)
-        self.entropy = self.pp['entropy_coeff'] * -tf.reduce_sum(
-            self.policy * tf.log(self.policy))
-        self.policy_loss = -tf.reduce_mean(
-            self.psi * tf.log(self.responsible_outputs))
+        self.entropy = self.pp['entropy_coeff'] * -tf.reduce_sum(self.policy * tf.log(self.policy))
+        self.policy_loss = -tf.reduce_mean(self.psi * tf.log(self.responsible_outputs))
         self.loss = self.value_loss + self.policy_loss - self.entropy
         self.do_train = self._build_default_trainer(trainable_vars)
 
@@ -82,10 +75,7 @@ class ACNet(Net):
 
     def _backward(self, data):
         _, loss, pg_loss, vf_loss, entropy = self.sess.run(
-            [
-                self.do_train, self.loss, self.policy_loss, self.value_loss,
-                self.entropy
-            ],
+            [self.do_train, self.loss, self.policy_loss, self.value_loss, self.entropy],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
@@ -117,8 +107,7 @@ class ACNet(Net):
         }
         return self._backward(data)
 
-    def backward_gae(self, grids, cells, vals, chs, rewards, next_grid,
-                     next_cell) -> float:
+    def backward_gae(self, grids, cells, vals, chs, rewards, next_grid, next_cell) -> float:
         """Generalized Advantage Estimation"""
         # Estimated value after trajectory, V(S_t+n)
         bootstrap_val = self.sess.run(
@@ -130,9 +119,8 @@ class ACNet(Net):
         rewards_plus = np.asarray(rewards + [bootstrap_val])
         discounted_rewards = nutils.discount(rewards_plus, self.gamma)[:-1]
         value_plus = np.asarray(vals + [bootstrap_val])
-        advantages = nutils.discount(
-            rewards + self.gamma * value_plus[1:] - value_plus[:-1],
-            self.gamma)
+        advantages = nutils.discount(rewards + self.gamma * value_plus[1:] - value_plus[:-1],
+                                     self.gamma)
 
         data = {
             self.grid: nutils.prep_data_grids(np.array(grids)),

@@ -5,10 +5,7 @@ from nets.utils import prep_data
 from utils import BackgroundGenerator
 
 
-def get_data_h5py(batch_size,
-                  fname="data-experience.0",
-                  split_perc=0.9,
-                  n_prefetch=50):
+def get_data_h5py(batch_size, fname="data-experience.0", split_perc=0.9, n_prefetch=50):
     """
     Return generators that yield training and test data
 

@@ -4,21 +4,11 @@ from tkinter import Canvas, Frame, Tk
 
 from grid import RectOffsetGrid, RhombusAxialGrid
 
-label_colors = [
-    '#FF2D00', '#FFD800', '#00FF68', '#00FFE4', '#0059FF', '#A200FF', '#FF00F7'
-]
+label_colors = ['#FF2D00', '#FFD800', '#00FF68', '#00FFE4', '#0059FF', '#A200FF', '#FF00F7']
 
 
 class Hexagon:
-    def __init__(self,
-                 parent,
-                 x,
-                 y,
-                 length,
-                 color,
-                 outline="gray",
-                 top="pointy",
-                 tags=""):
+    def __init__(self, parent, x, y, length, color, outline="gray", top="pointy", tags=""):
         '''
         :param Tk parent
         :param int x: Top left x coordinate
@@ -144,13 +134,12 @@ class HexagonGrid(Frame):
                     coords = "{}, {}".format(r, c)
                     self.can.create_text(
                         c * (size * 1.5) + (size),
-                        (r * (size * sqrt(3))) + offset + size - size/4,
+                        (r * (size * sqrt(3))) + offset + size - size / 4,
                         font=("Times", self.font_size, "bold"),
                         text=coords)
             self.hexagons.append(hxs)
 
-    def init_grid_rhomb(self, rows, cols, size, show_coords,
-                        show_labels=False):
+    def init_grid_rhomb(self, rows, cols, size, show_coords, show_labels=False):
         col_offset = 0
         for r in range(rows):
             hxs = []
@@ -169,14 +158,12 @@ class HexagonGrid(Frame):
                 if show_coords:
                     coords = "{}, {}".format(r, c)
                     self.can.create_text(
-                        c * (size * sqrt(3)) + size + col_offset,
-                        (r * (size * 1.5)) + size,
+                        c * (size * sqrt(3)) + size + col_offset, (r * (size * 1.5)) + size,
                         text=coords,
                         font=("Times", self.font_size, "bold"))
                 if show_labels:
                     self.can.create_text(
-                        c * (size * sqrt(3)) + size + col_offset,
-                        (r * (size * 1.5)) + size,
+                        c * (size * sqrt(3)) + size + col_offset, (r * (size * 1.5)) + size,
                         text=label,
                         font=("Times", self.font_size))
             col_offset += size * sqrt(3) / 2
@@ -202,8 +189,7 @@ class HexagonGrid(Frame):
         # print(tags)
 
     def mark_cell(self, row, col):
-        self.can.itemconfigure(
-            self.hexagons[row][col].tags, fill=self.marked_color)
+        self.can.itemconfigure(self.hexagons[row][col].tags, fill=self.marked_color)
 
     def unmark_cell(self, row, col):
         h = self.hexagons[row][col]

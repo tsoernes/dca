@@ -13,8 +13,7 @@ oh_cells[1][1][1][0] = 1
 inp_grids = tf.constant(grids)
 inp_cells = tf.constant(oh_cells)
 
-conv1 = tf.layers.conv2d(
-    inputs=inp_grids, filters=4, kernel_size=4, padding="same")
+conv1 = tf.layers.conv2d(inputs=inp_grids, filters=4, kernel_size=4, padding="same")
 stacked = tf.concat([conv1, inp_cells], axis=3)
 
 sess.run(tf.global_variables_initializer())

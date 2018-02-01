@@ -5,14 +5,7 @@ from utils import conv, conv_to_fc, fc, sample
 
 
 class CnnPolicy(object):
-    def __init__(self,
-                 sess,
-                 ob_space,
-                 ac_space,
-                 nenv,
-                 nsteps,
-                 nstack,
-                 reuse=False):
+    def __init__(self, sess, ob_space, ac_space, nenv, nsteps, nstack, reuse=False):
         nbatch = nenv * nsteps
         nh, nw, nc = ob_space.shape
         ob_shape = (nbatch, nh, nw, nc * nstack)
@@ -20,12 +13,7 @@ class CnnPolicy(object):
         X = tf.placeholder(tf.uint8, ob_shape)  # obs
         with tf.variable_scope("model", reuse=reuse):
             h = conv(
-                tf.cast(X, tf.float32) / 255.,
-                'c1',
-                nf=32,
-                rf=8,
-                stride=4,
-                init_scale=np.sqrt(2))
+                tf.cast(X, tf.float32) / 255., 'c1', nf=32, rf=8, stride=4, init_scale=np.sqrt(2))
             h2 = conv(h, 'c2', nf=64, rf=4, stride=2, init_scale=np.sqrt(2))
             h3 = conv(h2, 'c3', nf=64, rf=3, stride=1, init_scale=np.sqrt(2))
             h3 = conv_to_fc(h3)

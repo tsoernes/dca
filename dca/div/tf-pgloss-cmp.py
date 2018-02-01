@@ -34,25 +34,22 @@ def cat_entropy(logits):
 
 value_loss_2 = tf.losses.mean_squared_error(tf.squeeze(value), target_v)
 value_loss_3 = tf.losses.mean_squared_error(value, target_v)
-neglogpac = tf.nn.sparse_softmax_cross_entropy_with_logits(
-    logits=policy, labels=actions)
+neglogpac = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=policy, labels=actions)
 policy_loss_from_logits_1 = tf.reduce_mean(advantages * neglogpac)
 # Or, equivalently
-policy_loss_from_logits_2 = -tf.reduce_mean(advantages * tf.reduce_sum(
-    actions_oh * tf.log(tf.nn.softmax(policy)), reduction_indices=[1]))
+policy_loss_from_logits_2 = -tf.reduce_mean(
+    advantages * tf.reduce_sum(actions_oh * tf.log(tf.nn.softmax(policy)), reduction_indices=[1]))
 # Not equivalent to entropy_1 above
 entropy_2 = tf.reduce_mean(cat_entropy(policy))
 # nearly equivalent to (off by factor of batch_sz)
-entropy_3 = -tf.reduce_sum(
-    tf.nn.softmax(policy) * tf.log(tf.nn.softmax(policy)))
+entropy_3 = -tf.reduce_sum(tf.nn.softmax(policy) * tf.log(tf.nn.softmax(policy)))
 # loss = pg_loss - entropy * ent_coef + vf_loss * vf_coef
 
 tf.global_variables_initializer()
 value_losses = sess.run([value_loss_1, value_loss_2, value_loss_3])
 print(value_losses)
 
-policy_losses = sess.run(
-    [policy_loss_1, policy_loss_from_logits_1, policy_loss_from_logits_2])
+policy_losses = sess.run([policy_loss_1, policy_loss_from_logits_1, policy_loss_from_logits_2])
 print(policy_losses)
 
 entropies = sess.run([entropy_1, entropy_2, entropy_3])
