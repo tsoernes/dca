@@ -124,9 +124,9 @@ class Stats:
         m, s = map(int, divmod(t, 60))
         self.logger.warn(f"\nSimulation duration: {self.t/60:.2f} sim hours,"
                          f" {m}m{s}s real,"
-                         f" {self.i+1} episodes"
+                         f" {self.i+1} events"
                          f" at {self.pp['n_events']/t:.0f}"
-                         " episodes/second")
+                         " events/second")
         self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         # Avoid zero divisions by adding 1 do dividers
         self.block_prob_cum_hoff = self.n_handoffs_rejected / (

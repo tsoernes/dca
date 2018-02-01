@@ -116,7 +116,10 @@ class QNet(Net):
             next_q = tf.squeeze(self.value)
         else:
             next_q = self.target_q_selected
-        self.q_target = self.reward + self.gamma * next_q
+
+        # self.q_target = self.reward + self.gamma * next_q
+        self.q_target = tf.placeholder(
+            shape=[None], dtype=tf.float32, name="qtarget")
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.

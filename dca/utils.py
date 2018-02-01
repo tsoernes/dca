@@ -48,7 +48,7 @@ def shuffle_in_unison(arrs):
 
 def h5py_shuffle_in_unison(fname):
     """
-    Shuffle a hdf5 dataset inplace and in unison
+    Shuffle a hdf5 dataset inplace and in unison. fname without file ext.
     """
     with h5py.File(fname + ".hdf5", "r+", driver="core") as f:
         rng_state = np.random.get_state()
@@ -80,8 +80,8 @@ def h5py_save(fname,
               cells,
               chs,
               rewards,
-              next_grids,
-              next_cells,
+              next_grids=None,
+              next_cells=None,
               chunk_size=100000):
     """
     chunk_size: Number of experience tuples to load at a time
@@ -95,20 +95,25 @@ def h5py_save(fname,
                 maxshape=(None, *shape),
                 dtype=dtype,
                 chunks=(chunk_size, *shape))
+
         n_rows, n_cols, n_channels = grids[0].shape
         ds_grids = create_ds("grids", (n_rows, n_cols, n_channels), np.bool)
         ds_cells = create_ds("cells", (2, ), np.int8)
         ds_chs = create_ds("chs", (), np.int8)
         ds_rewards = create_ds("rewards", (), np.int32)
-        ds_next_grids = create_ds("next_grids", (n_rows, n_cols, n_channels),
-                                  np.bool)
-        ds_next_cells = create_ds("next_cells", (2, ), np.int8)
+        if next_grids is not None:
+            ds_next_grids = create_ds("next_grids",
+                                      (n_rows, n_cols, n_channels), np.bool)
+        if next_cells is not None:
+            ds_next_cells = create_ds("next_cells", (2, ), np.int8)
         ds_grids[:] = grids
         ds_cells[:] = cells
         ds_chs[:] = chs
         ds_rewards[:] = rewards
-        ds_next_grids[:] = next_grids
-        ds_next_cells[:] = next_cells
+        if next_grids is not None:
+            ds_next_grids[:] = next_grids
+        if next_cells is not None:
+            ds_next_cells[:] = next_cells
     print(f"Wrote {len(grids)} experience tuples to {n_fname}")
 
 
@@ -117,8 +122,8 @@ def h5py_save_append(fname,
                      cells,
                      chs,
                      rewards,
-                     next_grids,
-                     next_cells,
+                     next_grids=None,
+                     next_cells=None,
                      chunk_size=100000):
     """
     Append to existing data set
@@ -138,12 +143,16 @@ def h5py_save_append(fname,
         ds_cells = f['cells']
         ds_chs = f['chs']
         ds_rewards = f['rewards']
-        ds_next_grids = f['next_grids']
-        ds_next_cells = f['next_cells']
+        if next_grids is not None:
+            ds_next_grids = f['next_grids']
+        if next_cells is not None:
+            ds_next_cells = f['next_cells']
         ds_grids[-n:] = grids
         ds_cells[-n:] = cells
         ds_chs[-n:] = chs
         ds_rewards[-n:] = rewards
-        ds_next_grids[-n:] = next_grids
-        ds_next_cells[-n:] = next_cells
+        if next_grids is not None:
+            ds_next_grids[-n:] = next_grids
+        if next_cells is not None:
+            ds_next_cells[-n:] = next_cells
     print(f"Appended {len(grids)} experience tuples to {efname}")

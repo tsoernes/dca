@@ -132,15 +132,16 @@ class Net:
     def load_data(self):
         if self.data_is_loaded:
             return
-        data = dataloader.get_data_h5py()
+        data = dataloader.get_data_h5py(self.batch_size)
         # data = self.get_data()
         self.n_train_steps = data['n_train_steps']
         self.n_test_steps = data['n_test_steps']
         self.train_gen = data['train_gen']
         self.test_gen = data['test_gen']
         self.data_is_loaded = True
+        self.qvals = np.load("qtable.npy")
 
-    def save_model(self, quit_sim):
+    def save_model(self):
         self.logger.error(f"Saving model to path {self.model_path}")
         self.saver.save(self.sess, self.model_path)
 
@@ -164,13 +165,20 @@ class Net:
             # Get expected returns following a greedy policy from the
             # next state: max a': Q(s', a', w_old)
             data = next(self.train_gen)
+            cells = data['cells']
+            targets = np.zeros(len(cells), dtype=np.float32)
+            actions = data['actions']
+            for j, ch in enumerate(actions):
+                targets[j] = self.qvals[cells[j]][ch]
             curr_data = {
                 self.grid: data['grids'],
-                self.cell: data['cells'],
-                self.action: data['actions'],
-                self.reward: data['rewards'],
-                self.next_grid: data['next_grids'],
-                self.next_cell: data['next_cells']
+                self.cell: data['oh_cells'],
+                self.action: actions,
+                self.q_target: targets,
+                # self.action: data['actions'],
+                # self.reward: data['rewards'],
+                # self.next_grid: data['next_grids'],
+                # self.next_cell: data['next_cells']
             }
             _, loss, summary = self.sess.run(
                 [self.do_train, self.loss, self.summaries], curr_data)
@@ -186,8 +194,9 @@ class Net:
                 self.logger.error(f"Invalid loss: {loss}")
                 sys.exit(0)
                 break
-        self.save_model()
-        self.eval()
+        if self.save:
+            self.save_model()
+        # self.eval()
         if False:
             plt.plot(losses)
             plt.ylabel("Loss")

@@ -78,6 +78,10 @@ class Runner:
             f"\n{results}")
         # TODO Plot average cumulative over time
 
+    def train_net(self):
+        strat = self.stratclass(self.pp, logger=self.logger)
+        strat.net.train()
+
     def run(self):
         strat = self.stratclass(self.pp, logger=self.logger)
         if self.pp['gui']:

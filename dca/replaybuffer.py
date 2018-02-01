@@ -76,8 +76,11 @@ class ReplayBuffer():
     def __len__(self):
         return len(self._storage)
 
-    def add(self, grid, cell, action, reward, next_grid, next_cell):
-        data = (grid, cell, action, reward, next_grid, next_cell)
+    def add(self, grid, cell, action, reward, next_grid=None, next_cell=None):
+        if next_grid is not None:
+            data = (grid, cell, action, reward, next_grid, next_cell)
+        else:
+            data = (grid, cell, action, reward)
 
         if self._next_idx >= len(self._storage):
             self._storage.append(data)
@@ -95,18 +98,26 @@ class ReplayBuffer():
         next_grids = np.zeros(
             (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
         next_cells = []
+        has_next = len(self._storage[0]) > 4
         for i, j in enumerate(idxes):
             data = self._storage[j]
-            grid, cell, action, reward, next_grid, next_cell = data
+            if has_next:
+                grid, cell, action, reward, next_grid, next_cell = data
+            else:
+                grid, cell, action, reward = data
             grids[i][:] = grid
             cells.append(cell)
             actions[i] = action
             rewards[i] = reward
-            next_grids[i][:] = next_grid
-            next_cells.append(next_cell)
-        return grids, cells, actions, rewards, next_grids, next_cells
+            if has_next:
+                next_grids[i][:] = next_grid
+                next_cells.append(next_cell)
+        if has_next:
+            return grids, cells, actions, rewards, next_grids, next_cells
+        else:
+            return grids, cells, actions, rewards
 
-    def sample(self, batch_size, include_freshest=True):
+    def sample(self, batch_size, include_freshest=False):
         """Sample a batch of experiences.
 
         Parameters
@@ -127,12 +138,12 @@ class ReplayBuffer():
         return self._encode_sample(idxs)
 
     def save_experience_to_disk(self):
-        raise NotImplementedError
-        # NOTE UNTESTED. May be better to append to different data sets
-        start = 10000  # Ignore initial period
-        h5py_save_append("data-experience",
-                         map(lambda li: li[start:],
-                             self.experience_store.values()))
+        data = self._encode_sample(range(len(self._storage)))
+        h5py_save_append("data-experience", *data)
+        # start = 10000  # Ignore initial period
+        # h5py_save_append("data-experience",
+        #                  map(lambda li: li[start:],
+        #                      self.experience_store.values()))
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):

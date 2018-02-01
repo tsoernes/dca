@@ -21,16 +21,18 @@ class Env:
 
         # Current call event for which an action must be taken
         self.cevent = None
+        # self.init_calls = self.init_marker_calls
 
     def init_marker_calls(self):
         """
         Generate DETERMINISTIC initial call events, in
         and return the first event.
-        TODO
         """
+        dt = 0
         for r in range(self.rows):
             for c in range(self.cols):
-                self.eventgen.event_new(0, (r, c))
+                self.eventgen.event_new(0, (r, c), dt)
+                dt += 1
         self.cevent = self.eventgen.pop()
         return self.cevent
 

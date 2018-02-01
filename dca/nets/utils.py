@@ -118,6 +118,9 @@ def prep_data_grids(grids, empty_neg=True):
 def prep_data_cells(cells):
     if type(cells) == tuple:
         cells = [cells]
+    if type(cells[0]) != tuple:
+        raise Exception(
+            "WHOAH WHOAH using np arrays for indexing works differently")
     oh_cells = np.zeros((len(cells), 7, 7), dtype=np.float16)
     # One-hot grid encoding
     for i, cell in enumerate(cells):
@@ -125,19 +128,27 @@ def prep_data_cells(cells):
     oh_cells.shape = (-1, 7, 7, 1)
     # Should not be used when predicting, but could save mem when training
     # del cells
-
     return oh_cells
 
 
-def prep_data(grids, cells, actions, rewards, next_grids, next_cells):
+def prep_data(grids, cells, actions, rewards, next_grids=None,
+              next_cells=None):
     assert type(actions) == np.ndarray
     assert type(rewards) == np.ndarray
     actions = actions.astype(np.int32)
-    rewards = rewards.astype(
-        np.float32)  # Needs to be 32-bit, else will overflow
+    # Needs to be 32-bit, else will overflow
+    rewards = rewards.astype(np.float32)
+    # Cells are used as indexes and must be tuples
+    if type(cells) == np.ndarray:
+        cells = list(map(tuple, cells))
+        if next_cells is not None:
+            next_cells = list(map(tuple, next_cells))
 
     grids = prep_data_grids(grids)
-    next_grids = prep_data_grids(next_grids)
+    if next_grids is not None:
+        next_grids = prep_data_grids(next_grids)
     oh_cells = prep_data_cells(cells)
-    next_oh_cells = prep_data_cells(next_cells)
-    return grids, oh_cells, actions, rewards, next_grids, next_oh_cells
+    if next_cells is not None:
+        next_oh_cells = prep_data_cells(next_cells)
+        return grids, oh_cells, actions, rewards, next_grids, next_oh_cells
+    return grids, oh_cells, actions, rewards

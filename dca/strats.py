@@ -76,8 +76,7 @@ class Strat:
                 # are always busy in a grid corresponding to an END event.
                 next_grid = np.copy(self.grid)
                 next_cell = next_cevent[2]
-                self.replaybuffer.add(grid, cell, ch, reward, next_grid,
-                                      next_cell)
+                self.replaybuffer.add(grid, cell, ch, reward)
 
             if i > 0:
                 if i % self.pp['log_iter'] == 0:
@@ -246,6 +245,13 @@ class QTable(RLStrat):
         super().__init__(*args, **kwargs)
         self.lmbda = self.pp['lambda']
 
+    def fn_after(self):
+        self.logger.info(f"Max qval: {np.max(self.qvals)}")
+        if self.save:
+            fname = "qtable"
+            self.logger.error(f"Saved Q-table to {fname}.npy")
+            np.save(fname, self.qvals)
+
     def get_qvals(self, cell, n_used, chs=None, *args, **kwargs):
         rep = self.feature_rep(cell, n_used)
         if chs is None:
@@ -256,13 +262,16 @@ class QTable(RLStrat):
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, *args):
         assert type(ch) == np.int64
         assert ch is not None
+        if self.pp['verify_grid']:
+            assert np.sum(grid != self.grid) == 1
         # Counting n_used of self.grid instead of grid yields significantly better
         # performance for unknown reasons.
         next_n_used = np.count_nonzero(self.grid[cell])
         next_qval = self.get_qvals(next_cell, next_n_used, next_ch)
         target_q = reward + self.gamma * next_qval
         n_used = np.count_nonzero(grid[cell])
-        td_err = target_q - self.get_qvals(cell, n_used, ch)
+        q = self.get_qvals(cell, n_used, ch)
+        td_err = target_q - q
         frep = self.feature_rep(cell, n_used)
         if self.lmbda is None:
             self.qvals[frep][ch] += self.alpha * td_err
@@ -272,6 +281,10 @@ class QTable(RLStrat):
             self.el_traces *= self.gamma * self.lmbda
         if self.alpha > self.pp['min_alpha']:
             self.alpha *= self.alpha_decay
+        next_frep = self.feature_rep(next_cell, next_n_used)
+        self.logger.debug(
+            f"Q[{frep}][{ch}]:{q:.1f} -> {reward:.1f} + Q[{next_frep}][{next_ch}]:{next_qval:.1f}"
+        )
 
 
 class SARSA(QTable):
@@ -372,7 +385,7 @@ class QNetStrat(NetStrat):
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
-    def get_qvals(self, cell, ce_type, *args, **kwargs):
+    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
         if ce_type == CEvent.END:
             # Zero out channel usage in cell of END event
             grid = np.copy(self.grid)
@@ -380,7 +393,7 @@ class QNetStrat(NetStrat):
         else:
             grid = self.grid
         qvals = self.net.forward(grid, cell)
-        return qvals
+        return qvals[chs]
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch,
                     next_max_ch):

@@ -39,12 +39,13 @@ class EventGen:
         # mapping from (cell_row, cell_col, ch) to end event timestamps
         self.end_event_times = {}
 
-    def event_new(self, t, cell):
+    def event_new(self, t, cell, dt=None):
         """
         Generate a new call event at the given cell at an
         exponentially distributed time 'dt' from 't'.
         """
-        dt = np.random.exponential(self.call_intertimes[cell])
+        if dt is None:
+            dt = np.random.exponential(self.call_intertimes[cell])
         self._push((t + dt, CEvent.NEW, cell))
 
     def event_end(self, t, cell, ch):
