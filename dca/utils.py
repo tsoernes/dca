@@ -103,8 +103,8 @@ def h5py_save(fname,
         ds_chs = create_ds("chs", (), np.int8)
         ds_rewards = create_ds("rewards", (), np.int32)
         if next_grids is not None:
-            ds_next_grids = create_ds("next_grids", (n_rows, n_cols,
-                                                     n_channels), np.bool)
+            ds_next_grids = create_ds("next_grids",
+                                      (n_rows, n_cols, n_channels), np.bool)
         if next_cells is not None:
             ds_next_cells = create_ds("next_cells", (2, ), np.int8)
         ds_grids[:] = grids

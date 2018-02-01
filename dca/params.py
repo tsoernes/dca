@@ -28,8 +28,7 @@ def get_pparams(defaults=False):
     just return the default params.
     """
     parser = argparse.ArgumentParser(
-        description='DCA',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description='DCA', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     stratclasses = strat_classes("strats") + strat_classes("fixedstrats")
     stratnames = ['show']
@@ -42,14 +41,10 @@ def get_pparams(defaults=False):
         stratclasses[i] = (s2, stratclasses[i][1])
     weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
 
-    parser.add_argument(
-        '--strat', type=str, choices=stratnames, default="rs_sarsa")
-    parser.add_argument(
-        '--rows', type=int, help="number of rows in grid", default=7)
-    parser.add_argument(
-        '--cols', type=int, help="number of columns in grid", default=7)
-    parser.add_argument(
-        '--n_channels', type=int, help="number of channels", default=70)
+    parser.add_argument('--strat', type=str, choices=stratnames, default="rs_sarsa")
+    parser.add_argument('--rows', type=int, help="number of rows in grid", default=7)
+    parser.add_argument('--cols', type=int, help="number of columns in grid", default=7)
+    parser.add_argument('--n_channels', type=int, help="number of channels", default=70)
     parser.add_argument(
         '--erlangs',
         type=float,
@@ -58,17 +53,11 @@ def get_pparams(defaults=False):
         "\n 7.5 erlangs = 150cr, 3cd"
         "\n 5 erlangs = 100cr, 3cd",
         default=10)
+    parser.add_argument('--call_rates', type=int, help="in calls per minute", default=None)
+    parser.add_argument('--call_duration', type=int, help="in minutes", default=3)
+    parser.add_argument('--p_handoff', type=float, help="handoff probability", default=0.15)
     parser.add_argument(
-        '--call_rates', type=int, help="in calls per minute", default=None)
-    parser.add_argument(
-        '--call_duration', type=int, help="in minutes", default=3)
-    parser.add_argument(
-        '--p_handoff', type=float, help="handoff probability", default=0.15)
-    parser.add_argument(
-        '--hoff_call_duration',
-        type=int,
-        help="handoff call duration, in minutes",
-        default=1)
+        '--hoff_call_duration', type=int, help="handoff call duration, in minutes", default=1)
     parser.add_argument(
         '--n_events',
         '-i',
@@ -88,8 +77,7 @@ def get_pparams(defaults=False):
         help="Run simulation N times, report average scores",
         default=None)
 
-    parser.add_argument(
-        '--alpha', type=float, help="(RL/Table) learning rate", default=0.036)
+    parser.add_argument('--alpha', type=float, help="(RL/Table) learning rate", default=0.036)
     parser.add_argument(
         '--alpha_decay',
         type=float,
@@ -107,23 +95,16 @@ def get_pparams(defaults=False):
         type=float,
         help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.99999)
-    parser.add_argument(
-        '--gamma', type=float, help="(RL) discount factor", default=0.85)
+    parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
         '--lambda',
         type=float,
         help="(RL/Table) lower lambda weighs fewer step returns higher",
         default=None)
     parser.add_argument(
-        '--min_alpha',
-        type=float,
-        help="(RL) stop decaying alpha beyond this point",
-        default=0.0)
+        '--min_alpha', type=float, help="(RL) stop decaying alpha beyond this point", default=0.0)
     parser.add_argument(
-        '--save_exp_data',
-        help="Save experience data to file",
-        action='store_true',
-        default=False)
+        '--save_exp_data', help="Save experience data to file", action='store_true', default=False)
     parser.add_argument(
         '--restore_qtable',
         nargs='?',
@@ -135,9 +116,8 @@ def get_pparams(defaults=False):
         '--hopt',
         nargs='?',
         choices=[
-            'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma',
-            'lambda', 'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff',
-            'entropy_coeff'
+            'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
+            'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff'
         ],
         help="(Hopt) Hyper-parameter optimization with hyperopt."
         " Saves progress to 'results-{stratname}-{vars}.pkl' and"
@@ -164,12 +144,8 @@ def get_pparams(defaults=False):
         type=float,
         help="(Net) Learning rate. Overrides 'alpha'.",
         default=3.4e-5)
-    parser.add_argument(
-        '--weight_init_conv', choices=weight_initializers, default='zeros')
-    parser.add_argument(
-        '--weight_init_dense',
-        choices=weight_initializers,
-        default='norm_cols')
+    parser.add_argument('--weight_init_conv', choices=weight_initializers, default='zeros')
+    parser.add_argument('--weight_init_dense', choices=weight_initializers, default='norm_cols')
     parser.add_argument(
         '--dueling_qnet',
         '-duel',
@@ -183,14 +159,16 @@ def get_pparams(defaults=False):
         help="(Net/Double) Disable Double QNet",
         default=False)
     parser.add_argument(
-        '--layer_norm',
+        '--layer_norm', action='store_true', help="(Net) Use layer normalization", default=False)
+    parser.add_argument(
+        '--grid_neg',
         action='store_true',
-        help="(Net) Use layer normalization",
+        help="(Net) Represent empty channels in grid as -1 instead of 0",
         default=False)
     parser.add_argument(
-        '--no_empty_neg',
+        '--no_grid_split',
         action='store_true',
-        help="(Net) Represent empty channels in grid as 0 instead of -1",
+        help="(Net) Don't Double the depth and represent empty channels as 1 on separate layer",
         default=False)
     parser.add_argument(
         '--act_fn',
@@ -214,15 +192,9 @@ def get_pparams(defaults=False):
         default=None,
         const=100000)
     parser.add_argument(
-        '--save_net',
-        action='store_true',
-        help="(Net) Save network params",
-        default=False)
+        '--save_net', action='store_true', help="(Net) Save network params", default=False)
     parser.add_argument(
-        '--restore_net',
-        action='store_true',
-        help="(Net) Restore network params",
-        default=False)
+        '--restore_net', action='store_true', help="(Net) Restore network params", default=False)
     parser.add_argument(
         '--batch_size',
         type=int,
@@ -284,10 +256,7 @@ def get_pparams(defaults=False):
         default=0,
         const=1)
     parser.add_argument(
-        '--no_gpu',
-        action='store_true',
-        help="(Net) Disable TensorFlow GPU usage",
-        default=False)
+        '--no_gpu', action='store_true', help="(Net) Disable TensorFlow GPU usage", default=False)
 
     parser.add_argument(
         '--rng_seed',
@@ -318,8 +287,7 @@ def get_pparams(defaults=False):
         " Specify ouput file name",
         default="")
     parser.add_argument('--gui', action='store_true', default=False)
-    parser.add_argument(
-        '--plot', action='store_true', dest='do_plot', default=False)
+    parser.add_argument('--plot', action='store_true', dest='do_plot', default=False)
     parser.add_argument(
         '--log_level',
         type=int,
@@ -327,10 +295,7 @@ def get_pparams(defaults=False):
         help="10: Debug,\n20: Info,\n30: Warning",
         default=logging.INFO)
     parser.add_argument(
-        '--log_file',
-        metavar='DEST',
-        type=str,
-        help="enable logging to given file name")
+        '--log_file', metavar='DEST', type=str, help="enable logging to given file name")
     parser.add_argument(
         '--log_iter',
         metavar='N',
@@ -345,8 +310,8 @@ def get_pparams(defaults=False):
         args = parser.parse_args()
     params = vars(args)
 
-    params['empty_neg'] = not params['no_empty_neg']
-    del params['no_empty_neg']
+    params['grid_split'] = not params['no_grid_split']
+    del params['no_grid_split']
     params['double_qnet'] = not params['no_double_qnet']
     del params['no_double_qnet']
     params['dims'] = [params['rows'], params['cols'], params['n_channels']]
@@ -403,8 +368,8 @@ def non_uniform_preset(pp):
     """
     avg_cr = 120 / 60  # 120 calls/hr
     patterns = [
-        "mmmm" * 5, "lhlh" * 5, ("llh" * 7)[:20], ("hhl" * 7)[:20],
-        ("lhl" * 7)[:20], ("hlh" * 7)[:20]
+        "mmmm" * 5, "lhlh" * 5, ("llh" * 7)[:20], ("hhl" * 7)[:20], ("lhl" * 7)[:20],
+        ("hlh" * 7)[:20]
     ]
     pattern_call_rates = []
     for pattern in patterns:

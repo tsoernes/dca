@@ -48,8 +48,7 @@ class QNet(Net):
                 # q_vals = value + (advantages - tf.reduce_max(
                 #     advantages, axis=1, keep_dims=True))
                 # Average Dueling
-                q_vals = value + (advantages - tf.reduce_mean(
-                    advantages, axis=1, keep_dims=True))
+                q_vals = value + (advantages - tf.reduce_mean(advantages, axis=1, keep_dims=True))
                 if "online" in name:
                     self.advantages = advantages
                 if "target" in name:
@@ -66,22 +65,16 @@ class QNet(Net):
         return q_vals, trainable_vars_by_name
 
     def build(self):
-        gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
+        n_channels = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
+        gridshape = [None, self.pp['rows'], self.pp['cols'], n_channels]
         cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
-        self.grid = tf.placeholder(
-            shape=gridshape, dtype=tf.float32, name="grid")
-        self.cell = tf.placeholder(
-            shape=cellshape, dtype=tf.float32, name="cell")
-        self.action = tf.placeholder(
-            shape=[None], dtype=tf.int32, name="action")
-        self.reward = tf.placeholder(
-            shape=[None], dtype=tf.float32, name="reward")
-        self.next_grid = tf.placeholder(
-            shape=gridshape, dtype=tf.float32, name="next_grid")
-        self.next_cell = tf.placeholder(
-            shape=cellshape, dtype=tf.float32, name="next_cell")
-        self.next_action = tf.placeholder(
-            shape=[None], dtype=tf.int32, name="next_action")
+        self.grid = tf.placeholder(shape=gridshape, dtype=tf.float32, name="grid")
+        self.cell = tf.placeholder(shape=cellshape, dtype=tf.float32, name="cell")
+        self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
+        self.reward = tf.placeholder(shape=[None], dtype=tf.float32, name="reward")
+        self.next_grid = tf.placeholder(shape=gridshape, dtype=tf.float32, name="next_grid")
+        self.next_cell = tf.placeholder(shape=cellshape, dtype=tf.float32, name="next_cell")
+        self.next_action = tf.placeholder(shape=[None], dtype=tf.int32, name="next_action")
 
         self.online_q_vals, online_vars = self._build_net(
             self.grid, self.cell, name="q_networks/online")
@@ -98,8 +91,7 @@ class QNet(Net):
             self.copy_online_to_target = tf.no_op()
 
         # Maximum valued action from online network
-        self.online_q_amax = tf.argmax(
-            self.online_q_vals, axis=1, name="online_q_amax")
+        self.online_q_amax = tf.argmax(self.online_q_vals, axis=1, name="online_q_amax")
         # Maximum Q-value for given next state
         # Q-value for given action
         self.online_q_selected = tf.reduce_sum(
@@ -115,8 +107,7 @@ class QNet(Net):
         if self.pp['dueling_qnet']:
             self.next_q = tf.squeeze(self.value)
         elif self.pp['train_net']:
-            self.next_q = tf.placeholder(
-                shape=[None], dtype=tf.float32, name="qtarget")
+            self.next_q = tf.placeholder(shape=[None], dtype=tf.float32, name="qtarget")
         else:
             self.next_q = self.target_q_selected
 
@@ -125,8 +116,7 @@ class QNet(Net):
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
-            labels=tf.stop_gradient(self.q_target),
-            predictions=self.online_q_selected)
+            labels=tf.stop_gradient(self.q_target), predictions=self.online_q_selected)
         self.do_train = self._build_default_trainer(online_vars)
         # Write out statistics to file
         with tf.name_scope("summaries"):
@@ -134,8 +124,7 @@ class QNet(Net):
             # tf.summary.scalar("grad_norm", grad_norms)
             tf.summary.histogram("qvals", self.online_q_vals)
         self.summaries = tf.summary.merge_all()
-        self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
-                                                  self.sess.graph)
+        self.train_writer = tf.summary.FileWriter(self.log_path + '/train', self.sess.graph)
         self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
 
     def forward(self, grid, cell):
@@ -146,9 +135,10 @@ class QNet(Net):
         q_vals = self.sess.run(
             [q_vals_op],
             feed_dict={
-                self.grid: prep_data_grids(
-                    grid, empty_neg=self.pp['empty_neg']),
-                self.cell: prep_data_cells(cell)
+                self.grid:
+                prep_data_grids(grid, neg=self.pp['grid_neg'], split=self.pp['grid_split']),
+                self.cell:
+                prep_data_cells(cell)
             },
             options=self.options,
             run_metadata=self.run_metadata)
@@ -156,27 +146,21 @@ class QNet(Net):
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
-    def backward(self,
-                 grids,
-                 cells,
-                 actions,
-                 rewards,
-                 next_grids,
-                 next_cells,
-                 next_actions=None):
+    def backward(self, grids, cells, actions, rewards, next_grids, next_cells, next_actions=None):
         """
         If 'next_actions' are specified, do SARSA update,
         else greedy selection (Q-Learning)
         """
-        p_next_grids = prep_data_grids(next_grids, self.pp['empty_neg'])
+        p_next_grids = prep_data_grids(next_grids, self.pp['grid_neg'], self.pp['grid_split'])
         p_next_cells = prep_data_cells(next_cells)
         if next_actions is None:
             next_actions = self.sess.run(
-                self.online_q_amax,
-                feed_dict={self.grid: p_next_grids,
-                           self.cell: p_next_cells})
+                self.online_q_amax, feed_dict={
+                    self.grid: p_next_grids,
+                    self.cell: p_next_cells
+                })
         data = {
-            self.grid: prep_data_grids(grids, self.pp['empty_neg']),
+            self.grid: prep_data_grids(grids, self.pp['grid_neg'], self.pp['grid_split']),
             self.cell: prep_data_cells(cells),
             self.action: actions,
             self.reward: rewards,
