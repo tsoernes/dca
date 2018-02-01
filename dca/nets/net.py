@@ -54,6 +54,7 @@ class Net:
         main_path = "model/" + name
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
+        self.quit_sim = False
 
         self.act_fn = get_act_fn_by_name(pp['act_fn'])
         self.kern_init_conv = get_init_by_name(pp['weight_init_conv'])
@@ -174,9 +175,9 @@ class Net:
                 self.grid: data['grids'],
                 self.cell: data['oh_cells'],
                 self.action: actions,
-                self.q_target: targets,
+                self.next_q: targets,
                 # self.action: data['actions'],
-                # self.reward: data['rewards'],
+                self.reward: data['rewards'],
                 # self.next_grid: data['next_grids'],
                 # self.next_cell: data['next_cells']
             }
@@ -190,18 +191,28 @@ class Net:
                 self.train_writer.add_summary(summary, i)
                 self.logger.info(f"Iter {i}\tloss: {loss:.2f}")
                 losses.append(loss)
+            if False:
+                self.logger.debug(f"grid: {data['grids'][0]} \n"
+                                  f"cell: {data['cells'][0]} \n"
+                                  f"oh_cell: {data['oh_cells'][0]} \n"
+                                  f"action: {data['actions'][0]} \n"
+                                  f"reward: {data['rewards'][0]} \n"
+                                  f"target: {targets[0]} \n"
+                                  f"loss: {loss} \n")
+                sys.exit(0)
             if np.isnan(loss) or np.isinf(loss):
                 self.logger.error(f"Invalid loss: {loss}")
                 sys.exit(0)
                 break
+            if self.quit_sim:
+                sys.exit(0)
         if self.save:
             self.save_model()
         # self.eval()
-        if False:
-            plt.plot(losses)
-            plt.ylabel("Loss")
-            plt.xlabel(f"Iterations, in {self.batch_size}s")
-            plt.show()
+        plt.plot(losses)
+        plt.ylabel("Loss")
+        plt.xlabel(f"Iterations, in {self.batch_size}s")
+        plt.show()
 
     def eval(self):
         self.load_data()

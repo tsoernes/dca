@@ -7,7 +7,7 @@ import numpy as np
 
 
 class BackgroundGenerator(threading.Thread):
-    def __init__(self, generator, k=1):
+    def __init__(self, generator, n_prefetch=1):
         """
         Take a generator and return a iterator that prefetches the generator
         in a separate thread.
@@ -17,7 +17,7 @@ class BackgroundGenerator(threading.Thread):
         threading.Thread.__init__(self)
         # Tell Python it's OK to exit even if this thread has not finished
         self.daemon = True
-        self.queue = Queue(k)
+        self.queue = Queue(n_prefetch)
         self.generator = generator
         self.start()
 
@@ -102,8 +102,8 @@ def h5py_save(fname,
         ds_chs = create_ds("chs", (), np.int8)
         ds_rewards = create_ds("rewards", (), np.int32)
         if next_grids is not None:
-            ds_next_grids = create_ds("next_grids",
-                                      (n_rows, n_cols, n_channels), np.bool)
+            ds_next_grids = create_ds("next_grids", (n_rows, n_cols,
+                                                     n_channels), np.bool)
         if next_cells is not None:
             ds_next_cells = create_ds("next_cells", (2, ), np.int8)
         ds_grids[:] = grids
@@ -156,3 +156,7 @@ def h5py_save_append(fname,
         if next_cells is not None:
             ds_next_cells[-n:] = next_cells
     print(f"Appended {len(grids)} experience tuples to {efname}")
+
+
+if __name__ == "__main__":
+    h5py_shuffle_in_unison()

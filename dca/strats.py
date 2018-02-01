@@ -31,6 +31,7 @@ class Strat:
         self.replaybuffer = ReplayBuffer(pp['buffer_size'], *self.dims)
 
         self.quit_sim = False
+        self.net = None
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -40,6 +41,8 @@ class Strat:
         """
         self.logger.error("\nPremature exit")
         self.quit_sim = True
+        if self.net is not None:
+            self.net.quit_sim = True
 
     def simulate(self) -> Tuple[float, float]:
         """
@@ -76,7 +79,8 @@ class Strat:
                 # are always busy in a grid corresponding to an END event.
                 next_grid = np.copy(self.grid)
                 next_cell = next_cevent[2]
-                self.replaybuffer.add(grid, cell, ch, reward)
+                self.replaybuffer.add(grid, cell, ch, reward, next_grid,
+                                      next_cell)
 
             if i > 0:
                 if i % self.pp['log_iter'] == 0:
@@ -244,6 +248,15 @@ class QTable(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.lmbda = self.pp['lambda']
+        if self.lmbda is not None:
+            self.logger.error("Using lambda returns")
+
+    def load_qvals(self):
+        """Load Q-values from file"""
+        fname = self.pp['restore_qtable']
+        if fname != '':
+            self.qvals = np.load(fname)
+            self.logger.error(f"Restored qvals from {fname}")
 
     def fn_after(self):
         self.logger.info(f"Max qval: {np.max(self.qvals)}")
@@ -301,6 +314,7 @@ class SARSA(QTable):
         self.qvals = np.zeros(
             (self.rows, self.cols, self.n_channels, self.n_channels),
             dtype=np.float32)
+        self.load_qvals()
         if self.lmbda is not None:
             # Eligibility traces
             self.el_traces = np.zeros(self.dims)
@@ -321,6 +335,7 @@ class TT_SARSA(QTable):
         super().__init__(*args, **kwargs)
         self.k = 30
         self.qvals = np.zeros((self.rows, self.cols, self.k, self.n_channels))
+        self.load_qvals()
         if self.lmbda is not None:
             # Eligibility traces
             self.el_traces = np.zeros((self.rows, self.cols, self._k,
@@ -339,6 +354,7 @@ class RS_SARSA(QTable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.qvals = np.zeros(self.dims)
+        self.load_qvals()
         if self.lmbda is not None:
             # Eligibility traces
             self.el_traces = np.zeros(self.dims)
@@ -414,8 +430,8 @@ class QNetStrat(NetStrat):
         if len(self.replaybuffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward(*self.replaybuffer.sample(
-            self.pp['batch_size']))
+        loss = self.net.backward(
+            *self.replaybuffer.sample(self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
