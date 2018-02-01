@@ -142,8 +142,23 @@ class Net:
         self.qvals = np.load("qtable.npy")
 
     def save_model(self):
-        self.logger.error(f"Saving model to path {self.model_path}")
-        self.saver.save(self.sess, self.model_path)
+        inp = ""
+        import os
+        path = self.model_path
+        n_path = path
+        if os.path.isdir(path):
+            while inp not in ["Y", "N", "A"]:
+                inp = input(
+                    "A model exists in {path}. Overwrite (Y), Don't save (N), "
+                    "or Save to directory (A): ")
+            if inp == "A":
+                i = 0
+                while os.path.isdir(n_path):
+                    n_path = path + str(i)
+                    i += 1
+        if inp not in ["N"]:
+            self.logger.error(f"Saving model to path {n_path}")
+            self.saver.save(self.sess, n_path)
 
     def save_timeline(self):
         if self.pp['tfprofiling']:
