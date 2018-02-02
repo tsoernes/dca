@@ -185,8 +185,8 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--no_grid_split',
         action='store_true',
-        help=
-        "(Net) Don't Double the depth and represent empty channels as 1 on separate layer",
+        help="(Net) Don't Double the depth and represent empty channels "
+        "as 1 on separate layer",
         default=False)
     parser.add_argument(
         '--act_fn',
@@ -341,7 +341,7 @@ def get_pparams(defaults=False):
     del params['no_grid_split']
     params['double_qnet'] = not params['no_double_qnet']
     del params['no_double_qnet']
-    params['dims'] = [params['rows'], params['cols'], params['n_channels']]
+    params['dims'] = (params['rows'], params['cols'], params['n_channels'])
 
     # Sensible presets / overrides
     params['net'] = False  # Whether net is in use or not

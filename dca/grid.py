@@ -85,16 +85,21 @@ class Grid:
         return eligible
 
     def afterstates(self, cell, ce_type, chs):
+        return self.afterstates_stat(self.state, cell, ce_type, chs)
+
+    @staticmethod
+    def afterstates_stat(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
         """Make an afterstate (resulting grid) for each possible,
         # eligible action in 'chs'"""
         if ce_type == CEvent.END:
             targ_val = 0
         else:
             targ_val = 1
-        grids = np.repeat(np.expand_dims(np.copy(self.state), axis=0), len(chs), axis=0)
+        grids = np.repeat(np.expand_dims(np.copy(grid), axis=0), len(chs), axis=0)
         for i, ch in enumerate(chs):
+            assert grids[i][cell][ch] != targ_val
             grids[i][cell][ch] = targ_val
-        assert grids.shape == (len(chs), self.rows, self.cols, self.n_channels)
+        assert grids.shape == (len(chs), rows, cols, n_channels)
         return grids
 
 

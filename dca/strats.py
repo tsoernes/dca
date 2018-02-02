@@ -594,32 +594,52 @@ class VNetStrat(NetStrat):
             self.losses.append(loss)
 
 
+np.set_printoptions(threshold=np.nan)
+
+
 class SinghStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
 
-    def get_qvals(self, cell, ce_type, chs):
-        # Make 1 afterstate then make all feature reps from that one
-        fgrid = self.feature_rep(self.grid)
-        eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(self.grid, cell)
-        if ce_type == CEvent.END:
-            # One more channel might become eligible
-            n_elig_self_diff = 1
-            # One less channel will be used
-            n_used_neighs_diff = -1
-        else:
-            n_elig_self_diff = -1
-            n_used_neighs_diff = 1
-        neighs = self.env.grid.neighbors(dist=2, *cell, separate=True, include_self=True)
-        fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
-        for i, ch in enumerate(chs):
-            fgrids[i, neighs[0], neighs[1], ch] += n_used_neighs_diff
-            if ch in eligible_chs:
-                fgrids[i, cell[0], cell[1], -1] += n_elig_self_diff
+    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
+        fgrids = self.afterstate_freps(self.grid)
         qvals_sparse = self.net.forward(fgrids)
         assert qvals_sparse.shape == (len(chs), )
         return qvals_sparse
+
+    def afterstate_freps(self, grid, cell, ce_type, chs):
+        """ Get the feature representation for the current grid,
+        and from it derive the f.rep for each possible afterstate.
+        Current assumptions:
+        n_used_neighs (:-1) does NOT include self
+        n_free_self (-1) counts ELIGIBLE chs
+
+        TODO NOTE Should handoffs be handled differently?
+        """
+        fgrid = self.feature_rep(grid)
+        if ce_type == CEvent.END:
+            # One more channel might become eligible if the ch is
+            # not in use by neighs2
+            n_elig_self_diff = 1
+            # One less channel will be in use by the cell
+            n_used_neighs_diff = -1
+        else:
+            # One less ch will be eligible
+            n_elig_self_diff = -1
+            # One more ch will be in use
+            n_used_neighs_diff = 1
+        r, c = cell
+        neighs4 = RhombusAxialGrid.neighbors(dist=4, row=r, col=c, separate=True)
+        neighs2 = RhombusAxialGrid.neighbors(dist=2, row=r, col=c, include_self=True)
+        fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
+        for i, ch in enumerate(chs):
+            fgrids[i, neighs4[0], neighs4[1], ch] += n_used_neighs_diff
+            for neigh2 in neighs2:
+                eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(grid, neigh2)
+                if ch in eligible_chs:
+                    fgrids[i, neigh2[0], neigh2[1], -1] += n_elig_self_diff
+        return fgrids
 
     def backward(self, grid, reward, next_grid):
         loss = self.net.backward([self.feature_rep(grid)], reward,
@@ -632,8 +652,9 @@ class SinghStrat(VNetStrat):
         # used by neighbors with a distance of 4 or less.
         # NOTE Should that include
         # whether or not the channel is in use by the cell itself??
+        # Currently, DOES NOT
         assert type(grid) == np.ndarray
-        assert grid.shape == self.dims
+        assert grid.shape == self.dims, (grid.shape, self.dims)
         fgrid = np.zeros((self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
         # fgrids[:, :, :, self.n_channels] = self.n_channels \
         #     - np.count_nonzero(grids, axis=3)
@@ -645,17 +666,16 @@ class SinghStrat(VNetStrat):
                 fgrid[r, c, :-1] = n_used
                 # Eligible self
                 eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(grid, (r, c))
-                fgrid[:, :, -1] = self.n_channels - len(eligible_chs)
+                fgrid[r, c, -1] = len(eligible_chs)
         return fgrid
 
     def feature_reps(self, grids):
-        raise NotImplementedError  # Uses free not eligible
-        # For each cell, the number of FREE channels in that cell.
-        # NOTE Should it be the number of ELIGIBLE channels instead??
+        # For each cell, the number of ELIGIBLE channels in that cell.
         # For each cell-channel pair, the number of times that channel is
         # used by neighbors with a distance of 4 or less.
         # NOTE Should that include
         # whether or not the channel is in use by the cell itself??
+        # Currently, DOES NOT
         assert type(grids) == np.ndarray
         if grids.ndim == 3:
             grids = np.expand_dims(grids, axis=0)
@@ -668,6 +688,8 @@ class SinghStrat(VNetStrat):
                 neighs = self.env.grid.neighbors(4, r, c, separate=True)
                 n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
                 fgrids[:, r, c, :-1] = n_used
-                fgrids[:, :, :, self.n_channels] = self.n_channels \
-                    - np.count_nonzero(grids, axis=3)
+                for i in range(len(grids)):
+                    eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(
+                        grids[i], (r, c))
+                    fgrids[i, r, c, -1] = len(eligible_chs)
         return fgrids
