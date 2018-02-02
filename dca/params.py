@@ -6,8 +6,9 @@ import sys
 
 import numpy as np
 
-import fixedstrats  # noqa
-import strats  # noqa
+import strats.fixedstrats  # noqa
+import strats.net_rl  # noqa
+import strats.table_rl  # noqa
 
 
 def strat_classes(module_name):
@@ -30,7 +31,8 @@ def get_pparams(defaults=False):
     parser = argparse.ArgumentParser(
         description='DCA', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    stratclasses = strat_classes("strats") + strat_classes("fixedstrats")
+    stratclasses = strat_classes("strats.net_rl") + strat_classes(
+        "strats.fixedstrats") + strat_classes("strats.table_rl")
     stratnames = ['show']
     for i in range(len(stratclasses)):
         s = stratclasses[i]

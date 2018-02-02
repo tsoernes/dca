@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 from eventgen import CEvent
-from strats import Strat
+from strats.base import Strat
 
 
 class RandomAssign(Strat):
