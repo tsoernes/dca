@@ -258,6 +258,44 @@ class SinghNetStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
 
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        loss = self.backward(grid, reward, self.grid)
+        if np.isinf(loss) or np.isnan(loss):
+            self.logger.error(f"Invalid loss: {loss}")
+            self.quit_sim = True
+        else:
+            self.losses.append(loss)
+
+        next_ce_type, next_cell = next_cevent[1:3]
+        next_ch = self.optimal_ch(next_ce_type, next_cell)
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> Tuple[int, float, int]:
+        inuse = np.nonzero(self.grid[cell])[0]
+        n_used = len(inuse)
+
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = self.env.grid.get_eligible_chs(cell)
+            if len(chs) == 0:
+                return None
+        else:
+            chs = inuse
+            # or no channels in use to reassign
+            assert n_used > 0
+
+        qvals_sparse = self.get_qvals(cell=cell, n_used=n_used, ce_type=ce_type, chs=chs)
+        if ce_type == CEvent.END:
+            amin_idx = np.argmin(qvals_sparse)
+            ch = chs[amin_idx]
+        else:
+            # print(qvals_sparse.shape, chs.shape)
+            amax_idx = np.argmax(qvals_sparse)
+            ch = chs[amax_idx]
+
+        if ch is None:
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_sparse}\n")
+        return ch
+
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
         fgrids = self.afterstate_freps(self.grid, cell, ce_type, chs)
         qvals_sparse = self.net.forward(fgrids)

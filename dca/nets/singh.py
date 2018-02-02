@@ -48,6 +48,8 @@ class SinghNet(Net):
 
     def backward(self, freps, reward, next_freps):
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
+        # TODO NOTE TODO IS this really the correct reward, and the
+        # correct target
         value_target = reward + self.gamma * next_value
         data = {
             self.freps: freps,
