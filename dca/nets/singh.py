@@ -13,18 +13,11 @@ class SinghNet(Net):
         super().__init__(name="VNet", *args, **kwargs)
 
     def build(self):
-        gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
-        # self.n_free_self = tf.placeholder(
-        #     shape=[None, self.pp['rows'], self.pp['cols']],
-        #     dtype=tf.float32,
-        #     name="free_self")
-        # self.n_used_neighs = tf.placeholder(
-        #     shape=gridshape, dtype=tf.float32, name="used_neighs")
-        self.value_target = tf.placeholder(shape=[None, 1], dtype=tf.float32, name="value_target")
         self.freps = tf.placeholder(
             shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
             dtype=tf.float32,
             name="feature_representations")
+        self.value_target = tf.placeholder(shape=[None, 1], dtype=tf.float32, name="value_target")
 
         # inp = tf.layers.flatten(
         #     tf.concat(

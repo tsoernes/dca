@@ -7,11 +7,15 @@ from utils import BackgroundGenerator
 
 def get_data_h5py(batch_size, fname="data-experience.0", split_perc=0.9, n_prefetch=50):
     """
-    Return generators that yield training and test data
-
     fname: file name without extension
     split_perc: Percentage of data to train on
     n_prefetch: number of batches to load in RAM
+
+    Return (n_tr, n_te, g_tr, g_te) where
+    n_tr: number of training samples
+    n_te: number of test samples
+    g_tr: generator that yields training data
+    g_te: generator that yields test data
     """
     # Open file handle, but don't load contents into memory
     h5f = h5py.File(fname + ".hdf5", "r")

@@ -7,7 +7,10 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
-from nets.utils import (get_act_fn_by_name, get_init_by_name, get_optimizer_by_name)
+from nets.utils import (get_act_fn_by_name, get_init_by_name,
+                        get_optimizer_by_name)
+
+
 """
 possible data prep: set unused channels to -1,
 OR make it unit gaussian. refer to alphago paper -- did they prep
@@ -145,7 +148,7 @@ class Net:
         if os.path.isdir(path):
             while inp not in ["Y", "N", "A"]:
                 inp = input("A model exists in {path}. Overwrite (Y), Don't save (N), "
-                            "or Save to directory (A): ")
+                            "or Save to directory (A): ").upper()
             if inp == "A":
                 i = 0
                 while os.path.isdir(n_path):

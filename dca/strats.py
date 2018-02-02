@@ -369,7 +369,7 @@ class NetStrat(RLStrat):
             inp = ""
             if self.quit_sim:
                 while inp not in ["Y", "N"]:
-                    inp = input("Premature exit. Save model? Y/N: ")
+                    inp = input("Premature exit. Save model? Y/N: ").upper()
             if inp in ["", "Y"]:
                 self.net.save_model()
         self.net.save_timeline()
