@@ -8,7 +8,7 @@ import numpy as np
 from eventgen import CEvent
 from grid import RhombusAxialGrid
 from params import get_pparams
-from strats import SinghStrat
+from strats.net_rl import SinghStrat
 
 
 class TestSinghStrat(unittest.TestCase):
