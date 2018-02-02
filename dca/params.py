@@ -53,11 +53,16 @@ def get_pparams(defaults=False):
         "\n 7.5 erlangs = 150cr, 3cd"
         "\n 5 erlangs = 100cr, 3cd",
         default=10)
-    parser.add_argument('--call_rates', type=int, help="in calls per minute", default=None)
-    parser.add_argument('--call_duration', type=int, help="in minutes", default=3)
-    parser.add_argument('--p_handoff', type=float, help="handoff probability", default=0.15)
     parser.add_argument(
-        '--hoff_call_duration', type=int, help="handoff call duration, in minutes", default=1)
+        '--call_rates', type=int, help="in calls per minute", default=None)
+    parser.add_argument('--call_duration', type=int, help="in minutes", default=3)
+    parser.add_argument(
+        '--p_handoff', type=float, help="handoff probability", default=0.15)
+    parser.add_argument(
+        '--hoff_call_duration',
+        type=int,
+        help="handoff call duration, in minutes",
+        default=1)
     parser.add_argument(
         '--n_events',
         '-i',
@@ -77,7 +82,8 @@ def get_pparams(defaults=False):
         help="Run simulation N times, report average scores",
         default=None)
 
-    parser.add_argument('--alpha', type=float, help="(RL/Table) learning rate", default=0.036)
+    parser.add_argument(
+        '--alpha', type=float, help="(RL/Table) learning rate", default=0.036)
     parser.add_argument(
         '--alpha_decay',
         type=float,
@@ -102,9 +108,15 @@ def get_pparams(defaults=False):
         help="(RL/Table) lower lambda weighs fewer step returns higher",
         default=None)
     parser.add_argument(
-        '--min_alpha', type=float, help="(RL) stop decaying alpha beyond this point", default=0.0)
+        '--min_alpha',
+        type=float,
+        help="(RL) stop decaying alpha beyond this point",
+        default=0.0)
     parser.add_argument(
-        '--save_exp_data', help="Save experience data to file", action='store_true', default=False)
+        '--save_exp_data',
+        help="Save experience data to file",
+        action='store_true',
+        default=False)
     parser.add_argument(
         '--restore_qtable',
         nargs='?',
@@ -116,8 +128,8 @@ def get_pparams(defaults=False):
         '--hopt',
         nargs='?',
         choices=[
-            'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
-            'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff'
+            'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda',
+            'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff'
         ],
         help="(Hopt) Hyper-parameter optimization with hyperopt."
         " Saves progress to 'results-{stratname}-{vars}.pkl' and"
@@ -144,8 +156,10 @@ def get_pparams(defaults=False):
         type=float,
         help="(Net) Learning rate. Overrides 'alpha'.",
         default=3.4e-5)
-    parser.add_argument('--weight_init_conv', choices=weight_initializers, default='zeros')
-    parser.add_argument('--weight_init_dense', choices=weight_initializers, default='norm_cols')
+    parser.add_argument(
+        '--weight_init_conv', choices=weight_initializers, default='zeros')
+    parser.add_argument(
+        '--weight_init_dense', choices=weight_initializers, default='norm_cols')
     parser.add_argument(
         '--dueling_qnet',
         '-duel',
@@ -159,7 +173,10 @@ def get_pparams(defaults=False):
         help="(Net/Double) Disable Double QNet",
         default=False)
     parser.add_argument(
-        '--layer_norm', action='store_true', help="(Net) Use layer normalization", default=False)
+        '--layer_norm',
+        action='store_true',
+        help="(Net) Use layer normalization",
+        default=False)
     parser.add_argument(
         '--grid_neg',
         action='store_true',
@@ -168,7 +185,8 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--no_grid_split',
         action='store_true',
-        help="(Net) Don't Double the depth and represent empty channels as 1 on separate layer",
+        help=
+        "(Net) Don't Double the depth and represent empty channels as 1 on separate layer",
         default=False)
     parser.add_argument(
         '--act_fn',
@@ -192,9 +210,15 @@ def get_pparams(defaults=False):
         default=None,
         const=100000)
     parser.add_argument(
-        '--save_net', action='store_true', help="(Net) Save network params", default=False)
+        '--save_net',
+        action='store_true',
+        help="(Net) Save network params",
+        default=False)
     parser.add_argument(
-        '--restore_net', action='store_true', help="(Net) Restore network params", default=False)
+        '--restore_net',
+        action='store_true',
+        help="(Net) Restore network params",
+        default=False)
     parser.add_argument(
         '--batch_size',
         type=int,
@@ -256,7 +280,10 @@ def get_pparams(defaults=False):
         default=0,
         const=1)
     parser.add_argument(
-        '--no_gpu', action='store_true', help="(Net) Disable TensorFlow GPU usage", default=False)
+        '--no_gpu',
+        action='store_true',
+        help="(Net) Disable TensorFlow GPU usage",
+        default=False)
 
     parser.add_argument(
         '--rng_seed',

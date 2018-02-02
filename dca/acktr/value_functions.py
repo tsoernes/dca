@@ -10,7 +10,8 @@ from baselines.common import tf_util as U
 class NeuralNetValueFunction(object):
     def __init__(self, ob_dim, ac_dim):  # pylint: disable=W0613
         X = tf.placeholder(
-            tf.float32, shape=[None, ob_dim * 2 + ac_dim * 2 + 2])  # batch of observations
+            tf.float32, shape=[None,
+                               ob_dim * 2 + ac_dim * 2 + 2])  # batch of observations
         vtarg_n = tf.placeholder(tf.float32, shape=[None], name='vtarg')
         wd_dict = {}
         h1 = tf.nn.elu(
@@ -58,7 +59,8 @@ class NeuralNetValueFunction(object):
             if "vf" in var.name:
                 vf_var_list.append(var)
 
-        update_op, self.q_runner = optim.minimize(loss, loss_sampled, var_list=vf_var_list)
+        update_op, self.q_runner = optim.minimize(
+            loss, loss_sampled, var_list=vf_var_list)
         self.do_update = U.function([X, vtarg_n], update_op)  # pylint: disable=E1101
         U.initialize()  # Initialize uninitialized TF variables
 

@@ -14,7 +14,8 @@ from baselines.acktr.value_functions import NeuralNetValueFunction
 
 def train(env_id, num_timesteps, seed):
     env = gym.make(env_id)
-    env = bench.Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank)))
+    env = bench.Monitor(env,
+                        logger.get_dir() and os.path.join(logger.get_dir(), str(rank)))
     set_global_seeds(seed)
     env.seed(seed)
     gym.logger.setLevel(logging.WARN)

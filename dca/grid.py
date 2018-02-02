@@ -308,7 +308,8 @@ class RhombusAxialGrid(Grid):
         Returns a list with indices of neighbors within a radius of 2,
         not including self
         """
-        return RhombusAxialGrid.neighbors(2, row, col, separate=separate, include_self=False)
+        return RhombusAxialGrid.neighbors(
+            2, row, col, separate=separate, include_self=False)
 
     @staticmethod
     def hex_distance(a, b):
@@ -351,8 +352,8 @@ class RhombusAxialGrid(Grid):
             if (x >= 0 and x < self.cols and y >= 0 and y < self.rows):
                 self.labels[y][x] = l
 
-        centers = [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8), (3, -1), (4, 1), (5, 3), (6, 5), (7, 7),
-                   (-1, 5), (7, 0), (0, 7)]
+        centers = [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8), (3, -1), (4, 1), (5, 3),
+                   (6, 5), (7, 7), (-1, 5), (7, 0), (0, 7)]
         for center in centers:
             label(0, *center)
             for i, neigh in enumerate(self.neighbors1sparse(*center)):

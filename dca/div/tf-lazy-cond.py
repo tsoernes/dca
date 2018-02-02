@@ -8,7 +8,8 @@ b = tf.placeholder(dtype=tf.int64)
 fn = lambda: tf.argmax(b)
 fn2 = lambda: fn()
 
-res = tf.cond(tf.equal(tf.size(a), tf.constant(0)), lambda: tf.constant(-1, dtype=tf.int64), fn2)
+res = tf.cond(
+    tf.equal(tf.size(a), tf.constant(0)), lambda: tf.constant(-1, dtype=tf.int64), fn2)
 
 res2 = tf.cond(
     tf.equal(tf.size(a), tf.constant(0)), lambda: tf.constant(-1, dtype=tf.int64),

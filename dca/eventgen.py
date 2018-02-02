@@ -20,8 +20,8 @@ class CEvent(Enum):
 
 
 class EventGen:
-    def __init__(self, rows, cols, call_rates, call_duration, hoff_call_duration, logger, *args,
-                 **kwargs):
+    def __init__(self, rows, cols, call_rates, call_duration, hoff_call_duration, logger,
+                 *args, **kwargs):
         self.rows, self.cols = rows, cols
         if type(call_rates) == float or type(call_rates) == int:
             # Use uniform call rates throughout grid
@@ -76,8 +76,9 @@ class EventGen:
         neigh_idx = np.random.randint(0, len(neighs))
         end_event = self.event_end(t, cell, ch)
         new_event = (end_event[0], CEvent.HOFF, neighs[neigh_idx])
-        self.logger.debug(f"Created handoff event for cell {cell} ch {ch}"
-                          f" to cell {neighs[neigh_idx]} scheduled for time {end_event[0]}")
+        self.logger.debug(
+            f"Created handoff event for cell {cell} ch {ch}"
+            f" to cell {neighs[neigh_idx]} scheduled for time {end_event[0]}")
         self._push(new_event)
 
     def event_end_handoff(self, t, cell, ch):

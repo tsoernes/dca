@@ -288,7 +288,8 @@ class QTable(RLStrat):
             self.alpha *= self.alpha_decay
         next_frep = self.feature_rep(next_cell, next_n_used)
         self.logger.debug(
-            f"Q[{frep}][{ch}]:{q:.1f} -> {reward:.1f} + Q[{next_frep}][{next_ch}]:{next_qval:.1f}")
+            f"Q[{frep}][{ch}]:{q:.1f} -> {reward:.1f} + Q[{next_frep}][{next_ch}]:{next_qval:.1f}"
+        )
 
 
 class SARSA(QTable):
@@ -384,7 +385,8 @@ class QNetStrat(NetStrat):
         # self.logger.info(f"TF Rand: {ra}")
         if self.batch_size > 1:
             self.update_qval = self.update_qval_experience
-            self.logger.warn("Using experience replay with batch" f" size of {self.batch_size}")
+            self.logger.warn("Using experience replay with batch"
+                             f" size of {self.batch_size}")
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
@@ -442,8 +444,10 @@ class QLearnEligibleNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("QlearnEligibleNet", *args, **kwargs)
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch, next_max_ch):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell, next_max_ch)
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
+                 next_max_ch):
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell,
+                                 next_max_ch)
         return loss
 
 
@@ -453,7 +457,8 @@ class SARSANetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("SARSANet", *args, **kwargs)
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch, next_max_ch):
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
+                 next_max_ch):
         loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell, next_ch)
         return loss
 
@@ -465,7 +470,8 @@ class ACNetStrat(NetStrat):
         super().__init__(*args, **kwargs)
         self.net = ACNet(pp=self.pp, logger=self.logger)
         self.exp_buffer = ExperienceBuffer()
-        self.logger.info("Loss legend (scaled): [ total, policy_grad, value_fn, entropy ]")
+        self.logger.info(
+            "Loss legend (scaled): [ total, policy_grad, value_fn, entropy ]")
 
     def forward(self, cell, ce_type) -> Tuple[List[float], float]:
         if ce_type == CEvent.END:
@@ -616,7 +622,8 @@ class SinghStrat(VNetStrat):
         return qvals_sparse
 
     def backward(self, grid, reward, next_grid):
-        loss = self.net.backward([self.feature_rep(grid)], reward, [self.feature_rep(next_grid)])
+        loss = self.net.backward([self.feature_rep(grid)], reward,
+                                 [self.feature_rep(next_grid)])
         return loss
 
     def feature_rep(self, grid):
@@ -652,7 +659,8 @@ class SinghStrat(VNetStrat):
         assert type(grids) == np.ndarray
         if grids.ndim == 3:
             grids = np.expand_dims(grids, axis=0)
-        fgrids = np.zeros((len(grids), self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
+        fgrids = np.zeros(
+            (len(grids), self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
         # fgrids[:, :, :, self.n_channels] = self.n_channels \
         #     - np.count_nonzero(grids, axis=3)
         for r in range(self.rows):

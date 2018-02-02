@@ -50,7 +50,8 @@ class VNet(Net):
     def build(self):
         gridshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels]
         self.grid = tf.placeholder(shape=gridshape, dtype=tf.float32, name="grid")
-        self.value_target = tf.placeholder(shape=[None, 1], dtype=tf.float32, name="value_target")
+        self.value_target = tf.placeholder(
+            shape=[None, 1], dtype=tf.float32, name="value_target")
 
         self.value, online_vars = self._build_net(self.grid, "online_vnet")
         self.loss = tf.losses.mean_squared_error(
@@ -70,7 +71,8 @@ class VNet(Net):
 
     def backward(self, grid, reward, next_grid):
         next_value = self.sess.run(
-            self.value, feed_dict={
+            self.value,
+            feed_dict={
                 self.grid: prep_data_grids(next_grid, self.pp['empty_neg'])
             })
         value_target = reward + self.gamma * next_value

@@ -64,12 +64,16 @@ class QNet(Net):
         self.cell = tf.placeholder(shape=[None, 3], dtype=tf.int32, name="cell")
         self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
         self.reward = tf.placeholder(shape=[None], dtype=tf.float32, name="reward")
-        self.next_grid = tf.placeholder(shape=gridshape, dtype=tf.float32, name="next_grid")
-        self.next_action = tf.placeholder(shape=[None], dtype=tf.int32, name="next_action")
+        self.next_grid = tf.placeholder(
+            shape=gridshape, dtype=tf.float32, name="next_grid")
+        self.next_action = tf.placeholder(
+            shape=[None], dtype=tf.int32, name="next_action")
 
-        online_q_vals_all, online_vars = self._build_net(self.grid, name="q_networks/online")
+        online_q_vals_all, online_vars = self._build_net(
+            self.grid, name="q_networks/online")
         # Keep separate weights for target Q network
-        target_q_vals_all, target_vars = self._build_net(self.next_grid, name="q_networks/target")
+        target_q_vals_all, target_vars = self._build_net(
+            self.next_grid, name="q_networks/target")
         # copy_online_to_target should be called periodically to creep
         # weights in the target Q-network towards the online Q-network
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
@@ -92,7 +96,8 @@ class QNet(Net):
         # self.target_q = tf.squeeze(
         #     tf.reduce_mean(target_q_vals_all, axis=1, name="target_next_q"),
         #     axis=1)
-        self.target_q = tf.reduce_mean(target_q_vals_all, axis=[1, 2, 3], name="target_next_q")
+        self.target_q = tf.reduce_mean(
+            target_q_vals_all, axis=[1, 2, 3], name="target_next_q")
         self.q_target = self.reward + self.gamma * self.target_q
 
         # Below we obtain the loss by taking the sum of squares
@@ -116,7 +121,14 @@ class QNet(Net):
 
         return q_vals
 
-    def backward(self, grids, cells, actions, rewards, next_grids, next_cells, next_actions=None):
+    def backward(self,
+                 grids,
+                 cells,
+                 actions,
+                 rewards,
+                 next_grids,
+                 next_cells,
+                 next_actions=None):
         """
         If 'next_actions' are specified, do SARSA update,
         else greedy selection (Q-Learning)

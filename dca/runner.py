@@ -65,15 +65,16 @@ class Runner:
             return
         n_events = self.pp['n_events']
         results = np.array(results)
-        self.logger.error(f"\n{n_runs}x{n_events} events finished with speed"
-                          f" {(n_runs*n_events)/(time.time()-t):.0f} events/second"
-                          f"\nAverage cumulative block probability over {n_runs} episodes:"
-                          f" {np.mean(results[:,0]):.4f}"
-                          f" with standard deviation {np.std(results[:,0]):.5f}"
-                          f"\nAverage cumulative handoff block probability"
-                          f" {np.mean(results[:,1]):.4f}"
-                          f" with standard deviation {np.std(results[:,1]):.5f}"
-                          f"\n{results}")
+        self.logger.error(
+            f"\n{n_runs}x{n_events} events finished with speed"
+            f" {(n_runs*n_events)/(time.time()-t):.0f} events/second"
+            f"\nAverage cumulative block probability over {n_runs} episodes:"
+            f" {np.mean(results[:,0]):.4f}"
+            f" with standard deviation {np.std(results[:,0]):.5f}"
+            f"\nAverage cumulative handoff block probability"
+            f" {np.mean(results[:,1]):.4f}"
+            f" with standard deviation {np.std(results[:,1]):.5f}"
+            f"\n{results}")
         # TODO Plot average cumulative over time
 
     def train_net(self):
@@ -148,7 +149,8 @@ class Runner:
             space = {
                 'net_lr': hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
                 'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
-                'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01), np.log(0.7)),
+                'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01),
+                                               np.log(0.7)),
                 # 'batch_size':
                 # scope.int(hp.uniform('batch_size', 8, 16)),
                 # 'buffer_size':

@@ -73,7 +73,8 @@ def fc(x, scope, nh, act=tf.nn.relu, init_scale=1.0):
         return h
 
 
-def dense(x, size, name, weight_init=None, bias_init=0, weight_loss_dict=None, reuse=None):
+def dense(x, size, name, weight_init=None, bias_init=0, weight_loss_dict=None,
+          reuse=None):
     with tf.variable_scope(name, reuse=reuse):
         assert (len(U.scope_name().split('/')) == 2)
 
@@ -82,12 +83,14 @@ def dense(x, size, name, weight_init=None, bias_init=0, weight_loss_dict=None, r
         weight_decay_fc = 3e-4
 
         if weight_loss_dict is not None:
-            weight_decay = tf.multiply(tf.nn.l2_loss(w), weight_decay_fc, name='weight_decay_loss')
+            weight_decay = tf.multiply(
+                tf.nn.l2_loss(w), weight_decay_fc, name='weight_decay_loss')
             if weight_loss_dict is not None:
                 weight_loss_dict[w] = weight_decay_fc
                 weight_loss_dict[b] = 0.0
 
-            tf.add_to_collection(U.scope_name().split('/')[0] + '_' + 'losses', weight_decay)
+            tf.add_to_collection(U.scope_name().split('/')[0] + '_' + 'losses',
+                                 weight_decay)
 
         return tf.nn.bias_add(tf.matmul(x, w), b)
 

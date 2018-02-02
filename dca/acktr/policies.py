@@ -14,7 +14,12 @@ class CnnPolicy(object):
         X = tf.placeholder(tf.uint8, ob_shape)  # obs
         with tf.variable_scope("model", reuse=reuse):
             h = conv(
-                tf.cast(X, tf.float32) / 255., 'c1', nf=32, rf=8, stride=4, init_scale=np.sqrt(2))
+                tf.cast(X, tf.float32) / 255.,
+                'c1',
+                nf=32,
+                rf=8,
+                stride=4,
+                init_scale=np.sqrt(2))
             h2 = conv(h, 'c2', nf=64, rf=4, stride=2, init_scale=np.sqrt(2))
             h3 = conv(h2, 'c3', nf=32, rf=3, stride=1, init_scale=np.sqrt(2))
             h3 = conv_to_fc(h3)
@@ -50,11 +55,13 @@ class GaussianMlpPolicy(object):
         ob_no = tf.placeholder(
             tf.float32, shape=[None, ob_dim * 2], name="ob")  # batch of observations
         oldac_na = tf.placeholder(
-            tf.float32, shape=[None, ac_dim], name="ac")  # batch of actions previous actions
+            tf.float32, shape=[None, ac_dim],
+            name="ac")  # batch of actions previous actions
         oldac_dist = tf.placeholder(
             tf.float32, shape=[None, ac_dim * 2],
             name="oldac_dist")  # batch of actions previous action distributions
-        adv_n = tf.placeholder(tf.float32, shape=[None], name="adv")  # advantage function estimate
+        adv_n = tf.placeholder(
+            tf.float32, shape=[None], name="adv")  # advantage function estimate
         wd_dict = {}
         h1 = tf.nn.tanh(
             dense(
@@ -80,16 +87,19 @@ class GaussianMlpPolicy(object):
             bias_init=0.0,
             weight_loss_dict=wd_dict)  # Mean control output
         self.wd_dict = wd_dict
-        self.logstd_1a = logstd_1a = tf.get_variable("logstd", [ac_dim], tf.float32,
-                                                     tf.zeros_initializer())  # Variance on outputs
+        self.logstd_1a = logstd_1a = tf.get_variable(
+            "logstd", [ac_dim], tf.float32, tf.zeros_initializer())  # Variance on outputs
         logstd_1a = tf.expand_dims(logstd_1a, 0)
         std_1a = tf.exp(logstd_1a)
         std_na = tf.tile(std_1a, [tf.shape(mean_na)[0], 1])
-        ac_dist = tf.concat([tf.reshape(mean_na, [-1, ac_dim]),
-                             tf.reshape(std_na, [-1, ac_dim])], 1)
+        ac_dist = tf.concat(
+            [tf.reshape(mean_na, [-1, ac_dim]),
+             tf.reshape(std_na, [-1, ac_dim])], 1)
         sampled_ac_na = tf.random_normal(
             tf.shape(ac_dist[:, ac_dim:])
-        ) * ac_dist[:, ac_dim:] + ac_dist[:, :ac_dim]  # This is the sampled action we'll perform.
+        ) * ac_dist[:,
+                    ac_dim:] + ac_dist[:, :
+                                       ac_dim]  # This is the sampled action we'll perform.
         logprobsampled_n = -U.sum(
             tf.log(ac_dist[:, ac_dim:]), axis=1) - 0.5 * tf.log(
                 2.0 * np.pi) * ac_dim - 0.5 * U.sum(
@@ -99,24 +109,27 @@ class GaussianMlpPolicy(object):
         # Logprob of previous actions under CURRENT policy
         # (whereas oldlogprob_n is under OLD policy)
         logprob_n = -U.sum(
-            tf.log(ac_dist[:, ac_dim:]), axis=1
-        ) - 0.5 * tf.log(2.0 * np.pi) * ac_dim - 0.5 * U.sum(
-            tf.square(ac_dist[:, :ac_dim] - oldac_na) / (tf.square(ac_dist[:, ac_dim:])), axis=1)
+            tf.log(ac_dist[:, ac_dim:]), axis=1) - 0.5 * tf.log(
+                2.0 * np.pi) * ac_dim - 0.5 * U.sum(
+                    tf.square(ac_dist[:, :ac_dim] - oldac_na) /
+                    (tf.square(ac_dist[:, ac_dim:])),
+                    axis=1)
         kl = U.mean(kl_div(oldac_dist, ac_dist, ac_dim))
         # Approximation of KL divergence between old policy used
         # to generate actions, and new policy used to compute logprob_n
         # kl = .5 * U.mean(tf.square(logprob_n - oldlogprob_n))
         surr = -U.mean(
-            adv_n * logprob_n)  # Loss function that we'll differentiate to get the policy gradient
+            adv_n * logprob_n
+        )  # Loss function that we'll differentiate to get the policy gradient
         surr_sampled = -U.mean(logprob_n)  # Sampled loss of the policy
-        self._act = U.function(
-            [ob_no],
-            [sampled_ac_na, ac_dist, logprobsampled_n])  # Generate a new action and its logprob
+        self._act = U.function([ob_no], [sampled_ac_na, ac_dist, logprobsampled_n
+                                         ])  # Generate a new action and its logprob
         # Compute (approximate) KL divergence between old policy and new policy
         # self.compute_kl = U.function([ob_no, oldac_na, oldlogprob_n], kl)
         self.compute_kl = U.function([ob_no, oldac_dist], kl)
-        self.update_info = ((ob_no, oldac_na, adv_n), surr,
-                            surr_sampled)  # Input and output variables needed for computing loss
+        self.update_info = (
+            (ob_no, oldac_na, adv_n), surr,
+            surr_sampled)  # Input and output variables needed for computing loss
         U.initialize()  # Initialize uninitialized TF variables
 
     def act(self, ob):

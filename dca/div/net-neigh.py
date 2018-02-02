@@ -43,7 +43,8 @@ class NeighNet:
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
         elif mode == tf.estimator.ModeKeys.EVAL:
             eval_metric_ops = {
-                "accuracy": tf.metrics.accuracy(labels=labels, predictions=predictions["class"])
+                "accuracy":
+                tf.metrics.accuracy(labels=labels, predictions=predictions["class"])
             }
             return tf.estimator.EstimatorSpec(
                 mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
@@ -112,7 +113,11 @@ class NeighNet:
         # Train the model
         if do_train:
             train_input_fn = tf.estimator.inputs.numpy_input_fn(
-                x=train_data, y=targets[:split], batch_size=100, num_epochs=None, shuffle=True)
+                x=train_data,
+                y=targets[:split],
+                batch_size=100,
+                num_epochs=None,
+                shuffle=True)
             self.classifier.train(input_fn=train_input_fn, steps=50000)
 
         # Evaluate the model and print results

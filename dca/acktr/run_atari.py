@@ -17,7 +17,8 @@ def train(env_id, num_timesteps, seed, num_cpu):
             env = make_atari(env_id)
             env.seed(seed + rank)
             env = bench.Monitor(env,
-                                logger.get_dir() and os.path.join(logger.get_dir(), str(rank)))
+                                logger.get_dir()
+                                and os.path.join(logger.get_dir(), str(rank)))
             gym.logger.setLevel(logging.WARN)
             return wrap_deepmind(env)
 
@@ -32,7 +33,8 @@ def train(env_id, num_timesteps, seed, num_cpu):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--env', help='environment ID', default='BreakoutNoFrameskip-v4')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--num-timesteps', type=int, default=int(10e6))

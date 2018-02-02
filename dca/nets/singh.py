@@ -17,7 +17,8 @@ class SinghNet(Net):
             shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
             dtype=tf.float32,
             name="feature_representations")
-        self.value_target = tf.placeholder(shape=[None, 1], dtype=tf.float32, name="value_target")
+        self.value_target = tf.placeholder(
+            shape=[None, 1], dtype=tf.float32, name="value_target")
 
         # inp = tf.layers.flatten(
         #     tf.concat(

@@ -62,7 +62,8 @@ def switch(condition, then_expression, else_expression):
         else_expression: TensorFlow operation.
     """
     x_shape = copy.copy(then_expression.get_shape())
-    x = tf.cond(tf.cast(condition, 'bool'), lambda: then_expression, lambda: else_expression)
+    x = tf.cond(
+        tf.cast(condition, 'bool'), lambda: then_expression, lambda: else_expression)
     x.set_shape(x_shape)
     return x
 
@@ -188,7 +189,9 @@ def ensure_tf_input(thing):
 
 def huber_loss(x, delta=1.0):
     """Reference: https://en.wikipedia.org/wiki/Huber_loss"""
-    return tf.where(tf.abs(x) < delta, tf.square(x) * 0.5, delta * (tf.abs(x) - 0.5 * delta))
+    return tf.where(
+        tf.abs(x) < delta,
+        tf.square(x) * 0.5, delta * (tf.abs(x) - 0.5 * delta))
 
 
 # ================================================================
@@ -301,7 +304,10 @@ def conv2d(x,
            summary_tag=None):
     with tf.variable_scope(name):
         stride_shape = [1, stride[0], stride[1], 1]
-        filter_shape = [filter_size[0], filter_size[1], int(x.get_shape()[3]), num_filters]
+        filter_shape = [
+            filter_size[0], filter_size[1],
+            int(x.get_shape()[3]), num_filters
+        ]
 
         # there are "num input feature maps * filter height * filter width"
         # inputs to each hidden unit
@@ -327,7 +333,8 @@ def conv2d(x,
         if summary_tag is not None:
             tf.summary.image(
                 summary_tag,
-                tf.transpose(tf.reshape(w, [filter_size[0], filter_size[1], -1, 1]), [2, 0, 1, 3]),
+                tf.transpose(
+                    tf.reshape(w, [filter_size[0], filter_size[1], -1, 1]), [2, 0, 1, 3]),
                 max_images=10)
 
         return tf.nn.conv2d(x, w, stride_shape, pad) + b
@@ -347,7 +354,8 @@ def wndense(x, size, name, init_scale=1.0):
     v = tf.get_variable(
         name + "/V", [int(x.get_shape()[1]), size],
         initializer=tf.random_normal_initializer(0, 0.05))
-    g = tf.get_variable(name + "/g", [size], initializer=tf.constant_initializer(init_scale))
+    g = tf.get_variable(
+        name + "/g", [size], initializer=tf.constant_initializer(init_scale))
     b = tf.get_variable(name + "/b", [size], initializer=tf.constant_initializer(0.0))
 
     # use weight normalization (Salimans & Kingma, 2016)
@@ -418,8 +426,9 @@ class _Function(object):
     def __init__(self, inputs, outputs, updates, givens, check_nan=False):
         for inpt in inputs:
             if not issubclass(type(inpt), TfInput):
-                assert len(inpt.op.inputs
-                           ) == 0, "inputs should all be placeholders of baselines.common.TfInput"
+                assert len(
+                    inpt.op.inputs
+                ) == 0, "inputs should all be placeholders of baselines.common.TfInput"
         self.inputs = inputs
         updates = updates or []
         self.update_group = tf.group(*updates)
@@ -452,7 +461,8 @@ class _Function(object):
                 self._feed_input(feed_dict, inpt, kwargs.pop(inpt_name))
             else:
                 assert inpt in self.givens, "Missing argument " + inpt_name
-        assert len(kwargs) == 0, "Function got extra arguments " + str(list(kwargs.keys()))
+        assert len(kwargs) == 0, "Function got extra arguments " + str(
+            list(kwargs.keys()))
         # Update feed dict with givens.
         for inpt in self.givens:
             feed_dict[inpt] = feed_dict.get(inpt, self.givens[inpt])
@@ -487,7 +497,9 @@ class _MemFriendlyFunction(object):
         for v in data_vals[1:]:
             assert v.shape[0] == n
         for i_start in range(0, n, self.batch_size):
-            slice_vals = [v[i_start:builtins.min(i_start + self.batch_size, n)] for v in data_vals]
+            slice_vals = [
+                v[i_start:builtins.min(i_start + self.batch_size, n)] for v in data_vals
+            ]
             for (var, val) in zip(self.data_inputs, slice_vals):
                 feed_dict[var] = val
             results = tf.get_default_session().run(self.outputs, feed_dict=feed_dict)
@@ -704,7 +716,8 @@ def scope_vars(scope, trainable_only=False):
         list of variables in `scope`.
     """
     return tf.get_collection(
-        tf.GraphKeys.TRAINABLE_VARIABLES if trainable_only else tf.GraphKeys.GLOBAL_VARIABLES,
+        tf.GraphKeys.TRAINABLE_VARIABLES
+        if trainable_only else tf.GraphKeys.GLOBAL_VARIABLES,
         scope=scope if isinstance(scope, str) else scope.name)
 
 

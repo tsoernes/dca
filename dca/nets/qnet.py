@@ -48,7 +48,8 @@ class QNet(Net):
                 # q_vals = value + (advantages - tf.reduce_max(
                 #     advantages, axis=1, keep_dims=True))
                 # Average Dueling
-                q_vals = value + (advantages - tf.reduce_mean(advantages, axis=1, keep_dims=True))
+                q_vals = value + (
+                    advantages - tf.reduce_mean(advantages, axis=1, keep_dims=True))
                 if "online" in name:
                     self.advantages = advantages
                 if "target" in name:
@@ -72,9 +73,12 @@ class QNet(Net):
         self.cell = tf.placeholder(shape=cellshape, dtype=tf.float32, name="cell")
         self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
         self.reward = tf.placeholder(shape=[None], dtype=tf.float32, name="reward")
-        self.next_grid = tf.placeholder(shape=gridshape, dtype=tf.float32, name="next_grid")
-        self.next_cell = tf.placeholder(shape=cellshape, dtype=tf.float32, name="next_cell")
-        self.next_action = tf.placeholder(shape=[None], dtype=tf.int32, name="next_action")
+        self.next_grid = tf.placeholder(
+            shape=gridshape, dtype=tf.float32, name="next_grid")
+        self.next_cell = tf.placeholder(
+            shape=cellshape, dtype=tf.float32, name="next_cell")
+        self.next_action = tf.placeholder(
+            shape=[None], dtype=tf.int32, name="next_action")
 
         self.online_q_vals, online_vars = self._build_net(
             self.grid, self.cell, name="q_networks/online")
@@ -124,7 +128,8 @@ class QNet(Net):
             # tf.summary.scalar("grad_norm", grad_norms)
             tf.summary.histogram("qvals", self.online_q_vals)
         self.summaries = tf.summary.merge_all()
-        self.train_writer = tf.summary.FileWriter(self.log_path + '/train', self.sess.graph)
+        self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
+                                                  self.sess.graph)
         self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
 
     def forward(self, grid, cell):
@@ -136,7 +141,8 @@ class QNet(Net):
             [q_vals_op],
             feed_dict={
                 self.grid:
-                prep_data_grids(grid, neg=self.pp['grid_neg'], split=self.pp['grid_split']),
+                prep_data_grids(
+                    grid, neg=self.pp['grid_neg'], split=self.pp['grid_split']),
                 self.cell:
                 prep_data_cells(cell)
             },
@@ -146,16 +152,25 @@ class QNet(Net):
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
-    def backward(self, grids, cells, actions, rewards, next_grids, next_cells, next_actions=None):
+    def backward(self,
+                 grids,
+                 cells,
+                 actions,
+                 rewards,
+                 next_grids,
+                 next_cells,
+                 next_actions=None):
         """
         If 'next_actions' are specified, do SARSA update,
         else greedy selection (Q-Learning)
         """
-        p_next_grids = prep_data_grids(next_grids, self.pp['grid_neg'], self.pp['grid_split'])
+        p_next_grids = prep_data_grids(next_grids, self.pp['grid_neg'],
+                                       self.pp['grid_split'])
         p_next_cells = prep_data_cells(next_cells)
         if next_actions is None:
             next_actions = self.sess.run(
-                self.online_q_amax, feed_dict={
+                self.online_q_amax,
+                feed_dict={
                     self.grid: p_next_grids,
                     self.cell: p_next_cells
                 })

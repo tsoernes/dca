@@ -7,10 +7,7 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
-from nets.utils import (get_act_fn_by_name, get_init_by_name,
-                        get_optimizer_by_name)
-
-
+from nets.utils import (get_act_fn_by_name, get_init_by_name, get_optimizer_by_name)
 """
 possible data prep: set unused channels to -1,
 OR make it unit gaussian. refer to alphago paper -- did they prep
@@ -122,7 +119,8 @@ class Net:
         if self.pp['max_grad_norm'] is not None:
             gradients, trainable_vars = zip(
                 *self.trainer.compute_gradients(self.loss, var_list=var_list))
-            clipped_grads, grad_norms = tf.clip_by_global_norm(gradients, self.pp['max_grad_norm'])
+            clipped_grads, grad_norms = tf.clip_by_global_norm(gradients,
+                                                               self.pp['max_grad_norm'])
             do_train = self.trainer.apply_gradients(zip(clipped_grads, trainable_vars))
         else:
             do_train = self.trainer.minimize(self.loss, var_list=var_list)
@@ -193,7 +191,8 @@ class Net:
                 # self.next_grid: data['next_grids'],
                 # self.next_cell: data['next_cells']
             }
-            _, loss, summary = self.sess.run([self.do_train, self.loss, self.summaries], curr_data)
+            _, loss, summary = self.sess.run([self.do_train, self.loss, self.summaries],
+                                             curr_data)
             if i % 50 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 # run_metadata = tf.RunMetadata()
@@ -271,8 +270,12 @@ class Net:
 
     @staticmethod
     def _get_trainable_vars(scope):
-        trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
-        trainable_vars_by_name = {var.name[len(scope.name):]: var for var in trainable_vars}
+        trainable_vars = tf.get_collection(
+            tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
+        trainable_vars_by_name = {
+            var.name[len(scope.name):]: var
+            for var in trainable_vars
+        }
         return trainable_vars_by_name
 
 

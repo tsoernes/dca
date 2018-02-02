@@ -49,7 +49,8 @@ class AC_Network:
                 kernel_size=[4, 4],
                 stride=[2, 2],
                 padding='VALID')
-            hidden = slim.fully_connected(slim.flatten(self.conv2), 256, activation_fn=tf.nn.elu)
+            hidden = slim.fully_connected(
+                slim.flatten(self.conv2), 256, activation_fn=tf.nn.elu)
 
             # Recurrent network for temporal dependencies
             lstm_cell = tf.contrib.rnn.BasicLSTMCell(256, state_is_tuple=True)
@@ -91,13 +92,15 @@ class AC_Network:
             self.target_v = tf.placeholder(shape=[None], dtype=tf.float32)
             self.advantages = tf.placeholder(shape=[None], dtype=tf.float32)
 
-            self.responsible_outputs = tf.reduce_sum(self.policy * self.actions_onehot, [1])
+            self.responsible_outputs = tf.reduce_sum(self.policy * self.actions_onehot,
+                                                     [1])
 
             # Loss functions
             self.value_loss = 0.5 * tf.reduce_sum(
                 tf.square(self.target_v - tf.reshape(self.value, [-1])))
             self.entropy = -tf.reduce_sum(self.policy * tf.log(self.policy))
-            self.policy_loss = -tf.reduce_sum(tf.log(self.responsible_outputs) * self.advantages)
+            self.policy_loss = -tf.reduce_sum(
+                tf.log(self.responsible_outputs) * self.advantages)
             self.loss = 0.5 * self.value_loss + \
                 self.policy_loss - self.entropy * 0.01
 
@@ -147,7 +150,8 @@ class Worker():
         self.rewards_plus = np.asarray(rewards.tolist() + [bootstrap_value])
         discounted_rewards = discount(self.rewards_plus, gamma)[:-1]
         self.value_plus = np.asarray(values.tolist() + [bootstrap_value])
-        advantages = discount(rewards + gamma * self.value_plus[1:] - self.value_plus[:-1], gamma)
+        advantages = discount(
+            rewards + gamma * self.value_plus[1:] - self.value_plus[:-1], gamma)
 
         # Update the network using gradients from loss
         # Generate network statistics to periodically save
@@ -161,8 +165,9 @@ class Worker():
         }
         v_l, p_l, e_l, g_n, v_n, self.batch_rnn_state, _ = sess.run(
             [
-                self.AC.value_loss, self.AC.policy_loss, self.AC.entropy, self.AC.grad_norms,
-                self.AC.var_norms, self.AC.state_out, self.AC.apply_grads
+                self.AC.value_loss, self.AC.policy_loss, self.AC.entropy,
+                self.AC.grad_norms, self.AC.var_norms, self.AC.state_out,
+                self.AC.apply_grads
             ],
             feed_dict=feed_dict)
         return v_l / len(rollout), p_l / len(rollout), e_l / len(rollout), g_n, v_n
@@ -212,7 +217,8 @@ class Worker():
 
                 # If the episode hasn't ended, but the experience buffer
                 # is full, then we make an update step using that experience rollout.
-                if len(episode_buffer) == 30 and episode_step_count != max_episode_length - 1:
+                if len(episode_buffer
+                       ) == 30 and episode_step_count != max_episode_length - 1:
                     # Since we don't know what the true final return is,
                     # we "bootstrap" from our current value estimation.
                     v1 = sess.run(
@@ -238,7 +244,8 @@ class Worker():
             # Periodically save model parameters and summary statistics.
             if episode_count % 5 == 0 and episode_count != 0:
                 if episode_count % 250 == 0 and self.name == 'worker_0':
-                    saver.save(sess, self.model_path + '/model-' + str(episode_count) + '.cptk')
+                    saver.save(sess,
+                               self.model_path + '/model-' + str(episode_count) + '.cptk')
                     print("Saved Model")
 
                 mean_reward = np.mean(self.episode_rewards[-5:])

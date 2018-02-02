@@ -88,11 +88,13 @@ class ReplayBuffer():
 
     def _encode_sample(self, idxes):
         n_samples = len(idxes)
-        grids = np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
+        grids = np.zeros(
+            (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
         cells = []
         actions = np.zeros(n_samples, dtype=np.int32)
         rewards = np.zeros(n_samples, dtype=np.float32)
-        next_grids = np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
+        next_grids = np.zeros(
+            (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
         next_cells = []
         has_next = len(self._storage[0]) > 4
         for i, j in enumerate(idxes):
@@ -334,7 +336,8 @@ class SegmentTree(object):
         self._value[idx] = val
         idx //= 2
         while idx >= 1:
-            self._value[idx] = self._operation(self._value[2 * idx], self._value[2 * idx + 1])
+            self._value[idx] = self._operation(self._value[2 * idx],
+                                               self._value[2 * idx + 1])
             idx //= 2
 
     def __getitem__(self, idx):

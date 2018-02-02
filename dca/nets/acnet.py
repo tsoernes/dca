@@ -55,7 +55,8 @@ class ACNet(Net):
 
         self.value_loss = self.pp['vf_coeff'] * tf.losses.mean_squared_error(
             tf.squeeze(self.value), self.value_target)
-        self.entropy = self.pp['entropy_coeff'] * -tf.reduce_sum(self.policy * tf.log(self.policy))
+        self.entropy = self.pp[
+            'entropy_coeff'] * -tf.reduce_sum(self.policy * tf.log(self.policy))
         self.policy_loss = -tf.reduce_mean(self.psi * tf.log(self.responsible_outputs))
         self.loss = self.value_loss + self.policy_loss - self.entropy
         self.do_train = self._build_default_trainer(trainable_vars)
@@ -107,7 +108,8 @@ class ACNet(Net):
         }
         return self._backward(data)
 
-    def backward_gae(self, grids, cells, vals, chs, rewards, next_grid, next_cell) -> float:
+    def backward_gae(self, grids, cells, vals, chs, rewards, next_grid,
+                     next_cell) -> float:
         """Generalized Advantage Estimation"""
         # Estimated value after trajectory, V(S_t+n)
         bootstrap_val = self.sess.run(
@@ -119,8 +121,8 @@ class ACNet(Net):
         rewards_plus = np.asarray(rewards + [bootstrap_val])
         discounted_rewards = nutils.discount(rewards_plus, self.gamma)[:-1]
         value_plus = np.asarray(vals + [bootstrap_val])
-        advantages = nutils.discount(rewards + self.gamma * value_plus[1:] - value_plus[:-1],
-                                     self.gamma)
+        advantages = nutils.discount(
+            rewards + self.gamma * value_plus[1:] - value_plus[:-1], self.gamma)
 
         data = {
             self.grid: nutils.prep_data_grids(np.array(grids)),

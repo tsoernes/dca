@@ -64,7 +64,8 @@ class AC_Network:
                 kernel_size=[4, 4],
                 stride=[2, 2],
                 padding='VALID')
-            hidden = slim.fully_connected(slim.flatten(self.conv2), 256, activation_fn=tf.nn.elu)
+            hidden = slim.fully_connected(
+                slim.flatten(self.conv2), 256, activation_fn=tf.nn.elu)
 
             # Recurrent network for temporal dependencies
             lstm_cell = tf.contrib.rnn.BasicLSTMCell(256, state_is_tuple=True)
@@ -109,7 +110,8 @@ class AC_Network:
                 self.target_v = tf.placeholder(shape=[None], dtype=tf.float32)
                 self.advantages = tf.placeholder(shape=[None], dtype=tf.float32)
 
-                self.responsible_outputs = tf.reduce_sum(self.policy * self.actions_onehot, [1])
+                self.responsible_outputs = tf.reduce_sum(
+                    self.policy * self.actions_onehot, [1])
 
                 # Loss functions
                 self.value_loss = 0.5 * tf.reduce_sum(
@@ -127,7 +129,8 @@ class AC_Network:
                 grads, self.grad_norms = tf.clip_by_global_norm(self.gradients, 40.0)
 
                 # Apply local gradients to global network
-                global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'global')
+                global_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                                'global')
                 self.apply_grads = trainer.apply_gradients(zip(grads, global_vars))
 
 
@@ -184,9 +187,9 @@ class Worker():
         }
         v_l, p_l, e_l, g_n, v_n, self.batch_rnn_state, _ = sess.run(
             [
-                self.local_AC.value_loss, self.local_AC.policy_loss, self.local_AC.entropy,
-                self.local_AC.grad_norms, self.local_AC.var_norms, self.local_AC.state_out,
-                self.local_AC.apply_grads
+                self.local_AC.value_loss, self.local_AC.policy_loss,
+                self.local_AC.entropy, self.local_AC.grad_norms, self.local_AC.var_norms,
+                self.local_AC.state_out, self.local_AC.apply_grads
             ],
             feed_dict=feed_dict)
         return v_l / len(rollout), p_l / len(rollout), e_l / len(rollout), g_n, v_n
@@ -215,7 +218,10 @@ class Worker():
                     # Take an action using probabilities from policy
                     # network output.
                     a_dist, v, rnn_state = sess.run(
-                        [self.local_AC.policy, self.local_AC.value, self.local_AC.state_out],
+                        [
+                            self.local_AC.policy, self.local_AC.value,
+                            self.local_AC.state_out
+                        ],
                         feed_dict={
                             self.local_AC.inputs: [s],
                             self.local_AC.state_in[0]: rnn_state[0],
@@ -256,7 +262,8 @@ class Worker():
                                 self.local_AC.state_in[0]: rnn_state[0],
                                 self.local_AC.state_in[1]: rnn_state[1]
                             })[0, 0]
-                        v_l, p_l, e_l, g_n, v_n = self.train(episode_buffer, sess, gamma, v1)
+                        v_l, p_l, e_l, g_n, v_n = self.train(episode_buffer, sess, gamma,
+                                                             v1)
                         episode_buffer = []
                         sess.run(self.update_local_ops)
                     if d is True:
@@ -275,8 +282,9 @@ class Worker():
                 # and summary statistics.
                 if episode_count % 5 == 0 and episode_count != 0:
                     if episode_count % 250 == 0 and self.name == 'worker_0':
-                        saver.save(sess,
-                                   self.model_path + '/model-' + str(episode_count) + '.cptk')
+                        saver.save(
+                            sess,
+                            self.model_path + '/model-' + str(episode_count) + '.cptk')
                         print("Saved Model")
 
                     mean_reward = np.mean(self.episode_rewards[-5:])
@@ -309,14 +317,17 @@ model_path = './model'
 tf.reset_default_graph()
 
 with tf.device("/cpu:0"):
-    global_episodes = tf.Variable(0, dtype=tf.int32, name='global_episodes', trainable=False)
+    global_episodes = tf.Variable(
+        0, dtype=tf.int32, name='global_episodes', trainable=False)
     trainer = tf.train.AdamOptimizer(learning_rate=1e-4)
     master_network = AC_Network(s_size, a_size, 'global', None)  # Generate global network
-    num_workers = multiprocessing.cpu_count()  # Set workers to number of available CPU threads
+    num_workers = multiprocessing.cpu_count(
+    )  # Set workers to number of available CPU threads
     workers = []
     # Create worker classes
     for i in range(num_workers):
-        workers.append(Worker(None, i, s_size, a_size, trainer, model_path, global_episodes))
+        workers.append(
+            Worker(None, i, s_size, a_size, trainer, model_path, global_episodes))
     saver = tf.train.Saver(max_to_keep=5)
 
 with tf.Session() as sess:

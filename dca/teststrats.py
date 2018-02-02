@@ -41,7 +41,8 @@ class TestSinghStrat(unittest.TestCase):
 
         # Verify Grid #2
         # All cells have one channel in use
-        check_n_free_self(fgrids[1], np.ones((self.rows, self.cols)) * (self.n_channels - 1))
+        check_n_free_self(fgrids[1],
+                          np.ones((self.rows, self.cols)) * (self.n_channels - 1))
         # Every cell has 'n_neighs(cell)' neighbors4 who uses channel 0
         # ('n_neighs(cell)' depends on cell coordinates)
         n_used2 = np.zeros((self.rows, self.cols, self.n_channels))
