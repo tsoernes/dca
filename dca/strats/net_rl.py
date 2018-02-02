@@ -258,6 +258,9 @@ class SinghNetStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
 
+    def get_init_action(self, cevent) -> int:
+        return self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         loss = self.backward(grid, reward, self.grid)
         if np.isinf(loss) or np.isnan(loss):
