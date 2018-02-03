@@ -9,12 +9,13 @@ class SinghNet(Net):
         """
         Afterstate value net
         """
-        self.name = "VNet"
-        super().__init__(name="VNet", *args, **kwargs)
+        self.name = "SinghNet"
+        super().__init__(name=self.name, *args, **kwargs)
 
     def build(self):
         self.freps = tf.placeholder(
-            shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
+            # shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
+            shape=[None, self.n_channels + 1],
             dtype=tf.float32,
             name="feature_representations")
         self.value_target = tf.placeholder(
@@ -25,8 +26,8 @@ class SinghNet(Net):
             self.value = tf.layers.dense(
                 inputs=inp,
                 units=1,
-                kernel_initializer=self.kern_init_dense(),
-                kernel_regularizer=self.regularizer,
+                kernel_initializer=tf.zeros_initializer(),
+                kernel_regularizer=None,
                 bias_initializer=tf.zeros_initializer(),
                 use_bias=True,
                 activation=None,

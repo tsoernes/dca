@@ -28,6 +28,7 @@ class Env:
         Generate DETERMINISTIC initial call events, in
         and return the first event.
         """
+        self.logger.error("USING MARKER CALLS")
         dt = 0
         for r in range(self.rows):
             for c in range(self.cols):
@@ -52,6 +53,7 @@ class Env:
         Execute action 'ch' in the environment and return the
         resulting reward and the next event
         """
+        assert ch is None or type(ch) is np.int64
         t, ce_type, cell = self.cevent[0:3]
         self.stats.iter(t, self.cevent)
 

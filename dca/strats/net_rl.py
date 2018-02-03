@@ -164,12 +164,12 @@ class ACNetStrat(NetStrat):
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
-        inuse = np.nonzero(self.grid[cell])[0]
-
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            # Calls eligible for assignment
             chs = self.env.grid.get_eligible_chs(cell)
         else:
-            chs = inuse
+            # Calls in progress
+            chs = np.nonzero(self.grid[cell])[0]
         if len(chs) == 0:
             assert ce_type != CEvent.END
             return (None, None)
@@ -262,40 +262,47 @@ class SinghNetStrat(VNetStrat):
         return self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
         if ch is not None:
-            loss = self.backward(grid, reward, self.grid)
+            loss = self.backward(grid, cell, reward, self.grid)
             if np.isinf(loss) or np.isnan(loss):
                 self.logger.error(f"Invalid loss: {loss}")
                 self.quit_sim = True
             else:
                 self.losses.append(loss)
 
-        next_ce_type, next_cell = next_cevent[1:3]
         next_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 
-    def optimal_ch(self, ce_type, cell) -> Tuple[int, float, int]:
-        inuse = np.nonzero(self.grid[cell])[0]
-        n_used = len(inuse)
-
+    def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = self.env.grid.get_eligible_chs(cell)
             if len(chs) == 0:
                 return None
         else:
-            chs = inuse
-            # or no channels in use to reassign
-            assert n_used > 0
+            chs = np.nonzero(self.grid[cell])[0]
 
         fgrids = self.afterstate_freps(self.grid, cell, ce_type, chs)
         qvals_sparse = self.net.forward(fgrids)
         assert qvals_sparse.shape == (len(chs), )
         amax_idx = np.argmax(qvals_sparse)
         ch = chs[amax_idx]
-
+        # self.logger.info(f"chs:{chs}\nqvals:{qvals_sparse}\nch:{ch}")
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_sparse}\n")
         return ch
+
+    def backward(self, grid, cell, reward, next_grid):
+        loss = self.net.backward([self.feature_rep(grid, cell)], reward,
+                                 [self.feature_rep(next_grid, cell)])
+        return loss
+
+    def afterstate_freps_local(self, grid, cell, ce_type, chs):
+        afterstates = RhombusAxialGrid.afterstates_stat(grid, cell, ce_type, chs)
+        freps = np.zeros((len(chs), self.n_channels + 1), np.int32)
+        for i in range(len(chs)):
+            freps[i] = self.feature_rep_local(afterstates[i], cell)
+        return freps
 
     def afterstate_freps(self, grid, cell, ce_type, chs):
         """ Get the feature representation for the current grid,
@@ -330,10 +337,15 @@ class SinghNetStrat(VNetStrat):
                     fgrids[i, neigh2[0], neigh2[1], -1] += n_elig_self_diff
         return fgrids
 
-    def backward(self, grid, reward, next_grid):
-        loss = self.net.backward([self.feature_rep(grid)], reward,
-                                 [self.feature_rep(next_grid)])
-        return loss
+    def feature_rep_local(self, grid, cell):
+        frep = np.zeros((self.n_channels + 1), np.int32)
+        eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(grid, cell)
+        r, c = cell
+        neighs = self.env.grid.neighbors(4, r, c, separate=True)
+        n_used = np.count_nonzero(grid[neighs], axis=0)
+        frep[:-1] = n_used
+        frep[-1] = len(eligible_chs)
+        return frep
 
     def feature_rep(self, grid):
         # For each cell, the number of ELIGBLE channels in that cell.
@@ -344,7 +356,7 @@ class SinghNetStrat(VNetStrat):
         # Currently, DOES NOT
         assert type(grid) == np.ndarray
         assert grid.shape == self.dims, (grid.shape, self.dims)
-        fgrid = np.zeros((self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
+        fgrid = np.zeros((self.rows, self.cols, self.n_channels + 1), np.int32)
         # fgrids[:, :, :, self.n_channels] = self.n_channels \
         #     - np.count_nonzero(grids, axis=3)
         for r in range(self.rows):
