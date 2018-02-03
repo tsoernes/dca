@@ -105,6 +105,12 @@ def get_pparams(defaults=False):
         default=0.99999)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
+        '--dt_rewards',
+        '-dt',
+        action='store_true',
+        help="(RL) integrate rewards over dt between events",
+        default=False)
+    parser.add_argument(
         '--lambda',
         type=float,
         help="(RL/Table) lower lambda weighs fewer step returns higher",

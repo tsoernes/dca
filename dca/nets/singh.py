@@ -14,8 +14,8 @@ class SinghNet(Net):
 
     def build(self):
         self.freps = tf.placeholder(
-            # shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
-            shape=[None, self.n_channels + 1],
+            shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
+            # shape=[None, self.n_channels + 1],
             dtype=tf.float32,
             name="feature_representations")
         self.value_target = tf.placeholder(
@@ -47,11 +47,13 @@ class SinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, reward, next_freps):
-        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
+    def backward(self, freps, next_freps, value_target):
+        # next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
         # TODO NOTE TODO IS this really the correct reward, and the
         # correct target
-        value_target = reward + self.gamma * next_value
+        # if next_value[0] != next_val:
+        #     print(next_value, next_val)
+        # value_target = reward + self.gamma * next_val
         data = {
             self.freps: freps,
             self.value_target: value_target,

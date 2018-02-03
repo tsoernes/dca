@@ -8,7 +8,7 @@ import numpy as np
 from eventgen import CEvent
 from grid import RhombusAxialGrid
 from params import get_pparams
-from strats.net_rl import SinghStrat
+from strats.net_rl import SinghNetStrat
 
 
 class TestSinghStrat(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestSinghStrat(unittest.TestCase):
         self.cols = self.pp['cols']
         self.n_channels = self.pp['n_channels']
         self.logger.error(self.pp)
-        self.strat = SinghStrat(self.pp, self.logger)
+        self.strat = SinghNetStrat(self.pp, self.logger)
 
     def test_afterstate_freps(self):
         """
@@ -35,8 +35,9 @@ class TestSinghStrat(unittest.TestCase):
                             (diff_n_free, freps_inc[diff_n_free], freps[diff_n_free]))
             eq_n_used = freps_inc[:, :, :, -1] == freps[:, :, :, -1]
             diff_n_used = np.where(np.invert(eq_n_used))
-            self.assertTrue(eq_n_used.all(),
-                            (diff_n_used, freps_inc[:, :, :, -1], freps[:, :, :, -1]))
+            self.assertTrue(
+                eq_n_used.all(),
+                ("\n", diff_n_used, freps_inc[:, :, :, -1], freps[:, :, :, -1]))
 
         grid1 = np.zeros(
             (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
@@ -54,11 +55,22 @@ class TestSinghStrat(unittest.TestCase):
         grid2[cell2][4] = 0
         grid2[(2, 4)][:] = 0
         ce_type2 = CEvent.END
-        chs2 = RhombusAxialGrid.get_eligible_chs_stat(grid2, cell2)
+        chs2 = np.nonzero(grid2[cell2])[0]
         freps_inc2 = self.strat.afterstate_freps(grid2, cell2, ce_type2, chs2)
         astates2 = RhombusAxialGrid.afterstates_stat(grid2, cell2, ce_type2, chs2)
         freps2 = self.strat.feature_reps(astates2)
         check_freps(freps_inc2, freps2)
+
+        grid3 = np.zeros(
+            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        cell3 = (4, 1)
+        grid3[cell3][4] = 1
+        ce_type3 = CEvent.END
+        chs3 = np.nonzero(grid3[cell3])[0]
+        freps_inc3 = self.strat.afterstate_freps(grid3, cell3, ce_type3, chs3)
+        astates3 = RhombusAxialGrid.afterstates_stat(grid3, cell3, ce_type3, chs3)
+        freps3 = self.strat.feature_reps(astates3)
+        check_freps(freps_inc3, freps3)
 
     def test_feature_rep(self):
         def check_n_free_self(grid, n_free):
@@ -77,9 +89,9 @@ class TestSinghStrat(unittest.TestCase):
             (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
         grid2[:, :, 0] = 1
         grid3[1, 2, 9] = 1
-        fgrid1 = self.strat.feature_rep(grid1)
-        fgrid2 = self.strat.feature_rep(grid2)
-        fgrid3 = self.strat.feature_rep(grid3)
+        fgrid1 = self.strat.feature_reps(grid1)
+        fgrid2 = self.strat.feature_reps(grid2)
+        fgrid3 = self.strat.feature_reps(grid3)
 
         # Verify that single- and multi-version works the same
         grids = np.array([grid1, grid2, grid3])
