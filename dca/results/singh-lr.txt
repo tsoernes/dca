@@ -1,0 +1,689 @@
+p3 runner.py --strat singhnet -opt sgd -lr 5e-7 --p_handoff 0; p3 runner.py --strat singhnet -opt sgd -lr 5e-6 --p_handoff 0; p3 runner.py --strat singhnet -opt sgd -lr 5e-5 --p_handoff 0; p3 runner.py --strat singhnet -opt sgd -lr 5e-4 --p_handoff 0
+Starting simulation at 2018-02-03 21:50:17.790933 with params:
+{'strat': 'singhnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.0, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': None, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'dt_rewards': False, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'hopt': None, 'hopt_best': None, 'hopt_plot': False, 'net_lr': 5e-07, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'grid_neg': False, 'act_fn': 'relu', 'optimizer': 'sgd', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 20, 'log_file': None, 'log_iter': 5000, 'grid_split': True, 'double_qnet': True, 'dims': (7, 7, 70), 'net': True}
+NP Rand: 0.5488135039273248
+
+Blocking probability events 0-5000: 0.1096, cumulative 0.1096
+Avg. loss last 5000 events: 640.09
+
+Blocking probability events 5000-10000: 0.1717, cumulative 0.1399
+Avg. loss last 5000 events: 165.31
+
+Blocking probability events 10000-15000: 0.1706, cumulative 0.1500
+Avg. loss last 5000 events: 140.54
+
+Blocking probability events 15000-20000: 0.1673, cumulative 0.1543
+Avg. loss last 5000 events: 128.17
+
+Blocking probability events 20000-25000: 0.1217, cumulative 0.1480
+Avg. loss last 5000 events: 116.70
+
+Blocking probability events 25000-30000: 0.1311, cumulative 0.1453
+Avg. loss last 5000 events: 111.39
+
+Blocking probability events 30000-35000: 0.1482, cumulative 0.1457
+Avg. loss last 5000 events: 128.65
+
+Blocking probability events 35000-40000: 0.1503, cumulative 0.1463
+Avg. loss last 5000 events: 81.12
+
+Blocking probability events 40000-45000: 0.1421, cumulative 0.1458
+Avg. loss last 5000 events: 83.10
+
+Blocking probability events 45000-50000: 0.1442, cumulative 0.1456
+Avg. loss last 5000 events: 88.14
+
+Blocking probability events 50000-55000: 0.1198, cumulative 0.1433
+Avg. loss last 5000 events: 92.77
+
+Blocking probability events 55000-60000: 0.1133, cumulative 0.1409
+Avg. loss last 5000 events: 73.16
+
+Blocking probability events 60000-65000: 0.1192, cumulative 0.1393
+Avg. loss last 5000 events: 86.03
+
+Blocking probability events 65000-70000: 0.1037, cumulative 0.1368
+Avg. loss last 5000 events: 78.83
+
+Blocking probability events 70000-75000: 0.1306, cumulative 0.1364
+Avg. loss last 5000 events: 65.47
+
+Blocking probability events 75000-80000: 0.1206, cumulative 0.1354
+Avg. loss last 5000 events: 57.74
+
+Blocking probability events 80000-85000: 0.1528, cumulative 0.1364
+Avg. loss last 5000 events: 59.24
+
+Blocking probability events 85000-90000: 0.1440, cumulative 0.1369
+Avg. loss last 5000 events: 48.65
+
+Blocking probability events 90000-95000: 0.1394, cumulative 0.1370
+Avg. loss last 5000 events: 61.80
+
+Blocking probability events 95000-100000: 0.1321, cumulative 0.1368
+Avg. loss last 5000 events: 73.55
+Epsilon: 0.75443
+
+Blocking probability events 100000-105000: 0.0815, cumulative 0.1342
+Avg. loss last 5000 events: 47.84
+
+Blocking probability events 105000-110000: 0.1183, cumulative 0.1335
+Avg. loss last 5000 events: 41.96
+
+Blocking probability events 110000-115000: 0.1379, cumulative 0.1337
+Avg. loss last 5000 events: 31.76
+
+Blocking probability events 115000-120000: 0.1261, cumulative 0.1334
+Avg. loss last 5000 events: 33.07
+
+Blocking probability events 120000-125000: 0.1303, cumulative 0.1332
+Avg. loss last 5000 events: 35.09
+
+Blocking probability events 125000-130000: 0.1192, cumulative 0.1327
+Avg. loss last 5000 events: 33.54
+
+Blocking probability events 130000-135000: 0.1282, cumulative 0.1325
+Avg. loss last 5000 events: 29.36
+
+Blocking probability events 135000-140000: 0.1372, cumulative 0.1327
+Avg. loss last 5000 events: 29.77
+
+Blocking probability events 140000-145000: 0.1499, cumulative 0.1333
+Avg. loss last 5000 events: 36.12
+
+Blocking probability events 145000-150000: 0.1260, cumulative 0.1331
+Avg. loss last 5000 events: 35.29
+
+Blocking probability events 150000-155000: 0.1180, cumulative 0.1326
+Avg. loss last 5000 events: 30.67
+
+Blocking probability events 155000-160000: 0.1261, cumulative 0.1324
+Avg. loss last 5000 events: 31.08
+
+Blocking probability events 160000-165000: 0.1306, cumulative 0.1323
+Avg. loss last 5000 events: 29.86
+
+Blocking probability events 165000-170000: 0.1133, cumulative 0.1318
+Avg. loss last 5000 events: 29.55
+
+Blocking probability events 170000-175000: 0.1235, cumulative 0.1316
+Avg. loss last 5000 events: 27.38
+
+Blocking probability events 175000-180000: 0.1506, cumulative 0.1321
+Avg. loss last 5000 events: 35.08
+
+Blocking probability events 180000-185000: 0.1571, cumulative 0.1328
+Avg. loss last 5000 events: 31.10
+
+Blocking probability events 185000-190000: 0.1352, cumulative 0.1328
+Avg. loss last 5000 events: 25.13
+
+Blocking probability events 190000-195000: 0.1456, cumulative 0.1332
+Avg. loss last 5000 events: 29.59
+
+Blocking probability events 195000-200000: 0.1274, cumulative 0.1330
+Avg. loss last 5000 events: 28.85
+
+Blocking probability events 200000-205000: 0.1587, cumulative 0.1337
+Avg. loss last 5000 events: 25.60
+
+Blocking probability events 205000-210000: 0.1242, cumulative 0.1334
+Avg. loss last 5000 events: 30.17
+
+Blocking probability events 210000-215000: 0.1476, cumulative 0.1338
+Avg. loss last 5000 events: 28.05
+
+Blocking probability events 215000-220000: 0.1104, cumulative 0.1333
+Avg. loss last 5000 events: 27.55
+
+Blocking probability events 220000-225000: 0.1259, cumulative 0.1331
+Avg. loss last 5000 events: 25.88
+
+Blocking probability events 225000-230000: 0.1258, cumulative 0.1329
+Avg. loss last 5000 events: 29.73
+
+Blocking probability events 230000-235000: 0.1407, cumulative 0.1331
+Avg. loss last 5000 events: 28.57
+
+Blocking probability events 235000-240000: 0.1223, cumulative 0.1329
+Avg. loss last 5000 events: 31.02
+
+Blocking probability events 240000-245000: 0.1014, cumulative 0.1322
+Avg. loss last 5000 events: 29.19
+
+Blocking probability events 245000-250000: 0.1300, cumulative 0.1322
+Avg. loss last 5000 events: 29.30
+
+Blocking probability events 250000-255000: 0.1353, cumulative 0.1323
+Avg. loss last 5000 events: 29.83
+
+Blocking probability events 255000-260000: 0.1341, cumulative 0.1323
+Avg. loss last 5000 events: 29.58
+
+Blocking probability events 260000-265000: 0.1456, cumulative 0.1326
+Avg. loss last 5000 events: 30.31
+
+Blocking probability events 265000-270000: 0.0943, cumulative 0.1319
+Avg. loss last 5000 events: 29.02
+
+Blocking probability events 270000-275000: 0.1536, cumulative 0.1323
+Avg. loss last 5000 events: 28.68
+
+Blocking probability events 275000-280000: 0.1339, cumulative 0.1323
+Avg. loss last 5000 events: 29.02
+
+Blocking probability events 280000-285000: 0.1414, cumulative 0.1325
+Avg. loss last 5000 events: 30.14
+
+Blocking probability events 285000-290000: 0.1007, cumulative 0.1319
+Avg. loss last 5000 events: 29.73
+
+Blocking probability events 290000-295000: 0.1283, cumulative 0.1319
+Avg. loss last 5000 events: 28.51
+
+Blocking probability events 295000-300000: 0.1138, cumulative 0.1316
+Avg. loss last 5000 events: 29.81
+
+Blocking probability events 300000-305000: 0.1434, cumulative 0.1318
+Avg. loss last 5000 events: 31.25
+
+Blocking probability events 305000-310000: 0.1666, cumulative 0.1323
+Avg. loss last 5000 events: 30.98
+
+Blocking probability events 310000-315000: 0.1260, cumulative 0.1322
+Avg. loss last 5000 events: 31.31
+
+Blocking probability events 315000-320000: 0.1358, cumulative 0.1323
+Avg. loss last 5000 events: 31.69
+
+Blocking probability events 320000-325000: 0.1474, cumulative 0.1325
+Avg. loss last 5000 events: 32.19
+
+Blocking probability events 325000-330000: 0.1748, cumulative 0.1332
+Avg. loss last 5000 events: 31.51
+
+Blocking probability events 330000-335000: 0.1530, cumulative 0.1335
+Avg. loss last 5000 events: 31.24
+
+Blocking probability events 335000-340000: 0.1454, cumulative 0.1337
+Avg. loss last 5000 events: 32.60
+
+Blocking probability events 340000-345000: 0.1474, cumulative 0.1339
+Avg. loss last 5000 events: 33.00
+
+Blocking probability events 345000-350000: 0.1712, cumulative 0.1344
+Avg. loss last 5000 events: 32.34
+
+Blocking probability events 350000-355000: 0.1368, cumulative 0.1344
+Avg. loss last 5000 events: 32.03
+
+Blocking probability events 355000-360000: 0.1447, cumulative 0.1346
+Avg. loss last 5000 events: 30.93
+
+Blocking probability events 360000-365000: 0.1232, cumulative 0.1344
+Avg. loss last 5000 events: 32.66
+
+Blocking probability events 365000-370000: 0.1745, cumulative 0.1350
+Avg. loss last 5000 events: 33.78
+
+Blocking probability events 370000-375000: 0.1355, cumulative 0.1350
+Avg. loss last 5000 events: 33.62
+
+Blocking probability events 375000-380000: 0.1309, cumulative 0.1349
+Avg. loss last 5000 events: 33.83
+
+Blocking probability events 380000-385000: 0.1625, cumulative 0.1353
+Avg. loss last 5000 events: 33.36
+
+Blocking probability events 385000-390000: 0.1501, cumulative 0.1355
+Avg. loss last 5000 events: 33.64
+
+Blocking probability events 390000-395000: 0.1844, cumulative 0.1361
+Avg. loss last 5000 events: 33.73
+
+Blocking probability events 395000-400000: 0.1588, cumulative 0.1364
+Avg. loss last 5000 events: 33.99
+
+Blocking probability events 400000-405000: 0.1315, cumulative 0.1364
+Avg. loss last 5000 events: 33.94
+
+Blocking probability events 405000-410000: 0.1180, cumulative 0.1361
+Avg. loss last 5000 events: 34.92
+
+Blocking probability events 410000-415000: 0.1709, cumulative 0.1366
+Avg. loss last 5000 events: 34.64
+
+Blocking probability events 415000-420000: 0.1458, cumulative 0.1367
+Avg. loss last 5000 events: 33.98
+
+Blocking probability events 420000-425000: 0.1717, cumulative 0.1371
+Avg. loss last 5000 events: 35.15
+
+Blocking probability events 425000-430000: 0.1632, cumulative 0.1374
+Avg. loss last 5000 events: 34.71
+
+Blocking probability events 430000-435000: 0.1679, cumulative 0.1378
+Avg. loss last 5000 events: 34.53
+
+Blocking probability events 435000-440000: 0.1611, cumulative 0.1380
+Avg. loss last 5000 events: 34.03
+
+Blocking probability events 440000-445000: 0.1498, cumulative 0.1382
+Avg. loss last 5000 events: 35.08
+
+Blocking probability events 445000-450000: 0.1586, cumulative 0.1384
+Avg. loss last 5000 events: 35.17
+
+Blocking probability events 450000-455000: 0.1726, cumulative 0.1388
+Avg. loss last 5000 events: 36.21
+
+Blocking probability events 455000-460000: 0.1574, cumulative 0.1390
+Avg. loss last 5000 events: 36.55
+
+Blocking probability events 460000-465000: 0.1685, cumulative 0.1393
+Avg. loss last 5000 events: 35.17
+
+Blocking probability events 465000-470000: 0.1859, cumulative 0.1398
+
+
+T Blocking probability: 0.1398 for new calls, 0.0000 for handoffs
+
+Average number of calls in progress when blocking: 8.95
+
+-----------------------------------------------------------------------------
+Blocking probability events 0-5000: 0.1090, cumulative 0.1090
+Avg. loss last 5000 events: 83.80
+Epsilon: 0.75443
+
+Blocking probability events 5000-10000: 0.1106, cumulative 0.1098
+Avg. loss last 5000 events: 75.59
+Epsilon: 0.75443
+
+Blocking probability events 10000-15000: 0.1521, cumulative 0.1238
+Avg. loss last 5000 events: 57.73
+Epsilon: 0.75443
+
+Blocking probability events 15000-20000: 0.1570, cumulative 0.1321
+Avg. loss last 5000 events: 41.56
+Epsilon: 0.75443
+
+Blocking probability events 20000-25000: 0.1297, cumulative 0.1316
+Avg. loss last 5000 events: 34.06
+Epsilon: 0.75443
+
+Blocking probability events 25000-30000: 0.1059, cumulative 0.1274
+Avg. loss last 5000 events: 28.28
+Epsilon: 0.75443
+
+Blocking probability events 30000-35000: 0.1372, cumulative 0.1288
+Avg. loss last 5000 events: 20.33
+Epsilon: 0.75443
+
+Blocking probability events 35000-40000: 0.1510, cumulative 0.1316
+Avg. loss last 5000 events: 18.66
+Epsilon: 0.75443
+
+Blocking probability events 40000-45000: 0.1045, cumulative 0.1287
+Avg. loss last 5000 events: 17.47
+Epsilon: 0.75443
+
+Blocking probability events 45000-50000: 0.1412, cumulative 0.1299
+Avg. loss last 5000 events: 14.39
+Epsilon: 0.75443
+
+Blocking probability events 50000-55000: 0.1486, cumulative 0.1316
+Avg. loss last 5000 events: 14.63
+Epsilon: 0.75443
+
+Blocking probability events 55000-60000: 0.1235, cumulative 0.1310
+Avg. loss last 5000 events: 13.49
+Epsilon: 0.75443
+
+Blocking probability events 60000-65000: 0.1408, cumulative 0.1317
+Avg. loss last 5000 events: 12.74
+Epsilon: 0.75443
+
+Blocking probability events 65000-70000: 0.1139, cumulative 0.1305
+Avg. loss last 5000 events: 13.02
+Epsilon: 0.75443
+
+Blocking probability events 70000-75000: 0.1455, cumulative 0.1315
+Avg. loss last 5000 events: 12.74
+Epsilon: 0.75443
+
+Blocking probability events 75000-80000: 0.1211, cumulative 0.1308
+Avg. loss last 5000 events: 13.14
+Epsilon: 0.75443
+
+Blocking probability events 80000-85000: 0.1311, cumulative 0.1309
+Avg. loss last 5000 events: 12.59
+Epsilon: 0.75443
+
+Blocking probability events 85000-90000: 0.1192, cumulative 0.1302
+Avg. loss last 5000 events: 12.98
+Epsilon: 0.75443
+
+Blocking probability events 90000-95000: 0.1551, cumulative 0.1316
+Avg. loss last 5000 events: 13.36
+Epsilon: 0.75443
+
+Blocking probability events 95000-100000: 0.1286, cumulative 0.1314
+Avg. loss last 5000 events: 13.51
+Epsilon: 0.75443
+
+Blocking probability events 100000-105000: 0.1632, cumulative 0.1330
+Avg. loss last 5000 events: 13.92
+Epsilon: 0.75443
+
+Blocking probability events 105000-110000: 0.1141, cumulative 0.1321
+Avg. loss last 5000 events: 13.55
+Epsilon: 0.75443
+
+Blocking probability events 110000-115000: 0.1684, cumulative 0.1337
+Avg. loss last 5000 events: 14.74
+Epsilon: 0.75443
+
+Blocking probability events 115000-120000: 0.1464, cumulative 0.1343
+Avg. loss last 5000 events: 14.85
+Epsilon: 0.75443
+
+Blocking probability events 120000-125000: 0.1287, cumulative 0.1340
+Avg. loss last 5000 events: 14.96
+Epsilon: 0.75443
+
+Blocking probability events 125000-130000: 0.1231, cumulative 0.1336
+Avg. loss last 5000 events: 14.75
+Epsilon: 0.75443
+
+Blocking probability events 130000-135000: 0.1217, cumulative 0.1332
+Avg. loss last 5000 events: 14.52
+Epsilon: 0.75443
+
+Blocking probability events 135000-140000: 0.1382, cumulative 0.1334
+Avg. loss last 5000 events: 15.62
+Epsilon: 0.75443
+
+Blocking probability events 140000-145000: 0.1185, cumulative 0.1329
+Avg. loss last 5000 events: 15.30
+Epsilon: 0.75443
+
+Blocking probability events 145000-150000: 0.1196, cumulative 0.1324
+Avg. loss last 5000 events: 15.53
+Epsilon: 0.75443
+
+Blocking probability events 150000-155000: 0.1199, cumulative 0.1320
+Avg. loss last 5000 events: 15.83
+Epsilon: 0.75443
+
+Blocking probability events 155000-160000: 0.1253, cumulative 0.1318
+Avg. loss last 5000 events: 15.45
+Epsilon: 0.75443
+
+Blocking probability events 160000-165000: 0.1046, cumulative 0.1310
+Avg. loss last 5000 events: 16.01
+Epsilon: 0.75443
+
+Blocking probability events 165000-170000: 0.1380, cumulative 0.1312
+Avg. loss last 5000 events: 15.85
+Epsilon: 0.75443
+
+Blocking probability events 170000-175000: 0.1159, cumulative 0.1308
+Avg. loss last 5000 events: 15.86
+Epsilon: 0.75443
+
+Blocking probability events 175000-180000: 0.1314, cumulative 0.1308
+Avg. loss last 5000 events: 16.14
+Epsilon: 0.75443
+
+Blocking probability events 180000-185000: 0.1237, cumulative 0.1306
+Avg. loss last 5000 events: 16.59
+Epsilon: 0.75443
+
+Blocking probability events 185000-190000: 0.1634, cumulative 0.1315
+Avg. loss last 5000 events: 16.56
+Epsilon: 0.75443
+
+Blocking probability events 190000-195000: 0.1632, cumulative 0.1323
+Avg. loss last 5000 events: 16.96
+Epsilon: 0.75443
+
+Blocking probability events 195000-200000: 0.1447, cumulative 0.1326
+Avg. loss last 5000 events: 16.44
+Epsilon: 0.75443
+
+Blocking probability events 200000-205000: 0.1285, cumulative 0.1325
+Avg. loss last 5000 events: 16.30
+Epsilon: 0.75443
+
+Blocking probability events 205000-210000: 0.1224, cumulative 0.1323
+Avg. loss last 5000 events: 16.47
+Epsilon: 0.75443
+
+Blocking probability events 210000-215000: 0.1101, cumulative 0.1318
+Avg. loss last 5000 events: 16.64
+Epsilon: 0.75443
+
+Blocking probability events 215000-220000: 0.1302, cumulative 0.1318
+Avg. loss last 5000 events: 16.09
+Epsilon: 0.75443
+
+Blocking probability events 220000-225000: 0.1170, cumulative 0.1314
+Avg. loss last 5000 events: 16.68
+Epsilon: 0.75443
+
+Blocking probability events 225000-230000: 0.1339, cumulative 0.1315
+Avg. loss last 5000 events: 16.72
+Epsilon: 0.75443
+
+Blocking probability events 230000-235000: 0.1037, cumulative 0.1309
+Avg. loss last 5000 events: 16.59
+Epsilon: 0.75443
+
+Blocking probability events 235000-240000: 0.1260, cumulative 0.1308
+Avg. loss last 5000 events: 17.06
+Epsilon: 0.75443
+
+Blocking probability events 240000-245000: 0.0963, cumulative 0.1301
+Avg. loss last 5000 events: 17.01
+Epsilon: 0.75443
+
+Blocking probability events 245000-250000: 0.1370, cumulative 0.1303
+Avg. loss last 5000 events: 16.60
+Epsilon: 0.75443
+
+Blocking probability events 250000-255000: 0.1471, cumulative 0.1306
+Avg. loss last 5000 events: 16.54
+Epsilon: 0.75443
+
+Blocking probability events 255000-260000: 0.1537, cumulative 0.1310
+Avg. loss last 5000 events: 17.11
+Epsilon: 0.75443
+
+Blocking probability events 260000-265000: 0.1346, cumulative 0.1311
+Avg. loss last 5000 events: 16.75
+Epsilon: 0.75443
+
+Blocking probability events 265000-270000: 0.1742, cumulative 0.1319
+Avg. loss last 5000 events: 17.19
+Epsilon: 0.75443
+
+Blocking probability events 270000-275000: 0.1370, cumulative 0.1320
+Avg. loss last 5000 events: 17.32
+Epsilon: 0.75443
+
+Blocking probability events 275000-280000: 0.1348, cumulative 0.1321
+Avg. loss last 5000 events: 17.22
+Epsilon: 0.75443
+
+Blocking probability events 280000-285000: 0.1516, cumulative 0.1324
+Avg. loss last 5000 events: 17.08
+Epsilon: 0.75443
+
+Blocking probability events 285000-290000: 0.1413, cumulative 0.1326
+Avg. loss last 5000 events: 17.86
+Epsilon: 0.75443
+
+Blocking probability events 290000-295000: 0.1400, cumulative 0.1327
+Avg. loss last 5000 events: 17.27
+Epsilon: 0.75443
+
+Blocking probability events 295000-300000: 0.1346, cumulative 0.1327
+Avg. loss last 5000 events: 16.59
+Epsilon: 0.75443
+
+Blocking probability events 300000-305000: 0.1477, cumulative 0.1330
+Avg. loss last 5000 events: 17.51
+Epsilon: 0.75443
+
+Blocking probability events 305000-310000: 0.1352, cumulative 0.1330
+Avg. loss last 5000 events: 17.12
+Epsilon: 0.75443
+
+Blocking probability events 310000-315000: 0.1274, cumulative 0.1329
+Avg. loss last 5000 events: 17.74
+Epsilon: 0.75443
+
+Blocking probability events 315000-320000: 0.1542, cumulative 0.1333
+Avg. loss last 5000 events: 17.04
+Epsilon: 0.75443
+
+Blocking probability events 320000-325000: 0.1689, cumulative 0.1338
+Avg. loss last 5000 events: 17.29
+Epsilon: 0.75443
+
+Blocking probability events 325000-330000: 0.1320, cumulative 0.1338
+Avg. loss last 5000 events: 17.78
+Epsilon: 0.75443
+
+Blocking probability events 330000-335000: 0.1604, cumulative 0.1342
+Avg. loss last 5000 events: 17.24
+Epsilon: 0.75443
+
+Blocking probability events 335000-340000: 0.1609, cumulative 0.1346
+Avg. loss last 5000 events: 16.47
+Epsilon: 0.75443
+
+Blocking probability events 340000-345000: 0.1712, cumulative 0.1351
+Avg. loss last 5000 events: 17.22
+Epsilon: 0.75443
+
+Blocking probability events 345000-350000: 0.1652, cumulative 0.1356
+Avg. loss last 5000 events: 17.21
+Epsilon: 0.75443
+
+Blocking probability events 350000-355000: 0.1453, cumulative 0.1357
+Avg. loss last 5000 events: 17.90
+Epsilon: 0.75443
+
+Blocking probability events 355000-360000: 0.1325, cumulative 0.1357
+Avg. loss last 5000 events: 17.71
+Epsilon: 0.75443
+
+Blocking probability events 360000-365000: 0.1522, cumulative 0.1359
+Avg. loss last 5000 events: 18.14
+Epsilon: 0.75443
+
+Blocking probability events 365000-370000: 0.1155, cumulative 0.1356
+Avg. loss last 5000 events: 17.48
+Epsilon: 0.75443
+
+Blocking probability events 370000-375000: 0.1638, cumulative 0.1360
+Avg. loss last 5000 events: 17.40
+Epsilon: 0.75443
+
+Blocking probability events 375000-380000: 0.1620, cumulative 0.1364
+Avg. loss last 5000 events: 17.26
+Epsilon: 0.75443
+
+Blocking probability events 380000-385000: 0.1462, cumulative 0.1365
+Avg. loss last 5000 events: 17.87
+Epsilon: 0.75443
+
+Blocking probability events 385000-390000: 0.1476, cumulative 0.1366
+Avg. loss last 5000 events: 17.35
+Epsilon: 0.75443
+
+Blocking probability events 390000-395000: 0.1292, cumulative 0.1365
+Avg. loss last 5000 events: 17.37
+Epsilon: 0.75443
+
+Blocking probability events 395000-400000: 0.1684, cumulative 0.1369
+Avg. loss last 5000 events: 17.88
+Epsilon: 0.75443
+
+Blocking probability events 400000-405000: 0.1230, cumulative 0.1368
+Avg. loss last 5000 events: 17.75
+Epsilon: 0.75443
+
+Blocking probability events 405000-410000: 0.1633, cumulative 0.1371
+Avg. loss last 5000 events: 17.84
+Epsilon: 0.75443
+
+Blocking probability events 410000-415000: 0.1428, cumulative 0.1372
+Avg. loss last 5000 events: 17.87
+Epsilon: 0.75443
+
+Blocking probability events 415000-420000: 0.1841, cumulative 0.1377
+Avg. loss last 5000 events: 17.84
+Epsilon: 0.75443
+
+Blocking probability events 420000-425000: 0.1533, cumulative 0.1379
+Avg. loss last 5000 events: 17.30
+Epsilon: 0.75443
+
+Blocking probability events 425000-430000: 0.1348, cumulative 0.1379
+Avg. loss last 5000 events: 16.98
+Epsilon: 0.75443
+
+Blocking probability events 430000-435000: 0.1143, cumulative 0.1376
+Avg. loss last 5000 events: 17.24
+Epsilon: 0.75443
+
+Blocking probability events 435000-440000: 0.1187, cumulative 0.1374
+Avg. loss last 5000 events: 17.60
+Epsilon: 0.75443
+
+Blocking probability events 440000-445000: 0.1230, cumulative 0.1372
+Avg. loss last 5000 events: 18.06
+Epsilon: 0.75443
+
+Blocking probability events 445000-450000: 0.1405, cumulative 0.1373
+Avg. loss last 5000 events: 17.74
+Epsilon: 0.75443
+
+Blocking probability events 450000-455000: 0.1646, cumulative 0.1376
+Avg. loss last 5000 events: 18.49
+Epsilon: 0.75443
+
+Blocking probability events 455000-460000: 0.1428, cumulative 0.1376
+Avg. loss last 5000 events: 17.46
+Epsilon: 0.75443
+
+Blocking probability events 460000-465000: 0.1477, cumulative 0.1378
+Avg. loss last 5000 events: 17.18
+Epsilon: 0.75443
+
+Blocking probability events 465000-470000: 0.1617, cumulative 0.1380
+
+Simulation duration: 25.81 sim hours, 67m18s real, 470001 events at 116 events/second
+
+T Blocking probability: 0.1380 for new calls, 0.0000 for handoffs
+
+Average number of calls in progress when blocking: 8.88
+-------------------
+Invalid loss: inf
+
+Simulation duration: 0.01 sim hours, 0m1s real, 67 events at 341280 events/second
+
+T Blocking probability: 0.0000 for new calls, 0.0000 for handoffs
+
+Average number of calls in progress when blocking: 0.00
+------------------
+
+Invalid loss: inf
+
+Simulation duration: 0.00 sim hours, 0m0s real, 15 events at 719991 events/second
+
+T Blocking probability: 0.0000 for new calls, 0.0000 for handoffs
+
+Average number of calls in progress when blocking: 0.00

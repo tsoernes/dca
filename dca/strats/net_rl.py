@@ -124,9 +124,16 @@ class SARSANetStrat(QNetStrat):
 
 
 class DistQNetStrat(QNetStrat):
+    """
+    TODO:
+    - Try SARSA
+    - Try Double Q
+    - 
+    """
+
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.net = DistQNet("DistQNet", self.pp, self.logger)
+        super().__init__("DistQNet", *args, **kwargs)
+        self.net = DistQNet(pp=self.pp, logger=self.logger)
 
     def update_target_net(self):
         pass

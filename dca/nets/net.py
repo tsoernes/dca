@@ -7,7 +7,10 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import dataloader
-from nets.utils import (get_act_fn_by_name, get_init_by_name, get_optimizer_by_name)
+from nets.utils import (get_act_fn_by_name, get_init_by_name,
+                        get_optimizer_by_name)
+
+
 """
 possible data prep: set unused channels to -1,
 OR make it unit gaussian. refer to alphago paper -- did they prep
@@ -114,16 +117,16 @@ class Net:
             flat = tf.layers.flatten(stacked)
             return flat
 
-    def _build_default_trainer(self, var_list=None):
+    def _build_default_trainer(self, loss, var_list=None):
         """If var_list is not specified, defaults to GraphKey.TRAINABLE_VARIABLES"""
         if self.pp['max_grad_norm'] is not None:
             gradients, trainable_vars = zip(
-                *self.trainer.compute_gradients(self.loss, var_list=var_list))
+                *self.trainer.compute_gradients(loss, var_list=var_list))
             clipped_grads, grad_norms = tf.clip_by_global_norm(gradients,
                                                                self.pp['max_grad_norm'])
             do_train = self.trainer.apply_gradients(zip(clipped_grads, trainable_vars))
         else:
-            do_train = self.trainer.minimize(self.loss, var_list=var_list)
+            do_train = self.trainer.minimize(loss, var_list=var_list)
         return do_train
 
     def load_data(self):

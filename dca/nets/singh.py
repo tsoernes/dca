@@ -36,7 +36,7 @@ class SinghNet(Net):
 
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.value_target), predictions=self.value)
-        self.do_train = self._build_default_trainer(online_vars)
+        self.do_train = self._build_default_trainer(self.loss, online_vars)
 
     def forward(self, freps):
         values = self.sess.run(

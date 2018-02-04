@@ -121,7 +121,7 @@ class QNet(Net):
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.q_target), predictions=self.online_q_selected)
-        self.do_train = self._build_default_trainer(online_vars)
+        self.do_train = self._build_default_trainer(self.loss, online_vars)
         # Write out statistics to file
         with tf.name_scope("summaries"):
             tf.summary.scalar("loss", self.loss)
