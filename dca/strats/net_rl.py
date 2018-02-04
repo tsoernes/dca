@@ -389,9 +389,9 @@ class SinghNetStrat(VNetStrat):
                 n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
                 fgrids[:, r, c, :-1] = n_used
                 for i in range(len(grids)):
-                    eligible_chs = RhombusAxialGrid.get_eligible_chs_stat(
+                    n_eligible_chs = RhombusAxialGrid.get_n_eligible_chs_stat(
                         grids[i], (r, c))
-                    fgrids[i, r, c, -1] = len(eligible_chs)
+                    fgrids[i, r, c, -1] = n_eligible_chs
         if single:
             return fgrids[0]
         return fgrids

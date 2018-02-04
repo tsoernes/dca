@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 
 from eventgen import CEvent
-from grid import RhombusAxialGrid
+from grid import RhombusAxialGrid, afterstates
 from params import get_pparams
 from strats.net_rl import SinghNetStrat
 
@@ -51,7 +51,7 @@ class TestSinghStrat(unittest.TestCase):
         ce_type1 = CEvent.NEW
         chs1 = RhombusAxialGrid.get_eligible_chs_stat(grid1, cell1)
         freps_inc1 = self.strat.afterstate_freps(grid1, cell1, ce_type1, chs1)
-        astates1 = RhombusAxialGrid.afterstates_stat(grid1, cell1, ce_type1, chs1)
+        astates1 = afterstates(grid1, cell1, ce_type1, chs1)
         freps1 = self.strat.feature_reps(astates1)
         check_freps(freps_inc1, freps1)
 
@@ -63,7 +63,7 @@ class TestSinghStrat(unittest.TestCase):
         ce_type2 = CEvent.END
         chs2 = np.nonzero(grid2[cell2])[0]
         freps_inc2 = self.strat.afterstate_freps(grid2, cell2, ce_type2, chs2)
-        astates2 = RhombusAxialGrid.afterstates_stat(grid2, cell2, ce_type2, chs2)
+        astates2 = afterstates(grid2, cell2, ce_type2, chs2)
         freps2 = self.strat.feature_reps(astates2)
         check_freps(freps_inc2, freps2)
 
@@ -74,7 +74,7 @@ class TestSinghStrat(unittest.TestCase):
         ce_type3 = CEvent.END
         chs3 = np.nonzero(grid3[cell3])[0]
         freps_inc3 = self.strat.afterstate_freps(grid3, cell3, ce_type3, chs3)
-        astates3 = RhombusAxialGrid.afterstates_stat(grid3, cell3, ce_type3, chs3)
+        astates3 = afterstates(grid3, cell3, ce_type3, chs3)
         freps3 = self.strat.feature_reps(astates3)
         check_freps(freps_inc3, freps3)
 

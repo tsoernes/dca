@@ -5,6 +5,21 @@ import numpy as np
 from eventgen import CEvent
 
 
+def afterstates(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
+    """Make an afterstate (resulting grid) for each possible,
+    # eligible action in 'chs'"""
+    if ce_type == CEvent.END:
+        targ_val = 0
+    else:
+        targ_val = 1
+    grids = np.repeat(np.expand_dims(np.copy(grid), axis=0), len(chs), axis=0)
+    for i, ch in enumerate(chs):
+        # assert grids[i][cell][ch] != targ_val
+        grids[i][cell][ch] = targ_val
+    assert grids.shape == (len(chs), rows, cols, n_channels)
+    return grids
+
+
 class Grid:
     def __init__(self, rows, cols, n_channels, logger, *args, **kwargs):
         self.rows = rows
@@ -66,41 +81,9 @@ class Grid:
                     return False
         return True
 
-    def get_eligible_chs(self, cell):
-        return self.get_eligible_chs_stat(self.state, cell)
-
-    @staticmethod
-    def get_eligible_chs_stat(grid, cell):
-        """
-        Find the channels that are free in 'cell' and all of
-        its neighbors by bitwise ORing their allocation maps.
-        These are the eligible channels, i.e. those that can be assigned
-        without violating the reuse constraint.
-        """
-        neighs = RhombusAxialGrid.neighbors2(*cell)
-        alloc_map = np.bitwise_or(grid[cell], grid[neighs[0]])
-        for n in neighs[1:]:
-            alloc_map = np.bitwise_or(alloc_map, grid[n])
-        eligible = np.nonzero(np.invert(alloc_map))[0]
-        return eligible
-
     def afterstates(self, cell, ce_type, chs):
-        return self.afterstates_stat(self.state, cell, ce_type, chs)
-
-    @staticmethod
-    def afterstates_stat(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
-        """Make an afterstate (resulting grid) for each possible,
-        # eligible action in 'chs'"""
-        if ce_type == CEvent.END:
-            targ_val = 0
-        else:
-            targ_val = 1
-        grids = np.repeat(np.expand_dims(np.copy(grid), axis=0), len(chs), axis=0)
-        for i, ch in enumerate(chs):
-            assert grids[i][cell][ch] != targ_val
-            grids[i][cell][ch] = targ_val
-        assert grids.shape == (len(chs), rows, cols, n_channels)
-        return grids
+        return afterstates(self.state, cell, ce_type, chs, self.rows, self.cols,
+                           self.n_channels)
 
 
 class RectOffsetGrid(Grid):
@@ -283,10 +266,11 @@ class RhombusAxialGrid(Grid):
         super().__init__(*args, **kwargs)
 
     @staticmethod
+    @functools.lru_cache(maxsize=None)
     def neighbors1sparse(row, col):
         """
-        Returns a list with indexes of neighbors within a radius of 1,
-        not including self. The indexes may not be within grid.
+        Returns a list with indecies of neighbors within a radius of 1,
+        not including self. The indecies may not be within grid boundaries.
         """
         idxs = []
         for r in range(row - 1, row + 2):
@@ -297,35 +281,30 @@ class RhombusAxialGrid(Grid):
         return idxs
 
     @staticmethod
-    def neighbors1(row, col, rows=7, cols=7):
-        """
-        Returns a list with indexes of neighbors within a radius of 1,
-        not including self
-        """
+    def neighbors1(row, col):
         return RhombusAxialGrid.neighbors(1, row, col)
 
     @staticmethod
-    def neighbors2(row, col, separate=False):
-        """
-        If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),
-        else return [(r1, c1), (r2, c2), ...]
-
-        Returns a list with indices of neighbors within a radius of 2,
-        not including self
-        """
-        return RhombusAxialGrid.neighbors(
-            2, row, col, separate=separate, include_self=False)
+    def neighbors2(row, col):
+        return RhombusAxialGrid.neighbors(2, row, col, separate=False, include_self=False)
 
     @staticmethod
-    def hex_distance(a, b):
-        r1, c1 = a
-        r2, c2 = b
+    def hex_distance(cell_a, cell_b):
+        r1, c1 = cell_a
+        r2, c2 = cell_b
         return (abs(r1 - r2) + abs(r1 + c1 - r2 - c2) + abs(c1 - c2)) / 2
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
     def neighbors(dist, row, col, separate=False, include_self=False, rows=7, cols=7):
-        if separate is True:
+        """
+        If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),
+        else return [(r1, c1), (r2, c2), ...]
+
+        Returns a list with indices of neighbors with a distance of 'dist' or less
+        from (row, col)
+        """
+        if separate:
             rs = []
             cs = []
         else:
@@ -334,12 +313,12 @@ class RhombusAxialGrid(Grid):
             for c2 in range(cols):
                 if (include_self or (row, col) != (r2, c2)) \
                    and RhombusAxialGrid.hex_distance((row, col), (r2, c2)) <= dist:
-                    if separate is True:
+                    if separate:
                         rs.append(r2)
                         cs.append(c2)
                     else:
                         idxs.append((r2, c2))
-        if separate is True:
+        if separate:
             return (rs, cs)
         return idxs
 
@@ -363,3 +342,32 @@ class RhombusAxialGrid(Grid):
             label(0, *center)
             for i, neigh in enumerate(self.neighbors1sparse(*center)):
                 label(i + 1, *neigh)
+
+    def get_eligible_chs(self, cell):
+        return self.get_eligible_chs_stat(self.state, cell)
+
+    @staticmethod
+    def _get_eligible_chs_bitmap(grid, cell):
+        """Find eligible chs by bitwise ORing the allocation maps of neighbors"""
+        neighs = RhombusAxialGrid.neighbors(2, *cell, separate=True, include_self=True)
+        alloc_map = np.bitwise_or.reduce(grid[neighs])
+        return alloc_map
+
+    @staticmethod
+    def get_eligible_chs_stat(grid, cell):
+        """
+        Find the channels that are free in 'cell' and all of
+        its neighbors with a distance of 2 or less. 
+        These are the eligible channels, i.e. those that can be assigned
+        without violating the reuse constraint.
+        """
+        alloc_map = RhombusAxialGrid._get_eligible_chs_bitmap(grid, cell)
+        eligible = np.nonzero(np.invert(alloc_map))[0]
+        return eligible
+
+    @staticmethod
+    def get_n_eligible_chs_stat(grid, cell):
+        """Same as 'get_eligible_chs', but return the number of eligible channels"""
+        alloc_map = RhombusAxialGrid._get_eligible_chs_bitmap(grid, cell)
+        n_eligible = np.count_nonzero(np.invert(alloc_map))
+        return n_eligible
