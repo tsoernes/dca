@@ -5,6 +5,7 @@ import numpy as np
 from eventgen import CEvent
 from grid import RhombusAxialGrid
 from nets.acnet import ACNet
+from nets.dqnet import DistQNet
 from nets.qnet import QNet
 from nets.singh import SinghNet
 from nets.utils import softmax
@@ -119,6 +120,19 @@ class SARSANetStrat(QNetStrat):
     def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
                  next_max_ch):
         loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell, next_ch)
+        return loss
+
+
+class DistQNetStrat(QNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = DistQNet("DistQNet", self.pp, self.logger)
+
+    def update_target_net(self):
+        pass
+
+    def backward(self, grid, cell, ch, reward, next_grid, next_cell, *args, **kwargs):
+        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
         return loss
 
 

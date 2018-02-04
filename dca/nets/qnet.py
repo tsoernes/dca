@@ -66,8 +66,8 @@ class QNet(Net):
         return q_vals, trainable_vars_by_name
 
     def build(self):
-        n_channels = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
-        gridshape = [None, self.pp['rows'], self.pp['cols'], n_channels]
+        depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
+        gridshape = [None, self.pp['rows'], self.pp['cols'], depth]
         cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
         self.grid = tf.placeholder(shape=gridshape, dtype=tf.float32, name="grid")
         self.cell = tf.placeholder(shape=cellshape, dtype=tf.float32, name="cell")
