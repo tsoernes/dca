@@ -81,7 +81,7 @@ class Grid:
         alloc_map = np.bitwise_or(grid[cell], grid[neighs[0]])
         for n in neighs[1:]:
             alloc_map = np.bitwise_or(alloc_map, grid[n])
-        eligible = np.where(alloc_map == 0)[0]
+        eligible = np.nonzero(np.invert(alloc_map))[0]
         return eligible
 
     def afterstates(self, cell, ce_type, chs):

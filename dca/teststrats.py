@@ -12,6 +12,12 @@ from strats.net_rl import SinghNetStrat
 
 
 class TestSinghStrat(unittest.TestCase):
+    """
+    Assumptions:
+        n_used_neighs (frep[:-1]) does NOT include self
+        n_free_self (frep[-1]) counts ELIGIBLE chs
+    """
+
     def setUp(self):
         self.logger = logging.getLogger()
         self.pp, _ = get_pparams(defaults=True)

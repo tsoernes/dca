@@ -306,6 +306,8 @@ class SinghNetStrat(VNetStrat):
             chs = np.nonzero(self.grid[cell])[0]
 
         fgrids = self.afterstate_freps(self.grid, cell, ce_type, chs)
+        # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
+        # assert (fgrids == fgrids2).all()
         qvals_sparse = self.net.forward(fgrids)
         assert qvals_sparse.shape == (len(chs), )
         amax_idx = np.argmax(qvals_sparse)
@@ -320,6 +322,11 @@ class SinghNetStrat(VNetStrat):
                                  [self.feature_reps(next_grid, cell)], value_target)
         return loss
 
+    def afterstate_freps_naive(self, grid, cell, ce_type, chs):
+        astates = RhombusAxialGrid.afterstates_stat(grid, cell, ce_type, chs)
+        freps = self.feature_reps(astates)
+        return freps
+
     def afterstate_freps(self, grid, cell, ce_type, chs):
         """ Get the feature representation for the current grid,
         and from it derive the f.rep for each possible afterstate.
@@ -330,35 +337,31 @@ class SinghNetStrat(VNetStrat):
         fgrid = self.feature_reps(grid)
         r, c = cell
         neighs4 = RhombusAxialGrid.neighbors(
-            dist=4, row=r, col=c, separate=True, include_self=True)
+            dist=4, row=r, col=c, separate=True, include_self=False)
         neighs2 = RhombusAxialGrid.neighbors(dist=2, row=r, col=c, include_self=True)
         fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
         if ce_type == CEvent.END:
             # One less channel will be in use by the cell
             n_used_neighs_diff = -1
+            # One more channel MIGHT become eligible
+            # Temporarily modify grid and check if that's the case
+            n_elig_self_diff = 1
+            grid[cell][chs] = 0
         else:
             # One more ch will be in use
             n_used_neighs_diff = 1
+            # One less ch will be eligible
+            n_elig_self_diff = -1
+        eligible_chs = [
+            RhombusAxialGrid.get_eligible_chs_stat(grid, neigh2) for neigh2 in neighs2
+        ]
         for i, ch in enumerate(chs):
             fgrids[i, neighs4[0], neighs4[1], ch] += n_used_neighs_diff
+            for j, neigh2 in enumerate(neighs2):
+                if ch in eligible_chs[j]:
+                    fgrids[i, neigh2[0], neigh2[1], -1] += n_elig_self_diff
         if ce_type == CEvent.END:
-            for i, ch in enumerate(chs):
-                # One more channel MIGHT become eligible
-                # Temporarily modify grid and check if that's the case
-                grid[cell][ch] = 0
-                for neigh2 in neighs2:
-                    if ch in RhombusAxialGrid.get_eligible_chs_stat(grid, neigh2):
-                        fgrids[i, neigh2[0], neigh2[1], -1] += 1
-                grid[cell][ch] = 1
-        else:
-            eligible_chs = [
-                RhombusAxialGrid.get_eligible_chs_stat(grid, neigh2) for neigh2 in neighs2
-            ]
-            for i, ch in enumerate(chs):
-                for j, neigh2 in enumerate(neighs2):
-                    if ch in eligible_chs[j]:
-                        # One less ch will be eligible
-                        fgrids[i, neigh2[0], neigh2[1], -1] -= 1
+            grid[cell][chs] = 1
         return fgrids
 
     def feature_reps(self, grids, *args):
