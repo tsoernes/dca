@@ -22,13 +22,11 @@ def afterstates(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
 
 class Grid:
     def __init__(self, rows, cols, n_channels, logger, *args, **kwargs):
-        self.rows = rows
-        self.cols = cols
-        self.n_channels = n_channels
+        self.rows, self.cols, self.n_channels = rows, cols, n_channels
         self.logger = logger
 
-        self.state = np.zeros((self.rows, self.cols, self.n_channels), dtype=bool)
-        self.labels = np.zeros((self.rows, self.cols), dtype=int)
+        self.state = np.zeros((rows, cols, n_channels), dtype=np.bool)
+        self.labels = np.zeros((rows, cols), dtype=int)
         self._partition_cells()
 
     def print_cell(self, r, c):

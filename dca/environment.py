@@ -6,8 +6,7 @@ from stats import Stats
 
 class Env:
     def __init__(self, pp, grid, logger, pid="", gui=None, *args, **kwargs):
-        self.rows = pp['rows']
-        self.cols = pp['cols']
+        self.rows, self.cols = pp['rows'], pp['cols']
         self.p_handoff = pp['p_handoff']
         self.verify_grid = pp['verify_grid']
         self.save = pp['save_exp_data']
@@ -54,7 +53,7 @@ class Env:
         Execute action 'ch' in the environment and return the
         resulting reward and the next event
         """
-        assert ch is None or type(ch) is np.int64
+        assert type(ch) is np.int64 or ch is None
         t, ce_type, cell = self.cevent[0:3]
         self.stats.iter(t, self.cevent)
 
@@ -115,7 +114,7 @@ class Env:
         """
         ce_type, cell = cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            if self.grid.state[cell][ch] == 1:
+            if self.grid.state[cell][ch]:
                 self.logger.error(f"Tried assigning new call {ce_str(cevent)} to"
                                   f" ch {ch} which is already in use")
                 raise Exception
@@ -123,12 +122,12 @@ class Env:
             self.grid.state[cell][ch] = 1
         elif ce_type == CEvent.END:
             reass_ch = cevent[3]
-            if self.grid.state[cell][reass_ch] == 0:
+            if not self.grid.state[cell][reass_ch]:
                 self.logger.error(f"Tried to end call {ce_str(cevent)}"
                                   f" which is not in progress")
                 raise Exception
             if reass_ch != ch:
-                if self.grid.state[cell][ch] == 0:
+                if not self.grid.state[cell][ch]:
                     self.logger.error(f"Tried to reassign to {ce_str(cevent)}"
                                       f" from ch {ch} which is not in use")
                     raise Exception

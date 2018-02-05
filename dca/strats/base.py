@@ -11,10 +11,7 @@ from replaybuffer import ReplayBuffer
 
 class Strat:
     def __init__(self, pp, logger, pid="", gui=None, *args, **kwargs):
-        self.rows = pp['rows']
-        self.cols = pp['cols']
-        self.n_channels = pp['n_channels']
-        self.dims = pp['dims']
+        self.rows, self.cols, self.n_channels = self.dims = pp['dims']
         self.save = pp['save_exp_data']
         self.batch_size = pp['batch_size']
         self.pp = pp
@@ -50,13 +47,11 @@ class Strat:
         # Discrete event simulation
         i, t = 0, 0
         while self.continue_sim(i, t):
-            if self.quit_sim:
-                break  # Gracefully exit to print stats, clean up etc.
-
             t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
             reward, next_cevent = self.env.step(ch)
             next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type)
+            # NOTE Could do per-strat saving here, as they save different stuff
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
                     and next_ch is not None \
@@ -79,6 +74,7 @@ class Strat:
             if i > 0:
                 if i % self.pp['log_iter'] == 0:
                     self.fn_report()
+                # NOTE Could do per iteration stuff in strats
                 if self.pp['net'] and \
                         i % self.net_copy_iter == 0:
                     self.update_target_net()
@@ -100,7 +96,9 @@ class Strat:
         return (self.env.stats.block_prob_cum, self.env.stats.block_prob_cum_hoff)
 
     def continue_sim(self, i, t) -> bool:
-        if self.pp['n_hours'] is not None:
+        if self.quit_sim:
+            return False  # Gracefully exit to print stats, clean up etc.
+        elif self.pp['n_hours'] is not None:
             return (t / 60) < self.pp['n_hours']
         else:
             return i < self.pp['n_events']

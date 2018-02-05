@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 
-from utils import h5py_save_append
+from datahandler import h5py_save_append
 
 
 class ReplayBuffer():
@@ -17,12 +17,13 @@ class ReplayBuffer():
             overflows the old memories are dropped.
         """
         self._storage = {
-            'grid': [],
-            'cell': [],
-            'reward': [],
-            'val': [],
-            'next_grid': [],
-            'next_cell': []
+            'grids': [],
+            'cells': [],
+            'chs': [],
+            'rewards': [],
+            'values': [],
+            'next_grids': [],
+            'next_cells': []
         }
         self._maxsize = size
         self._next_idx = 0
@@ -32,7 +33,7 @@ class ReplayBuffer():
         self.n_channels = n_channels
 
     def __len__(self):
-        return len(self._storage['grid'])
+        return len(self._storage['grids'])
 
     def add(self, grid, cell, ch, reward, value=None, next_grid=None, next_cell=None):
         def add(name, item):
@@ -41,51 +42,51 @@ class ReplayBuffer():
             else:
                 self._storage[name][self._next_idx] = item
 
-        add('grid', grid)
-        add('cell', cell)
-        add('ch', ch)
-        add('reward', reward)
+        add('grids', grid)
+        add('cells', cell)
+        add('chs', ch)
+        add('rewards', reward)
         if value is not None:
-            add('val', value)
+            add('values', value)
         if next_grid is not None:
-            add('next_grid', grid)
+            add('next_grids', next_grid)
         if next_cell is not None:
-            add('next_cell', cell)
+            add('next_cells', next_cell)
 
         self._next_idx = (self._next_idx + 1) % self._maxsize
 
     def _encode_sample(self, idxes):
         n_samples = len(idxes)
-        include_val = len(self._storage['val']) > 0
-        include_ng = len(self._storage['next_grid']) > 0
-        include_nc = len(self._storage['next_cell']) > 0
+        include_val = len(self._storage['values']) > 0
+        include_ng = len(self._storage['next_grids']) > 0
+        include_nc = len(self._storage['next_cells']) > 0
         data = {
-            'grid':
+            'grids':
             np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8),
-            'cell': [],
-            'ch':
+            'cells': [],
+            'chs':
             np.zeros(n_samples, dtype=np.int32),
-            'reward':
+            'rewards':
             np.zeros(n_samples, dtype=np.float32)
         }
         if include_val:
-            data['val'] = np.zeros(n_samples, dtype=np.float32)
+            data['values'] = np.zeros(n_samples, dtype=np.float32)
         if include_ng:
-            data['next_grid'] = np.zeros(
+            data['next_grids'] = np.zeros(
                 (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
         if include_nc:
-            data['next_cell'] = []
+            data['next_cells'] = []
         for i, j in enumerate(idxes):
-            data['grid'][i][:] = self._storage['grid'][j]
-            data['cell'].append(self._storage['cell'][j])
-            data['ch'][i] = self._storage['ch'][j]
-            data['reward'][i] = self._storage['reward'][j]
+            data['grids'][i][:] = self._storage['grids'][j]
+            data['cells'].append(self._storage['cells'][j])
+            data['chs'][i] = self._storage['chs'][j]
+            data['rewards'][i] = self._storage['rewards'][j]
             if include_val:
-                data['val'][i] = self._storage['val'][j]
+                data['values'][i] = self._storage['values'][j]
             if include_ng:
-                data['next_grid'][i][:] = self._storage['next_grid'][j]
+                data['next_grids'][i][:] = self._storage['next_grids'][j]
             if include_nc:
-                data['next_cell'].append(self._storage['next_cell'][j])
+                data['next_cells'].append(self._storage['next_cells'][j])
         return data
 
     def pop(self, batch_size):
@@ -95,8 +96,8 @@ class ReplayBuffer():
         ----------
         batch_size: int
             How many transitions to sample.
-        include_freshest: bool
-            Guarantee that the newest experience is included
+
+        NOTE TODO should delete the experiences that are popped? for AC
         """
         idxs = range(len(self) - batch_size - 1, len(self) - 1)
         return self._encode_sample(idxs)

@@ -180,6 +180,7 @@ class QNet(Net):
                                            self.pp['grid_split'])
             p_next_cells = prep_data_cells(next_cells)
             if next_actions is None:
+                # TODO Can't this be done in a single pass
                 next_actions = self.sess.run(
                     self.online_q_amax,
                     feed_dict={

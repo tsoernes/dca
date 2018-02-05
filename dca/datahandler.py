@@ -5,16 +5,14 @@ from queue import Queue
 import h5py
 import numpy as np
 
-from nets.utils import prep_data
-
 
 class BackgroundGenerator(threading.Thread):
-    def __init__(self, generator, n_prefetch=1):
+    def __init__(self, generator, n_prefetch=100):
         """
         Take a generator and return a iterator that prefetches the generator
         in a separate thread.
 
-        k: Number of objects to prefetch and hold in memory
+        n_prefetch: Number of objects to prefetch and hold in memory
         """
         threading.Thread.__init__(self)
         # Tell Python it's OK to exit even if this thread has not finished
@@ -91,6 +89,7 @@ def h5py_save(fname,
     chunk_size: Number of experience tuples to load at a time
     """
     n_fname = next_filename(fname)
+    n_rows, n_cols, n_channels = grids[0].shape
     with h5py.File(n_fname, "x") as f:
 
         def create_ds(name, shape, dtype):
@@ -100,22 +99,19 @@ def h5py_save(fname,
                 dtype=dtype,
                 chunks=(chunk_size, *shape))
 
-        n_rows, n_cols, n_channels = grids[0].shape
         ds_grids = create_ds("grids", (n_rows, n_cols, n_channels), np.bool)
         ds_cells = create_ds("cells", (2, ), np.int8)
         ds_chs = create_ds("chs", (), np.int8)
         ds_rewards = create_ds("rewards", (), np.int32)
-        if next_grids is not None:
-            ds_next_grids = create_ds("next_grids", (n_rows, n_cols, n_channels), np.bool)
-        if next_cells is not None:
-            ds_next_cells = create_ds("next_cells", (2, ), np.int8)
         ds_grids[:] = grids
         ds_cells[:] = cells
         ds_chs[:] = chs
         ds_rewards[:] = rewards
         if next_grids is not None:
+            ds_next_grids = create_ds("next_grids", (n_rows, n_cols, n_channels), np.bool)
             ds_next_grids[:] = next_grids
         if next_cells is not None:
+            ds_next_cells = create_ds("next_cells", (2, ), np.int8)
             ds_next_cells[:] = next_cells
     print(f"Wrote {len(grids)} experience tuples to {n_fname}")
 
@@ -169,80 +165,27 @@ def get_data_h5py(batch_size, fname="data-experience.0", split_perc=0.9, n_prefe
     entries = len(h5f['grids'])
     split = int(entries * split_perc) // batch_size
     end = entries // batch_size
-    has_next_state = 'next_grids' in h5f
+    has_next_grid = 'next_grids' in h5f
+    has_next_cell = 'next_cell' in h5f
 
     def data_gen(start, stop):
         for i in range(start, stop):
+            # Load batch data into memory
             batch = slice(i * batch_size, (i + 1) * batch_size)
-            # Load batch data into memory and prep it
-            cells = list(map(tuple, h5f['cells'][batch][:]))
-            res = {}
-            if has_next_state:
-                next_grids = h5f['next_grids'][batch][:]
-                next_cells = list(map(tuple, h5f['next_cells'][batch][:]))
-            else:
-                next_grids = None
-                next_cells = None
-            prepped = \
-                prep_data(
-                    h5f['grids'][batch][:],
-                    cells,
-                    h5f['chs'][batch][:],
-                    h5f['rewards'][batch][:],
-                    next_grids,
-                    next_cells)
-            if has_next_state:
-                pgrids, oh_cells, pactions, prewards, pnext_grids, oh_next_cells = prepped
-            else:
-                pgrids, oh_cells, pactions, prewards = prepped
             res = {
-                'grids': pgrids,
-                'cells': cells,
-                'oh_cells': oh_cells,
-                'actions': pactions,
-                'rewards': prewards,
+                'grids': h5f['grids'][batch][:],
+                'cells': list(map(tuple, h5f['cells'][batch][:])),
+                'chs': h5f['chs'][batch][:],
+                'rewards': h5f['rewards'][batch][:],
             }
-            if has_next_state:
-                res.update({
-                    'next_grids': pnext_grids,
-                    'next_cells': next_cells,
-                    'oh_next_cells': oh_next_cells
-                })
+            if has_next_grid:
+                res['next_grids'] = h5f['next_grids'][batch][:]
+            if has_next_cell:
+                res['next_cells'] = list(map(tuple, h5f['next_cells'][batch][:]))
             yield res
 
     train_gen = BackgroundGenerator(data_gen(0, split), n_prefetch)
     test_gen = BackgroundGenerator(data_gen(split, end), n_prefetch)
-    return {
-        "n_train_steps": split,
-        "n_test_steps": end - split,
-        "train_gen": train_gen,
-        "test_gen": test_gen
-    }
-
-
-def get_data(batch_size, fname="data-experience-shuffle-sub.npy"):
-    data = np.load(fname)
-    grids, oh_cells, actions, rewards, next_grids, next_oh_cells = \
-        prep_data(*map(np.array, zip(*data)))
-
-    split_perc = 0.9  # Percentage of data to train on
-    split = int(len(grids) * split_perc) // batch_size
-    end = len(grids) // batch_size
-
-    def data_gen(start, stop):
-        for i in range(start, stop):
-            batch = slice(i * batch_size, (i + 1) * batch_size)
-            yield {
-                'grids': grids[batch],
-                'cells': oh_cells[batch],
-                'actions': actions[batch],
-                'rewards': rewards[batch],
-                'next_grids': next_grids[batch],
-                'next_cells': next_oh_cells[batch]
-            }
-
-    train_gen = data_gen(0, split)
-    test_gen = data_gen(split, end)
     return {
         "n_train_steps": split,
         "n_test_steps": end - split,

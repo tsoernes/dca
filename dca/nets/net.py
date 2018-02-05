@@ -6,7 +6,7 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
-import dataloader
+import datahandler
 from nets.utils import (get_act_fn_by_name, get_init_by_name,
                         get_optimizer_by_name)
 
@@ -132,14 +132,13 @@ class Net:
     def load_data(self):
         if self.data_is_loaded:
             return
-        data = dataloader.get_data_h5py(self.batch_size)
-        # data = self.get_data()
+        data = datahandler.get_data_h5py(self.batch_size)
         self.n_train_steps = data['n_train_steps']
         self.n_test_steps = data['n_test_steps']
         self.train_gen = data['train_gen']
         self.test_gen = data['test_gen']
-        self.data_is_loaded = True
         self.qvals = np.load("qtable.npy")
+        self.data_is_loaded = True
 
     def save_model(self):
         inp = ""
