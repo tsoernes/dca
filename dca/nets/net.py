@@ -82,19 +82,22 @@ class Net:
         tf.set_random_seed(pp['rng_seed'])
         self.sess = tf.Session(config=config)
 
-        self.build()
-        init = tf.global_variables_initializer()
+        trainable_vars = self.build()
+        glob_vars = set(tf.global_variables())
         if self.save or restore:
-            self.saver = tf.train.Saver()
-        self.sess.run(init)
+            self.saver = tf.train.Saver(
+                var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'))
+        self.sess.run(tf.global_variables_initializer())
         if restore:
             # Could do a try/except and build if loading fails
             self.logger.error(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
+        self.do_train = self._build_default_trainer(self.loss, trainable_vars)
+        self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
         self.data_is_loaded = False
 
     def _build_base_net(self, grid, cell, name):
-        with tf.variable_scope(name):
+        with tf.variable_scope('model/' + name):
             conv1 = tf.layers.conv2d(
                 inputs=grid,
                 filters=self.n_channels,

@@ -16,7 +16,7 @@ class QNet(Net):
 
     def _build_net(self, grid, cell, name):
         base_net = self._build_base_net(grid, cell, name)
-        with tf.variable_scope(name) as scope:
+        with tf.variable_scope('model/' + name) as scope:
             h1 = tf.layers.dense(
                 inputs=base_net,
                 units=490,
@@ -122,16 +122,16 @@ class QNet(Net):
         # difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.q_target), predictions=self.online_q_selected)
-        self.do_train = self._build_default_trainer(self.loss, online_vars)
-        # Write out statistics to file
-        with tf.name_scope("summaries"):
-            tf.summary.scalar("loss", self.loss)
-            # tf.summary.scalar("grad_norm", grad_norms)
-            tf.summary.histogram("qvals", self.online_q_vals)
-        self.summaries = tf.summary.merge_all()
-        self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
-                                                  self.sess.graph)
-        self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
+        # # Write out statistics to file
+        # with tf.name_scope("summaries"):
+        #     tf.summary.scalar("loss", self.loss)
+        #     # tf.summary.scalar("grad_norm", grad_norms)
+        #     tf.summary.histogram("qvals", self.online_q_vals)
+        # self.summaries = tf.summary.merge_all()
+        # self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
+        #                                           self.sess.graph)
+        # self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
+        return online_vars
 
     def forward(self, grid, cell):
         if self.pp['dueling_qnet']:
