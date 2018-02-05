@@ -6,53 +6,6 @@ import numpy as np
 from utils import h5py_save_append
 
 
-class ExperienceBuffer():
-    def __init__(self):
-        self.clear()
-
-    def __len__(self):
-        return len(self._storage['g'])
-
-    def add(self, grid, cell, value, ch, reward):
-        self._storage['g'].append(grid)
-        self._storage['c'].append(cell)
-        self._storage['v'].append(value)
-        self._storage['chs'].append(ch)
-        self._storage['r'].append(reward)
-
-    def clear(self):
-        self._storage = {
-            'g': [],  # grids
-            'c': [],  # cells
-            'v': [],  # values
-            'chs': [],  # chs
-            'r': []  # rewards
-        }
-
-    def pop(self):
-        """Pop (i.e. remove and return) a batch of experiences from the beginning of the queue.
-        """
-        e = self._storage
-        data = e['g'], e['c'], e['v'], e['chs'], e['r']
-        self.clear()
-        return data
-
-
-class ExperienceBuffer_juliani():
-    def __init__(self, buffer_size=50000):
-        self.buffer = []
-        self.buffer_size = buffer_size
-
-    def add(self, experience):
-        "Expect nested array of size 5, e.g. [[0,1,2,3,4,5]]"
-        if len(self.buffer) + len(experience) >= self.buffer_size:
-            self.buffer[0:(len(experience) + len(self.buffer)) - self.buffer_size] = []
-        self.buffer.extend(experience)
-
-    def sample(self, size):
-        return np.reshape(np.array(random.sample(self.buffer, size)), [size, 5])
-
-
 class ReplayBuffer():
     def __init__(self, size, rows, cols, n_channels):
         """Create Replay buffer.
@@ -63,7 +16,14 @@ class ReplayBuffer():
             Max number of transitions to store in the buffer. When the buffer
             overflows the old memories are dropped.
         """
-        self._storage = []
+        self._storage = {
+            'grid': [],
+            'cell': [],
+            'reward': [],
+            'val': [],
+            'next_grid': [],
+            'next_cell': []
+        }
         self._maxsize = size
         self._next_idx = 0
 
@@ -72,48 +32,74 @@ class ReplayBuffer():
         self.n_channels = n_channels
 
     def __len__(self):
-        return len(self._storage)
+        return len(self._storage['grid'])
 
-    def add(self, grid, cell, action, reward, next_grid=None, next_cell=None):
+    def add(self, grid, cell, ch, reward, value=None, next_grid=None, next_cell=None):
+        def add(name, item):
+            if self._next_idx >= len(self._storage):
+                self._storage[name].append(item)
+            else:
+                self._storage[name][self._next_idx] = item
+
+        add('grid', grid)
+        add('cell', cell)
+        add('ch', ch)
+        add('reward', reward)
+        if value is not None:
+            add('val', value)
         if next_grid is not None:
-            data = (grid, cell, action, reward, next_grid, next_cell)
-        else:
-            data = (grid, cell, action, reward)
+            add('next_grid', grid)
+        if next_cell is not None:
+            add('next_cell', cell)
 
-        if self._next_idx >= len(self._storage):
-            self._storage.append(data)
-        else:
-            self._storage[self._next_idx] = data
         self._next_idx = (self._next_idx + 1) % self._maxsize
 
     def _encode_sample(self, idxes):
         n_samples = len(idxes)
-        grids = np.zeros(
-            (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
-        cells = []
-        actions = np.zeros(n_samples, dtype=np.int32)
-        rewards = np.zeros(n_samples, dtype=np.float32)
-        next_grids = np.zeros(
-            (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
-        next_cells = []
-        has_next = len(self._storage[0]) > 4
+        include_val = len(self._storage['val']) > 0
+        include_ng = len(self._storage['next_grid']) > 0
+        include_nc = len(self._storage['next_cell']) > 0
+        data = {
+            'grid':
+            np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8),
+            'cell': [],
+            'ch':
+            np.zeros(n_samples, dtype=np.int32),
+            'reward':
+            np.zeros(n_samples, dtype=np.float32)
+        }
+        if include_val:
+            data['val'] = np.zeros(n_samples, dtype=np.float32)
+        if include_ng:
+            data['next_grid'] = np.zeros(
+                (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
+        if include_nc:
+            data['next_cell'] = []
         for i, j in enumerate(idxes):
-            data = self._storage[j]
-            if has_next:
-                grid, cell, action, reward, next_grid, next_cell = data
-            else:
-                grid, cell, action, reward = data
-            grids[i][:] = grid
-            cells.append(cell)
-            actions[i] = action
-            rewards[i] = reward
-            if has_next:
-                next_grids[i][:] = next_grid
-                next_cells.append(next_cell)
-        if has_next:
-            return grids, cells, actions, rewards, next_grids, next_cells
-        else:
-            return grids, cells, actions, rewards
+            data['grid'][i][:] = self._storage['grid'][j]
+            data['cell'].append(self._storage['cell'][j])
+            data['ch'][i] = self._storage['ch'][j]
+            data['reward'][i] = self._storage['reward'][j]
+            if include_val:
+                data['val'][i] = self._storage['val'][j]
+            if include_ng:
+                data['next_grid'][i][:] = self._storage['next_grid'][j]
+            if include_nc:
+                data['next_cell'].append(self._storage['next_cell'][j])
+        return data
+
+    def pop(self, batch_size):
+        """Return freshest examples, in order
+
+        Parameters
+        ----------
+        batch_size: int
+            How many transitions to sample.
+        include_freshest: bool
+            Guarantee that the newest experience is included
+        """
+        idxs = range(len(self) - batch_size - 1, len(self) - 1)
+        return self._encode_sample(idxs)
 
     def sample(self, batch_size, include_freshest=False):
         """Sample a batch of experiences.
@@ -133,12 +119,9 @@ class ReplayBuffer():
         return self._encode_sample(idxs)
 
     def save_experience_to_disk(self):
+        raise NotImplementedError  # Untested
         data = self._encode_sample(range(len(self._storage)))
         h5py_save_append("data-experience", *data)
-        # start = 10000  # Ignore initial period
-        # h5py_save_append("data-experience",
-        #                  map(lambda li: li[start:],
-        #                      self.experience_store.values()))
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):

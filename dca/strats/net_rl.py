@@ -9,7 +9,6 @@ from nets.dqnet import DistQNet
 from nets.qnet import QNet
 from nets.singh import SinghNet
 from nets.utils import softmax
-from replaybuffer import ExperienceBuffer
 from strats.base import RLStrat
 
 
@@ -76,10 +75,10 @@ class QNetStrat(NetStrat):
         Update qval for pp['batch_size'] experience tuples,
         randomly sampled from the experience replay memory.
         """
-        if len(self.replaybuffer) < self.pp['buffer_size']:
+        if len(self.exp_buffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward(*self.replaybuffer.sample(self.pp['batch_size']))
+        loss = self.net.backward(**self.exp_buffer.sample(self.pp['batch_size']))
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
@@ -149,7 +148,6 @@ class ACNetStrat(NetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ACNet(pp=self.pp, logger=self.logger)
-        self.exp_buffer = ExperienceBuffer()
         self.logger.info(
             "Loss legend (scaled): [ total, policy_grad, value_fn, entropy ]")
 
@@ -233,11 +231,11 @@ class ACNetStrat(NetStrat):
         """
         Update qval for pp['batch_size'] experience tuple.
         """
-        self.exp_buffer.add(grid, cell, self.val, ch, reward)
-        if len(self.exp_buffer) < self.pp['n_step']:
+        if len(self.exp_buffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward_gae(*self.exp_buffer.pop(), next_grid, next_cell)
+        loss = self.net.backward_gae(
+            **self.exp_buffer.pop(), next_grid=next_grid, next_cell=next_cell)
         if np.isinf(loss[0]) or np.isnan(loss[0]):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True

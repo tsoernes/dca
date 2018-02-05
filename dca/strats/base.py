@@ -23,7 +23,7 @@ class Strat:
         grid = RhombusAxialGrid(*self.dims, self.logger)
         self.env = Env(self.pp, grid, self.logger, pid)
         self.grid = self.env.grid.state
-        self.replaybuffer = ReplayBuffer(pp['buffer_size'], *self.dims)
+        self.exp_buffer = ReplayBuffer(pp['buffer_size'], *self.dims)
 
         self.quit_sim = False
         self.net = None
@@ -73,7 +73,8 @@ class Strat:
                 # are always busy in a grid corresponding to an END event.
                 next_grid = np.copy(self.grid)
                 next_cell = next_cevent[2]
-                self.replaybuffer.add(grid, cell, ch, reward, next_grid, next_cell)
+                self.exp_buffer.add(
+                    grid, cell, ch, reward, next_grid=next_grid, next_cell=next_cell)
 
             if i > 0:
                 if i % self.pp['log_iter'] == 0:
@@ -91,7 +92,7 @@ class Strat:
         self.env.stats.end_episode(np.count_nonzero(self.grid))
         self.fn_after()
         if self.save:
-            self.replaybuffer.save_experience_to_disk()
+            self.exp_buffer.save_experience_to_disk()
         if self.quit_sim and (self.pp['hopt'] or self.pp['avg_runs']):
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start

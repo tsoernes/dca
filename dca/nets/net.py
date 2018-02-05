@@ -176,32 +176,18 @@ class Net:
                          f" {self.batch_size} for a total of"
                          f" {self.n_train_steps * self.batch_size} examples")
         for i in range(self.n_train_steps):
-            # Get expected returns following a greedy policy from the
-            # next state: max a': Q(s', a', w_old)
             data = next(self.train_gen)
             cells = data['cells']
             targets = np.zeros(len(cells), dtype=np.float32)
             actions = data['actions']
             for j, ch in enumerate(actions):
                 targets[j] = self.qvals[cells[j]][ch]
-            curr_data = {
-                self.grid: data['grids'],
-                self.cell: data['oh_cells'],
-                self.action: actions,
-                self.next_q: targets,
-                # self.action: data['actions'],
-                self.reward: data['rewards'],
-                # self.next_grid: data['next_grids'],
-                # self.next_cell: data['next_cells']
-            }
-            _, loss, summary = self.sess.run([self.do_train, self.loss, self.summaries],
-                                             curr_data)
+            _, loss = self.backward(**data)
             if i % 50 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 # run_metadata = tf.RunMetadata()
                 # self.train_writer.add_run_metadata(
                 #     run_metadata, 'step%d' % i)
-                self.train_writer.add_summary(summary, i)
                 self.logger.info(f"Iter {i}\tloss: {loss:.2f}")
                 losses.append(loss)
             if False:
@@ -221,39 +207,10 @@ class Net:
                 sys.exit(0)
         if self.save:
             self.save_model()
-        # self.eval()
         plt.plot(losses)
         plt.ylabel("Loss")
         plt.xlabel(f"Iterations, in {self.batch_size}s")
         plt.show()
-
-    def eval(self):
-        self.load_data()
-        self.logger.warn(f"Evaluating {self.n_test_steps} minibatches of size"
-                         f" {self.batch_size} for a total of"
-                         f"  {self.n_test_steps * self.batch_size} examples")
-        eval_losses = []
-        for i in range(self.n_test_steps):
-            # Get expected returns following a greedy policy from the
-            # next state: max a': Q(s', a', w_old)
-            data = next(self.test_gen)
-            next_data = {self.grid: data['next_grids'], self.cell: data['next_cells']}
-            next_q_maxs = self.sess.run(self.q_max, next_data)
-            r = data['rewards']
-            q_targets = r + self.gamma * next_q_maxs
-            curr_data = {
-                self.grid: data['grids'],
-                self.cell: data['cells'],
-                self.action: data['actions'],
-                self.target_q: q_targets
-            }
-            loss, summary = self.sess.run([self.loss, self.summaries], curr_data)
-            self.eval_writer.add_summary(summary, i)
-            eval_losses.append(loss)
-            if np.isnan(loss) or np.isinf(loss):
-                self.logger.error(f"Invalid loss: {loss}")
-                break
-        self.logger.error(f"\nEval results: {sum(eval_losses) / len(eval_losses)}")
 
     def forward(self, grid, cell):
         raise NotImplementedError
@@ -287,4 +244,3 @@ if __name__ == "__main__":
     logger = logging.getLogger('')
     n = Net(logger)
     n.train()
-    # n.eval()

@@ -109,6 +109,7 @@ class QNet(Net):
             axis=1,
             name="target_q_selected")
         if self.pp['dueling_qnet']:
+            # WHAT?
             self.next_q = tf.squeeze(self.value)
         elif self.pp['train_net']:
             self.next_q = tf.placeholder(shape=[None], dtype=tf.float32, name="qtarget")
@@ -159,30 +160,37 @@ class QNet(Net):
                  rewards,
                  next_grids,
                  next_cells,
-                 next_actions=None):
+                 next_actions=None,
+                 next_q=None):
         """
         If 'next_actions' are specified, do SARSA update,
-        else greedy selection (Q-Learning)
+        else greedy selection (Q-Learning).
+        If 'next_q', do supervised learning.
         """
-        p_next_grids = prep_data_grids(next_grids, self.pp['grid_neg'],
-                                       self.pp['grid_split'])
-        p_next_cells = prep_data_cells(next_cells)
-        if next_actions is None:
-            next_actions = self.sess.run(
-                self.online_q_amax,
-                feed_dict={
-                    self.grid: p_next_grids,
-                    self.cell: p_next_cells
-                })
         data = {
             self.grid: prep_data_grids(grids, self.pp['grid_neg'], self.pp['grid_split']),
             self.cell: prep_data_cells(cells),
             self.action: actions,
             self.reward: rewards,
-            self.next_grid: p_next_grids,
-            self.next_cell: p_next_cells,
-            self.next_action: next_actions
         }
+        if next_q is not None:
+            data[self.next_q] = next_q
+        else:
+            p_next_grids = prep_data_grids(next_grids, self.pp['grid_neg'],
+                                           self.pp['grid_split'])
+            p_next_cells = prep_data_cells(next_cells)
+            if next_actions is None:
+                next_actions = self.sess.run(
+                    self.online_q_amax,
+                    feed_dict={
+                        self.grid: p_next_grids,
+                        self.cell: p_next_cells
+                    })
+            data.update({
+                self.next_grid: p_next_grids,
+                self.next_cell: p_next_cells,
+                self.next_action: next_actions
+            })
         _, loss = self.sess.run(
             [self.do_train, self.loss],
             feed_dict=data,
