@@ -31,11 +31,11 @@ def get_pparams(defaults=False):
     parser = argparse.ArgumentParser(
         description='DCA', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    # Get available strategies and format their names real nice
     stratclasses = strat_classes("strats.net_rl") + strat_classes(
         "strats.fixedstrats") + strat_classes("strats.table_rl")
     stratnames = ['show']
-    for i in range(len(stratclasses)):
-        s = stratclasses[i]
+    for i, s in enumerate(stratclasses):
         s1 = s[0].lower()
         s2 = s1.replace("strat", "")
         if s2 not in ["net", "qnet", "rl", "qtable"]:
@@ -197,6 +197,11 @@ def get_pparams(defaults=False):
         "as 1 on separate layer",
         default=False)
     parser.add_argument(
+        '--no_grid_zero_end',
+        action='store_true',
+        help="(Net) Don't zero out channels in cell of END event",
+        default=False)
+    parser.add_argument(
         '--act_fn',
         help="(Net) Activation function",
         choices=['relu', 'elu', 'leaky_relu'],
@@ -345,14 +350,17 @@ def get_pparams(defaults=False):
         args = parser.parse_args()
     params = vars(args)
 
+    # We don't want no double negatives
     params['grid_split'] = not params['no_grid_split']
     del params['no_grid_split']
+    params['grid_zero_end'] = not params['no_grid_zero_end']
+    del params['no_grid_zero_end']
     params['double_qnet'] = not params['no_double_qnet']
     del params['no_double_qnet']
-    params['dims'] = (params['rows'], params['cols'], params['n_channels'])
 
     # Sensible presets / overrides
     params['net'] = False  # Whether net is in use or not
+    params['dims'] = (params['rows'], params['cols'], params['n_channels'])
     if "net" in params['strat'].lower():
         if not params['log_iter']:
             params['log_iter'] = 5000

@@ -15,14 +15,13 @@ class SinghNet(Net):
     def build(self):
         self.freps = tf.placeholder(
             shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
-            # shape=[None, self.n_channels + 1],
             dtype=tf.float32,
             name="feature_representations")
         self.value_target = tf.placeholder(
             shape=[None, 1], dtype=tf.float32, name="value_target")
 
         inp = tf.layers.flatten(self.freps)
-        with tf.variable_scope(self.name) as scope:
+        with tf.variable_scope('model/' + self.name) as scope:
             self.value = tf.layers.dense(
                 inputs=inp,
                 units=1,
@@ -36,7 +35,7 @@ class SinghNet(Net):
 
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.value_target), predictions=self.value)
-        self.do_train = self._build_default_trainer(self.loss, online_vars)
+        return online_vars
 
     def forward(self, freps):
         values = self.sess.run(

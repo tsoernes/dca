@@ -92,7 +92,7 @@ class Net:
             # Could do a try/except and build if loading fails
             self.logger.error(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
-        self.do_train = self._build_default_trainer(self.loss, trainable_vars)
+        self.do_train = self.build_default_trainer(self.loss, trainable_vars)
         self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
         self.data_is_loaded = False
 
@@ -120,7 +120,7 @@ class Net:
             flat = tf.layers.flatten(stacked)
             return flat
 
-    def _build_default_trainer(self, loss, var_list=None):
+    def build_default_trainer(self, loss, var_list=None):
         """If var_list is not specified, defaults to GraphKey.TRAINABLE_VARIABLES"""
         if self.pp['max_grad_norm'] is not None:
             gradients, trainable_vars = zip(

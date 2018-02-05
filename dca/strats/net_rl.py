@@ -51,13 +51,7 @@ class QNetStrat(NetStrat):
         self.net.sess.run(self.net.copy_online_to_target)
 
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
-        if ce_type == CEvent.END:
-            # Zero out channel usage in cell of END event
-            grid = np.copy(self.grid)
-            grid[cell] = np.zeros(self.n_channels)
-        else:
-            grid = self.grid
-        qvals = self.net.forward(grid, cell)
+        qvals = self.net.forward(self.grid, cell, ce_type)
         return qvals[chs]
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):

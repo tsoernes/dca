@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+from eventgen import CEvent
 from nets.net import Net
 from nets.utils import copy_net_op, prep_data_cells, prep_data_grids
 
@@ -133,7 +134,11 @@ class QNet(Net):
         # self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
         return online_vars
 
-    def forward(self, grid, cell):
+    def forward(self, grid, cell, ce_type):
+        grid = np.copy(grid)
+        if ce_type == CEvent.END and self.pp['grid_zero_end']:
+            # Zero out channel usage in cell of END event
+            grid[cell] = np.zeros(self.n_channels)
         if self.pp['dueling_qnet']:
             q_vals_op = self.advantages
         else:
