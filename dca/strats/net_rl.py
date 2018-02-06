@@ -50,7 +50,11 @@ class QNetStrat(NetStrat):
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
-    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
+    def get_qvals(self, cell, ce_type, *args, **kwargs):
+        elig_qvals = self.net.forward2(self.grid, cell, ce_type)
+        return elig_qvals
+
+    def get_qvals2(self, cell, ce_type, chs, *args, **kwargs):
         qvals = self.net.forward(self.grid, cell, ce_type)
         # qvals, elig_qvals = self.net.forward2(self.grid, cell, ce_type)
         # assert (chs == np.where(elig_qvals)[0]).all(), (qvals, elig_qvals)
@@ -302,13 +306,13 @@ class SinghNetStrat(VNetStrat):
         fgrids = self.afterstate_freps(self.grid, cell, ce_type, chs)
         # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
         # assert (fgrids == fgrids2).all()
-        qvals_sparse = self.net.forward(fgrids)
-        assert qvals_sparse.shape == (len(chs), )
-        amax_idx = np.argmax(qvals_sparse)
+        qvals_dense = self.net.forward(fgrids)
+        assert qvals_dense.shape == (len(chs), )
+        amax_idx = np.argmax(qvals_dense)
         ch = chs[amax_idx]
         if ch is None:
-            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_sparse}\n")
-        return ch, qvals_sparse[amax_idx]
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
+        return ch, qvals_dense[amax_idx]
 
     def backward(self, grid, cell, reward, next_grid):
         value_target = reward + self.gamma * np.array([[self.val]])

@@ -283,8 +283,9 @@ class RhombusAxialGrid(Grid):
         return RhombusAxialGrid.neighbors(1, row, col)
 
     @staticmethod
-    def neighbors2(row, col):
-        return RhombusAxialGrid.neighbors(2, row, col, separate=False, include_self=False)
+    def neighbors2(row, col, separate):
+        return RhombusAxialGrid.neighbors(
+            2, row, col, separate=separate, include_self=False)
 
     @staticmethod
     def hex_distance(cell_a, cell_b):
