@@ -50,14 +50,8 @@ class QNetStrat(NetStrat):
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
-    def get_qvals(self, cell, ce_type, *args, **kwargs):
-        elig_qvals = self.net.forward2(self.grid, cell, ce_type)
-        return elig_qvals
-
-    def get_qvals2(self, cell, ce_type, chs, *args, **kwargs):
+    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
         qvals = self.net.forward(self.grid, cell, ce_type)
-        # qvals, elig_qvals = self.net.forward2(self.grid, cell, ce_type)
-        # assert (chs == np.where(elig_qvals)[0]).all(), (qvals, elig_qvals)
         return qvals[chs]
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):

@@ -94,10 +94,6 @@ class QNet(Net):
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
                                                  self.pp['net_creep_tau'])
 
-        self.online_elig_q_vals = self.eligible_qvals(self.grid, self.cell,
-                                                      self.online_q_vals)
-        self.online_inuse_q_vals = self.inuse_qvals(self.grid, self.cell,
-                                                    self.online_q_vals)
         # Maximum valued action from online network
         self.online_q_amax = tf.argmax(self.online_q_vals, axis=1, name="online_q_amax")
         # Maximum Q-value for given next state
@@ -153,26 +149,6 @@ class QNet(Net):
         q_vals = np.reshape(q_vals, [-1])
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
-
-    def forward2(self, grid, cell, ce_type):
-        if ce_type == CEvent.END:
-            q_vals_op = self.online_inuse_q_vals
-        else:
-            q_vals_op = self.online_elig_q_vals
-        q_vals, elig = self.sess.run(
-            [self.online_q_vals, q_vals_op],
-            feed_dict={
-                self.grid: prep_data_grids(grid, split=self.pp['grid_split']),
-                self.cell: [cell],
-                self.oh_cell: prep_data_cells(cell)
-            },
-            options=self.options,
-            run_metadata=self.run_metadata)
-        q_vals = np.reshape(q_vals, [-1])
-        elig = np.reshape(elig, [-1])
-        assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
-        assert elig.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
-        return elig
 
     def backward(self,
                  grids,

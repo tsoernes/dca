@@ -190,41 +190,6 @@ class RLStrat(Strat):
         exploration policy and max_ch' is the greedy (still eligible) channel.
         'ch' (and 'max_ch') is None if no channel is eligible for assignment.
         """
-        qvals_sparse = self.get_qvals(cell=cell, ce_type=ce_type)
-        # Selecting a ch for reassigment is always greedy because no learning
-        # is done on the reassignment actions.
-        chs = np.nonzero(qvals_sparse)[0]
-        qvals_dense = qvals_sparse[chs]
-        # print(qvals_sparse.shape, chs)
-        if len(chs) == 0:
-            return (None, None)
-        if ce_type == CEvent.END:
-            amin_idx = np.argmin(qvals_dense)
-            ch = chs[amin_idx]
-            max_ch = ch
-        else:
-            # print(qvals_sparse.shape, chs.shape)
-            ch = self.policy_eps_greedy(chs, qvals_dense)
-            amax_idx = np.argmax(qvals_sparse[chs])
-            max_ch = chs[amax_idx]
-
-        # If qvals blow up ('NaN's and 'inf's), ch becomes none.
-        if ch is None:
-            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_sparse}\n")
-            raise Exception
-        self.logger.debug(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
-        return (ch, max_ch)
-
-    def optimal_ch2(self, ce_type, cell) -> Tuple[int, float, int]:
-        """Select the channel fitting for assignment that
-        that has the maximum q-value according to an exploration policy,
-        or select the channel for termination that has the minimum
-        q-value in a greedy fashion.
-
-        Return (ch, max_ch) where 'ch' is the selected channel according to
-        exploration policy and max_ch' is the greedy (still eligible) channel.
-        'ch' (and 'max_ch') is None if no channel is eligible for assignment.
-        """
         inuse = np.nonzero(self.grid[cell])[0]
         n_used = len(inuse)
 

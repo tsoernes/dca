@@ -245,6 +245,8 @@ class Net:
 
     def inuse_qvals(self, grids, cells, qvals):
         """
+        Tested and works, but slower than CPU
+
         Return a dense array of q-values that are in use
 
         Expects:
@@ -260,6 +262,8 @@ class Net:
 
     def eligible_qvals(self, grids, cells, qvals):
         """
+        Tested and works, but slower than CPU
+
         Return a dense array of q-values that are eligible to assignment
         without violating the reuse constraint
 
