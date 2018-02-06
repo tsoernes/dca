@@ -52,6 +52,8 @@ class QNetStrat(NetStrat):
 
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
         qvals = self.net.forward(self.grid, cell, ce_type)
+        # qvals, elig_qvals = self.net.forward2(self.grid, cell, ce_type)
+        # assert (chs == np.where(elig_qvals)[0]).all(), (qvals, elig_qvals)
         return qvals[chs]
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):

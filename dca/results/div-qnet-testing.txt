@@ -87,7 +87,15 @@ Average cumulative handoff block probability 0.1252 with standard deviation 0.00
  [ 0.17228891  0.1245407 ]]
 
 ----
-'empty_neg': True
-p3 runner.py --strat qlearnnet --avg_runs 8
-T0 Blocking probability: 0.1726 for new calls, 0.1252 for handoffs 
-T1 Blocking probability: 0.1749 for new calls, 0.1289 for handoffs 
+
+use grid split, zero on end, no empty neg
+qlearnnet, avg_runs 8
+0.1707 std-dev 0.00236
+
+---- 
+use grid split, don't zero on end, no empty neg
+qlearnnet, avg_runs 8
+0.1707 std-dev 0.00236
+exact same results. remove zero on end-event.
+
+

@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import datahandler
+from grid import RhombusAxialGrid
 from nets.utils import (get_act_fn_by_name, get_init_by_name,
                         get_optimizer_by_name)
 
@@ -81,6 +82,8 @@ class Net:
         config.gpu_options.allow_growth = True
         tf.set_random_seed(pp['rng_seed'])
         self.sess = tf.Session(config=config)
+
+        self.neighs_mask = tf.constant(RhombusAxialGrid.neighbors_all_oh(), dtype=tf.bool)
 
         trainable_vars = self.build()
         glob_vars = set(tf.global_variables())
@@ -239,6 +242,54 @@ class Net:
             for var in trainable_vars
         }
         return trainable_vars_by_name
+
+    def inuse_qvals(self, grids, cells, qvals):
+        """
+        Return a dense array of q-values that are in use
+
+        Expects:
+        grids.shape: [None, 7, 7, 70/140]
+        cells.shape: [None, 2]
+        qvals.shape: [None, 70]
+        """
+        arange = tf.expand_dims(tf.range(tf.shape(cells)[0]), axis=1)
+        rcells = tf.concat([arange, cells], axis=1)
+        alloc_maps = tf.gather_nd(grids[:, :, :, :70], rcells)
+        inuse_qvals = tf.cast(alloc_maps, tf.float32) * qvals
+        return inuse_qvals
+
+    def eligible_qvals(self, grids, cells, qvals):
+        """
+        Return a dense array of q-values that are eligible to assignment
+        without violating the reuse constraint
+
+        Expects:
+        grids.shape: [None, 7, 7, 70/140]
+        cells.shape: [None, 2]
+        qvals.shape: [None, 70]
+        """
+
+        def get_elig_alloc_map(inp):
+            # inp.shape: (7, 7, 71)
+            grid = inp[:, :, :70]
+            neighs_mask_local = inp[:, :, -1]
+            # Code below here needs to be mapped because 'where' will produce
+            # variable length result
+            neighs_i = tf.where(neighs_mask_local)
+            neighs = tf.gather_nd(grid, neighs_i)
+            alloc_map = tf.reduce_any(neighs, axis=0)
+            # Can't return elig chs because variable length result
+            # eligible_chs = tf.reshape(tf.where(tf.logical_not(alloc_map)), [-1])
+            return alloc_map
+
+        neighs_mask_local = tf.gather_nd(self.neighs_mask, cells)
+        inp = tf.concat([grids, tf.expand_dims(neighs_mask_local, axis=3)], axis=3)
+        alloc_maps = tf.map_fn(get_elig_alloc_map, inp, dtype=tf.bool)
+        # TODO This should be sparse instead, allowing for multiple grids
+        # in forward batch or for this method to be used in a backward pass
+        # elig_qvals = tf.boolean_mask(qvals, tf.logical_not(alloc_maps))
+        elig_qvals = tf.cast(tf.logical_not(alloc_maps), tf.float32) * qvals
+        return elig_qvals
 
 
 if __name__ == "__main__":

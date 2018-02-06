@@ -93,9 +93,8 @@ def copy_net_op(online_vars, target_vars, tau):
     return tf.group(*copy_ops)
 
 
-def prep_data_grids(grids, neg=False, split=True):
+def prep_data_grids(grids, split=True):
     """
-    neg: Represent empty channels as -1 instead of 0
     split: Double the depth and represent empty channels as 1 on separate layer
     """
     assert type(grids) == np.ndarray
@@ -107,12 +106,6 @@ def prep_data_grids(grids, neg=False, split=True):
         sgrids[:, :, :, :70] = grids
         sgrids[:, :, :, 70:] = np.invert(grids)
         grids = sgrids
-    if neg:
-        grids = grids.astype(np.int8)
-        # Make empty cells -1 instead of 0.
-        # Temporarily convert to int8 to save memory
-        grids = grids * 2 - 1
-    grids = grids.astype(np.float16)
     return grids
 
 

@@ -176,30 +176,15 @@ def get_pparams(defaults=False):
         help="(Net/Duel) Dueling QNet",
         default=False)
     parser.add_argument(
-        '--no_double_qnet',
-        action='store_true',
-        help="(Net/Double) Disable Double QNet",
-        default=False)
-    parser.add_argument(
         '--layer_norm',
         action='store_true',
         help="(Net) Use layer normalization",
-        default=False)
-    parser.add_argument(
-        '--grid_neg',
-        action='store_true',
-        help="(Net) Represent empty channels in grid as -1 instead of 0",
         default=False)
     parser.add_argument(
         '--no_grid_split',
         action='store_true',
         help="(Net) Don't Double the depth and represent empty channels "
         "as 1 on separate layer",
-        default=False)
-    parser.add_argument(
-        '--no_grid_zero_end',
-        action='store_true',
-        help="(Net) Don't zero out channels in cell of END event",
         default=False)
     parser.add_argument(
         '--act_fn',
@@ -353,10 +338,6 @@ def get_pparams(defaults=False):
     # We don't want no double negatives
     params['grid_split'] = not params['no_grid_split']
     del params['no_grid_split']
-    params['grid_zero_end'] = not params['no_grid_zero_end']
-    del params['no_grid_zero_end']
-    params['double_qnet'] = not params['no_double_qnet']
-    del params['no_double_qnet']
 
     # Sensible presets / overrides
     params['net'] = False  # Whether net is in use or not

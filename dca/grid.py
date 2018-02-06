@@ -320,6 +320,22 @@ class RhombusAxialGrid(Grid):
             return (rs, cs)
         return idxs
 
+    @staticmethod
+    def neighbors_all_oh(dist=2, include_self=True, rows=7, cols=7):
+        """
+        Returns a list with indices of neighbors with a distance of 'dist' or less
+        from (row, col)
+        """
+        idxs = np.zeros((rows, cols, rows, cols), dtype=np.bool)
+        for r1 in range(rows):
+            for c1 in range(cols):
+                for r2 in range(rows):
+                    for c2 in range(cols):
+                        if (include_self or (r1, c1) != (r2, c2)) \
+                           and RhombusAxialGrid.hex_distance((r1, c1), (r2, c2)) <= dist:
+                            idxs[r1, c1, r2, c2] = True
+        return idxs
+
     def _partition_cells(self):
         """
         Partition cells into 7 lots such that the minimum distance
@@ -360,7 +376,7 @@ class RhombusAxialGrid(Grid):
         without violating the reuse constraint.
         """
         alloc_map = RhombusAxialGrid._get_eligible_chs_bitmap(grid, cell)
-        eligible = np.nonzero(np.invert(alloc_map))[0]
+        eligible = np.nonzero(np.logical_not(alloc_map))[0]
         return eligible
 
     @staticmethod
