@@ -83,6 +83,7 @@ class QNet(Net):
             shape=oh_cellshape, dtype=tf.float32, name="next_oh_cell")
         self.next_action = tf.placeholder(
             shape=[None], dtype=tf.int32, name="next_action")
+        self.tf_gamma = tf.placeholder(shape=[1], dtype=tf.float32, name="gamma")
 
         self.online_q_vals, online_vars = self._build_net(
             gridf, self.oh_cell, name="q_networks/online")
@@ -116,7 +117,7 @@ class QNet(Net):
         else:
             self.next_q = self.target_q_selected
 
-        self.q_target = self.reward + self.gamma * self.next_q
+        self.q_target = self.reward + self.tf_gamma * self.next_q
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
@@ -158,12 +159,15 @@ class QNet(Net):
                  next_grids,
                  next_cells,
                  next_actions=None,
-                 next_q=None):
+                 next_q=None,
+                 gamma=None):
         """
         If 'next_actions' are specified, do SARSA update,
         else greedy selection (Q-Learning).
         If 'next_q', do supervised learning.
         """
+        if gamma is None:
+            gamma = self.gamma
         data = {
             self.grid: prep_data_grids(grids, self.pp['grid_split']),
             self.oh_cell: prep_data_cells(cells),
@@ -186,7 +190,8 @@ class QNet(Net):
             data.update({
                 self.next_grid: p_next_grids,
                 self.next_oh_cell: p_next_cells,
-                self.next_action: next_actions
+                self.next_action: next_actions,
+                self.tf_gamma: gamma
             })
         _, loss = self.sess.run(
             [self.do_train, self.loss],

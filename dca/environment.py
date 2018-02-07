@@ -12,6 +12,7 @@ class Env:
         self.save = pp['save_exp_data']
         self.log_iter = pp['log_iter']
         self.dt_rewards = pp['dt_rewards']
+        self.beta = pp['beta']
         self.grid = grid
         self.logger = logger
         self.gui = gui
@@ -143,6 +144,8 @@ class Env:
         Immediate reward, which is the total number of calls
         currently in progress system-wide
         """
+        count = np.count_nonzero(self.grid.state)
         if not self.dt_rewards:
-            dt = 1
-        return dt * np.count_nonzero(self.grid.state)
+            return count
+        b = self.pp['beta']
+        return ((1 - np.exp(-b * dt)) / b) * count

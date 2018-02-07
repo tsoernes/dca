@@ -105,6 +105,8 @@ def get_pparams(defaults=False):
         default=0.99999)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
+        '--beta', type=float, help="(RL) discount factor dt", default=0.85)
+    parser.add_argument(
         '--dt_rewards',
         '-dt',
         action='store_true',
