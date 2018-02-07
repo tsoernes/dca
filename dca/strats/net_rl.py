@@ -54,10 +54,10 @@ class QNetStrat(NetStrat):
         qvals = self.net.forward(self.grid, cell, ce_type)
         return qvals[chs]
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, disc):
         """ Update qval for one experience tuple"""
         loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch],
-                             [next_max_ch])
+                             [next_max_ch], disc)
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True

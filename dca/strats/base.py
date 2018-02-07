@@ -49,8 +49,8 @@ class Strat:
         while self.continue_sim(i, t):
             t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
-            reward, next_cevent = self.env.step(ch)
-            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type)
+            reward, disc, next_cevent = self.env.step(ch)
+            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type, disc)
             # NOTE Could do per-strat saving here, as they save different stuff
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
@@ -149,7 +149,7 @@ class RLStrat(Strat):
         ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, disc) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
@@ -159,7 +159,8 @@ class RLStrat(Strat):
            ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch)
+            self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
+                             disc)
         return next_ch
 
     def policy_eps_greedy(self, chs, qvals_dense):

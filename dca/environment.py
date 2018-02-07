@@ -101,7 +101,9 @@ class Env:
             self.gui.step()
 
         self.cevent = self.eventgen.pop()
-        return (self.reward(self.cevent[0] - t), self.cevent)
+        dt = self.cevent[0] - t
+        disc = np.exp(-self.beta * dt)
+        return (self.reward(dt), disc, self.cevent)
 
     def execute_action(self, cevent, ch: int):
         """
