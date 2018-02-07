@@ -1,3 +1,5 @@
+PS: Greedy action selection
+
 Starting simulation at 2018-02-03 21:50:17.790933 with params:
 {'strat': 'singhnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.0, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': None, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'dt_rewards': False, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'hopt': None, 'hopt_best': None, 'hopt_plot': False, 'net_lr': 5e-07, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'grid_neg': False, 'act_fn': 'relu', 'optimizer': 'sgd', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 20, 'log_file': None, 'log_iter': 5000, 'grid_split': True, 'double_qnet': True, 'dims': (7, 7, 70), 'net': True}
 NP Rand: 0.5488135039273248
@@ -26,3 +28,22 @@ Invalid loss: inf
 -----------------------------------------------------------------------------
 p3 runner.py --strat singhnet -opt sgd -lr 5e-4 --p_handoff 0
 Invalid loss: inf
+-----------------------------------------------------------------------------
+Now scaling frep
+
+p3 runner.py --strat singhnet -opt sgd -lr 5e-4 --p_handoff 0
+Blocking probability events 75000-80000: 0.1481, cumulative 0.1619
+Avg. loss last 5000 events: 374.80
+Premature exit
+Simulation duration: 4.51 sim hours, 9m48s real, 80570 events at 799 events/second
+T Blocking probability: 0.1620 for new calls, 0.0000 for handoffs
+-----------------------------------------------------------------------------
+
+p3 runner.py --strat singhnet -opt sgd -lr 5e-4 --p_handoff 0 --dt_rewards --beta 15
+T Blocking probability: 0.1607 for new calls, 0.0000 for handoffs
+
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
