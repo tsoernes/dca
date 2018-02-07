@@ -149,5 +149,5 @@ class Env:
         count = np.count_nonzero(self.grid.state)
         if not self.dt_rewards:
             return count
-        b = self.pp['beta']
+        b = self.beta
         return ((1 - np.exp(-b * dt)) / b) * count

@@ -191,7 +191,7 @@ class QNet(Net):
                 self.next_grid: p_next_grids,
                 self.next_oh_cell: p_next_cells,
                 self.next_action: next_actions,
-                self.tf_gamma: gamma
+                self.tf_gamma: [gamma]
             })
         _, loss = self.sess.run(
             [self.do_train, self.loss],
