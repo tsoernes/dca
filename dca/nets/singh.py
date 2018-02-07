@@ -53,10 +53,7 @@ class SinghNet(Net):
         # if next_value[0] != next_val:
         #     print(next_value, next_val)
         # value_target = reward + self.gamma * next_val
-        data = {
-            self.freps: freps,
-            self.value_target: value_target,
-        }
+        data = {self.freps: freps, self.value_target: value_target}
         _, loss = self.sess.run(
             [self.do_train, self.loss],
             feed_dict=data,

@@ -275,9 +275,9 @@ class SinghNetStrat(VNetStrat):
     # def get_init_action(self, cevent) -> int:
     #     return self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
         if ch is not None:
-            loss = self.backward(grid, cell, reward, self.grid)
+            loss = self.backward(grid, cell, reward, self.grid, bdisc)
             if np.isinf(loss) or np.isnan(loss):
                 self.logger.error(f"Invalid loss: {loss}")
                 self.quit_sim = True
@@ -308,8 +308,9 @@ class SinghNetStrat(VNetStrat):
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, qvals_dense[amax_idx]
 
-    def backward(self, grid, cell, reward, next_grid):
-        value_target = reward + self.gamma * np.array([[self.val]])
+    def backward(self, grid, cell, reward, next_grid, bdisc):
+        gamma = bdisc if self.pp['dt_rewards'] else self.gamma
+        value_target = reward + gamma * np.array([[self.val]])
         loss = self.net.backward(
             self.scale_freps(self.feature_reps(grid)),
             self.scale_freps(self.feature_reps(next_grid)), value_target)
