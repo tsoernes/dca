@@ -1,0 +1,65 @@
+A = self.grid (assumed correct) or grid
+B = next_cell (assumed correct) or cell
+next_n_used = np.count_nonzero(A[B])
+
+C = reward (assumed correct) or np.count_nonzero(self.grid)
+(the former option is total n_used at time t, the latter at time t+1)
+target_q = C + gamma * next_qval
+
+D = grid(assumed correct) or self.grid
+n_used = np.count_nonzero(D[cell])
+
+p3 runner.py --strat sarsa --avg_runs 4
+Starting simulation at 2018-02-07 17:50:06.925150 with params:
+{'strat': 'sarsa', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': 4, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'beta': 0.85, 'dt_rewards': False, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'hopt': None, 'hopt_best': None, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'act_fn': 'relu', 'optimizer': 'sgd-m', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 50000, 'grid_split': True, 'net': False, 'dims': (7, 7, 70)}
+
+Hyphen preceeding variable denotes change from what is assumed to be correct.
+
+A = self.grid 
+B = next_cell 
+C = reward 
+D = grid
+Average cumulative block probability over 4 episodes: 0.1984 with standard deviation 0.00185
+Average cumulative handoff block probability 0.1518 with standard deviation 0.00258
+
+A = self.grid 
+- B = cell 
+C = reward 
+D = grid
+Average cumulative block probability over 4 episodes: 0.1988 with standard deviation 0.00118
+Average cumulative handoff block probability 0.1516 with standard deviation 0.00290
+
+- A = grid 
+B = next_cell 
+C = reward 
+D = grid
+Average cumulative block probability over 4 episodes: 0.1976 with standard deviation 0.00144
+Average cumulative handoff block probability 0.1505 with standard deviation 0.00401
+
+A = self.grid 
+B = next_cell 
+C = reward 
+- D = self.grid
+Average cumulative block probability over 4 episodes: 0.1783 with standard deviation 0.00126
+Average cumulative handoff block probability 0.1373 with standard deviation 0.00197
+
+A = self.grid 
+B = next_cell 
+- C = nonzero(self.grid)
+D = grid
+Average cumulative block probability over 4 episodes: 0.1987 with standard deviation 0.00081
+Average cumulative handoff block probability 0.1516 with standard deviation 0.00173
+
+A = self.grid 
+- B = cell 
+C = reward 
+- D = self.grid
+Average cumulative block probability over 4 episodes: 0.1772 with standard deviation 0.00091
+Average cumulative handoff block probability 0.1371 with standard deviation 0.00279
+
+A = self.grid 
+- B = cell 
+- C = nonzero(self.grid)
+- D = self.grid
+Average cumulative block probability over 4 episodes: 0.1787 with standard deviation 0.00070
+Average cumulative handoff block probability 0.1357 with standard deviation 0.00237

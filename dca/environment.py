@@ -102,8 +102,8 @@ class Env:
 
         self.cevent = self.eventgen.pop()
         dt = self.cevent[0] - t
-        disc = np.exp(-self.beta * dt)
-        return (self.reward(dt), disc, self.cevent)
+        beta_disc = np.exp(-self.beta * dt)
+        return (self.reward(beta_disc), beta_disc, self.cevent)
 
     def execute_action(self, cevent, ch: int):
         """
@@ -141,7 +141,7 @@ class Env:
                 self.logger.debug(f"Ended call cell in {cell} on ch {ch}")
             self.grid.state[cell][ch] = 0
 
-    def reward(self, dt):
+    def reward(self, beta_disc):
         """
         Immediate reward, which is the total number of calls
         currently in progress system-wide
@@ -149,5 +149,4 @@ class Env:
         count = np.count_nonzero(self.grid.state)
         if not self.dt_rewards:
             return count
-        b = self.beta
-        return ((1 - np.exp(-b * dt)) / b) * count
+        return ((1 - beta_disc) / self.beta) * count

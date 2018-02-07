@@ -35,6 +35,7 @@ class TestSinghStrat(unittest.TestCase):
         def check_freps(freps_inc, freps):
             self.assertTrue(freps_inc.shape == freps.shape,
                             (freps_inc.shape, freps.shape))
+            self.assertTrue(freps.shape[1:] == (7, 7, 71))
             eq_n_free = freps_inc[:, :, :, :-1] == freps[:, :, :, :-1]
             diff_n_free = np.where(np.invert(eq_n_free))
             self.assertTrue(eq_n_free.all(),
@@ -95,9 +96,9 @@ class TestSinghStrat(unittest.TestCase):
             (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
         grid2[:, :, 0] = 1
         grid3[1, 2, 9] = 1
-        fgrid1 = self.strat.feature_reps(grid1)
-        fgrid2 = self.strat.feature_reps(grid2)
-        fgrid3 = self.strat.feature_reps(grid3)
+        fgrid1 = self.strat.feature_reps(grid1)[0]
+        fgrid2 = self.strat.feature_reps(grid2)[0]
+        fgrid3 = self.strat.feature_reps(grid3)[0]
 
         # Verify that single- and multi-version works the same
         grids = np.array([grid1, grid2, grid3])
@@ -126,7 +127,7 @@ class TestSinghStrat(unittest.TestCase):
         for r in range(self.rows):
             for c in range(self.cols):
                 n_neighs = len(RhombusAxialGrid.neighbors(4, r, c))
-                n_used2[r][c][0] = n_neighs
+                n_used2[r][c][0] = n_neighs + 1
         check_n_used_neighs(fgrid2, n_used2)
 
         # Verify Grid #3
@@ -136,6 +137,6 @@ class TestSinghStrat(unittest.TestCase):
         # Cell (1, 2) has no neighs that use ch9. The neighs of (1, 2)
         # has 1 cell that use ch9.
         n_used3 = np.zeros((self.rows, self.cols, self.n_channels))
-        neighs3 = RhombusAxialGrid.neighbors(4, 1, 2, separate=True)
+        neighs3 = RhombusAxialGrid.neighbors(4, 1, 2, separate=True, include_self=True)
         n_used3[(*neighs3, np.repeat(9, len(neighs3[0])))] = 1
         check_n_used_neighs(fgrid3, n_used3)

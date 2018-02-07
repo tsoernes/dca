@@ -49,8 +49,8 @@ class Strat:
         while self.continue_sim(i, t):
             t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
-            reward, disc, next_cevent = self.env.step(ch)
-            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type, disc)
+            reward, bdisc, next_cevent = self.env.step(ch)
+            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type, bdisc)
             # NOTE Could do per-strat saving here, as they save different stuff
             if (self.save or self.batch_size > 1) \
                     and ch is not None \

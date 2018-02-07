@@ -1,97 +1,42 @@
-Testing Lambda vs 1-step (regular SARSA); n_used_{t} (grid) vs n_used{t+n} (self.grid)
+Testing Lambda vs 1-step (regular SARSA)
+and
+n_used_{t} (i.e. count of grid) vs n_used{t+n} (i.e. count of self.grid)
 
 sarsa-lambda: 0.2, grid
 p3 runner.py --strat sarsa_lambda --n_events 1000000 --avg_runs 8
 Starting simulation at 2018-01-18 21:34:16.960910 with params:
 {'strat': 'sarsa_lambda', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 1000000, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'save_exp_data': False, 'hopt': False, 'hopt_best': False, 'hopt_plot': False, 'net_lr': 3.4e-05, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'train_net': False, 'no_gpu': False, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 50000, 'net': False}
-T5 Blocking probability: 0.1925 for new calls, 0.1507 for handoffs
-T7 Blocking probability: 0.1902 for new calls, 0.1491 for handoffs
-T3 Blocking probability: 0.1913 for new calls, 0.1516 for handoffs
-T1 Blocking probability: 0.1905 for new calls, 0.1509 for handoffs
-T6 Blocking probability: 0.1894 for new calls, 0.1460 for handoffs
-T0 Blocking probability: 0.1883 for new calls, 0.1484 for handoffs
-T4 Blocking probability: 0.1893 for new calls, 0.1482 for handoffs
-T2 Blocking probability: 0.1904 for new calls, 0.1512 for handoffs
 Average cumulative block probability over 8 episodes: 0.1902 with standard deviation 0.00120
 x1000000 events finished with speed 5072 episodes/second
 
 1-step SARSA, grid
-T4 Blocking probability: 0.1919 for new calls, 0.1512 for handoffs
-T1 Blocking probability: 0.1908 for new calls, 0.1480 for handoffs
-T0 Blocking probability: 0.1887 for new calls, 0.1482 for handoffs
-T7 Blocking probability: 0.1913 for new calls, 0.1472 for handoffs
-T6 Blocking probability: 0.1887 for new calls, 0.1489 for handoffs
-T2 Blocking probability: 0.1900 for new calls, 0.1490 for handoffs
-T3 Blocking probability: 0.1909 for new calls, 0.1523 for handoffs
-T5 Blocking probability: 0.1901 for new calls, 0.1484 for handoffs
 8x1000000 events finished with speed 78566 episodes/second
-Average cumulative block probability over 8 episodes: 0.1903 with standard deviation 0.00109
+8 episodes: 0.1903 with standard deviation 0.00109
 
 sarsa-lambda: 0.8, grid
-T5 Blocking probability: 0.1910 for new calls, 0.1475 for handoffs
-T2 Blocking probability: 0.1906 for new calls, 0.1508 for handoffs
-T6 Blocking probability: 0.1892 for new calls, 0.1500 for handoffs
-T3 Blocking probability: 0.1882 for new calls, 0.1477 for handoffs
-T7 Blocking probability: 0.1915 for new calls, 0.1508 for handoffs
-T0 Blocking probability: 0.1911 for new calls, 0.1522 for handoffs
-T4 Blocking probability: 0.1915 for new calls, 0.1488 for handoffs
-T1 Blocking probability: 0.1880 for new calls, 0.1460 for handoffs
 8x1000000 events finished with speed 5074 episodes/second
-Average cumulative block probability over 8 episodes: 0.1901 with standard deviation 0.00137
+8 episodes: 0.1901 with standard deviation 0.00137
 
 1-step SARSA, self.grid
-T0 Blocking probability: 0.1733 for new calls, 0.1323 for handoffs
-T5 Blocking probability: 0.1727 for new calls, 0.1357 for handoffs
-T7 Blocking probability: 0.1698 for new calls, 0.1341 for handoffs
-T1 Blocking probability: 0.1744 for new calls, 0.1374 for handoffs
-T6 Blocking probability: 0.1694 for new calls, 0.1318 for handoffs
-T4 Blocking probability: 0.1691 for new calls, 0.1325 for handoffs
-T2 Blocking probability: 0.1700 for new calls, 0.1330 for handoffs
-T3 Blocking probability: 0.1729 for new calls, 0.1358 for handoffs
 8x1000000 events finished with speed 80466 episodes/second
-Average cumulative block probability over 8 episodes: 0.1715 with standard deviation 0.00196
+8 episodes: 0.1715 with standard deviation 0.00196
 
 sarsa-lambda: 0.8, self.grid
-T1 Blocking probability: 0.1713 for new calls, 0.1350 for handoffs
-T0 Blocking probability: 0.1760 for new calls, 0.1391 for handoffs
-T4 Blocking probability: 0.1730 for new calls, 0.1328 for handoffs
-T5 Blocking probability: 0.1722 for new calls, 0.1357 for handoffs
-T3 Blocking probability: 0.1731 for new calls, 0.1363 for handoffs
-T7 Blocking probability: 0.1720 for new calls, 0.1348 for handoffs
-T6 Blocking probability: 0.1699 for new calls, 0.1342 for handoffs
-T2 Blocking probability: 0.1708 for new calls, 0.1338 for handoffs
 8x1000000 events finished with speed 4967 episodes/second
-Average cumulative block probability over 8 episodes: 0.1723 with standard deviation 0.00171
+8 episodes: 0.1723 with standard deviation 0.00171
 
 sarsa-lambda: 0.2, self.grid
-T1 Blocking probability: 0.1735 for new calls, 0.1370 for handoffs
-T2 Blocking probability: 0.1762 for new calls, 0.1397 for handoffs
-T6 Blocking probability: 0.1711 for new calls, 0.1325 for handoffs
-T5 Blocking probability: 0.1720 for new calls, 0.1352 for handoffs
-T0 Blocking probability: 0.1721 for new calls, 0.1335 for handoffs
-T3 Blocking probability: 0.1707 for new calls, 0.1336 for handoffs
-T4 Blocking probability: 0.1721 for new calls, 0.1362 for handoffs
-T7 Blocking probability: 0.1708 for new calls, 0.1334 for handoffs
 8x1000000 events finished with speed 4969 episodes/second
-Average cumulative block probability over 8 episodes: 0.1723 with standard deviation 0.00170
+8 episodes: 0.1723 with standard deviation 0.00170
 
 rs-sarsa-lambda: 0.2 (avg runs 2)
-T1 Blocking probability: 0.1723 for new calls, 0.1321 for handoffs
-T0 Blocking probability: 0.1700 for new calls, 0.1320 for handoffs
-2x1000000 events finished with speed 15098 events/second
-Average cumulative block probability over 2 episodes: 0.1711 with standard deviation 0.00116
+2 episodes: 0.1711 with standard deviation 0.00116
 
 rs-sarsa-lambda: 0.8 (avg runs 2)
-T0 Blocking probability: 0.1746 for new calls, 0.1383 for handoffs
-T1 Blocking probability: 0.1712 for new calls, 0.1321 for handoffs
-2x1000000 events finished with speed 9839 events/second
-Average cumulative block probability over 2 episodes: 0.1729 with standard deviation 0.00171
+2 episodes: 0.1729 with standard deviation 0.00171
 
 1-step rs-sarsa (avg runs 2)
-T0 Blocking probability: 0.1682 for new calls, 0.1300 for handoffs
-T1 Blocking probability: 0.1688 for new calls, 0.1309 for handoffs
-2x1000000 events finished with speed 16511 events/second
-Average cumulative block probability over 2 episodes: 0.1685 with standard deviation 0.00031
+2 episodes: 0.1685 with standard deviation 0.00031
 
 All previous results have been with updates triggered when:
 cevent != END, ch != None, next_ch != None

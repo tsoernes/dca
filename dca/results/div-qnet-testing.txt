@@ -96,6 +96,7 @@ qlearnnet, avg_runs 8
 use grid split, don't zero on end, no empty neg
 qlearnnet, avg_runs 8
 0.1707 std-dev 0.00236
-exact same results. remove zero on end-event.
+exact same results. zeroing probably donẗ have effect due to relues.
+removing possibility for zeroing cell on end-event.
 
 

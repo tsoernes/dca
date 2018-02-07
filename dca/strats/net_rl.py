@@ -297,7 +297,7 @@ class SinghNetStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        fgrids = self.afterstate_freps(self.grid, cell, ce_type, chs)
+        fgrids = self.scale_freps(self.afterstate_freps(self.grid, cell, ce_type, chs))
         # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
         # assert (fgrids == fgrids2).all()
         qvals_dense = self.net.forward(fgrids)
@@ -310,13 +310,23 @@ class SinghNetStrat(VNetStrat):
 
     def backward(self, grid, cell, reward, next_grid):
         value_target = reward + self.gamma * np.array([[self.val]])
-        loss = self.net.backward([self.feature_reps(grid, cell)],
-                                 [self.feature_reps(next_grid, cell)], value_target)
+        loss = self.net.backward(
+            self.scale_freps(self.feature_reps(grid)),
+            self.scale_freps(self.feature_reps(next_grid)), value_target)
         return loss
 
     def afterstate_freps_naive(self, grid, cell, ce_type, chs):
         astates = RhombusAxialGrid.afterstates_stat(grid, cell, ce_type, chs)
         freps = self.feature_reps(astates)
+        return freps
+
+    def scale_freps(self, freps):
+        assert freps.ndim == 4
+        # TODO Try Scale freps in range [-1, 1]
+        # Scale freps in range [0, 1]
+        freps = freps.astype(np.float16)
+        freps[:, :, :, :-1] /= 43.0  # Max possible neighs within dist 4 including self
+        freps[:, :, :, -1] /= float(self.n_channels)
         return freps
 
     def afterstate_freps(self, grid, cell, ce_type, chs):
@@ -326,10 +336,10 @@ class SinghNetStrat(VNetStrat):
         n_used_neighs (frep[:-1]) does include self
         n_free_self (frep[-1]) counts ELIGIBLE chs
         """
-        fgrid = self.feature_reps(grid)
+        fgrid = self.feature_reps(grid)[0]
         r, c = cell
         neighs4 = RhombusAxialGrid.neighbors(
-            dist=4, row=r, col=c, separate=True, include_self=False)
+            dist=4, row=r, col=c, separate=True, include_self=True)
         neighs2 = RhombusAxialGrid.neighbors(dist=2, row=r, col=c, include_self=True)
         fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
         if ce_type == CEvent.END:
@@ -356,7 +366,7 @@ class SinghNetStrat(VNetStrat):
             grid[cell][chs] = 1
         return fgrids
 
-    def feature_reps(self, grids, *args):
+    def feature_reps(self, grids):
         """
         Takes a grid or an array of grids and return the feature representation(s).
 
@@ -367,23 +377,20 @@ class SinghNetStrat(VNetStrat):
         in use by the cell itself, though that may be the better option.
         """
         assert type(grids) == np.ndarray
-        single = False  # Only one grid to create frep for
         if grids.ndim == 3:
             grids = np.expand_dims(grids, axis=0)
-            single = True
         fgrids = np.zeros(
-            (len(grids), self.rows, self.cols, self.n_channels + 1), dtype=np.int32)
+            (len(grids), self.rows, self.cols, self.n_channels + 1), dtype=np.int16)
         # fgrids[:, :, :, self.n_channels] = self.n_channels \
         #     - np.count_nonzero(grids, axis=3)
         for r in range(self.rows):
             for c in range(self.cols):
-                neighs = self.env.grid.neighbors(4, r, c, separate=True)
+                neighs = self.env.grid.neighbors(
+                    4, r, c, separate=True, include_self=True)
                 n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
                 fgrids[:, r, c, :-1] = n_used
                 for i in range(len(grids)):
                     n_eligible_chs = RhombusAxialGrid.get_n_eligible_chs_stat(
                         grids[i], (r, c))
                     fgrids[i, r, c, -1] = n_eligible_chs
-        if single:
-            return fgrids[0]
         return fgrids
