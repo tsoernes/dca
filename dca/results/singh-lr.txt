@@ -33,20 +33,46 @@ Invalid loss: inf
 -----------------------------------------------------------------------------
 -----------------------------------------------------------------------------
 Now scaling frep
+Frep assumptions:
+     n_free_self: counts number of eligible channels
+     n_used_neighs: includes self
 -----------------------------------------------------------------------------
 -----------------------------------------------------------------------------
 
 p3 runner.py --strat singhnet -opt sgd -lr 5e-6 --p_handoff 0
+should run this
 -----------------------------------------------------------------------------
 p3 runner.py --strat singhnet -opt sgd -lr 5e-6 --p_handoff 0 --dt_rewards --beta 15
 T Blocking probability: 0.1607 for new calls, 0.0000 for handoffs
 -----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+NO scaling freps
+-----------------------------------------------------------------------------
 p3 runner.py --strat singhnet -opt sgd -lr 5e-5 --p_handoff 0 --dt_rewards --beta 15
-T Blocking probability: 0.1607 for new calls, 0.0000 for handoffs
-
+T Blocking probability: 0.1543 for new calls, 0.0000 for handoffs
+-----------------------------------------------------------------------------
+p3 runner.py --strat singhnet -opt sgd -lr 5e-6 --p_handoff 0 --dt_rewards --beta 15
+should run this
+-----------------------------------------------------------------------------
+p3 runner.py --strat singhnet -opt sgd-m -lr 5e-5 --p_handoff 0 --dt_rewards --beta 15
+Invalid loss: inf
+-----------------------------------------------------------------------------
+p3 runner.py --strat singhnet -opt sgd-m -lr 5e-6 --p_handoff 0 --dt_rewards --beta 15
+Blocking probability events 105000-110000: 0.1508, cumulative 0.1473
+Avg. loss last 5000 events: 0.000788
+Premature exit -- definitiely gets worse over time
+Simulation duration: 6.23 sim hours, 12m48s real, 112424 events at 612 events/second
+T Blocking probability: 0.1470 for new calls, 0.0000 for handoff
+-----------------------------------------------------------------------------
+p3 runner.py --strat singhnet -opt sgd -lr 5e-6 --p_handoff 0 --dt_rewards --beta 15
+Avg. loss last 5000 events: 0.001363
+Blocking probability events 465000-470000: 0.1452, cumulative 0.1350
+T Blocking probability: 0.1350 for new calls, 0.0000 for handoffs
+Also gets worse over time (best after initial was 1310),
+but buch slower than sgd-m above
 -----------------------------------------------------------------------------
 
------------------------------------------------------------------------------
-
------------------------------------------------------------------------------
+TODO Try without bias
+TODO Hopt beta and lr. Disable avg runs, hope tpe deals with stocasticity.
+TODO Verify that frep assumptions are the beste ones (elig self; neighs include self)
 -----------------------------------------------------------------------------
