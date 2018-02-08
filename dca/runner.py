@@ -107,47 +107,19 @@ class Runner:
         result = strat.simulate()
         return result
 
-    @staticmethod
-    def hopt_proc(stratclass, pp, space, n_avg=4):
-        """
-        n_avg: Number of runs to take the average of.
-        For non-net strats, these are run in parallell.
-        """
-        for key, val in space.items():
-            pp[key] = val
-        # import psutil
-        # n_avg = psutil.cpu_count(logical=False)
-        np.random.seed(pp['rng_seed'])
-        simproc = partial(Runner.sim_proc, stratclass, pp, reseed=False)
-        logger = logging.getLogger('')
-        logger.error(space)
-        if pp['net']:
-            results = []
-            for i in range(n_avg):
-                res = simproc(pid=i)[0]
-                # TODO This can probably be handled better
-                results.append(res)
-        else:
-            # No need to average for table-based methods since they use the same
-            # numpy seed
-            results = [simproc(0)[0]]
-        for res in results:
-            if np.isnan(res) or np.isinf(res):
-                return {"status": "fail"}
-        result = sum(results) / len(results)
-        return result
-
     def hopt(self, net=False):
         """
         Hyper-parameter optimization with hyperopt.
         Saves progress to 'results-{stratname}.pkl' and
         automatically resumes if file already exists.
         """
-        from hyperopt import fmin, tpe, hp, Trials
+        from hyperopt import fmin, tpe, hp, Trials  # noqa
         from hyperopt.pyll.base import scope  # noqa
+        from hyperopt.mongoexp import MongoTrials
         if self.pp['net']:
             space = {
-                'net_lr': hp.loguniform('net_lr', np.log(5e-6), np.log(9e-4)),
+                'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
+                'beta': hp.loguniform('beta', np.log(5), np.log(25)),
                 'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
                 'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01),
                                                np.log(0.7)),
@@ -159,7 +131,7 @@ class Runner:
                 'entropy_coeff': hp.uniform('entropy_coeff', 1.0, 100.0)
             }
             self.pp['n_events'] = 100000
-            trials_step = 1  # Number of trials to run before saving
+            trials_step = 8  # Number of trials to run before saving
         else:
             space = {
                 'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
@@ -173,16 +145,22 @@ class Runner:
         # Only optimize parameter specified in args
         space = {param: space[param] for param in self.pp['hopt']}
         np.random.seed(0)
+        # try:
+        #     with open(self.pp['log_file'] + ".pkl", "rb") as f:
+        #         trials = pickle.load(f)
+        #         prev_best = trials.best_trial
+        #         self.logger.error(f"Found {len(trials.trials)} saved trials")
+        # except:
+        #     trials = Trials()
+        #     prev_best = {}
+        trials = MongoTrials('mongo://localhost:1234/' + self.pp['log_file'] + '/jobs')
         try:
-            with open(self.pp['log_file'] + ".pkl", "rb") as f:
-                trials = pickle.load(f)
-                prev_best = trials.best_trial
-                self.logger.error(f"Found {len(trials.trials)} saved trials")
+            prev_best = trials.argmin
         except:
-            trials = Trials()
-            prev_best = {}
+            prev_best = None
+        self.logger.error(f"Found {len(trials.trials)} saved trials")
 
-        fn = partial(Runner.hopt_proc, self.stratclass, self.pp)
+        fn = partial(hopt_proc, self.stratclass, self.pp)
         while True:
             n_trials = len(trials)
             self.logger.error(f"Running trials {n_trials+1}-{n_trials+trials_step}")
@@ -193,10 +171,11 @@ class Runner:
                 max_evals=n_trials + trials_step,
                 trials=trials)
             if prev_best != best:
-                self.logger.error(f"Found new best params: {best}")
+                bp = trials.best_trial['result']['loss']
+                self.logger.error(f"Found new best params: {best} with block prob: {bp}")
                 prev_best = best
-            with open(self.pp['log_file'] + ".pkl", "wb") as f:
-                pickle.dump(trials, f)
+            # with open(self.pp['log_file'] + ".pkl", "wb") as f:
+            #     pickle.dump(trials, f)
 
     def hopt_best(self):
         f_name = self.pp['hopt_best']
@@ -231,6 +210,36 @@ class Runner:
         # grid = RectOffGrid(logger=self.logger, **self.pp)
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
         gui.test()
+
+
+def hopt_proc(stratclass, pp, space, n_avg=1):
+    """
+    n_avg: Number of runs to take the average of.
+    For non-net strats, these are run in parallell.
+    """
+    for key, val in space.items():
+        pp[key] = val
+    # import psutil
+    # n_avg = psutil.cpu_count(logical=False)
+    np.random.seed(pp['rng_seed'])
+    simproc = partial(Runner.sim_proc, stratclass, pp, reseed=False)
+    logger = logging.getLogger('')
+    logger.error(space)
+    if pp['net']:
+        results = []
+        for i in range(n_avg):
+            res = simproc(pid=i)[0]
+            # TODO This can probably be handled better
+            results.append(res)
+    else:
+        # No need to average for table-based methods since they use the same
+        # numpy seed
+        results = [simproc(0)[0]]
+    for res in results:
+        if np.isnan(res) or np.isinf(res):
+            return {"status": "fail"}
+    result = sum(results) / len(results)
+    return result
 
 
 if __name__ == '__main__':

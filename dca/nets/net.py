@@ -79,6 +79,7 @@ class Net:
             config = tf.ConfigProto(device_count={'GPU': 0})
         else:
             config = tf.ConfigProto()
+        # config.intra_opt_parallelism_threads = 4
         config.gpu_options.allow_growth = True
         tf.set_random_seed(pp['rng_seed'])
         self.sess = tf.Session(config=config)

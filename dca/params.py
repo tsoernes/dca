@@ -136,10 +136,11 @@ def get_pparams(defaults=False):
         const="qtable.npy")
     parser.add_argument(
         '--hopt',
-        nargs='?',
+        nargs='+',
         choices=[
             'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda',
-            'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff'
+            'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff',
+            'beta'
         ],
         help="(Hopt) Hyper-parameter optimization with hyperopt."
         " Saves progress to 'results-{stratname}-{vars}.pkl' and"
@@ -364,7 +365,7 @@ def get_pparams(defaults=False):
         # handoffs are a waste of computational resources.
         params['p_handoff'] = 0
         # Always log to file so that parameters are recorded
-        pnames = str.join("-", params['hopt'].keys())
+        pnames = str.join("-", params['hopt'])
         f_name = f"results-{params['strat']}-{pnames}"
         params['log_file'] = f_name
     if params['bench_batch_size']:

@@ -1,0 +1,16 @@
+Installation:
+install hyperopt
+pip3 install --user networkx==1.11
+dnf install mongo mongo-server
+systemctl start mongod.service
+ln -s runner.py "path to hyperopt-mongo-worker"
+in hyperopt-mongo-worker add: "from runner import hopt_proc"
+
+Run mongod server:
+mongod --dbpath db --directoryperdb --journal --nohttpinterface --port 1234
+
+Run runner.py
+
+Run mongo worker, one per proc:
+export PYTHONPATH="${PYTHONPATH}:/home/torstein/code/fordyp/dca"
+hyperopt-mongo-worker --mongo=localhost:1234/mydbname --poll-interval=0.1

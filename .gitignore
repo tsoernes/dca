@@ -1,6 +1,7 @@
 # projectile tags
 TAGS
 dca/model/
+dca/db/
 # Numpy data sets
 *.npy
 data-experience*
