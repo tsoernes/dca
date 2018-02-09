@@ -242,30 +242,29 @@ class Runner:
             return
         if type(trials) is MongoTrials:
             attachments = None
-            valid = filter(lambda x: x['result']['status'] == 'ok', trials.trials)
-            losses = []
+            valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
+            valid_results = []
             pkeys = valid[0]['misc']['vals'].keys()
             params = {key: [] for key in pkeys}
-            for res in valid:
-                losses.append(res['result']['loss'])
+            for i, res in enumerate(valid):
+                valid_results.append((res['result']['loss'], i))
                 for pkey in pkeys:
                     params[pkey].append(res['misc']['vals'][pkey][0])
-            sorted_results = sorted(zip(losses, range(len(losses))))
         else:
             attachments = trials.attachments
             # Gather losses and statuses for valid results and sort ascendingly by loss
             results = [(e['loss'], i, e['status']) for i, e in enumerate(trials.results)]
             valid_results = filter(lambda x: x[2] == 'ok', results)
-            sorted_results = sorted(valid_results)
             params = trials.vals
 
+        sorted_results = sorted(valid_results)
         self.logger.error(f"Found {len(sorted_results)} valid trials")
         if view_pp and attachments:
             self.logger.error(attachments)
         else:
             for lt in sorted_results[:n]:
                 fparams = ' '.join(
-                    [f"--{key} {value[lt[1]]:.7f}" for key, value in params.items()])
+                    [f"--{key} {value[lt[1]]}" for key, value in params.items()])
                 self.logger.error(f"Loss {lt[0]:.6f}: {fparams}")
 
     def hopt_plot(self, trials=None):
