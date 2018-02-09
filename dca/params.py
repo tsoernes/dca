@@ -145,9 +145,12 @@ def get_pparams(defaults=False):
         default=None)
     parser.add_argument(
         '--hopt_best',
-        action='store_true',
-        help="(Hopt) Show best params found and corresponding loss",
-        default=False)
+        metavar='N',
+        nargs='?',
+        type=int,
+        help="(Hopt) Show N best params found and corresponding loss",
+        default=0,
+        const=1)
     parser.add_argument(
         '--hopt_plot',
         action='store_true',

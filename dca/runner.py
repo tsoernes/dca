@@ -2,6 +2,7 @@ import cProfile
 import datetime
 import logging
 import pickle
+import sys
 import time
 from functools import partial
 from multiprocessing import Pool
@@ -32,8 +33,8 @@ class Runner:
 
         if self.pp['hopt']:
             self.hopt()
-        elif self.pp['hopt_best']:
-            self.hopt_best()
+        elif self.pp['hopt_best'] > 0:
+            self.hopt_best(None, self.pp['hopt_best'], view_pp=True)
         elif self.pp['hopt_plot']:
             self.hopt_plot()
         elif self.pp['avg_runs']:
@@ -119,14 +120,16 @@ class Runner:
         if self.pp['net']:
             space = {
                 'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
+                # Singh
                 'beta': hp.loguniform('beta', np.log(7), np.log(23)),
+                # Double
                 'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
                 'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01),
                                                np.log(0.7)),
-                # 'batch_size':
-                # scope.int(hp.uniform('batch_size', 8, 16)),
-                # 'buffer_size':
-                # scope.int(hp.uniform('buffer_size', 2000, 10000))
+                # Exp. replay
+                'batch_size': scope.int(hp.uniform('batch_size', 8, 16)),
+                'buffer_size': scope.int(hp.uniform('buffer_size', 2000, 10000)),
+                # Policy
                 'vf_coeff': hp.uniform('vf_coeff', 0.005, 0.5),
                 'entropy_coeff': hp.uniform('entropy_coeff', 1.0, 100.0)
             }
@@ -139,60 +142,46 @@ class Runner:
                 'gamma': hp.uniform('gamma', 0.7, 0.90),
                 'lambda': hp.uniform('lambda', 0.0, 1.0)
             }
-        # Only optimize parameter specified in args
+        # Only optimize parameters specified in args
         space = {param: space[param] for param in self.pp['hopt']}
         np.random.seed(0)
-        trials = MongoTrials('mongo://localhost:1234/' + self.pp['log_file'] + '/jobs')
-        self.logger.error(f"Found {len(trials.trials)} saved trials")
+        if self.pp['hopt_fname'].startswith('mongo:'):
+            self._hopt_mongo(space)
+        else:
+            self._hopt_pickle(space)
 
+    def _hopt_mongo(self, space):
+        name = self.pp['hopt_fname'].replace('mongo:', '')
+        trials = MongoTrials('mongo://localhost:1234/' + name + '/jobs')
+        self._hopt_add_attachments(trials)
+        if len(trials) > 0:
+            self.hopt_best(trials, n=1, view_pp=False)
+        else:
+            self.logger.errors("No existing trials, starting from scratch")
         fn = partial(hopt_proc, self.stratclass, self.pp)
-        _ = fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
+        fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
 
-    def hopt_pickle(self, net=False):
+    def _hopt_pickle(self, space):
         """
         Hyper-parameter optimization with hyperopt.
-        Saves progress to 'results-{stratname}.pkl' and
+        Saves progress to 'pp['hopt_fname'].pkl' and
         automatically resumes if file already exists.
         """
         if self.pp['net']:
-            space = {
-                'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(1e-4)),
-                'beta': hp.loguniform('beta', np.log(5), np.log(25)),
-                'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
-                'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01),
-                                               np.log(0.7)),
-                # 'batch_size':
-                # scope.int(hp.uniform('batch_size', 8, 16)),
-                # 'buffer_size':
-                # scope.int(hp.uniform('buffer_size', 2000, 10000))
-                'vf_coeff': hp.uniform('vf_coeff', 0.005, 0.5),
-                'entropy_coeff': hp.uniform('entropy_coeff', 1.0, 100.0)
-            }
-            self.pp['n_events'] = 100000
             trials_step = 1  # Number of trials to run before saving
         else:
-            space = {
-                'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
-                'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
-                'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
-                'epsilon_decay': hp.uniform('epsilon_decay', 0.9995, 0.9999999),
-                'gamma': hp.uniform('gamma', 0.7, 0.90),
-                'lambda': hp.uniform('lambda', 0.0, 1.0)
-            }
             trials_step = 2
-        # Only optimize parameter specified in args
-        space = {param: space[param] for param in self.pp['hopt']}
-        np.random.seed(0)
+        f_name = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         try:
-            with open(self.pp['log_file'] + ".pkl", "rb") as f:
+            with open(f_name, "rb") as f:
                 trials = pickle.load(f)
                 prev_best = trials.argmin
                 self.logger.error(f"Found {len(trials.trials)} saved trials")
         except FileNotFoundError:
             trials = Trials()
             prev_best = {}
-        self.logger.error(f"Found {len(trials.trials)} saved trials")
 
+        self._hopt_add_attachments(trials)
         fn = partial(hopt_proc, self.stratclass, self.pp)
         while True:
             n_trials = len(trials)
@@ -207,8 +196,16 @@ class Runner:
                 bp = trials.best_trial['result']['loss']
                 self.logger.error(f"Found new best params: {best} with block prob: {bp}")
                 prev_best = best
-            with open(self.pp['log_file'] + ".pkl", "wb") as f:
+            with open(f_name, "wb") as f:
                 pickle.dump(trials, f)
+
+    def _hopt_add_attachments(self, trials):
+        att = trials.attachments
+        if 'pp' in att:
+            if att['pp'][-1] != self.pp:
+                att['pp'].append(self.pp)
+        else:
+            att['pp'] = [self.pp]
 
     def _hopt_trials(self, f_name=None):
         if f_name is None:
@@ -220,10 +217,12 @@ class Runner:
                 self.logger.error(f"Attempting to connect to mongodb with url {f_name}")
                 return MongoTrials(f_name)
             else:
-                with open(f_name, "rb") as f:
+                fname = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
+                with open(fname, "rb") as f:
                     return pickle.load(f)
         except (FileNotFoundError, AttributeError):
             self.logger.error(f"Could not find {f_name}")
+            raise
         except:
             if f_name.startswith("mongo"):
                 self.logger.error("Have you started mongod server in 'db' dir? \n"
@@ -231,16 +230,32 @@ class Runner:
                                   " --journal --nohttpinterface --port 1234")
             raise
 
-    def hopt_best(self):
-        trials = self._hopt_trials()
-        b = trials.best_trial
+    def hopt_best(self, trials=None, n=1, view_pp=True):
+        if trials is None:
+            trials = self._hopt_trials()
         self.logger.error(f"Found {len(trials)} trials")
-        params = b['misc']['vals']
-        fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
-        self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
+        if view_pp:
+            a = trials.attachments
+            if a:
+                self.logger.error(a)
+        if n == 1:
+            b = trials.best_trial
+            params = b['misc']['vals']
+            fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
+            self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
+        else:
+            # Gather losses, statuses and params for all results
+            statuses = [e['status'] for e in trials.results]
+            losses = [e['loss'] for e in trials.results]
+            sorted_losses = sorted(zip(losses, range(len(losses))))
+            for lt in sorted_losses[:n]:
+                fparams = ' '.join(
+                    [f"--{key} {value[lt[1]]:.7f}" for key, value in trials.vals.items()])
+                self.logger.error(f"Loss {lt[0]:.6f} {statuses[lt[1]]}: {fparams}")
 
-    def hopt_plot(self):
-        trials = self._hopt_trials()
+    def hopt_plot(self, trials=None):
+        if trials is None:
+            trials = self._hopt_trials()
         losses = trials.losses()
         n_params = len(trials.vals.keys())
         for i, (param, values) in zip(range(n_params), trials.vals.items()):
