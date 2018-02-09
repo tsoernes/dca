@@ -1,0 +1,8 @@
+ERROR:root:{'beta': 5.321823504551119, 'net_lr': 2.104288117465421e-06}
+ERROR:root:{'beta': 20.553739970392666, 'net_lr': 2.448869665060225e-05}
+mention that beta affects lr
+try replicating results with fixed gamma, hopting lr
+plot beta results
+hopt best fname or mongo via args
+
+gather todos...

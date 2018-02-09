@@ -104,8 +104,7 @@ def get_pparams(defaults=False):
         help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.99999)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
-    parser.add_argument(
-        '--beta', type=float, help="(RL) discount factor dt", default=0.85)
+    parser.add_argument('--beta', type=float, help="(RL) discount factor dt", default=16)
     parser.add_argument(
         '--dt_rewards',
         '-dt',
@@ -142,23 +141,24 @@ def get_pparams(defaults=False):
             'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff',
             'beta'
         ],
-        help="(Hopt) Hyper-parameter optimization with hyperopt."
-        " Saves progress to 'results-{stratname}-{vars}.pkl' and"
-        " automatically resumes if file already exists. Logs to file with "
-        " same name besides extension .log.",
+        help="(Hopt) Hyper-parameter optimization with hyperopt.",
         default=None)
     parser.add_argument(
         '--hopt_best',
-        type=str,
-        help="(Hopt) Show best params found and corresponding loss for a"
-        "given hopt file",
-        default=None)
+        action='store_true',
+        help="(Hopt) Show best params found and corresponding loss",
+        default=False)
     parser.add_argument(
         '--hopt_plot',
         action='store_true',
-        help="(Hopt) Plot params found and "
-        "corresponding loss for a given strat",
+        help="(Hopt) Plot params found and corresponding loss ",
         default=False)
+    parser.add_argument(
+        '--hopt_fname',
+        type=str,
+        help="(Hopt) File name or Mongo-DB collection "
+        "name for hyperopt destination/source",
+        default=None)
 
     parser.add_argument(
         '--net_lr',
@@ -256,7 +256,7 @@ def get_pparams(defaults=False):
         type=float,
         nargs='?',
         metavar='tau',
-        help="(Net/Double) Creep target net 'tau' (0, 1] percent "
+        help="(Net/Double) Creep target net 'tau' (0, 1] "
         "towards online net every 'net_copy_iter' iterations. "
         "Net copy iter should be decreased as tau decreases. "
         "'tau' ~ 0.1 when 'net_copy_iter' is 5 is good starting point.",
@@ -336,48 +336,54 @@ def get_pparams(defaults=False):
         args = parser.parse_args([])
     else:
         args = parser.parse_args()
-    params = vars(args)
+    pp = vars(args)
 
     # We don't want no double negatives
-    params['grid_split'] = not params['no_grid_split']
-    del params['no_grid_split']
+    pp['grid_split'] = not pp['no_grid_split']
+    del pp['no_grid_split']
+
+    if (pp['hopt'] or pp['hopt_best'] or pp['hopt_plot']) and not pp['hopt_fname']:
+        print("No file name specified for hyperopt ('hopt_fname')")
+        sys.exit(0)
 
     # Sensible presets / overrides
-    params['net'] = False  # Whether net is in use or not
-    params['dims'] = (params['rows'], params['cols'], params['n_channels'])
-    if "net" in params['strat'].lower():
-        if not params['log_iter']:
-            params['log_iter'] = 5000
-        params['net'] = True
+    pp['net'] = False  # Whether net is in use or not
+    pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
+    if "net" in pp['strat'].lower():
+        if not pp['log_iter']:
+            pp['log_iter'] = 5000
+        pp['net'] = True
     else:
-        if not params['log_iter']:
-            params['log_iter'] = 50000
-        params['batch_size'] = 1
-    if not params['call_rates']:
-        params['call_rates'] = params['erlangs'] / params['call_duration']
-    if params['avg_runs']:
-        params['gui'] = False
-        params['log_level'] = logging.ERROR
-    if params['hopt'] is not None:
-        params['gui'] = False
-        params['log_level'] = logging.ERROR
+        if not pp['log_iter']:
+            pp['log_iter'] = 50000
+        pp['batch_size'] = 1
+    if not pp['call_rates']:
+        pp['call_rates'] = pp['erlangs'] / pp['call_duration']
+    if pp['avg_runs']:
+        pp['gui'] = False
+        pp['log_level'] = logging.ERROR
+    if pp['hopt'] is not None:
+        if pp['net']:
+            pp['n_events'] = 100000
+        pp['gui'] = False
+        pp['log_level'] = logging.ERROR
         # Since hopt only compares new call block rate,
         # handoffs are a waste of computational resources.
-        params['p_handoff'] = 0
+        pp['p_handoff'] = 0
         # Always log to file so that parameters are recorded
-        pnames = str.join("-", params['hopt'])
-        f_name = f"results-{params['strat']}-{pnames}"
-        params['log_file'] = f_name
-    if params['bench_batch_size']:
-        params['log_level'] = logging.WARN
+        pnames = str.join("-", pp['hopt'])
+        f_name = f"results-{pp['strat']}-{pnames}"
+        pp['log_file'] = f_name
+    if pp['bench_batch_size']:
+        pp['log_level'] = logging.WARN
 
-    random.seed(params['rng_seed'])
-    np.random.seed(params['rng_seed'])
+    random.seed(pp['rng_seed'])
+    np.random.seed(pp['rng_seed'])
 
     for name, cls in stratclasses:
-        if params['strat'].lower() == name.lower():
+        if pp['strat'].lower() == name.lower():
             stratclass = cls
-    return params, stratclass
+    return pp, stratclass
 
 
 def non_uniform_preset(pp):

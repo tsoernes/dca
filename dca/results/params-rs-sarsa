@@ -1,44 +1,8 @@
-T1 Using params: alpha 0.08198306399677359, alphadec 0.9998512768381752 epsilon 0.4808451866967993, epsilondec 0.9998512768381752
-T1 Blocking probability: 0.1856 for new calls, 0.1388 for handoffs
+p3 runner.py --strat rs_sarsa --avg_runs 16 --alpha 0.03612077338762308 --alpha_decay 0.9999981363197396 --epsilon 0.7544398224473668 --epsilon_decay 0.9999903056798514 --gamma 0.8459647890640181
 
-T11 Using params: alpha 0.028874165896519734, alphadec 0.9999868199757858 epsilon 0.09740500978001324, epsilondec 0.9999868199757858
-T11 Blocking probability: 0.1894 for new calls, 0.1489 for handoffs
+Starting simulation at 2018-02-09 02:44:36.448626 with params:
+{'strat': 'rs_sarsa', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': 16, 'alpha': 0.03612077338762308, 'alpha_decay': 0.9999981363197396, 'epsilon': 0.7544398224473668, 'epsilon_decay': 0.9999903056798514, 'gamma': 0.8459647890640181, 'beta': 0.16, 'dt_rewards': False, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'hopt': None, 'hopt_best': None, 'hopt_plot': False, 'net_lr': 3.4e-05, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'act_fn': 'relu', 'optimizer': 'sgd-m', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'no_gpu': False, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 50000, 'grid_split': True, 'net': False, 'dims': (7, 7, 70)}
 
-T0 Using params: alpha 0.01407383585664354, alphadec 0.9999395441472742 epsilon 0.11816579643949898, epsilondec 0.9999395441472742
-T0 Blocking probability: 0.1834 for new calls, 0.1401 for handoffs
-
-T3 Using params: alpha 0.011556653613259586, alphadec 0.9999466339964147 epsilon 0.5403946112725486, epsilondec 0.9999466339964147
-T3 Blocking probability: 0.1829 for new calls, 0.1359 for handoffs
-
-T7 Using params: alpha 0.019720572668225418, alphadec 0.99985462850901 epsilon 0.5699279328801085, epsilondec 0.99985462850901
-T7 Blocking probability: 0.1836 for new calls, 0.1417 for handoffs
-
-T2 Using params: alpha 0.04247503348408805, alphadec 0.9997871415922734 epsilon 0.07683914526837594, epsilondec 0.9997871415922734
-T2 Blocking probability: 0.1889 for new calls, 0.1347 for handoffs
-
-T9 Using params: alpha 0.017425246797366182, alphadec 0.999995340942854 epsilon 0.08623477673192546, epsilondec 0.999995340942854
-T9 Blocking probability: 0.1843 for new calls, 0.1462 for handoffs
-
-T20 Using params: alpha 0.027503561330752106, alphadec 0.9998960836598004 epsilon 0.18412368374553167, epsilondec 0.9998960836598004
-T20 Blocking probability: 0.1883 for new calls, 0.1427 for handoffs
-
-T2 Using params: alpha 0.011415865901547355, alphadec 0.9999763463270647 epsilon 0.27390581454961116, epsilondec 0.9999763463270647
-T2 Blocking probability: 0.1830 for new calls, 0.1411 for handoffs
-
-T30 Using params: alpha 0.027904046972127085, alphadec 0.9998385837389253 epsilon 0.5277447215996033, epsilondec 0.9998385837389253
-T30 Blocking probability: 0.1848 for new calls, 0.1354 for handoffs
-
-T24 Using params: alpha 0.03287486078388392, alphadec 0.9998543636721658 epsilon 0.31622940512776293, epsilondec 0.9998543636721658
-T24 Blocking probability: 0.1866 for new calls, 0.1350 for handoffs
-
-T27 Using params: alpha 0.041746899116618344, alphadec 0.9999157879540702 epsilon 0.34204504528472535, epsilondec 0.9999157879540702
-T27 Blocking probability: 0.1880 for new calls, 0.1452 for handoffs
-
-T21 Using params: alpha 0.04914647686499775, alphadec 0.9999696817627503 epsilon 0.3312436794271924, epsilondec 0.9999696817627503
-T21 Blocking probability: 0.1885 for new calls, 0.1416 for handoffs
-
-T12 Using params: alpha 0.057054715150964906, alphadec 0.9997942840729084 epsilon 0.13998696958665563, epsilondec 0.9997942840729084
-T12 Blocking probability: 0.1877 for new calls, 0.1366 for handoffs
-
-T20 Using params: alpha 0.04087065031147292, alphadec 0.9998936521675847 epsilon 0.08326340710022737, epsilondec 0.9998936521675847
-T20 Blocking probability: 0.1825 for new calls, 0.1358 for handoffs
+16x470000 events finished with speed 94234 events/second
+Average cumulative block probability over 16 episodes: 0.1706 with standard deviation 0.00189
+Average cumulative handoff block probability 0.1303 with standard deviation 0.00257

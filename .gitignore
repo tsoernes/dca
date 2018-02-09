@@ -2,6 +2,7 @@
 TAGS
 dca/model/
 dca/db/
+dca/logfile.txt
 # Numpy data sets
 *.npy
 data-experience*

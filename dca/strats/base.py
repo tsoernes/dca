@@ -23,6 +23,7 @@ class Strat:
         self.exp_buffer = ReplayBuffer(pp['buffer_size'], *self.dims)
 
         self.quit_sim = False
+        self.invalid_loss = False
         self.net = None
         signal.signal(signal.SIGINT, self.exit_handler)
 
@@ -83,6 +84,9 @@ class Strat:
                    self.net_copy_iter > 1:
                     self.net_copy_iter -= 1
                     self.logger.info(f"Decreased net copy iter to {self.net_copy_iter}")
+            if self.env.stats.block_probs_cum and self.env.stats.block_probs_cum[-1] > 0.25:
+                # Premature exit for bad runs
+                self.quit_sim = True
             ch, cevent = next_ch, next_cevent
             i += 1
         self.env.stats.end_episode(np.count_nonzero(self.grid))
@@ -92,7 +96,9 @@ class Strat:
         if self.quit_sim and (self.pp['hopt'] or self.pp['avg_runs']):
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
-            return (1.0, 1.0)
+            if self.invalid_loss:
+                (None, None)
+            return (1, 1)
         return (self.env.stats.block_prob_cum, self.env.stats.block_prob_cum_hoff)
 
     def continue_sim(self, i, t) -> bool:

@@ -7,6 +7,9 @@ from functools import partial
 from multiprocessing import Pool
 
 import numpy as np
+from hyperopt import Trials, fmin, hp, tpe  # noqa
+from hyperopt.mongoexp import MongoTrials
+from hyperopt.pyll.base import scope  # noqa
 from matplotlib import pyplot as plt
 
 import grid
@@ -29,7 +32,7 @@ class Runner:
 
         if self.pp['hopt']:
             self.hopt()
-        elif self.pp['hopt_best'] is not None:
+        elif self.pp['hopt_best']:
             self.hopt_best()
         elif self.pp['hopt_plot']:
             self.hopt_plot()
@@ -113,12 +116,47 @@ class Runner:
         Saves progress to 'results-{stratname}.pkl' and
         automatically resumes if file already exists.
         """
-        from hyperopt import fmin, tpe, hp, Trials  # noqa
-        from hyperopt.pyll.base import scope  # noqa
-        from hyperopt.mongoexp import MongoTrials
         if self.pp['net']:
             space = {
                 'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
+                'beta': hp.loguniform('beta', np.log(7), np.log(23)),
+                'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
+                'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01),
+                                               np.log(0.7)),
+                # 'batch_size':
+                # scope.int(hp.uniform('batch_size', 8, 16)),
+                # 'buffer_size':
+                # scope.int(hp.uniform('buffer_size', 2000, 10000))
+                'vf_coeff': hp.uniform('vf_coeff', 0.005, 0.5),
+                'entropy_coeff': hp.uniform('entropy_coeff', 1.0, 100.0)
+            }
+        else:
+            space = {
+                'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
+                'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
+                'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
+                'epsilon_decay': hp.uniform('epsilon_decay', 0.9995, 0.9999999),
+                'gamma': hp.uniform('gamma', 0.7, 0.90),
+                'lambda': hp.uniform('lambda', 0.0, 1.0)
+            }
+        # Only optimize parameter specified in args
+        space = {param: space[param] for param in self.pp['hopt']}
+        np.random.seed(0)
+        trials = MongoTrials('mongo://localhost:1234/' + self.pp['log_file'] + '/jobs')
+        self.logger.error(f"Found {len(trials.trials)} saved trials")
+
+        fn = partial(hopt_proc, self.stratclass, self.pp)
+        _ = fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
+
+    def hopt_pickle(self, net=False):
+        """
+        Hyper-parameter optimization with hyperopt.
+        Saves progress to 'results-{stratname}.pkl' and
+        automatically resumes if file already exists.
+        """
+        if self.pp['net']:
+            space = {
+                'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(1e-4)),
                 'beta': hp.loguniform('beta', np.log(5), np.log(25)),
                 'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
                 'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01),
@@ -131,7 +169,7 @@ class Runner:
                 'entropy_coeff': hp.uniform('entropy_coeff', 1.0, 100.0)
             }
             self.pp['n_events'] = 100000
-            trials_step = 8  # Number of trials to run before saving
+            trials_step = 1  # Number of trials to run before saving
         else:
             space = {
                 'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
@@ -145,19 +183,14 @@ class Runner:
         # Only optimize parameter specified in args
         space = {param: space[param] for param in self.pp['hopt']}
         np.random.seed(0)
-        # try:
-        #     with open(self.pp['log_file'] + ".pkl", "rb") as f:
-        #         trials = pickle.load(f)
-        #         prev_best = trials.best_trial
-        #         self.logger.error(f"Found {len(trials.trials)} saved trials")
-        # except:
-        #     trials = Trials()
-        #     prev_best = {}
-        trials = MongoTrials('mongo://localhost:1234/' + self.pp['log_file'] + '/jobs')
         try:
-            prev_best = trials.argmin
-        except:
-            prev_best = None
+            with open(self.pp['log_file'] + ".pkl", "rb") as f:
+                trials = pickle.load(f)
+                prev_best = trials.argmin
+                self.logger.error(f"Found {len(trials.trials)} saved trials")
+        except FileNotFoundError:
+            trials = Trials()
+            prev_best = {}
         self.logger.error(f"Found {len(trials.trials)} saved trials")
 
         fn = partial(hopt_proc, self.stratclass, self.pp)
@@ -174,28 +207,40 @@ class Runner:
                 bp = trials.best_trial['result']['loss']
                 self.logger.error(f"Found new best params: {best} with block prob: {bp}")
                 prev_best = best
-            # with open(self.pp['log_file'] + ".pkl", "wb") as f:
-            #     pickle.dump(trials, f)
+            with open(self.pp['log_file'] + ".pkl", "wb") as f:
+                pickle.dump(trials, f)
+
+    def _hopt_trials(self, f_name=None):
+        if f_name is None:
+            f_name = self.pp['hopt_fname']
+        try:
+            if f_name.startswith("mongo"):
+                # 'mongo://localhost:1234/results-singhnet-net_lr-beta/jobs'
+                f_name = f"mongo://localhost:1234/{f_name.replace('mongo:', '')}/jobs"
+                self.logger.error(f"Attempting to connect to mongodb with url {f_name}")
+                return MongoTrials(f_name)
+            else:
+                with open(f_name, "rb") as f:
+                    return pickle.load(f)
+        except (FileNotFoundError, AttributeError):
+            self.logger.error(f"Could not find {f_name}")
+        except:
+            if f_name.startswith("mongo"):
+                self.logger.error("Have you started mongod server in 'db' dir? \n"
+                                  "mongod --dbpath . --directoryperdb"
+                                  " --journal --nohttpinterface --port 1234")
+            raise
 
     def hopt_best(self):
-        f_name = self.pp['hopt_best']
-        try:
-            with open(f_name, "rb") as f:
-                trials = pickle.load(f)
-                b = trials.best_trial
-                self.logger.error(f"Loss: {b['result']['loss']}\n{b['misc']['vals']}")
-        except FileNotFoundError:
-            self.logger.error(f"Could not find {f_name}")
-            raise
+        trials = self._hopt_trials()
+        b = trials.best_trial
+        self.logger.error(f"Found {len(trials)} trials")
+        params = b['misc']['vals']
+        fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
+        self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
 
     def hopt_plot(self):
-        f_name = f"results-{self.pp['strat']}.pkl"
-        try:
-            with open(f_name, "rb") as f:
-                trials = pickle.load(f)
-        except FileNotFoundError:
-            self.logger.error(f"Could not find {f_name}")
-            raise
+        trials = self._hopt_trials()
         losses = trials.losses()
         n_params = len(trials.vals.keys())
         for i, (param, values) in zip(range(n_params), trials.vals.items()):
@@ -212,7 +257,7 @@ class Runner:
         gui.test()
 
 
-def hopt_proc(stratclass, pp, space, n_avg=1):
+def hopt_proc(stratclass, pp, space):
     """
     n_avg: Number of runs to take the average of.
     For non-net strats, these are run in parallell.
@@ -225,21 +270,13 @@ def hopt_proc(stratclass, pp, space, n_avg=1):
     simproc = partial(Runner.sim_proc, stratclass, pp, reseed=False)
     logger = logging.getLogger('')
     logger.error(space)
-    if pp['net']:
-        results = []
-        for i in range(n_avg):
-            res = simproc(pid=i)[0]
-            # TODO This can probably be handled better
-            results.append(res)
-    else:
-        # No need to average for table-based methods since they use the same
-        # numpy seed
-        results = [simproc(0)[0]]
-    for res in results:
-        if np.isnan(res) or np.isinf(res):
-            return {"status": "fail"}
-    result = sum(results) / len(results)
-    return result
+    result = simproc('')
+    res = result[0]
+    if res is None:
+        return {"status": "fail"}
+    if res is 1:
+        return {"status": "suspended"}
+    return {'status': "ok", "loss": res, "hoff_loss": result[1]}
 
 
 if __name__ == '__main__':

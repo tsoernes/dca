@@ -262,6 +262,7 @@ class VNetStrat(NetStrat):
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
+            self.invalid_loss = True
         else:
             self.losses.append(loss)
 
