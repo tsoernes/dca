@@ -225,7 +225,7 @@ class Runner:
                                   " --journal --nohttpinterface --port 1234")
             raise
 
-    def hopt_results(self, trials):
+    def _hopt_results(self, trials):
         if type(trials) is MongoTrials:
             attachments = None
             valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
@@ -268,8 +268,8 @@ class Runner:
         trials = self._hopt_trials()
         valid_results, params, attachments = self._hopt_results(trials)
         losses = [x[0] for x in valid_results]
-        n_params = len(losses)
-        for i, (param, values) in zip(range(n_params), params):
+        n_params = len(params.keys())
+        for i, (param, values) in zip(range(n_params), params.items()):
             pl1 = plt.subplot(n_params, 1, i + 1)
             pl1.plot(values, losses, 'ro')
             plt.xlabel(param)
