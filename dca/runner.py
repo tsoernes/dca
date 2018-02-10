@@ -52,12 +52,10 @@ class Runner:
         t = time.time()
         n_runs = self.pp['avg_runs']
         simproc = partial(self.sim_proc, self.stratclass, self.pp)
+        # Net runs use same np seed for all runs; other strats do not
         if self.pp['net']:
-            # Use constant tf seed
-            np.random.seed(0)
             results = []
             for i in range(n_runs):
-                # Use constant np seed
                 res = simproc(i, reseed=False)
                 results.append(res)
         else:
@@ -114,8 +112,6 @@ class Runner:
     def hopt(self, net=False):
         """
         Hyper-parameter optimization with hyperopt.
-        Saves progress to 'results-{stratname}.pkl' and
-        automatically resumes if file already exists.
         """
         if self.pp['net']:
             space = {
@@ -144,7 +140,6 @@ class Runner:
             }
         # Only optimize parameters specified in args
         space = {param: space[param] for param in self.pp['hopt']}
-        np.random.seed(0)
         if self.pp['hopt_fname'].startswith('mongo:'):
             self._hopt_mongo(space)
         else:
@@ -164,14 +159,13 @@ class Runner:
 
     def _hopt_pickle(self, space):
         """
-        Hyper-parameter optimization with hyperopt.
         Saves progress to 'pp['hopt_fname'].pkl' and
         automatically resumes if file already exists.
         """
         if self.pp['net']:
             trials_step = 1  # Number of trials to run before saving
         else:
-            trials_step = 2
+            trials_step = 4
         f_name = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         try:
             with open(f_name, "rb") as f:
@@ -231,15 +225,7 @@ class Runner:
                                   " --journal --nohttpinterface --port 1234")
             raise
 
-    def hopt_best(self, trials=None, n=1, view_pp=True):
-        if trials is None:
-            trials = self._hopt_trials()
-        if n == 1:
-            b = trials.best_trial
-            params = b['misc']['vals']
-            fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
-            self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
-            return
+    def hopt_results(self, trials):
         if type(trials) is MongoTrials:
             attachments = None
             valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
@@ -256,7 +242,18 @@ class Runner:
             results = [(e['loss'], i, e['status']) for i, e in enumerate(trials.results)]
             valid_results = filter(lambda x: x[2] == 'ok', results)
             params = trials.vals
+        return valid_results, params, attachments
 
+    def hopt_best(self, trials=None, n=1, view_pp=True):
+        if trials is None:
+            trials = self._hopt_trials()
+        valid_results, params, attachments = self._hopt_results(trials)
+        if n == 1:
+            b = trials.best_trial
+            params = b['misc']['vals']
+            fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
+            self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
+            return
         sorted_results = sorted(valid_results)
         self.logger.error(f"Found {len(sorted_results)} valid trials")
         if view_pp and attachments:
@@ -267,12 +264,12 @@ class Runner:
                     [f"--{key} {value[lt[1]]}" for key, value in params.items()])
                 self.logger.error(f"Loss {lt[0]:.6f}: {fparams}")
 
-    def hopt_plot(self, trials=None):
-        if trials is None:
-            trials = self._hopt_trials()
-        losses = trials.losses()
-        n_params = len(trials.vals.keys())
-        for i, (param, values) in zip(range(n_params), trials.vals.items()):
+    def hopt_plot(self):
+        trials = self._hopt_trials()
+        valid_results, params, attachments = self._hopt_results(trials)
+        losses = [x[0] for x in valid_results]
+        n_params = len(losses)
+        for i, (param, values) in zip(range(n_params), params):
             pl1 = plt.subplot(n_params, 1, i + 1)
             pl1.plot(values, losses, 'ro')
             plt.xlabel(param)
@@ -296,14 +293,13 @@ def hopt_proc(stratclass, pp, space):
     # import psutil
     # n_avg = psutil.cpu_count(logical=False)
     np.random.seed(pp['rng_seed'])
-    simproc = partial(Runner.sim_proc, stratclass, pp, reseed=False)
     logger = logging.getLogger('')
     logger.error(space)
-    result = simproc('')
+    result = Runner.sim_proc(stratclass, pp, pid='', reseed=False)
     res = result[0]
     if res is None:
         return {"status": "fail"}
-    if res is 1:
+    elif res is 1:
         return {"status": "suspended"}
     return {'status': "ok", "loss": res, "hoff_loss": result[1]}
 
