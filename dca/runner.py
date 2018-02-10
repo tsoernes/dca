@@ -174,7 +174,7 @@ class Runner:
                 self.logger.error(f"Found {len(trials.trials)} saved trials")
         except FileNotFoundError:
             trials = Trials()
-            prev_best = {}
+            prev_best = None
 
         self._hopt_add_attachments(trials)
         fn = partial(hopt_proc, self.stratclass, self.pp)
@@ -202,30 +202,30 @@ class Runner:
         else:
             att['pp'] = [self.pp]
 
-    def _hopt_trials(self, f_name=None):
-        if f_name is None:
-            f_name = self.pp['hopt_fname']
+    def _hopt_trials(self):
+        """Load trials from MongoDB or Pickle file, depending on 'hopt_fname'"""
+        f_name = self.pp['hopt_fname']
         try:
             if f_name.startswith("mongo"):
-                # 'mongo://localhost:1234/results-singhnet-net_lr-beta/jobs'
+                # e.g. 'mongo://localhost:1234/results-singhnet-net_lr-beta/jobs'
                 f_name = f"mongo://localhost:1234/{f_name.replace('mongo:', '')}/jobs"
                 self.logger.error(f"Attempting to connect to mongodb with url {f_name}")
                 return MongoTrials(f_name)
             else:
-                fname = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
-                with open(fname, "rb") as f:
+                f_name = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
+                with open(f_name, "rb") as f:
                     return pickle.load(f)
-        except (FileNotFoundError, AttributeError):
-            self.logger.error(f"Could not find {f_name}")
+        except FileNotFoundError:
+            self.logger.error(f"Could not find {f_name}.")
             raise
-        except:
-            if f_name.startswith("mongo"):
-                self.logger.error("Have you started mongod server in 'db' dir? \n"
-                                  "mongod --dbpath . --directoryperdb"
-                                  " --journal --nohttpinterface --port 1234")
+        except ValueError:
+            self.logger.error("Have you started mongod server in 'db' dir? \n"
+                              "mongod --dbpath . --directoryperdb"
+                              " --journal --nohttpinterface --port 1234")
             raise
 
     def _hopt_results(self, trials):
+        """Gather losses and corresponding params for valid results"""
         if type(trials) is MongoTrials:
             attachments = None
             valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
@@ -238,7 +238,6 @@ class Runner:
                     params[pkey].append(res['misc']['vals'][pkey][0])
         else:
             attachments = trials.attachments
-            # Gather losses and statuses for valid results and sort ascendingly by loss
             results = [(e['loss'], i, e['status']) for i, e in enumerate(trials.results)]
             valid_results = filter(lambda x: x[2] == 'ok', results)
             params = trials.vals
@@ -246,14 +245,18 @@ class Runner:
 
     def hopt_best(self, trials=None, n=1, view_pp=True):
         if trials is None:
-            trials = self._hopt_trials()
-        valid_results, params, attachments = self._hopt_results(trials)
+            try:
+                trials = self._hopt_trials()
+            except (FileNotFoundError, ValueError):
+                sys.exit(1)
+        # Something below here might throw AttributeError when mongodb exists but is empty
         if n == 1:
             b = trials.best_trial
             params = b['misc']['vals']
             fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
             self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
             return
+        valid_results, params, attachments = self._hopt_results(trials)
         sorted_results = sorted(valid_results)
         self.logger.error(f"Found {len(sorted_results)} valid trials")
         if view_pp and attachments:

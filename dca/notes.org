@@ -1,7 +1,5 @@
-Actor-critic, Policy Gradients Etc.
-
-In Future: Distributed system with multiple agents. Cooperation, competition,
-sharing of parameters?
+Distributed system with multiple agents. Cooperation or competition?
+Sharing of parameters?
 
 Thesis notes:
 For the memory-less traffic modelled in the simulator, a RL-compatible model
@@ -12,19 +10,32 @@ However, as previously discussed, this model might not be representable for real
 traffic and so this approach could only be used in simulation and 
 not in a deployed system.
 
-dont want to do decision time planning or rollouts, eg mtcs, in deploed sys
+maybe dont want to do decision time planning or rollouts, e.g mtcs, in deployed sys
 because of response time
 
 for lagging qnet, specify which net is used to selection actions which are executed
 and why this net and not the other is used
 
-medium
+guide on medium.com:
 "Instead of updating the target network periodically and 
 all at once, we will be updating it frequently, but slowly. 
-This technique was introduced in another DeepMind paper1509.02971.pdf
- earlier this year, where they found that it stabilized the training process.
+This technique was introduced in another DeepMind paper 1509.02971.pdf
+earlier this year, where they found that it stabilized the training process.
 
 double qnet
 http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12389/11847
 
 explicitly note the terminology difference between free and eligible channels
+
+could/should have a section in front in addition to abbreviations, covering 
+notation (expectations), variables(q vs Q, gamma, beta, alpha ...). See deep rl book.
+
+mention that beta affects the absolute scale of the gradient, hence also interplays
+with the learning rate
+
+Singh: There are better options than SGD for linear nets 
+(which? Least squares TD, Newtons method?). Thesis subject is deep RL, so it's irrelevant.
+
+Src Bertsekas book:
+Semi-Markov: Controls applied at discrete times, but rewards are continuously accumulated.
+Time between successive control choices vary, therefore so do time between state transitions.
