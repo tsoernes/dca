@@ -55,9 +55,9 @@ class SinghNet(Net):
         #     print(next_value, next_val)
         # value_target = reward + self.gamma * next_val
         data = {self.freps: freps, self.value_target: value_target}
-        _, loss = self.sess.run(
-            [self.do_train, self.loss],
+        _, loss, lr = self.sess.run(
+            [self.do_train, self.loss, self.lr],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
-        return loss
+        return loss, lr

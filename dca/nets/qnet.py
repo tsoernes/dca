@@ -194,9 +194,9 @@ class QNet(Net):
                 self.next_action: next_actions,
                 self.tf_gamma: [gamma]
             })
-        _, loss = self.sess.run(
-            [self.do_train, self.loss],
+        _, loss, lr = self.sess.run(
+            [self.do_train, self.loss, self.lr],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
-        return loss
+        return loss, lr

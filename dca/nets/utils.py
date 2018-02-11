@@ -81,7 +81,9 @@ def get_act_fn_by_name(name):
 def build_default_trainer(pp, loss, var_list=None):
     """
     Build a trainer to minimize loss through adjusting vars in var_list.
-    Optionally decay learning rate and clip gradients.
+    Optionally decay learning rate and clip gradients. Return training op
+    and learning rate var.
+
     If var_list is not specified, defaults to GraphKeys.TRAINABLE_VARIABLES,
     i.e. all trainable variables
     """
@@ -91,8 +93,8 @@ def build_default_trainer(pp, loss, var_list=None):
                                                    pp['n_events'], pp['net_lr_decay'])
     else:
         global_step = None
-        learning_rate = pp['net_lr']
-    trainer = get_optimizer_by_name(learning_rate)
+        learning_rate = tf.constant(pp['net_lr'])
+    trainer = get_optimizer_by_name(pp['optimizer'], learning_rate)
     if pp['max_grad_norm'] is not None:
         gradients, trainable_vars = zip(
             *trainer.compute_gradients(loss, var_list=var_list))
@@ -101,7 +103,7 @@ def build_default_trainer(pp, loss, var_list=None):
             zip(clipped_grads, trainable_vars), global_step=global_step)
     else:
         do_train = trainer.minimize(loss, var_list=var_list, global_step=global_step)
-    return do_train
+    return do_train, learning_rate
 
 
 def get_optimizer_by_name(name, lr):

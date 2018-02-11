@@ -17,9 +17,10 @@ class NetStrat(RLStrat):
         super().__init__(*args, **kwargs)
         self.net_copy_iter = self.pp['net_copy_iter']
         self.losses = [0]
+        self.learning_rates = []
 
     def fn_report(self):
-        self.env.stats.report_net(self.losses)
+        self.env.stats.report_net(self.losses, self.learning_rates)
         self.env.stats.report_rl(self.epsilon)
 
     def fn_after(self):
@@ -34,6 +35,16 @@ class NetStrat(RLStrat):
                 self.net.save_model()
         self.net.save_timeline()
         self.net.sess.close()
+
+    def backward(self, *args, **kwargs):
+        loss, lr = self.net.backward(*args, **kwargs)
+        if np.isinf(loss) or np.isnan(loss):
+            self.logger.error(f"Invalid loss: {loss}")
+            self.quit_sim = True
+            self.invalid_loss = True
+        else:
+            self.losses.append(loss)
+            self.learning_rates.append(lr)
 
 
 class QNetStrat(NetStrat):
@@ -54,30 +65,14 @@ class QNetStrat(NetStrat):
         qvals = self.net.forward(self.grid, cell, ce_type)
         return qvals[chs]
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, disc):
-        """ Update qval for one experience tuple"""
-        loss = self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch],
-                             [next_max_ch], disc)
-        if np.isinf(loss) or np.isnan(loss):
-            self.logger.error(f"Invalid loss: {loss}")
-            self.quit_sim = True
-        else:
-            self.losses.append(loss)
-
     def update_qval_experience(self, *args, **kwargs):
         """
         Update qval for pp['batch_size'] experience tuples,
         randomly sampled from the experience replay memory.
         """
-        if len(self.exp_buffer) < self.pp['buffer_size']:
+        if len(self.exp_buffer) >= self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
-            return
-        loss = self.net.backward(**self.exp_buffer.sample(self.pp['batch_size']))
-        if np.isinf(loss) or np.isnan(loss):
-            self.logger.error(f"Invalid loss: {loss}")
-            self.quit_sim = True
-        else:
-            self.losses.append(loss)
+            self.backward(**self.exp_buffer.sample(self.pp['batch_size']))
 
 
 class QLearnNetStrat(QNetStrat):
@@ -86,9 +81,9 @@ class QLearnNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("QLearnNet", *args, **kwargs)
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, *args, **kwargs):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
-        return loss
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+        """ Update qval for one experience tuple"""
+        self.backward(grid, cell, [ch], [reward], self.grid, next_cell)
 
 
 class QLearnEligibleNetStrat(QNetStrat):
@@ -97,11 +92,9 @@ class QLearnEligibleNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("QlearnEligibleNet", *args, **kwargs)
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
-                 next_max_ch):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell,
-                                 next_max_ch)
-        return loss
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+        """ Update qval for one experience tuple"""
+        self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_max_ch])
 
 
 class SARSANetStrat(QNetStrat):
@@ -110,10 +103,9 @@ class SARSANetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("SARSANet", *args, **kwargs)
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
-                 next_max_ch):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell, next_ch)
-        return loss
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+        """ Update qval for one experience tuple"""
+        self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch])
 
 
 class DistQNetStrat(QNetStrat):
@@ -131,9 +123,9 @@ class DistQNetStrat(QNetStrat):
     def update_target_net(self):
         pass
 
-    def backward(self, grid, cell, ch, reward, next_grid, next_cell, *args, **kwargs):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
-        return loss
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+        """ Update qval for one experience tuple"""
+        self.backward(grid, cell, [ch], [reward], self.grid, next_cell)
 
 
 class ACNetStrat(NetStrat):
@@ -213,28 +205,26 @@ class ACNetStrat(NetStrat):
         self.logger.debug(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, val)
 
-    def update_qval(self, grid, cell, ch, reward, next_grid, next_cell, next_ch):
-        loss = self.net.backward(grid, cell, ch, reward, next_grid, next_cell)
-        if np.isinf(loss[0]) or np.isnan(loss[0]):
-            self.logger.error(f"Invalid loss: {loss}")
-            self.quit_sim = True
-        else:
-            self.losses.append(loss)
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, *args):
+        """ Update qval for one experience tuple"""
+        self.backward(grid, cell, ch, reward, self.grid, next_cell)
 
-    def update_qval_n_step(self, grid, cell, ch, reward, next_grid, next_cell, next_ch):
+    def update_qval_n_step(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
+                           *args):
         """
         Update qval for pp['batch_size'] experience tuple.
         """
         if len(self.exp_buffer) < self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             return
-        loss = self.net.backward_gae(
+        loss, lr = self.net.backward_gae(
             **self.exp_buffer.pop(), next_grid=next_grid, next_cell=next_cell)
         if np.isinf(loss[0]) or np.isnan(loss[0]):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
         else:
             self.losses.append(loss)
+            self.learning_rates.append(lr)
 
 
 class VNetStrat(NetStrat):
@@ -253,18 +243,9 @@ class VNetStrat(NetStrat):
             self.update_qval(grid, cell, ch, reward, self.grid, next_cell, next_ch)
         return next_ch
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
         """ Update qval for one experience tuple"""
-        # TODO assert that grid and self.grid only differs by ch in cell
-        # assert not (grid == self.grid).all()
-        loss = self.backward(grid, reward, self.grid)
-        assert np.min(self.grid) >= 0
-        if np.isinf(loss) or np.isnan(loss):
-            self.logger.error(f"Invalid loss: {loss}")
-            self.quit_sim = True
-            self.invalid_loss = True
-        else:
-            self.losses.append(loss)
+        self.backward(grid, reward, self.grid)
 
 
 class SinghNetStrat(VNetStrat):
@@ -278,12 +259,11 @@ class SinghNetStrat(VNetStrat):
         #     count = np.count_nonzero(self.grid)
         #     reward = ((1 - bdisc) / self.pp['beta']) * count
         if ch is not None:
-            loss = self.backward(grid, cell, reward, self.grid, bdisc)
-            if np.isinf(loss) or np.isnan(loss):
-                self.logger.error(f"Invalid loss: {loss}")
-                self.quit_sim = True
-            else:
-                self.losses.append(loss)
+            gamma = bdisc if self.pp['dt_rewards'] else self.gamma
+            value_target = reward + gamma * np.array([[self.val]])
+            self.backward(
+                self.scale_freps(self.feature_reps(grid)),
+                self.scale_freps(self.feature_reps(self.grid)), value_target)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -309,17 +289,6 @@ class SinghNetStrat(VNetStrat):
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, qvals_dense[amax_idx]
-
-    def backward(self, grid, cell, reward, next_grid, bdisc):
-        gamma = bdisc if self.pp['dt_rewards'] else self.gamma
-        value_target = reward + gamma * np.array([[self.val]])
-        loss = self.net.backward(
-            self.scale_freps(self.feature_reps(grid)),
-            self.scale_freps(self.feature_reps(next_grid)), value_target)
-        #    self.feature_reps(grid),
-        #    self.feature_reps(next_grid),
-        #    value_target)
-        return loss
 
     def afterstate_freps_naive(self, grid, cell, ce_type, chs):
         astates = Grid.afterstates(grid, cell, ce_type, chs)

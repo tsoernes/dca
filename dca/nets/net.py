@@ -70,7 +70,7 @@ class Net:
             # Could do a try/except and build if loading fails
             self.logger.error(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
-        self.do_train = build_default_trainer(pp, self.loss, trainable_vars)
+        self.do_train, self.lr = build_default_trainer(pp, self.loss, trainable_vars)
         self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
         self.data_is_loaded = False
 
