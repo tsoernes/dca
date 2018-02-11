@@ -59,7 +59,10 @@ def get_pparams(defaults=False):
         '--call_rates', type=int, help="in calls per minute", default=None)
     parser.add_argument('--call_duration', type=int, help="in minutes", default=3)
     parser.add_argument(
-        '--p_handoff', type=float, help="handoff probability", default=0.15)
+        '--p_handoff',
+        type=float,
+        help="handoff probability. Default: 0.15",
+        default=None)
     parser.add_argument(
         '--hoff_call_duration',
         type=int,
@@ -350,6 +353,10 @@ def get_pparams(defaults=False):
         print("No file name specified for hyperopt ('hopt_fname')")
         sys.exit(0)
 
+    if pp['n_hours'] is not None:
+        # Approximate iters from hours. Only used for calculating
+        # log_iter percentages
+        pp['n_events'] = 7821 * pp['n_hours'] - 2015
     # Sensible presets / overrides
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
     if "net" in pp['strat'].lower():
@@ -365,27 +372,31 @@ def get_pparams(defaults=False):
         pp['call_rates'] = pp['erlangs'] / pp['call_duration']
     if pp['avg_runs']:
         pp['gui'] = False
-        if not pp['log_level']:
-            pp['log_level'] = logging.ERROR
+        # if not pp['log_level']:
+        #     pp['log_level'] = logging.ERROR
+        if not pp['log_iter']:
+            pp['log_iter'] = pp['n_events'] // 4
     if pp['hopt'] is not None:
         if pp['net']:
             pp['n_events'] = 100000
         pp['gui'] = False
-        if not pp['log_level']:
+        if pp['log_level'] is None:
             pp['log_level'] = logging.ERROR
-        # Since hopt only compares new call block rate,
+            # Since hopt only compares new call block rate,
         # handoffs are a waste of computational resources.
-        pp['p_handoff'] = 0
+        if pp['p_handoff'] is None:
+            pp['p_handoff'] = 0
         # Always log to file so that parameters are recorded
         pnames = str.join("-", pp['hopt'])
         f_name = f"results-{pp['strat']}-{pnames}"
         pp['log_file'] = f_name
     if pp['bench_batch_size']:
-        if not pp['log_level']:
+        if pp['log_level'] is None:
             pp['log_level'] = logging.WARN
-    if not pp['log_level']:
+    if pp['log_level'] is None:
         pp['log_level'] = logging.INFO
-
+    if pp['p_handoff'] is None:
+        pp['p_handoff'] = 0.15
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])
 
