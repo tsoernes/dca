@@ -324,7 +324,8 @@ def get_pparams(defaults=False):
         type=int,
         choices=[10, 20, 30],
         help="10: Debug,\n20: Info,\n30: Warning",
-        default=logging.INFO)
+        default=None)
+
     parser.add_argument(
         '--log_file', metavar='DEST', type=str, help="enable logging to given file name")
     parser.add_argument(
@@ -350,26 +351,28 @@ def get_pparams(defaults=False):
         sys.exit(0)
 
     # Sensible presets / overrides
-    pp['net'] = False  # Whether net is in use or not
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
     if "net" in pp['strat'].lower():
         if not pp['log_iter']:
             pp['log_iter'] = 5000
-        pp['net'] = True
+        pp['net'] = True  # Whether net is in use or not
     else:
         if not pp['log_iter']:
             pp['log_iter'] = 50000
         pp['batch_size'] = 1
+        pp['net'] = False
     if not pp['call_rates']:
         pp['call_rates'] = pp['erlangs'] / pp['call_duration']
     if pp['avg_runs']:
         pp['gui'] = False
-        pp['log_level'] = logging.ERROR
+        if not pp['log_level']:
+            pp['log_level'] = logging.ERROR
     if pp['hopt'] is not None:
         if pp['net']:
             pp['n_events'] = 100000
         pp['gui'] = False
-        pp['log_level'] = logging.ERROR
+        if not pp['log_level']:
+            pp['log_level'] = logging.ERROR
         # Since hopt only compares new call block rate,
         # handoffs are a waste of computational resources.
         pp['p_handoff'] = 0
@@ -378,7 +381,10 @@ def get_pparams(defaults=False):
         f_name = f"results-{pp['strat']}-{pnames}"
         pp['log_file'] = f_name
     if pp['bench_batch_size']:
-        pp['log_level'] = logging.WARN
+        if not pp['log_level']:
+            pp['log_level'] = logging.WARN
+    if not pp['log_level']:
+        pp['log_level'] = logging.INFO
 
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])

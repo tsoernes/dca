@@ -53,7 +53,7 @@ class Runner:
         n_runs = self.pp['avg_runs']
         simproc = partial(self.sim_proc, self.stratclass, self.pp)
         # Net runs use same np seed for all runs; other strats do not
-        if self.pp['net']:
+        if self.pp['net'] and not self.pp['no_gpu']:
             results = []
             for i in range(n_runs):
                 res = simproc(i, reseed=False)
@@ -61,7 +61,7 @@ class Runner:
         else:
             with Pool() as p:
                 results = p.map(simproc, range(n_runs))
-        results = list(filter(lambda r: r[0] != 1, results))
+        results = [r for r in results if r[0] != 1 and r[0] is not None]
         if not results:
             self.logger.error("NO RESULTS")
             return
@@ -218,7 +218,7 @@ class Runner:
         except FileNotFoundError:
             self.logger.error(f"Could not find {f_name}.")
             raise
-        except ValueError:
+        except:
             self.logger.error("Have you started mongod server in 'db' dir? \n"
                               "mongod --dbpath . --directoryperdb"
                               " --journal --nohttpinterface --port 1234")
