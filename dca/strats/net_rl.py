@@ -273,13 +273,10 @@ class SinghNetStrat(VNetStrat):
         self.net = SinghNet(self.pp, self.logger)
         self.val = 0.0
 
-    # def get_init_action(self, cevent) -> int:
-    #     return self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
-
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
-        if self.pp['dt_rewards']:
-            count = np.count_nonzero(self.grid)
-            reward = ((1 - bdisc) / self.pp['beta']) * count
+        # if self.pp['dt_rewards']:
+        #     count = np.count_nonzero(self.grid)
+        #     reward = ((1 - bdisc) / self.pp['beta']) * count
         if ch is not None:
             loss = self.backward(grid, cell, reward, self.grid, bdisc)
             if np.isinf(loss) or np.isnan(loss):
@@ -302,7 +299,7 @@ class SinghNetStrat(VNetStrat):
             chs = np.nonzero(self.grid[cell])[0]
 
         fgrids = self.afterstate_freps(self.grid, cell, ce_type, chs)
-        # fgrids = self.scale_freps(fgrids)
+        fgrids = self.scale_freps(fgrids)
         # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
         # assert (fgrids == fgrids2).all()
         qvals_dense = self.net.forward(fgrids)
@@ -317,11 +314,11 @@ class SinghNetStrat(VNetStrat):
         gamma = bdisc if self.pp['dt_rewards'] else self.gamma
         value_target = reward + gamma * np.array([[self.val]])
         loss = self.net.backward(
-            # self.scale_freps(self.feature_reps(grid)),
-            # self.scale_freps(self.feature_reps(next_grid)), value_target)
-            self.feature_reps(grid),
-            self.feature_reps(next_grid),
-            value_target)
+            self.scale_freps(self.feature_reps(grid)),
+            self.scale_freps(self.feature_reps(next_grid)), value_target)
+        #    self.feature_reps(grid),
+        #    self.feature_reps(next_grid),
+        #    value_target)
         return loss
 
     def afterstate_freps_naive(self, grid, cell, ce_type, chs):

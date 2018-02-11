@@ -1,3 +1,4 @@
+import os
 import sys
 from time import time
 
@@ -7,39 +8,15 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import datahandler
-from grid import Grid
-from nets.utils import (get_act_fn_by_name, get_init_by_name,
-                        get_optimizer_by_name)
+from grid import Grid  # noqa
+from nets.utils import (build_default_trainer, get_act_fn_by_name,
+                        get_init_by_name)
 
 
 """
-possible data prep: set unused channels to -1,
-OR make it unit gaussian. refer to alphago paper -- did they prep
-the board? did they use the complete board as input to any of their
-nets, or just features?
-
-sanity checks:
-- double check that loss is sane
-for softmax classifier: print loss, should be roughly:
-"-log(1/n_classes)"
-- make sure that it's possible to overfit
-(ie loss of nearly 0, when no regularization)
-a very small portion (eg <20 samples) of the training data
-
-Batch size 8 took 307.63 seconds
-Batch size 16 took 163.69 seconds
-Batch size 32 took 92.84 seconds
-Batch size 64 took 53.94 seconds
-Batch size 128 took 38.26 seconds
-Batch size 256 took 34.56 seconds
-Batch size 512 took 29.68 seconds
-Batch size 1024 took 27.80 seconds
-Batch size 2048 took 24.63 seconds
-
 Perhaps reducing call rates will increase difference between
 fixed/random and a good alg, thus making testing nets easier.
 If so then need to retest sarsa-strats and redo hyperparam opt.
-
 """
 
 
@@ -57,14 +34,13 @@ class Net:
         self.log_path = main_path + "/logs"
         self.quit_sim = False
 
+        # self.neighs_mask = tf.constant(Grid.neighbors_all_oh(), dtype=tf.bool)
         self.act_fn = get_act_fn_by_name(pp['act_fn'])
         self.kern_init_conv = get_init_by_name(pp['weight_init_conv'])
         self.kern_init_dense = get_init_by_name(pp['weight_init_dense'])
         self.regularizer = None
         if pp['layer_norm']:
             self.regularizer = tf.contrib.layers.layer_norm
-
-        self.trainer = get_optimizer_by_name(pp['optimizer'], pp['net_lr'])
 
         tf.reset_default_graph()
         self.options = None
@@ -74,17 +50,15 @@ class Net:
             self.run_metadata = tf.RunMetadata()
         # tf.logging.set_verbosity(tf.logging.WARN)
 
-        # Allocate only minimum amount necessary GPU memory at start, then grow
         if pp['no_gpu']:
             config = tf.ConfigProto(device_count={'GPU': 0})
         else:
             config = tf.ConfigProto()
         # config.intra_opt_parallelism_threads = 4
+        # Allocate only minimum amount necessary GPU memory at start, then grow
         config.gpu_options.allow_growth = True
         tf.set_random_seed(pp['rng_seed'])
         self.sess = tf.Session(config=config)
-
-        self.neighs_mask = tf.constant(Grid.neighbors_all_oh(), dtype=tf.bool)
 
         trainable_vars = self.build()
         glob_vars = set(tf.global_variables())
@@ -96,9 +70,18 @@ class Net:
             # Could do a try/except and build if loading fails
             self.logger.error(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
-        self.do_train = self.build_default_trainer(self.loss, trainable_vars)
+        self.do_train = build_default_trainer(pp, self.loss, trainable_vars)
         self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
         self.data_is_loaded = False
+
+    def build(self):
+        raise NotImplementedError
+
+    def forward(self):
+        raise NotImplementedError
+
+    def backward(self):
+        raise NotImplementedError
 
     def _build_base_net(self, grid, cell, name):
         with tf.variable_scope('model/' + name):
@@ -124,18 +107,6 @@ class Net:
             flat = tf.layers.flatten(stacked)
             return flat
 
-    def build_default_trainer(self, loss, var_list=None):
-        """If var_list is not specified, defaults to GraphKey.TRAINABLE_VARIABLES"""
-        if self.pp['max_grad_norm'] is not None:
-            gradients, trainable_vars = zip(
-                *self.trainer.compute_gradients(loss, var_list=var_list))
-            clipped_grads, grad_norms = tf.clip_by_global_norm(gradients,
-                                                               self.pp['max_grad_norm'])
-            do_train = self.trainer.apply_gradients(zip(clipped_grads, trainable_vars))
-        else:
-            do_train = self.trainer.minimize(loss, var_list=var_list)
-        return do_train
-
     def load_data(self):
         if self.data_is_loaded:
             return
@@ -149,10 +120,8 @@ class Net:
 
     def save_model(self):
         inp = ""
-        import os
-        path = self.model_path
-        n_path = path
-        if os.path.isdir(path):
+        path = n_path = self.model_path
+        if os.path.isdir(path + ".index"):
             while inp not in ["Y", "N", "A"]:
                 inp = input("A model exists in {path}. Overwrite (Y), Don't save (N), "
                             "or Save to directory (A): ").upper()
@@ -171,9 +140,6 @@ class Net:
             chrome_trace = fetched_timeline.generate_chrome_trace_format()
             with open(self.pp['tfprofiling'], 'w') as f:
                 f.write(chrome_trace)
-
-    def build(self):
-        raise NotImplementedError
 
     def train(self):
         self.load_data()
@@ -218,9 +184,6 @@ class Net:
         plt.xlabel(f"Iterations, in {self.batch_size}s")
         plt.show()
 
-    def forward(self, grid, cell):
-        raise NotImplementedError
-
     def bench_batch_size(self):
         for bs in [256, 512, 1024, 2048]:
             self.pp['batch_size'] = bs
@@ -233,16 +196,6 @@ class Net:
         r = tf.random_uniform([1])
         ra = self.sess.run(r)
         return ra
-
-    @staticmethod
-    def _get_trainable_vars(scope):
-        trainable_vars = tf.get_collection(
-            tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
-        trainable_vars_by_name = {
-            var.name[len(scope.name):]: var
-            for var in trainable_vars
-        }
-        return trainable_vars_by_name
 
     def inuse_qvals(self, grids, cells, qvals):
         """

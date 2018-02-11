@@ -38,6 +38,12 @@ def set_global_seeds(i):
     random.seed(i)
 
 
+def get_trainable_vars(scope):
+    trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=scope.name)
+    trainable_vars_by_name = {var.name[len(scope.name):]: var for var in trainable_vars}
+    return trainable_vars_by_name
+
+
 # Used to initialize weights for policy and value output layers
 def normalized_columns_initializer(std=1.0):
     def _initializer(shape, dtype=None, partition_info=None):
@@ -72,12 +78,38 @@ def get_act_fn_by_name(name):
     return act_fns[name]
 
 
-def get_optimizer_by_name(name, l_rate):
+def build_default_trainer(pp, loss, var_list=None):
+    """
+    Build a trainer to minimize loss through adjusting vars in var_list.
+    Optionally decay learning rate and clip gradients.
+    If var_list is not specified, defaults to GraphKeys.TRAINABLE_VARIABLES,
+    i.e. all trainable variables
+    """
+    if pp['net_lr_decay'] < 1:
+        global_step = tf.Variable(0, trainable=False)
+        learning_rate = tf.train.exponential_decay(pp['net_lr'], global_step,
+                                                   pp['n_events'], pp['net_lr_decay'])
+    else:
+        global_step = None
+        learning_rate = pp['net_lr']
+    trainer = get_optimizer_by_name(learning_rate)
+    if pp['max_grad_norm'] is not None:
+        gradients, trainable_vars = zip(
+            *trainer.compute_gradients(loss, var_list=var_list))
+        clipped_grads, grad_norms = tf.clip_by_global_norm(gradients, pp['max_grad_norm'])
+        do_train = trainer.apply_gradients(
+            zip(clipped_grads, trainable_vars), global_step=global_step)
+    else:
+        do_train = trainer.minimize(loss, var_list=var_list, global_step=global_step)
+    return do_train
+
+
+def get_optimizer_by_name(name, lr):
     optimizers = {
-        "sgd": tf.train.GradientDescentOptimizer(learning_rate=l_rate),
-        "sgd-m": tf.train.MomentumOptimizer(learning_rate=l_rate, momentum=0.95),
-        "adam": tf.train.AdamOptimizer(learning_rate=l_rate),
-        "rmsprop": tf.train.RMSPropOptimizer(learning_rate=l_rate)
+        "sgd": tf.train.GradientDescentOptimizer(lr),
+        "sgd-m": tf.train.MomentumOptimizer(lr, momentum=0.95),
+        "adam": tf.train.AdamOptimizer(lr),
+        "rmsprop": tf.train.RMSPropOptimizer(lr)
     }
     return optimizers[name]
 
@@ -130,7 +162,7 @@ def prep_data(grids, cells, actions, rewards, next_grids=None, next_cells=None):
     actions = actions.astype(np.int32)
     # Needs to be 32-bit, else will overflow
     rewards = rewards.astype(np.float32)
-    # Cells are used as indexes and must be tuples
+    # Cells are used as indecies and must be tuples
     if type(cells) == np.ndarray:
         cells = list(map(tuple, cells))
         if next_cells is not None:

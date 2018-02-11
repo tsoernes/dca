@@ -42,3 +42,13 @@ neighs4 = RhombusAxialGrid.neighbors(
     dist=4, row=r, col=c, separate=True, include_self=True)
 n_free_self (frep[-1]) counts ELIGIBLE chs
 reward is count_nonzero of next_grid, i.e. s_t+1
+
+Average cumulative block probability over 8 episodes: 0.1338 with standard deviation 0.00164
+[[0.13344322 0.        ]
+ [0.13527644 0.        ]
+ [0.13319239 0.        ]
+ [0.13281658 0.        ]
+ [0.13686686 0.        ]
+ [0.13274518 0.        ]
+ [0.13477448 0.        ]
+ [0.1312472  0.        ]]
