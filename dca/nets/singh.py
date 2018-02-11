@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
+from nets.utils import get_trainable_vars
 
 
 class SinghNet(Net):
@@ -31,7 +32,7 @@ class SinghNet(Net):
                 use_bias=True,
                 activation=None,
                 name="vals")
-            online_vars = self._get_trainable_vars(scope)
+            online_vars = get_trainable_vars(scope)
 
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.value_target), predictions=self.value)

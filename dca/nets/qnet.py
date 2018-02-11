@@ -3,7 +3,8 @@ import tensorflow as tf
 
 from eventgen import CEvent
 from nets.net import Net
-from nets.utils import copy_net_op, prep_data_cells, prep_data_grids
+from nets.utils import (copy_net_op, get_trainable_vars, prep_data_cells,
+                        prep_data_grids)
 
 
 class QNet(Net):
@@ -63,7 +64,7 @@ class QNet(Net):
                     kernel_regularizer=self.regularizer,
                     use_bias=False,
                     name="q_vals")
-            trainable_vars_by_name = self._get_trainable_vars(scope)
+            trainable_vars_by_name = get_trainable_vars(scope)
         return q_vals, trainable_vars_by_name
 
     def build(self):

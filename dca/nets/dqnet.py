@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
+from nets.utils import get_trainable_vars
 
 
 class DistQNet(Net):
@@ -41,7 +42,7 @@ class DistQNet(Net):
                 kernel_regularizer=self.regularizer,
                 use_bias=False,
                 name="q_vals")
-            trainable_vars_by_name = self._get_trainable_vars(scope)
+            trainable_vars_by_name = get_trainable_vars(scope)
         return q_vals, trainable_vars_by_name
 
     def build(self):

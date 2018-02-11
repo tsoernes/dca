@@ -5,6 +5,7 @@ import tensorflow as tf
 
 import nets.utils as nutils
 from nets.net import Net
+from nets.utils import get_trainable_vars
 
 
 class ACNet(Net):
@@ -29,7 +30,7 @@ class ACNet(Net):
                 units=1,
                 activation=None,
                 kernel_initializer=nutils.normalized_columns_initializer(1.0))
-            trainable_vars_by_name = self._get_trainable_vars(scope)
+            trainable_vars_by_name = get_trainable_vars(scope)
         return policy, value, trainable_vars_by_name
 
     def build(self):
