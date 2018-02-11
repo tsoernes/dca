@@ -85,7 +85,7 @@ class Stats:
     def report_rl(self, epsilon, alpha=None):
         if alpha:
             self.alphas.append(alpha)
-            alpha_str = f", Alpha: {alpha:.5f}"
+            alpha_str = f", Alpha: {alpha}"
         else:
             alpha_str = ""
         self.epsilons.append(epsilon)

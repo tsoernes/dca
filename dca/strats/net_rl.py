@@ -17,11 +17,11 @@ class NetStrat(RLStrat):
         super().__init__(*args, **kwargs)
         self.net_copy_iter = self.pp['net_copy_iter']
         self.losses = [0]
-        self.learning_rates = []
+        self.last_lr = 1
 
     def fn_report(self):
-        self.env.stats.report_net(self.losses, self.learning_rates)
-        self.env.stats.report_rl(self.epsilon)
+        self.env.stats.report_net(self.losses)
+        self.env.stats.report_rl(self.epsilon, self.last_lr)
 
     def fn_after(self):
         ra = self.net.rand_uniform()
@@ -44,7 +44,7 @@ class NetStrat(RLStrat):
             self.invalid_loss = True
         else:
             self.losses.append(loss)
-            self.learning_rates.append(lr)
+            self.last_lr = lr
 
 
 class QNetStrat(NetStrat):
