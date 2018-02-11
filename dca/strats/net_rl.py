@@ -179,7 +179,7 @@ class ACNetStrat(NetStrat):
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             # Calls eligible for assignment
-            chs = self.env.grid.get_eligible_chs(cell)
+            chs = Grid.get_eligible_chs(self.grid, cell)
         else:
             # Calls in progress
             chs = np.nonzero(self.grid[cell])[0]
@@ -292,7 +292,7 @@ class SinghNetStrat(VNetStrat):
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = self.env.grid.get_eligible_chs(cell)
+            chs = Grid.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return None, 0
         else:
@@ -322,7 +322,7 @@ class SinghNetStrat(VNetStrat):
         return loss
 
     def afterstate_freps_naive(self, grid, cell, ce_type, chs):
-        astates = Grid.afterstates_stat(grid, cell, ce_type, chs)
+        astates = Grid.afterstates(grid, cell, ce_type, chs)
         freps = self.feature_reps(astates)
         return freps
 
@@ -359,7 +359,7 @@ class SinghNetStrat(VNetStrat):
             n_used_neighs_diff = 1
             # One less ch will be eligible
             n_elig_self_diff = -1
-        eligible_chs = [Grid.get_eligible_chs_stat(grid, neigh2) for neigh2 in neighs2]
+        eligible_chs = [Grid.get_eligible_chs(grid, neigh2) for neigh2 in neighs2]
         for i, ch in enumerate(chs):
             fgrids[i, neighs4[0], neighs4[1], ch] += n_used_neighs_diff
             for j, neigh2 in enumerate(neighs2):
@@ -389,11 +389,10 @@ class SinghNetStrat(VNetStrat):
         for r in range(self.rows):
             for c in range(self.cols):
                 # TODO all onehot
-                neighs = self.env.grid.neighbors(
-                    4, r, c, separate=True, include_self=True)
+                neighs = Grid.neighbors(4, r, c, separate=True, include_self=True)
                 n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
                 fgrids[:, r, c, :-1] = n_used
                 for i in range(len(grids)):
-                    n_eligible_chs = Grid.get_n_eligible_chs_stat(grids[i], (r, c))
+                    n_eligible_chs = Grid.get_n_eligible_chs(grids[i], (r, c))
                     fgrids[i, r, c, -1] = n_eligible_chs
         return fgrids

@@ -5,21 +5,6 @@ import numpy as np
 from eventgen import CEvent
 
 
-def afterstates(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
-    """Make an afterstate (resulting grid) for each possible,
-    # eligible action in 'chs'"""
-    if ce_type == CEvent.END:
-        targ_val = 0
-    else:
-        targ_val = 1
-    grids = np.repeat(np.expand_dims(np.copy(grid), axis=0), len(chs), axis=0)
-    for i, ch in enumerate(chs):
-        # assert grids[i][cell][ch] != targ_val
-        grids[i][cell][ch] = targ_val
-    assert grids.shape == (len(chs), rows, cols, n_channels)
-    return grids
-
-
 class Grid:
     "Rhombus grid with axial coordinates"
 
@@ -81,9 +66,45 @@ class Grid:
                     return False
         return True
 
-    def afterstates(self, cell, ce_type, chs):
-        return afterstates(self.state, cell, ce_type, chs, self.rows, self.cols,
-                           self.n_channels)
+    def _get_eligible_chs_bitmap(grid, cell):
+        """Find eligible chs by bitwise ORing the allocation maps of neighbors"""
+        neighs = Grid.neighbors(2, *cell, separate=True, include_self=True)
+        alloc_map = np.bitwise_or.reduce(grid[neighs])
+        return alloc_map
+
+    @staticmethod
+    def get_eligible_chs(grid, cell):
+        """
+        Find the channels that are free in 'cell' and all of
+        its neighbors with a distance of 2 or less.
+        These are the eligible channels, i.e. those that can be assigned
+        without violating the reuse constraint.
+        """
+        alloc_map = Grid._get_eligible_chs_bitmap(grid, cell)
+        eligible = np.nonzero(np.logical_not(alloc_map))[0]
+        return eligible
+
+    @staticmethod
+    def get_n_eligible_chs(grid, cell):
+        """Return the number of eligible channels"""
+        alloc_map = Grid._get_eligible_chs_bitmap(grid, cell)
+        n_eligible = np.count_nonzero(np.invert(alloc_map))
+        return n_eligible
+
+    @staticmethod
+    def afterstates(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
+        """Make an afterstate (resulting grid) for each possible,
+        # eligible action in 'chs'"""
+        if ce_type == CEvent.END:
+            targ_val = 0
+        else:
+            targ_val = 1
+        grids = np.repeat(np.expand_dims(np.copy(grid), axis=0), len(chs), axis=0)
+        for i, ch in enumerate(chs):
+            # assert grids[i][cell][ch] != targ_val
+            grids[i][cell][ch] = targ_val
+        assert grids.shape == (len(chs), rows, cols, n_channels)
+        return grids
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -178,32 +199,3 @@ class Grid:
             label(0, *center)
             for i, neigh in enumerate(self.neighbors1sparse(*center)):
                 label(i + 1, *neigh)
-
-    def get_eligible_chs(self, cell):
-        return self.get_eligible_chs_stat(self.state, cell)
-
-    @staticmethod
-    def _get_eligible_chs_bitmap(grid, cell):
-        """Find eligible chs by bitwise ORing the allocation maps of neighbors"""
-        neighs = Grid.neighbors(2, *cell, separate=True, include_self=True)
-        alloc_map = np.bitwise_or.reduce(grid[neighs])
-        return alloc_map
-
-    @staticmethod
-    def get_eligible_chs_stat(grid, cell):
-        """
-        Find the channels that are free in 'cell' and all of
-        its neighbors with a distance of 2 or less.
-        These are the eligible channels, i.e. those that can be assigned
-        without violating the reuse constraint.
-        """
-        alloc_map = Grid._get_eligible_chs_bitmap(grid, cell)
-        eligible = np.nonzero(np.logical_not(alloc_map))[0]
-        return eligible
-
-    @staticmethod
-    def get_n_eligible_chs_stat(grid, cell):
-        """Return the number of eligible channels"""
-        alloc_map = Grid._get_eligible_chs_bitmap(grid, cell)
-        n_eligible = np.count_nonzero(np.invert(alloc_map))
-        return n_eligible

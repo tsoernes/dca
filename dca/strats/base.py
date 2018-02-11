@@ -201,7 +201,7 @@ class RLStrat(Strat):
         n_used = len(inuse)
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = self.env.grid.get_eligible_chs(cell)
+            chs = Grid.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 # No channels available for assignment,
                 return (None, None)
