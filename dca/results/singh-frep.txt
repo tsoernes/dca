@@ -4,6 +4,7 @@ n_used_neighs (frep[:-1]) does include self
 neighs4 = RhombusAxialGrid.neighbors(
     dist=4, row=r, col=c, separate=True, include_self=True)
 n_free_self (frep[-1]) counts ELIGIBLE chs
+reward is count_nonzero of grid, i.e. s_t
 
 8x200000 events finished with speed 960 events/second
 Average cumulative block probability over 8 episodes: 0.1333 with standard deviation 0.00214
@@ -18,10 +19,11 @@ Average cumulative block probability over 8 episodes: 0.1333 with standard devia
 
 
 --------------------------------------------------------------------------
-n_used_neighs (frep[:-1]) does include self
+n_used_neighs (frep[:-1]) does NOT include self
 neighs4 = RhombusAxialGrid.neighbors(
     dist=4, row=r, col=c, separate=True, include_self=False)
 n_free_self (frep[-1]) counts ELIGIBLE chs
+reward is count_nonzero of grid, i.e. s_t
 
 8x200000 events finished with speed 965 events/second
 Average cumulative block probability over 8 episodes: 0.1332 with standard deviation 0.00289
@@ -33,3 +35,10 @@ Average cumulative block probability over 8 episodes: 0.1332 with standard devia
  [0.1313169  0.        ]
  [0.13161059 0.        ]
  [0.13213597 0.        ]]
+
+------------------------------------------------------------------------------
+n_used_neighs (frep[:-1]) does include self
+neighs4 = RhombusAxialGrid.neighbors(
+    dist=4, row=r, col=c, separate=True, include_self=True)
+n_free_self (frep[-1]) counts ELIGIBLE chs
+reward is count_nonzero of next_grid, i.e. s_t+1

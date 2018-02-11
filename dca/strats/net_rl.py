@@ -277,6 +277,9 @@ class SinghNetStrat(VNetStrat):
     #     return self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
+        if self.pp['dt_rewards']:
+            count = np.count_nonzero(self.grid)
+            reward = ((1 - bdisc) / self.pp['beta']) * count
         if ch is not None:
             loss = self.backward(grid, cell, reward, self.grid, bdisc)
             if np.isinf(loss) or np.isnan(loss):
