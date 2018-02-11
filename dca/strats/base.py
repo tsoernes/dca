@@ -5,7 +5,7 @@ import numpy as np
 
 from environment import Env
 from eventgen import CEvent
-from grid import RhombusAxialGrid
+from grid import Grid
 from replaybuffer import ReplayBuffer
 
 
@@ -17,7 +17,7 @@ class Strat:
         self.pp = pp
         self.logger = logger
 
-        grid = RhombusAxialGrid(*self.dims, self.logger)
+        grid = Grid(*self.dims, self.logger)
         self.env = Env(self.pp, grid, self.logger, pid)
         self.grid = self.env.grid.state
         self.exp_buffer = ReplayBuffer(pp['buffer_size'], *self.dims)

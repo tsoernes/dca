@@ -2,7 +2,7 @@
 from math import cos, radians, sin, sqrt
 from tkinter import Canvas, Frame, Tk
 
-from grid import RectOffsetGrid, RhombusAxialGrid
+from grid import Grid
 
 label_colors = [
     '#FF2D00', '#FFD800', '#00FF68', '#00FFE4', '#0059FF', '#A200FF', '#FF00F7'
@@ -219,7 +219,7 @@ class HexagonGrid(Frame):
 
 class Gui:
     def __init__(self, grid, exit_handler, cell_printer):
-        if type(grid) == RhombusAxialGrid:
+        if type(grid) == Grid:
             shape = "rhomb"
         else:
             shape = "rect"
@@ -252,7 +252,7 @@ class Gui:
 # TODO: Use a gradient color scheme for cells; i.e.
 # the more busy a cell is, the darker/denser its color
 if __name__ == '__main__':
-    g = RhombusAxialGrid(7, 7, 70, None)
+    g = Grid(7, 7, 70, None)
     # g = RectOffsetGrid(7, 7, 70, None)
     gui = Gui(g, None, g.print_cell)
     gui.test()

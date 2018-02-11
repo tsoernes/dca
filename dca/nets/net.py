@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import datahandler
-from grid import RhombusAxialGrid
+from grid import Grid
 from nets.utils import (get_act_fn_by_name, get_init_by_name,
                         get_optimizer_by_name)
 
@@ -84,7 +84,7 @@ class Net:
         tf.set_random_seed(pp['rng_seed'])
         self.sess = tf.Session(config=config)
 
-        self.neighs_mask = tf.constant(RhombusAxialGrid.neighbors_all_oh(), dtype=tf.bool)
+        self.neighs_mask = tf.constant(Grid.neighbors_all_oh(), dtype=tf.bool)
 
         trainable_vars = self.build()
         glob_vars = set(tf.global_variables())

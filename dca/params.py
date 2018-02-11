@@ -104,7 +104,7 @@ def get_pparams(defaults=False):
         help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.99999)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
-    parser.add_argument('--beta', type=float, help="(RL) discount factor dt", default=16)
+    parser.add_argument('--beta', type=float, help="(RL) discount factor dt", default=10)
     parser.add_argument(
         '--dt_rewards',
         '-dt',

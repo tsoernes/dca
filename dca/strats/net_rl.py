@@ -3,7 +3,7 @@ from typing import List, Tuple
 import numpy as np
 
 from eventgen import CEvent
-from grid import RhombusAxialGrid
+from grid import Grid
 from nets.acnet import ACNet
 from nets.dqnet import DistQNet
 from nets.qnet import QNet
@@ -322,7 +322,7 @@ class SinghNetStrat(VNetStrat):
         return loss
 
     def afterstate_freps_naive(self, grid, cell, ce_type, chs):
-        astates = RhombusAxialGrid.afterstates_stat(grid, cell, ce_type, chs)
+        astates = Grid.afterstates_stat(grid, cell, ce_type, chs)
         freps = self.feature_reps(astates)
         return freps
 
@@ -344,9 +344,8 @@ class SinghNetStrat(VNetStrat):
         """
         fgrid = self.feature_reps(grid)[0]
         r, c = cell
-        neighs4 = RhombusAxialGrid.neighbors(
-            dist=4, row=r, col=c, separate=True, include_self=True)
-        neighs2 = RhombusAxialGrid.neighbors(dist=2, row=r, col=c, include_self=True)
+        neighs4 = Grid.neighbors(dist=4, row=r, col=c, separate=True, include_self=True)
+        neighs2 = Grid.neighbors(dist=2, row=r, col=c, include_self=True)
         fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
         if ce_type == CEvent.END:
             # One less channel will be in use by the cell
@@ -360,9 +359,7 @@ class SinghNetStrat(VNetStrat):
             n_used_neighs_diff = 1
             # One less ch will be eligible
             n_elig_self_diff = -1
-        eligible_chs = [
-            RhombusAxialGrid.get_eligible_chs_stat(grid, neigh2) for neigh2 in neighs2
-        ]
+        eligible_chs = [Grid.get_eligible_chs_stat(grid, neigh2) for neigh2 in neighs2]
         for i, ch in enumerate(chs):
             fgrids[i, neighs4[0], neighs4[1], ch] += n_used_neighs_diff
             for j, neigh2 in enumerate(neighs2):
@@ -374,7 +371,7 @@ class SinghNetStrat(VNetStrat):
 
     def feature_reps(self, grids):
         """
-        Takes a grid or an array of grids and return the feature representation(s).
+        Takes a grid or an array of grids and return the feature representations.
 
         For each cell, the number of ELIGIBLE channels in that cell.
         For each cell-channel pair, the number of times that channel is
@@ -391,12 +388,12 @@ class SinghNetStrat(VNetStrat):
         #     - np.count_nonzero(grids, axis=3)
         for r in range(self.rows):
             for c in range(self.cols):
+                # TODO all onehot
                 neighs = self.env.grid.neighbors(
                     4, r, c, separate=True, include_self=True)
                 n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
                 fgrids[:, r, c, :-1] = n_used
                 for i in range(len(grids)):
-                    n_eligible_chs = RhombusAxialGrid.get_n_eligible_chs_stat(
-                        grids[i], (r, c))
+                    n_eligible_chs = Grid.get_n_eligible_chs_stat(grids[i], (r, c))
                     fgrids[i, r, c, -1] = n_eligible_chs
         return fgrids
