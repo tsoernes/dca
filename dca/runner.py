@@ -302,6 +302,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     If 'mongo_uri' is present, determine whether to use GPU or not based
     on the number of processes that already utilize it.
     """
+    using_gpu = False
     # Don't override user-given arg
     if not pp['no_gpu'] and mongo_uri is not None:
         # The DB should contain a collection 'gpu_procs' with one document,
@@ -315,9 +316,10 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
             doc = col.find_one()
         if doc['gpu_procs'] >= pp['max_gpu_procs']:
             pp['no_gpu'] = True
+            client.close()
         else:
             db.col.find_one_and_update(doc, {'inc', {'gpu_procs': 1}})
-        client.close()
+            using_gpu = True
     for key, val in space.items():
         pp[key] = val
     # import psutil
@@ -326,6 +328,11 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     logger = logging.getLogger('')
     logger.error(space)
     result = Runner.sim_proc(stratclass, pp, pid='', reseed=False)
+    if using_gpu:
+        # Finished using the GPU, so reduce the 'gpu_procs' count
+        doc = col.find_one()
+        db.col.find_one_and_update(doc, {'inc', {'gpu_procs': -1}})
+        client.close()
     res = result[0]
     if res is None:
         return {"status": "fail"}
