@@ -7,7 +7,7 @@ ln -s runner.py "path to hyperopt-mongo-worker"
 in hyperopt-mongo-worker add: "from runner import hopt_proc"
 
 Run mongod server:
-mongod --dbpath db --directoryperdb --journal --nohttpinterface --port 1234
+mongod --dbpath . --directoryperdb --journal --nohttpinterface --port 1234
 
 Run runner.py
 
