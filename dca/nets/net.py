@@ -12,7 +12,7 @@ from grid import Grid  # noqa
 from nets.utils import (build_default_trainer, get_act_fn_by_name,
                         get_init_by_name)
 
-MAX_CPU_PROCS = 4
+
 """
 Perhaps reducing call rates will increase difference between
 fixed/random and a good alg, thus making testing nets easier.
@@ -50,14 +50,10 @@ class Net:
             self.run_metadata = tf.RunMetadata()
         # tf.logging.set_verbosity(tf.logging.WARN)
 
-        gpu_procs = int(os.environ.get("GPU_PROCS", "0"))
-        if pp['no_gpu'] or gpu_procs > MAX_CPU_PROCS:
+        if pp['no_gpu']:
             self.logger.error("Not using GPU")
-            self.using_gpu = False
             config = tf.ConfigProto(device_count={'GPU': 0})
         else:
-            os.environ['GPU_PROCS'] = str(gpu_procs + 1)
-            self.using_gpu = True
             config = tf.ConfigProto()
         # config.intra_opt_parallelism_threads = 4
         # Allocate only minimum amount necessary GPU memory at start, then grow
@@ -87,14 +83,6 @@ class Net:
 
     def backward(self):
         raise NotImplementedError
-
-    def close(self):
-        self.net.save_timeline()
-        self.net.sess.close()
-        if self.using_gpu:
-            gpu_procs = int(os.environ.get("GPU_PROCS", "0"))
-            assert gpu_procs > 0
-            os.environ['GPU_PROCS'] = str(gpu_procs - 1)
 
     def _build_base_net(self, grid, cell, name):
         with tf.variable_scope('model/' + name):
