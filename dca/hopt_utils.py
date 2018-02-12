@@ -30,5 +30,17 @@ def mongo_decrease_gpu_procs(mongo_uri):
     doc = col.find_one()
     assert doc is not None
     assert doc['gpu_procs'] > 0
+    print("MONGO decreaseing GPU proc count")
     col.find_one_and_update(doc, {'$inc': {'gpu_procs': -1}})
     client.close()
+
+
+def mongo_get_pp(mongo_uri):
+    raise NotImplementedError
+    # Does not use attachmens object, will store different loc
+    client = MongoClient('localhost', 1234, document_class=SON, w=1, j=True)
+    db = client[mongo_uri]
+    col = db['pp']
+    doc = col.find_one()
+    client.close()
+    return doc

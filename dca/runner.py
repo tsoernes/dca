@@ -16,7 +16,8 @@ from pymongo import MongoClient
 
 import grid
 from gui import Gui
-from hopt_utils import mongo_decide_gpu_usage, mongo_decrease_gpu_procs
+from hopt_utils import (mongo_decide_gpu_usage, mongo_decrease_gpu_procs,
+                        mongo_get_pp)
 from params import get_pparams
 
 
@@ -154,8 +155,7 @@ class Runner:
     def _hopt_mongo(self, space):
         name = self.pp['hopt_fname'].replace('mongo:', '')
         trials = MongoTrials('mongo://localhost:1234/' + name + '/jobs')
-        # This won't work for mongo
-        # self._hopt_add_attachments(trials)
+        self._hopt_add_attachments(trials)
         try:
             self.logger.error("Prev best:")
             self.hopt_best(trials, n=1, view_pp=False)
@@ -202,12 +202,18 @@ class Runner:
                 pickle.dump(trials, f)
 
     def _hopt_add_attachments(self, trials):
+        """Add problem params to Trials object attachments, if it differs from
+        the last one added"""
         att = trials.attachments
-        if 'pp' in att:
-            if att['pp'][-1] != self.pp:
-                att['pp'].append(self.pp)
-        else:
-            att['pp'] = [self.pp]
+        if "pp0" not in att:
+            att['pp0'] = self.pp
+            return
+        n = 0
+        while f"pp{n}" in att:
+            n += 1
+        n -= 1
+        if att[f'pp{n}'] != self.pp:
+            att[f'pp{n+1}'] = self.pp
 
     def _hopt_trials(self):
         """Load trials from MongoDB or Pickle file, depending on 'hopt_fname'"""
@@ -234,7 +240,8 @@ class Runner:
     def _hopt_results(self, trials):
         """Gather losses and corresponding params for valid results"""
         if type(trials) is MongoTrials:
-            attachments = None
+            # attachments = mongo_get_pp(self.hopt['fname'].replace('mongo:', ''))
+            attachments = trials.attachments
             valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
             valid_results = []
             pkeys = valid[0]['misc']['vals'].keys()
@@ -294,7 +301,13 @@ class Runner:
 
     def hopt_list(self):
         client = MongoClient('localhost', 1234)
-        self.logger.error(client.list_database_names())
+        for dbname in client.list_database_names():
+            db = client[dbname]
+            self.logger.error(f"DB: {db}, GPU proc count {db['gpu_procs']['gpu_procs']}")
+            for colname in db.list_collection_names():
+                col = db[colname]
+                self.logger.error(f"  Col: {colname}, count: {col.count()}")
+        client.close()
 
 
 def hopt_proc(stratclass, pp, space, mongo_uri=None):
