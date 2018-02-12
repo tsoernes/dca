@@ -32,6 +32,18 @@ class NetStrat(RLStrat):
                     inp = input("Premature exit. Save model? Y/N: ").upper()
             if inp in ["", "Y"]:
                 self.net.save_model()
+
+        if self.pp['hopt_fname'] is not None and not self.pp['no_gpu']:
+            # This is a hopt process that's using the GPU and that's finished;
+            # so reduce the 'gpu_procs' count in MongoDB
+            from pymongo import MongoClient
+            from bson import SON
+            client = MongoClient('localhost', 1234, document_class=SON, w=1, j=True)
+            db = client[self.pp['hopt_fname'].replace('mongo:', '')]
+            col = db['gpu_procs']
+            doc = col.find_one()
+            db.col.find_one_and_update(doc, {'inc', {'gpu_procs': -1}})
+            client.close()
         self.net.save_timeline()
         self.net.sess.close()
 

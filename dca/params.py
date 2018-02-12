@@ -302,6 +302,11 @@ def get_pparams(defaults=False):
         action='store_true',
         help="(Net) Disable TensorFlow GPU usage",
         default=False)
+    parser.add_argument(
+        '--max_gpu_procs',
+        type=int,
+        help="(Net) Maximum concocurrent processes that utilize the GPU with tensorflow",
+        default=4)
 
     parser.add_argument(
         '--rng_seed',

@@ -8,10 +8,12 @@ from functools import partial
 from multiprocessing import Pool
 
 import numpy as np
+from bson import SON
 from hyperopt import Trials, fmin, hp, tpe  # noqa
 from hyperopt.mongoexp import MongoTrials
 from hyperopt.pyll.base import scope  # noqa
 from matplotlib import pyplot as plt
+from pymongo import MongoClient
 
 import grid
 from gui import Gui
@@ -159,7 +161,7 @@ class Runner:
             self.hopt_best(trials, n=1, view_pp=False)
         except ValueError:
             self.logger.error("No existing trials, starting from scratch")
-        fn = partial(hopt_proc, self.stratclass, self.pp)
+        fn = partial(hopt_proc, self.stratclass, self.pp, name)
         fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
 
     def _hopt_pickle(self, space):
@@ -291,16 +293,31 @@ class Runner:
         gui.test()
 
     def hopt_list(self):
-        from pymongo import MongoClient
         client = MongoClient('localhost', 1234)
         self.logger.error(client.list_database_names())
 
 
-def hopt_proc(stratclass, pp, space):
+def hopt_proc(stratclass, pp, space, mongo_uri=None):
     """
-    n_avg: Number of runs to take the average of.
-    For non-net strats, these are run in parallell.
+    If 'mongo_uri' is present, determine whether to use GPU or not based
+    on the number of processes that already utilize it.
     """
+    # Don't override user-given arg
+    if not pp['no_gpu'] and mongo_uri is not None:
+        # The DB should contain a collection 'gpu_procs' with one document,
+        # {'gpu_procs': N}, where N is the current number of procs that utilize the GPU.
+        client = MongoClient('localhost', 1234, document_class=SON, w=1, j=True)
+        db = client[mongo_uri]
+        col = db['gpu_procs']
+        doc = col.find_one()
+        if doc is None:
+            col.insert_one({'gpu_procs': 0})
+            doc = col.find_one()
+        if doc['gpu_procs'] >= pp['max_gpu_procs']:
+            pp['no_gpu'] = True
+        else:
+            db.col.find_one_and_update(doc, {'inc', {'gpu_procs': 1}})
+        client.close()
     for key, val in space.items():
         pp[key] = val
     # import psutil
