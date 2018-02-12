@@ -20,7 +20,6 @@ QNet + Singh hybrid:
 
 Progging:
   Store pp in mongodb
-  TF Learning rate decay
   Batch norm for exp replay
 
 Reading:
