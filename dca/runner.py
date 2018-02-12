@@ -15,8 +15,9 @@ from matplotlib import pyplot as plt
 
 import grid
 from gui import Gui
-from hopt_utils import (mongo_decide_gpu_usage, mongo_decrease_gpu_procs,
-                        mongo_get_pp, mongo_list_dbs)
+from hopt_utils import (add_pp_mongo, add_pp_pickle, get_pps_mongo,
+                        mongo_decide_gpu_usage, mongo_decrease_gpu_procs,
+                        mongo_list_dbs)
 from params import get_pparams
 
 
@@ -119,8 +120,9 @@ class Runner:
         """
         if self.pp['net']:
             space = {
-                'net_lr': hp.loguniform('net_lr', np.log(5e-7), np.log(1e-4)),
-                'net_lr_decay': hp.loguniform('net_lr_decay', np.log(0.75), np.log(0.99999)),
+                # Qlearnnet
+                'net_lr': hp.uniform('net_lr', 1e-6, 1e-4),
+                'net_lr_decay': hp.uniform('net_lr_decay', 0.80, 0.9999999),
                 # Singh
                 # 'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
                 'beta': hp.loguniform('beta', np.log(7), np.log(23)),
@@ -154,7 +156,7 @@ class Runner:
     def _hopt_mongo(self, space):
         name = self.pp['hopt_fname'].replace('mongo:', '')
         trials = MongoTrials('mongo://localhost:1234/' + name + '/jobs')
-        self._hopt_add_attachments(trials)
+        add_pp_mongo(name, self.pp)
         try:
             self.logger.error("Prev best:")
             self.hopt_best(trials, n=1, view_pp=False)
@@ -182,7 +184,7 @@ class Runner:
             trials = Trials()
             prev_best = None
 
-        self._hopt_add_attachments(trials)
+        add_pp_pickle(trials, self.pp)
         fn = partial(hopt_proc, self.stratclass, self.pp, mongo_uri=None)
         while True:
             n_trials = len(trials)
@@ -199,20 +201,6 @@ class Runner:
                 prev_best = best
             with open(f_name, "wb") as f:
                 pickle.dump(trials, f)
-
-    def _hopt_add_attachments(self, trials):
-        """Add problem params to Trials object attachments, if it differs from
-        the last one added"""
-        att = trials.attachments
-        if "pp0" not in att:
-            att['pp0'] = self.pp
-            return
-        n = 0
-        while f"pp{n}" in att:
-            n += 1
-        n -= 1
-        if att[f'pp{n}'] != self.pp:
-            att[f'pp{n+1}'] = self.pp
 
     def _hopt_trials(self):
         """Load trials from MongoDB or Pickle file, depending on 'hopt_fname'"""
@@ -239,8 +227,8 @@ class Runner:
     def _hopt_results(self, trials):
         """Gather losses and corresponding params for valid results"""
         if type(trials) is MongoTrials:
-            # attachments = mongo_get_pp(self.hopt['fname'].replace('mongo:', ''))
-            attachments = trials.attachments
+            uri = self.pp['hopt_fname'].replace('mongo:', '')
+            attachments = get_pps_mongo(uri)
             valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
             valid_results = []
             pkeys = valid[0]['misc']['vals'].keys()
@@ -274,11 +262,10 @@ class Runner:
         self.logger.error(f"Found {len(sorted_results)} valid trials")
         if view_pp and attachments:
             self.logger.error(attachments)
-        else:
-            for lt in sorted_results[:n]:
-                fparams = ' '.join(
-                    [f"--{key} {value[lt[1]]}" for key, value in params.items()])
-                self.logger.error(f"Loss {lt[0]:.6f}: {fparams}")
+        for lt in sorted_results[:n]:
+            fparams = ' '.join(
+                [f"--{key} {value[lt[1]]}" for key, value in params.items()])
+            self.logger.error(f"Loss {lt[0]:.6f}: {fparams}")
 
     def hopt_plot(self):
         trials = self._hopt_trials()
