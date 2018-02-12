@@ -161,7 +161,7 @@ class Runner:
             self.hopt_best(trials, n=1, view_pp=False)
         except ValueError:
             self.logger.error("No existing trials, starting from scratch")
-        fn = partial(hopt_proc, self.stratclass, self.pp, name)
+        fn = partial(hopt_proc, self.stratclass, self.pp, mongo_uri=name)
         fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
 
     def _hopt_pickle(self, space):
@@ -184,7 +184,7 @@ class Runner:
             prev_best = None
 
         self._hopt_add_attachments(trials)
-        fn = partial(hopt_proc, self.stratclass, self.pp)
+        fn = partial(hopt_proc, self.stratclass, self.pp, mongo_uri=None)
         while True:
             n_trials = len(trials)
             self.logger.error(f"Running trials {n_trials+1}-{n_trials+trials_step}")
@@ -302,7 +302,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     If 'mongo_uri' is present, determine whether to use GPU or not based
     on the number of processes that already utilize it.
     """
-    using_gpu = False
+    using_gpu_and_mongo = False
     # Don't override user-given arg
     if not pp['no_gpu'] and mongo_uri is not None:
         # The DB should contain a collection 'gpu_procs' with one document,
@@ -319,7 +319,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
             client.close()
         else:
             db.col.find_one_and_update(doc, {'inc', {'gpu_procs': 1}})
-            using_gpu = True
+            using_gpu_and_mongo = True
     for key, val in space.items():
         pp[key] = val
     # import psutil
@@ -328,7 +328,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     logger = logging.getLogger('')
     logger.error(space)
     result = Runner.sim_proc(stratclass, pp, pid='', reseed=False)
-    if using_gpu:
+    if using_gpu_and_mongo:
         # Finished using the GPU, so reduce the 'gpu_procs' count
         doc = col.find_one()
         db.col.find_one_and_update(doc, {'inc', {'gpu_procs': -1}})
