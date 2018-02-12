@@ -39,8 +39,8 @@ class NetStrat(RLStrat):
         loss, lr = self.net.backward(*args, **kwargs)
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
-            self.quit_sim = True
             self.invalid_loss = True
+            self.quit_sim = True
         else:
             self.losses.append(loss)
             self.last_lr = lr
@@ -221,6 +221,7 @@ class ACNetStrat(NetStrat):
         if np.isinf(loss[0]) or np.isnan(loss[0]):
             self.logger.error(f"Invalid loss: {loss}")
             self.quit_sim = True
+            self.invalid_loss = True
         else:
             self.losses.append(loss)
             self.learning_rates.append(lr)

@@ -167,8 +167,8 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--hopt_fname',
         type=str,
-        help="(Hopt) File name or Mongo-DB collection "
-        "name for hyperopt destination/source",
+        help="(Hopt) File name or Mongo-DB data base name"
+        "for hyperopt destination/source. Prepend 'mongo:' to Mongo-DB names",
         default=None)
 
     parser.add_argument(

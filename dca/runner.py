@@ -12,12 +12,11 @@ from hyperopt import Trials, fmin, hp, tpe  # noqa
 from hyperopt.mongoexp import MongoTrials
 from hyperopt.pyll.base import scope  # noqa
 from matplotlib import pyplot as plt
-from pymongo import MongoClient
 
 import grid
 from gui import Gui
 from hopt_utils import (mongo_decide_gpu_usage, mongo_decrease_gpu_procs,
-                        mongo_get_pp)
+                        mongo_get_pp, mongo_list_dbs)
 from params import get_pparams
 
 
@@ -41,7 +40,7 @@ class Runner:
         elif self.pp['hopt_plot']:
             self.hopt_plot()
         elif self.pp['hopt_list']:
-            self.hopt_list()
+            mongo_list_dbs()
         elif self.pp['avg_runs']:
             self.avg_run()
         elif self.pp['strat'] == 'show':
@@ -299,16 +298,6 @@ class Runner:
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
         gui.test()
 
-    def hopt_list(self):
-        client = MongoClient('localhost', 1234)
-        for dbname in client.list_database_names():
-            db = client[dbname]
-            self.logger.error(f"DB: {db}, GPU proc count {db['gpu_procs']['gpu_procs']}")
-            for colname in db.list_collection_names():
-                col = db[colname]
-                self.logger.error(f"  Col: {colname}, count: {col.count()}")
-        client.close()
-
 
 def hopt_proc(stratclass, pp, space, mongo_uri=None):
     """
@@ -316,7 +305,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     on the number of processes that already utilize it.
     """
     using_gpu_and_mongo = False
-    # Don't override user-given arg
+    # Don't override user-given arg for disabling GPU-usage
     if not pp['no_gpu'] and mongo_uri is not None:
         using_gpu_and_mongo = mongo_decide_gpu_usage(mongo_uri, pp['max_gpu_procs'])
         pp['no_gpu'] = not using_gpu_and_mongo
@@ -324,6 +313,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
         pp[key] = val
     # import psutil
     # n_avg = psutil.cpu_count(logical=False)
+    # Use same constant numpy seed for all sims
     np.random.seed(pp['rng_seed'])
     logger = logging.getLogger('')
     logger.error(space)
@@ -333,8 +323,10 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
         mongo_decrease_gpu_procs(mongo_uri)
     res = result[0]
     if res is None:
+        # Loss is inf or nan
         return {"status": "fail"}
     elif res is 1:
+        # User quit, e.g. ctrl-c
         return {"status": "suspended"}
     return {'status': "ok", "loss": res, "hoff_loss": result[1]}
 
