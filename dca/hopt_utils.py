@@ -13,9 +13,11 @@ def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):
         col.insert_one({'gpu_procs': 0})
         doc = col.find_one()
     if doc['gpu_procs'] >= max_gpu_procs:
+        print("MONGO decided not to use GPU")
         using_gpu = False
     else:
-        db.col.find_one_and_update(doc, {'$inc': {'gpu_procs': 1}})
+        print("MONGO increasing GPU proc count")
+        col.find_one_and_update(doc, {'$inc': {'gpu_procs': 1}})
         using_gpu = True
     client.close()
     return using_gpu
@@ -28,5 +30,5 @@ def mongo_decrease_gpu_procs(mongo_uri):
     doc = col.find_one()
     assert doc is not None
     assert doc['gpu_procs'] > 0
-    db.col.find_one_and_update(doc, {'$inc': {'gpu_procs': -1}})
+    col.find_one_and_update(doc, {'$inc': {'gpu_procs': -1}})
     client.close()
