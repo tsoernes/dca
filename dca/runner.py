@@ -318,7 +318,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
             pp['no_gpu'] = True
             client.close()
         else:
-            db.col.find_one_and_update(doc, {'inc', {'gpu_procs': 1}})
+            db.col.find_one_and_update(doc, {'$inc': {'gpu_procs': 1}})
             using_gpu_and_mongo = True
     for key, val in space.items():
         pp[key] = val
