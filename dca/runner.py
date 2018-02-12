@@ -8,7 +8,6 @@ from functools import partial
 from multiprocessing import Pool
 
 import numpy as np
-from bson import SON
 from hyperopt import Trials, fmin, hp, tpe  # noqa
 from hyperopt.mongoexp import MongoTrials
 from hyperopt.pyll.base import scope  # noqa
@@ -17,6 +16,7 @@ from pymongo import MongoClient
 
 import grid
 from gui import Gui
+from hopt_utils import mongo_decide_gpu_usage, mongo_decrease_gpu_procs
 from params import get_pparams
 
 
@@ -305,21 +305,8 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     using_gpu_and_mongo = False
     # Don't override user-given arg
     if not pp['no_gpu'] and mongo_uri is not None:
-        # The DB should contain a collection 'gpu_procs' with one document,
-        # {'gpu_procs': N}, where N is the current number of procs that utilize the GPU.
-        client = MongoClient('localhost', 1234, document_class=SON, w=1, j=True)
-        db = client[mongo_uri]
-        col = db['gpu_procs']
-        doc = col.find_one()
-        if doc is None:
-            col.insert_one({'gpu_procs': 0})
-            doc = col.find_one()
-        if doc['gpu_procs'] >= pp['max_gpu_procs']:
-            pp['no_gpu'] = True
-            client.close()
-        else:
-            db.col.find_one_and_update(doc, {'$inc': {'gpu_procs': 1}})
-            using_gpu_and_mongo = True
+        using_gpu_and_mongo = mongo_decide_gpu_usage(mongo_uri, pp['max_gpu_procs'])
+        pp['no_gpu'] = not using_gpu_and_mongo
     for key, val in space.items():
         pp[key] = val
     # import psutil
@@ -330,9 +317,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     result = Runner.sim_proc(stratclass, pp, pid='', reseed=False)
     if using_gpu_and_mongo:
         # Finished using the GPU, so reduce the 'gpu_procs' count
-        doc = col.find_one()
-        db.col.find_one_and_update(doc, {'inc', {'gpu_procs': -1}})
-        client.close()
+        mongo_decrease_gpu_procs(mongo_uri)
     res = result[0]
     if res is None:
         return {"status": "fail"}
