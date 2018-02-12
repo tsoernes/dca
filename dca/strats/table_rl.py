@@ -45,6 +45,7 @@ class QTable(RLStrat):
         n_used = np.count_nonzero(grid[cell])
         q = self.get_qvals(cell, n_used, ch)
         td_err = target_q - q
+        self.losses.append(td_err ** 2)
         frep = self.feature_rep(cell, n_used)
         if self.lmbda is None:
             self.qvals[frep][ch] += self.alpha * td_err

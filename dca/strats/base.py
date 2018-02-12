@@ -144,8 +144,10 @@ class RLStrat(Strat):
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
         self.logger.info(f"NP Rand: {np.random.uniform()}")
+        self.losses = [0]
 
     def fn_report(self):
+        self.env.stats.report_loss(self.losses)
         self.env.stats.report_rl(self.epsilon, self.alpha)
 
     # def fn_after(self):

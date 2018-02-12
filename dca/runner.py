@@ -117,8 +117,10 @@ class Runner:
         """
         if self.pp['net']:
             space = {
-                'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
+                'net_lr': hp.loguniform('net_lr', np.log(5e-7), np.log(1e-4)),
+                'net_lr_decay': hp.loguniform('net_lr_decay', np.log(0.75), np.log(0.99999)),
                 # Singh
+                # 'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
                 'beta': hp.loguniform('beta', np.log(7), np.log(23)),
                 # Double
                 'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
@@ -152,10 +154,11 @@ class Runner:
         trials = MongoTrials('mongo://localhost:1234/' + name + '/jobs')
         # This won't work for mongo
         # self._hopt_add_attachments(trials)
-        if len(trials) > 0:
+        try:
+            self.logger.error("Prev best:")
             self.hopt_best(trials, n=1, view_pp=False)
-        else:
-            self.logger.errors("No existing trials, starting from scratch")
+        except ValueError:
+            self.logger.error("No existing trials, starting from scratch")
         fn = partial(hopt_proc, self.stratclass, self.pp)
         fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
 
