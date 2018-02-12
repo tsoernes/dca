@@ -115,8 +115,8 @@ class Runner:
         """
         if self.pp['net']:
             space = {
-                'net_lr': hp.loguniform('net_lr', np.log(1e-6), np.log(5e-4)),
-                'net_lr_decay': hp.loguniform('net_lr_decay', np.log(0.70), np.log(0.99999)),
+                'net_lr': hp.loguniform('net_lr', np.log(5e-7), np.log(1e-4)),
+                'net_lr_decay': hp.loguniform('net_lr_decay', np.log(0.75), np.log(0.99999)),
                 # Singh
                 # 'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
                 'beta': hp.loguniform('beta', np.log(7), np.log(23)),
