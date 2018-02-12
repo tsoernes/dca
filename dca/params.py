@@ -160,6 +160,11 @@ def get_pparams(defaults=False):
         help="(Hopt) Plot params found and corresponding loss ",
         default=False)
     parser.add_argument(
+        '--hopt_list',
+        action='store_true',
+        help="(Hopt) List mongo databases",
+        default=False)
+    parser.add_argument(
         '--hopt_fname',
         type=str,
         help="(Hopt) File name or Mongo-DB collection "

@@ -32,8 +32,7 @@ class NetStrat(RLStrat):
                     inp = input("Premature exit. Save model? Y/N: ").upper()
             if inp in ["", "Y"]:
                 self.net.save_model()
-        self.net.save_timeline()
-        self.net.sess.close()
+        self.net.close()
 
     def backward(self, *args, **kwargs):
         loss, lr = self.net.backward(*args, **kwargs)

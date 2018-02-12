@@ -37,6 +37,8 @@ class Runner:
             self.hopt_best(None, self.pp['hopt_best'], view_pp=True)
         elif self.pp['hopt_plot']:
             self.hopt_plot()
+        elif self.pp['hopt_list']:
+            self.hopt_list()
         elif self.pp['avg_runs']:
             self.avg_run()
         elif self.pp['strat'] == 'show':
@@ -287,6 +289,11 @@ class Runner:
         # grid = RectOffGrid(logger=self.logger, **self.pp)
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
         gui.test()
+
+    def hopt_list(self):
+        from pymongo import MongoClient
+        client = MongoClient('localhost', 1234)
+        self.logger.error(client.list_database_names())
 
 
 def hopt_proc(stratclass, pp, space):
