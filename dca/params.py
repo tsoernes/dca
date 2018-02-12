@@ -142,7 +142,7 @@ def get_pparams(defaults=False):
         choices=[
             'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda',
             'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff',
-            'beta'
+            'beta', 'net_lr_decay'
         ],
         help="(Hopt) Hyper-parameter optimization with hyperopt.",
         default=None)

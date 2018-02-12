@@ -91,7 +91,7 @@ class Stats:
         self.epsilons.append(epsilon)
         self.logger.info(f"Epsilon: {epsilon:.5f}" + alpha_str)
 
-    def report_net(self, losses):
+    def report_loss(self, losses):
         niter = self.pp['log_iter']
         if type(losses[0]) is tuple:
             avg_losses = np.zeros(len(losses[0]))

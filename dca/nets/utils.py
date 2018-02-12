@@ -90,7 +90,7 @@ def build_default_trainer(pp, loss, var_list=None):
     if pp['net_lr_decay'] < 1:
         global_step = tf.Variable(0, trainable=False)
         learning_rate = tf.train.exponential_decay(pp['net_lr'], global_step,
-                                                   pp['n_events'], pp['net_lr_decay'])
+                                                   10000, pp['net_lr_decay'])
     else:
         global_step = None
         learning_rate = tf.constant(pp['net_lr'])

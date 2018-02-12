@@ -16,11 +16,10 @@ class NetStrat(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net_copy_iter = self.pp['net_copy_iter']
-        self.losses = [0]
         self.last_lr = 1
 
     def fn_report(self):
-        self.env.stats.report_net(self.losses)
+        self.env.stats.report_loss(self.losses)
         self.env.stats.report_rl(self.epsilon, self.last_lr)
 
     def fn_after(self):
@@ -113,7 +112,7 @@ class DistQNetStrat(QNetStrat):
     TODO:
     - Try SARSA
     - Try Double Q
-    - 
+    -
     """
 
     def __init__(self, *args, **kwargs):
