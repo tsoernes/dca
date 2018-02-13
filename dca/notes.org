@@ -39,3 +39,9 @@ Singh: There are better options than SGD for linear nets
 Src Bertsekas book:
 Semi-Markov: Controls applied at discrete times, but rewards are continuously accumulated.
 Time between successive control choices vary, therefore so do time between state transitions.
+
+https://medium.com/mlreview/making-sense-of-the-bias-variance-trade-off-in-deep-reinforcement-learning-79cf1e83d565
+The other problem is that the “true” reward structure is always a moving target.
+As an agent improves its policy, then the expected rewards should increase as
+well. This causes the unintuitive experience of the loss function increasing,
+even though the agent’s policy is more successful.

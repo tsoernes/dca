@@ -4,6 +4,8 @@ import numpy as np
 
 from eventgen import CEvent
 
+# from gridfuncs import get_eligible_chs_bitmap, hex_distance, neighbors
+
 
 class Grid:
     "Rhombus grid with axial coordinates"
@@ -66,9 +68,11 @@ class Grid:
                     return False
         return True
 
-    def _get_eligible_chs_bitmap(grid, cell):
+    @staticmethod
+    def get_eligible_chs_bitmap(grid, cell):
         """Find eligible chs by bitwise ORing the allocation maps of neighbors"""
-        neighs = Grid.neighbors(2, *cell, separate=True, include_self=True)
+        r, c = cell
+        neighs = Grid.neighbors(2, r, c, separate=True, include_self=True)
         alloc_map = np.bitwise_or.reduce(grid[neighs])
         return alloc_map
 
@@ -80,14 +84,14 @@ class Grid:
         These are the eligible channels, i.e. those that can be assigned
         without violating the reuse constraint.
         """
-        alloc_map = Grid._get_eligible_chs_bitmap(grid, cell)
+        alloc_map = Grid.get_eligible_chs_bitmap(grid, cell)
         eligible = np.nonzero(np.logical_not(alloc_map))[0]
         return eligible
 
     @staticmethod
     def get_n_eligible_chs(grid, cell):
         """Return the number of eligible channels"""
-        alloc_map = Grid._get_eligible_chs_bitmap(grid, cell)
+        alloc_map = Grid.get_eligible_chs_bitmap(grid, cell)
         n_eligible = np.count_nonzero(np.invert(alloc_map))
         return n_eligible
 
