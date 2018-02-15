@@ -3,10 +3,6 @@ import functools
 import numpy as np
 
 from eventgen import CEvent
-# from gridfuncs import get_eligible_chs_bitmap, hex_distance, neighbors
-from gridfuncs_numba import (afterstates, get_eligible_chs,
-                             get_eligible_chs_bitmap, get_n_eligible_chs,
-                             hex_distance, neighbors, neighbors_sep)
 
 
 class Grid:
@@ -21,27 +17,27 @@ class Grid:
         self._partition_cells()
 
     def print_cell(self, r, c):
-        print(f"Cell ({r}, {c}): {np.where(self.state[r][c] == 1)}")
+        print(f"Cell ({r}, {c}): {np.where(self.state[r, c] == 1)}")
 
     def print_neighs(self, row, col):
         print(f"Cell ({row}, {col})"
-              f"\nNeighs1: {self.neighbors1(row, col)}"
+              f"\nNeighs1: {self.neighbors(1, row, col)}"
               f"\nNeighs1sparse: {self.neighbors1sparse(row, col)}"
-              f"\nNeighs2: {self.neighbors2(row, col)}")
+              f"\nNeighs2: {self.neighbors(2, row, col)}")
 
     def print_neighs2(self, row, col):
         """
         Show all the channels for the given cell and its neighbors
         """
         self.print_cell(row, col)
-        for neigh in self.neighbors2(row, col):
+        for neigh in self.neighbors(2, row, col):
             print(f"\n{neigh}: {np.where(self.state[neigh]==1)}")
 
     def __str__(self):
         strstate = ""
         for r in range(self.rows):
             for c in range(self.cols):
-                inuse = np.where(self.state[r][c] == 1)
+                inuse = np.where(self.state[r, c] == 1)
                 strstate += f"\n({r},{c}): {len(inuse)} used - {inuse}"
         return strstate
 
@@ -57,11 +53,11 @@ class Grid:
         # to skip checking some cells.
         for r in range(self.rows):
             for c in range(self.cols):
-                neighs = self.neighbors2(r, c, True)
+                neighs = self.neighbors(2, r, c, separate=True)
                 # Channels in use at neighbors
                 inuse = np.bitwise_or.reduce(self.state[neighs])
                 # Channels in use at a neigh and cell
-                inuse_both = np.bitwise_and(self.state[r][c], inuse)
+                inuse_both = np.bitwise_and(self.state[r, c], inuse)
                 viols = np.where(inuse_both == 1)[0]
                 if len(viols) > 0:
                     self.logger.error("Channel Reuse constraint violated"
@@ -71,58 +67,31 @@ class Grid:
         return True
 
     @staticmethod
-    def get_eligible_chs_bitmap(grid, cell):
-        get_eligible_chs_bitmap(grid, cell)
-    # @staticmethod
-    # def get_eligible_chs_bitmap(grid, cell):
-    #     """Find eligible chs by bitwise ORing the allocation maps of neighbors"""
-    #     r, c = cell
-    #     neighs = Grid.neighbors(2, r, c, separate=True, include_self=True)
-    #     alloc_map = np.bitwise_or.reduce(grid[neighs])
-    #     return alloc_map
+    def _get_eligible_chs_bitmap(grid, cell):
+        """Find eligible chs by bitwise ORing the allocation maps of neighbors"""
+        r, c = cell
+        neighs = Grid.neighbors(2, r, c, separate=True, include_self=True)
+        alloc_map = np.bitwise_or.reduce(grid[neighs])
+        return alloc_map
 
     @staticmethod
     def get_eligible_chs(grid, cell):
-        get_eligible_chs(grid, cell)
-    # @staticmethod
-    # def get_eligible_chs(grid, cell):
-    #     """
-    #     Find the channels that are free in 'cell' and all of
-    #     its neighbors with a distance of 2 or less.
-    #     These are the eligible channels, i.e. those that can be assigned
-    #     without violating the reuse constraint.
-    #     """
-    #     alloc_map = Grid.get_eligible_chs_bitmap(grid, cell)
-    #     eligible = np.nonzero(np.logical_not(alloc_map))[0]
-    #     return eligible
+        """
+        Find the channels that are free in 'cell' and all of
+        its neighbors with a distance of 2 or less.
+        These are the eligible channels, i.e. those that can be assigned
+        without violating the reuse constraint.
+        """
+        alloc_map = Grid._get_eligible_chs_bitmap(grid, cell)
+        eligible = np.nonzero(np.invert(alloc_map))[0]
+        return eligible
 
     @staticmethod
     def get_n_eligible_chs(grid, cell):
-        get_n_eligible_chs(grid, cell)
-    # @staticmethod
-    # def get_n_eligible_chs(grid, cell):
-    #     """Return the number of eligible channels"""
-    #     alloc_map = Grid.get_eligible_chs_bitmap(grid, cell)
-    #     n_eligible = np.count_nonzero(np.invert(alloc_map))
-    #     return n_eligible
-
-    @staticmethod
-    def afterstates(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
-        return afterstates(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70)
-    # @staticmethod
-    # def afterstates(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
-    #     """Make an afterstate (resulting grid) for each possible,
-    #     # eligible action in 'chs'"""
-    #     if ce_type == CEvent.END:
-    #         targ_val = 0
-    #     else:
-    #         targ_val = 1
-    #     grids = np.repeat(np.expand_dims(np.copy(grid), axis=0), len(chs), axis=0)
-    #     for i, ch in enumerate(chs):
-    #         # assert grids[i][cell][ch] != targ_val
-    #         grids[i][cell][ch] = targ_val
-    #     assert grids.shape == (len(chs), rows, cols, n_channels)
-    #     return grids
+        """Return the number of eligible channels"""
+        alloc_map = Grid._get_eligible_chs_bitmap(grid, cell)
+        n_eligible = np.count_nonzero(np.invert(alloc_map))
+        return n_eligible
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -140,62 +109,47 @@ class Grid:
         return idxs
 
     @staticmethod
-    def neighbors1(row, col):
-        return neighbors(1, row, col)
+    @functools.lru_cache(maxsize=None)
+    def neighbors(dist, row, col, separate=False, include_self=False):
+        """
+        Returns a list with indices of neighbors with a distance of 'dist' or less
+        from the cell at (row, col)
 
-    @staticmethod
-    def neighbors2(row, col, separate):
-        return neighbors(2, row, col, separate=separate, include_self=False)
+        If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),
+        else return [(r1, c1), (r2, c2), ...]
+        """
 
-    @staticmethod
-    def hex_distance(cell_a, cell_b):
-        return hex_distance(cell_a, cell_b)
-    # @staticmethod
-    # def hex_distance(cell_a, cell_b):
-    #     r1, c1 = cell_a
-    #     r2, c2 = cell_b
-    #     return (abs(r1 - r2) + abs(r1 + c1 - r2 - c2) + abs(c1 - c2)) / 2
+        def _hex_distance(cell_a, cell_b):
+            r1, c1 = cell_a
+            r2, c2 = cell_b
+            return (abs(r1 - r2) + abs(r1 + c1 - r2 - c2) + abs(c1 - c2)) / 2
 
-    @staticmethod
-    def neighbors(dist, row, col, separate=False, include_self=False, rows=7, cols=7):
+        rows, cols = 7, 7
         if separate:
-            return neighbors_sep(dist, row, col, include_self, rows, cols)
+            rs = []
+            cs = []
         else:
-            return neighbors(dist, row, col, include_self, rows, cols)
-    # @staticmethod
-    # @functools.lru_cache(maxsize=None)
-    # def neighbors(dist, row, col, separate=False, include_self=False, rows=7, cols=7):
-    #     """
-    #     Returns a list with indices of neighbors with a distance of 'dist' or less
-    #     from the cell at (row, col)
-
-    #     If 'separate' is True, return ([r1, r2, ...], [c1, c2, ...]),
-    #     else return [(r1, c1), (r2, c2), ...]
-    #     """
-    #     if separate:
-    #         rs = []
-    #         cs = []
-    #     else:
-    #         idxs = []
-    #     for r2 in range(rows):
-    #         for c2 in range(cols):
-    #             if (include_self or (row, col) != (r2, c2)) \
-    #                and Grid.hex_distance((row, col), (r2, c2)) <= dist:
-    #                 if separate:
-    #                     rs.append(r2)
-    #                     cs.append(c2)
-    #                 else:
-    #                     idxs.append((r2, c2))
-    #     if separate:
-    #         return (rs, cs)
-    #     return idxs
+            idxs = []
+        for r2 in range(rows):
+            for c2 in range(cols):
+                if ((include_self or (row, col) != (r2, c2)) and _hex_distance(
+                        (row, col), (r2, c2)) <= dist):  # YAPF: disable
+                    if separate:
+                        rs.append(r2)
+                        cs.append(c2)
+                    else:
+                        idxs.append((r2, c2))
+        if separate:
+            return (rs, cs)
+        return idxs
 
     @staticmethod
-    def neighbors_all_oh(dist=2, include_self=True, rows=7, cols=7):
+    def neighbors_all_oh(dist=2, include_self=True):
         """
         Returns an array where each and every cell has a onehot representation of
         their neigbors
         """
+        rows, cols = 7, 7
         idxs = np.zeros((rows, cols, rows, cols), dtype=np.bool)
         for r1 in range(rows):
             for c1 in range(cols):
@@ -218,7 +172,7 @@ class Grid:
         def label(l, y, x):
             # A center and some part of its subgrid may be out of bounds.
             if (x >= 0 and x < self.cols and y >= 0 and y < self.rows):
-                self.labels[y][x] = l
+                self.labels[y, x] = l
 
         centers = [(0, 0), (1, 2), (2, 4), (3, 6), (4, 8), (3, -1), (4, 1), (5, 3),
                    (6, 5), (7, 7), (-1, 5), (7, 0), (0, 7)]
@@ -226,3 +180,81 @@ class Grid:
             label(0, *center)
             for i, neigh in enumerate(self.neighbors1sparse(*center)):
                 label(i + 1, *neigh)
+
+    @staticmethod
+    def afterstates(grid, cell, ce_type, chs, rows=7, cols=7, n_channels=70):
+        """Make an afterstate (resulting grid) for each possible,
+        # eligible action in 'chs'"""
+        if ce_type == CEvent.END:
+            targ_val = 0
+        else:
+            targ_val = 1
+        grids = np.repeat(np.expand_dims(np.copy(grid), axis=0), len(chs), axis=0)
+        for i, ch in enumerate(chs):
+            # assert grids[i][cell][ch] != targ_val
+            grids[i][cell][ch] = targ_val
+        assert grids.shape == (len(chs), rows, cols, n_channels)
+        return grids
+
+    def afterstate_freps(self, grid, cell, ce_type, chs):
+        """ Get the feature representation for the current grid,
+        and from it derive the f.rep for each possible afterstate.
+        Current assumptions:
+        n_used_neighs (frep[:-1]) does include self
+        n_free_self (frep[-1]) counts ELIGIBLE chs
+        """
+        fgrid = self.feature_reps(grid)[0]
+        r, c = cell
+        neighs4 = Grid.neighbors(dist=4, row=r, col=c, separate=True, include_self=True)
+        neighs2 = Grid.neighbors(dist=2, row=r, col=c, include_self=True)
+        fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
+        if ce_type == CEvent.END:
+            # One less channel will be in use by neighs
+            n_used_neighs_diff = -1
+            # One more channel MIGHT become eligible
+            # Temporarily modify grid and check if that's the case
+            n_elig_self_diff = 1
+            grid[cell][chs] = 0
+        else:
+            # One more ch will be in use
+            n_used_neighs_diff = 1
+            # One less ch will be eligible.
+            # Since the channel is in 'chs' it must be eligible before assignment
+            n_elig_self_diff = -1
+        eligible_chs = [Grid.get_eligible_chs(grid, neigh2) for neigh2 in neighs2]
+        for i, ch in enumerate(chs):
+            fgrids[i, neighs4[0], neighs4[1], ch] += n_used_neighs_diff
+            for j, neigh2 in enumerate(neighs2):
+                if ch in eligible_chs[j]:
+                    fgrids[i, neigh2[0], neigh2[1], -1] += n_elig_self_diff
+        if ce_type == CEvent.END:
+            grid[cell][chs] = 1  # Revert changes
+        return fgrids
+
+    @staticmethod
+    def feature_reps(grids):
+        """
+        Takes a grid or an array of grids and return the feature representations.
+
+        For each cell, the number of ELIGIBLE channels in that cell.
+        For each cell-channel pair, the number of times that channel is
+        used by neighbors with a distance of 4 or less.
+        NOTE The latter does not include whether or not the channel is
+        in use by the cell itself, though that may be the better option.
+        """
+        assert type(grids) == np.ndarray
+        rows, cols, n_channels = 7, 7, 70
+        if grids.ndim == 3:
+            grids = np.expand_dims(grids, axis=0)
+        fgrids = np.zeros((len(grids), rows, cols, n_channels + 1), dtype=np.int16)
+        # fgrids[:, :, :, n_channels] = n_channels \
+        #     - np.count_nonzero(grids, axis=3)
+        for r in range(rows):
+            for c in range(cols):
+                # TODO all onehot
+                neighs = Grid.neighbors(4, r, c, separate=True, include_self=True)
+                n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
+                fgrids[:, r, c, :-1] = n_used
+                for i in range(len(grids)):
+                    fgrids[i, r, c, -1] = Grid.get_n_eligible_chs(grids[i], (r, c))
+        return fgrids

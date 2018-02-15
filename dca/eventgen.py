@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 from functools import total_ordering
 from heapq import heappop, heappush
 
@@ -6,7 +6,7 @@ import numpy as np
 
 
 @total_ordering
-class CEvent(Enum):
+class CEvent(IntEnum):
     NEW = 0  # Incoming call
     END = 1  # End a current call
     HOFF = 2  # Incoming call, handed off from another cell

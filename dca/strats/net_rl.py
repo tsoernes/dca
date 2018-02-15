@@ -1,6 +1,8 @@
 from typing import List, Tuple
 
+import numba as nba
 import numpy as np
+from numba import jit
 
 from eventgen import CEvent
 from grid import Grid
@@ -262,8 +264,8 @@ class SinghNetStrat(VNetStrat):
             gamma = bdisc if self.pp['dt_rewards'] else self.gamma
             value_target = reward + gamma * np.array([[self.val]])
             self.backward(
-                self.scale_freps(self.feature_reps(grid)),
-                self.scale_freps(self.feature_reps(self.grid)), value_target)
+                self.scale_freps(Grid.feature_reps(grid)),
+                self.scale_freps(Grid.feature_reps(self.grid)), value_target)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -278,7 +280,7 @@ class SinghNetStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        fgrids = self.afterstate_freps(self.grid, cell, ce_type, chs)
+        fgrids = Grid.afterstate_freps(self.grid, cell, ce_type, chs)
         fgrids = self.scale_freps(fgrids)
         # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
         # assert (fgrids == fgrids2).all()
@@ -292,7 +294,7 @@ class SinghNetStrat(VNetStrat):
 
     def afterstate_freps_naive(self, grid, cell, ce_type, chs):
         astates = Grid.afterstates(grid, cell, ce_type, chs)
-        freps = self.feature_reps(astates)
+        freps = Grid.feature_reps(astates)
         return freps
 
     def scale_freps(self, freps):
@@ -303,65 +305,3 @@ class SinghNetStrat(VNetStrat):
         freps[:, :, :, :-1] /= 43.0  # Max possible neighs within dist 4 including self
         freps[:, :, :, -1] /= float(self.n_channels)
         return freps
-
-    def afterstate_freps(self, grid, cell, ce_type, chs):
-        """ Get the feature representation for the current grid,
-        and from it derive the f.rep for each possible afterstate.
-        Current assumptions:
-        n_used_neighs (frep[:-1]) does include self
-        n_free_self (frep[-1]) counts ELIGIBLE chs
-        """
-        fgrid = self.feature_reps(grid)[0]
-        r, c = cell
-        neighs4 = Grid.neighbors(dist=4, row=r, col=c, separate=True, include_self=True)
-        neighs2 = Grid.neighbors(dist=2, row=r, col=c, include_self=True)
-        fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
-        if ce_type == CEvent.END:
-            # One less channel will be in use by the cell
-            n_used_neighs_diff = -1
-            # One more channel MIGHT become eligible
-            # Temporarily modify grid and check if that's the case
-            n_elig_self_diff = 1
-            grid[cell][chs] = 0
-        else:
-            # One more ch will be in use
-            n_used_neighs_diff = 1
-            # One less ch will be eligible
-            n_elig_self_diff = -1
-        eligible_chs = [Grid.get_eligible_chs(grid, neigh2) for neigh2 in neighs2]
-        for i, ch in enumerate(chs):
-            fgrids[i, neighs4[0], neighs4[1], ch] += n_used_neighs_diff
-            for j, neigh2 in enumerate(neighs2):
-                if ch in eligible_chs[j]:
-                    fgrids[i, neigh2[0], neigh2[1], -1] += n_elig_self_diff
-        if ce_type == CEvent.END:
-            grid[cell][chs] = 1
-        return fgrids
-
-    def feature_reps(self, grids):
-        """
-        Takes a grid or an array of grids and return the feature representations.
-
-        For each cell, the number of ELIGIBLE channels in that cell.
-        For each cell-channel pair, the number of times that channel is
-        used by neighbors with a distance of 4 or less.
-        NOTE The latter does not include whether or not the channel is
-        in use by the cell itself, though that may be the better option.
-        """
-        assert type(grids) == np.ndarray
-        if grids.ndim == 3:
-            grids = np.expand_dims(grids, axis=0)
-        fgrids = np.zeros(
-            (len(grids), self.rows, self.cols, self.n_channels + 1), dtype=np.int16)
-        # fgrids[:, :, :, self.n_channels] = self.n_channels \
-        #     - np.count_nonzero(grids, axis=3)
-        for r in range(self.rows):
-            for c in range(self.cols):
-                # TODO all onehot
-                neighs = Grid.neighbors(4, r, c, separate=True, include_self=True)
-                n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
-                fgrids[:, r, c, :-1] = n_used
-                for i in range(len(grids)):
-                    n_eligible_chs = Grid.get_n_eligible_chs(grids[i], (r, c))
-                    fgrids[i, r, c, -1] = n_eligible_chs
-        return fgrids

@@ -3,10 +3,226 @@ import unittest
 
 import numpy as np
 
-from grid import BDCLGrid, FixedGrid, Grid
+from grid import Grid
+from grid_numba import NumbaGrid
 
 
-class TestGrid(unittest.TestCase):
+class TestAfterstates(unittest.TestCase):
+    """
+    Assumptions:
+        n_used_neighs (frep[:-1]) does NOT include self
+        n_free_self (frep[-1]) counts ELIGIBLE chs
+    """
+
+    def setUp(self):
+        self.grid = NumbaGrid(rows=7, cols=7, n_channels=70)
+
+    def test_afterstate_freps(self):
+        """
+        Test incremental vs naive afterstate feature rep. derivation approach
+        """
+
+        def check_frep(frep1, frep):
+            self.assertTrue(frep1.shape == frep.shape, (frep1.shape, frep.shape))
+            self.assertTrue(frep.shape == (7, 7, 71))
+            eq_n_used = frep1[:, :, -1] == frep[:, :, -1]
+            diff_n_used = np.where(np.invert(eq_n_used))
+            self.assertTrue(eq_n_used.all(),
+                            ("\n", diff_n_used, frep1[:, :, -1], frep[:, :, -1]))
+            eq_n_free = frep1[:, :, :-1] == frep[:, :, :-1]
+            diff_n_free = np.where(np.invert(eq_n_free))
+            self.assertTrue(eq_n_free.all(),
+                            (diff_n_free, frep1[diff_n_free], frep[diff_n_free]))
+
+        def check_freps(freps1, freps):
+            self.assertTrue(freps1.shape == freps.shape, (freps1.shape, freps.shape))
+            self.assertTrue(freps.shape[1:] == (7, 7, 71))
+            eq_n_free = freps1[:, :, :, :-1] == freps[:, :, :, :-1]
+            diff_n_free = np.where(np.invert(eq_n_free))
+            self.assertTrue(eq_n_free.all(),
+                            (diff_n_free, freps1[diff_n_free], freps[diff_n_free]))
+            eq_n_used = freps1[:, :, :, -1] == freps[:, :, :, -1]
+            diff_n_used = np.where(np.invert(eq_n_used))
+            self.assertTrue(eq_n_used.all(),
+                            ("\n", diff_n_used, freps1[:, :, :, -1], freps[:, :, :, -1]))
+
+        g = NumbaGrid(7, 7, 70)
+        grid1 = np.zeros(
+            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        grid1c = np.copy(grid1)
+        cell1 = (2, 3)
+        ce_type1 = CEvent.NEW
+        chs1 = Grid.get_eligible_chs(grid1, cell1)
+        freps_inc1 = self.strat.afterstate_freps(grid1, cell1, ce_type1, chs1)
+        freps_inc1b = g.afterstate_freps(grid1, cell1, ce_type1, chs1)
+        astates1 = Grid.afterstates(grid1, cell1, ce_type1, chs1)
+        freps1 = self.strat.feature_reps(astates1)
+        frep1b = g.feature_rep(astates1[0])
+        check_frep(freps1[0], frep1b)
+        check_freps(freps_inc1, freps1)
+        check_freps(freps_inc1b, freps1)
+        assert (grid1 == grid1c).all()
+
+        grid2 = np.ones(
+            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        cell2 = (2, 3)
+        grid2[cell2][4] = 0
+        grid2[(2, 4)][:] = 0
+        grid2c = np.copy(grid2)
+        ce_type2 = CEvent.END
+        chs2 = np.nonzero(grid2[cell2])[0]
+        freps_inc2 = self.strat.afterstate_freps(grid2, cell2, ce_type2, chs2)
+        freps_inc2b = g.afterstate_freps(grid2, cell2, ce_type2, chs2)
+        astates2 = Grid.afterstates(grid2, cell2, ce_type2, chs2)
+        freps2 = self.strat.feature_reps(astates2)
+        check_freps(freps_inc2, freps2)
+        check_freps(freps_inc2b, freps2)
+        assert (grid2 == grid2c).all()
+
+        grid3 = np.zeros(
+            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        cell3 = (4, 1)
+        grid3[cell3][4] = 1
+        grid3c = np.copy(grid3)
+        ce_type3 = CEvent.END
+        chs3 = np.nonzero(grid3[cell3])[0]
+        freps_inc3 = self.strat.afterstate_freps(grid3, cell3, ce_type3, chs3)
+        freps_inc3b = g.afterstate_freps(grid3, cell3, ce_type3, chs3)
+        astates3 = Grid.afterstates(grid3, cell3, ce_type3, chs3)
+        freps3 = self.strat.feature_reps(astates3)
+        check_freps(freps_inc3, freps3)
+        check_freps(freps_inc3b, freps3)
+        assert (grid3 == grid3c).all()
+
+    def test_feature_rep(self):
+        def check_n_free_self(grid, n_free):
+            self.assertTrue((grid[:, :, -1] == n_free).all(), (grid[:, :, -1], n_free))
+
+        def check_n_used_neighs(grid, n_used):
+            self.assertTrue((grid[:, :, :-1] == n_used).all())
+
+        # Three grids in one array. They should not affect each other's
+        # feature representation
+        grid1 = np.zeros(
+            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        grid2 = np.zeros(
+            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        grid3 = np.zeros(
+            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        grid2[:, :, 0] = 1
+        grid3[1, 2, 9] = 1
+        grid3c = np.copy(grid3)
+        fgrid1 = self.strat.feature_reps(grid1)[0]
+        fgrid2 = self.strat.feature_reps(grid2)[0]
+        fgrid3 = self.strat.feature_reps(grid3)[0]
+
+        # Verify that single- and multi-version works the same
+        grids = np.array([grid1, grid2, grid3])
+        fgrids = self.strat.feature_reps(grids)
+        assert (grid3 == grid3c).all()
+        self.assertTrue((fgrids[0] == fgrid1).all())
+        self.assertTrue((fgrids[1] == fgrid2).all())
+        self.assertTrue((fgrids[2] == fgrid3).all())
+
+        # TODO NOTE TODO
+        # Check if tests below are valid if frep is for ELIGIBLE not
+        # FREE chs. Then, if easy to do, mod feature_reps func to do
+        # the latter.
+
+        # Verify Grid #1
+        # No cell has any channels in use, i.e. all are free
+        check_n_free_self(fgrid1, np.ones((self.rows, self.cols)) * self.n_channels)
+        # No cell has a channel in use by any of its neighbors
+        check_n_used_neighs(fgrid1, np.zeros((self.rows, self.cols, self.n_channels)))
+
+        # Verify Grid #2
+        # All cells have one channel in use
+        check_n_free_self(fgrid2, np.ones((self.rows, self.cols)) * (self.n_channels - 1))
+        # Every cell has 'n_neighs(cell)' neighbors4 who uses channel 0
+        # ('n_neighs(cell)' depends on cell coordinates)
+        n_used2 = np.zeros((self.rows, self.cols, self.n_channels))
+        for r in range(self.rows):
+            for c in range(self.cols):
+                n_neighs = len(Grid.neighbors(4, r, c))
+                n_used2[r][c][0] = n_neighs + 1
+        check_n_used_neighs(fgrid2, n_used2)
+
+        # Verify Grid #3
+        # Only cell (row, col) = (1, 2) has a channel in use (ch9)
+        n_free3 = np.ones((self.rows, self.cols)) * self.n_channels
+        n_free3[1][2] = self.n_channels - 1
+        # Cell (1, 2) has no neighs that use ch9. The neighs of (1, 2)
+        # has 1 cell that use ch9.
+        n_used3 = np.zeros((self.rows, self.cols, self.n_channels))
+        neighs3 = Grid.neighbors(4, 1, 2, separate=True, include_self=True)
+        n_used3[(*neighs3, np.repeat(9, len(neighs3[0])))] = 1
+        check_n_used_neighs(fgrid3, n_used3)
+
+
+class TestNumbaGrid(unittest.TestCase):
+    def setUp(self):
+        self.grid = NumbaGrid(rows=7, cols=7, n_channels=70)
+
+    def _li_set_eq(self, targ, act):
+        self.assertSetEqual(set(targ), set(act))
+
+    def test_neigh_indexing(self):
+        """If neighs are np arrays, they index differently than tuples"""
+        self.grid.get_eligible_chs(np.zeros((7, 7, 70), dtype=np.bool), (3, 2))
+        somegrid = np.random.uniform(size=(7, 7, 70))
+        n1 = somegrid[self.grid.neighbors_sep(2, 3, 2, False)]
+        n2 = somegrid[Grid.neighbors(2, 3, 2, separate=True, include_self=False)]
+        assert (n1 == n2).all()
+        n1 = somegrid[self.grid.neighbors(2, 3, 2, False)[0]]
+        n2 = somegrid[Grid.neighbors(2, 3, 2, include_self=False)[0]]
+        assert (n1 == n2).all()
+
+    def test_neighs(self):
+        for r in range(7):
+            for c in range(7):
+                e1 = self.grid.neighbors(2, r, c, False)
+                e2 = Grid.neighbors(2, r, c)
+                assert (e1 == e2)
+                for d in [1, 2, 4]:
+                    n1 = self.grid.neighbors_sep(d, r, c, False)
+                    n2 = Grid.neighbors(d, r, c, separate=True, include_self=False)
+                    assert ((n1[0] == n2[0]).all())
+                assert ((n1[1] == n2[1]).all())
+
+    def test_get_free_chs(self):
+        self.grid.state = np.ones((7, 7, 70)).astype(bool)
+        chs = [0, 4]
+        cell = (3, 4)
+        self.grid.state[cell][chs] = 0
+        for n in self.grid.neighbors(2, *cell, False):
+            self.grid.state[n][chs] = 0
+        free = self.grid.get_eligible_chs(self.grid.state, cell)
+        self._li_set_eq(free, chs)
+
+    def test_validate_reuse_constr(self):
+        self.assertTrue(self.grid.validate_reuse_constr())
+        cell = (2, 3)
+        ch = 4
+
+        self.grid.state[cell][ch] = 1
+        self.assertTrue(self.grid.validate_reuse_constr())
+
+        self.grid.state[(0, 1)][ch] = 1
+        self.assertTrue(self.grid.validate_reuse_constr())
+
+        self.grid.state[(1, 4)][ch + 1] = 1
+        self.grid.state[(1, 4)][ch - 1] = 1
+        self.assertTrue(self.grid.validate_reuse_constr())
+
+        self.grid.state[(1, 4)][ch] = 1
+        print("Should violate reuse constraint: ")
+        self.assertFalse(self.grid.validate_reuse_constr())
+
+
+# class TestRectOffsetGrid(unittest.TestCase):
+class TestRectOffsetGrid():
+    """I think the neighbor idxs are hard coded for rect offset"""
+
     def setUp(self):
         self.grid = Grid(rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
 
@@ -78,10 +294,10 @@ class TestGrid(unittest.TestCase):
         self.grid._partition_cells()
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
-                l = self.grid.labels[r][c]
+                label = self.grid.labels[r][c]
                 neighs = self.grid.neighbors2(r, c)
                 for neigh in neighs:
-                    self.assertNotEqual(l, self.grid.labels[neigh])
+                    self.assertNotEqual(label, self.grid.labels[neigh])
 
     def test_validate_reuse_constr(self):
         self.assertTrue(self.grid.validate_reuse_constr())
@@ -108,13 +324,15 @@ class TestGrid(unittest.TestCase):
         self.grid.state[cell][chs] = 0
         for n in self.grid.neighbors2(*cell):
             self.grid.state[n][chs] = 0
-        free = self.grid.get_free_chs(cell)
+        free = self.grid.get_eligible_chs(cell)
         self._li_set_eq(free, chs)
 
 
-class TestFixedGrid(unittest.TestCase):
+# class TestFixedGrid(unittest.TestCase):
+class TestFixedGrid():
     def setUp(self):
-        self.grid = FixedGrid(rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
+        # self.grid = FixedGrid(rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
+        pass
 
     def _li_set_eq(self, targ, act):
         self.assertSetEqual(set(targ), set(act))
@@ -160,7 +378,8 @@ class TestFixedGrid(unittest.TestCase):
 # class TestBDCLGrid(unittest.TestCase):
 class TestBDCLGrid():
     def setUp(self):
-        self.grid = BDCLGrid(rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
+        # self.grid = BDCLGrid(rows=7, cols=7, n_channels=70, logger=logging.getLogger(""))
+        pass
 
     def _li_set_eq(self, targ, act):
         self.assertSetEqual(set(targ), set(act))

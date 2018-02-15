@@ -73,7 +73,7 @@ class Env:
                 # of generating the usual END event
                 if np.random.random() < self.p_handoff:
                     self.eventgen.event_new_handoff(t, cell, ch,
-                                                    self.grid.neighbors1(*cell))
+                                                    self.grid.neighbors(1, *cell))
                 else:
                     self.eventgen.event_end(t, cell, ch)
         elif ce_type == CEvent.HOFF:

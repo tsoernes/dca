@@ -40,12 +40,12 @@ class QTable(RLStrat):
         next_qval = self.get_qvals(next_cell, next_n_used, next_ch)
         gamma = bdisc if self.pp['dt_rewards'] else self.gamma
         target_q = reward + gamma * next_qval
-        # Counting n_used of self.grid instead of grid yields significantly better
-        # performance for (TT-)SARSA for unknown reasons.
+        # Counting n_used of self.grid instead of grid yields significantly lower
+        # blockprob on (TT-)SARSA for unknown reasons.
         n_used = np.count_nonzero(grid[cell])
         q = self.get_qvals(cell, n_used, ch)
         td_err = target_q - q
-        self.losses.append(td_err ** 2)
+        self.losses.append(td_err**2)
         frep = self.feature_rep(cell, n_used)
         if self.lmbda is None:
             self.qvals[frep][ch] += self.alpha * td_err
@@ -68,7 +68,7 @@ class SARSA(QTable):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # "qvals[r][c][n_used][ch] = v"
+        # "qvals[r, c, n_used, ch] = v"
         # Assigning channel 'ch' to the cell at row 'r', col 'c'
         # has q-value 'v' given that 'n_used' channels are already
         # in use at that cell.
