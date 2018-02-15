@@ -262,8 +262,8 @@ class SinghNetStrat(VNetStrat):
             gamma = bdisc if self.pp['dt_rewards'] else self.gamma
             value_target = reward + gamma * np.array([[self.val]])
             self.backward(
-                self.scale_freps(GF.feature_reps(grid)),
-                self.scale_freps(GF.feature_reps(self.grid)), value_target)
+                self.scale_freps(GF.feature_rep(grid)),
+                self.scale_freps(GF.feature_rep(self.grid)), value_target)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -278,7 +278,7 @@ class SinghNetStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
+        fgrids = GF.afterstate_frep(self.grid, cell, ce_type, chs)
         fgrids = self.scale_freps(fgrids)
         # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
         # assert (fgrids == fgrids2).all()
