@@ -1,19 +1,13 @@
 import numpy as np
 from numba import jitclass
-from numba.types import List, UniTuple, boolean, int64
+from numba.types import boolean, int64
 
 from eventgen import CEvent
-
-grid_typ = boolean[:, :, :]
-cell_typ = UniTuple(int64, 2)
-neighs_typ = List(cell_typ)  # reflected=True)
-# dim_typ = nba.int64, nba.int64, nba.int64
 
 spec = [
     ('rows', int64),
     ('cols', int64),
     ('n_channels', int64),
-    ('state', grid_typ),
     ('neighs1', int64[:, :, :, :]),
     ('neighs2', int64[:, :, :, :]),
     ('neighs4', int64[:, :, :, :]),
@@ -23,13 +17,32 @@ spec = [
 ]  # yapf: disable
 
 
+def singleton(class_):
+    instances = {}
+
+    def getinstance(*args, **kwargs):
+        if class_ not in instances:
+            instances[class_] = class_(*args, **kwargs)
+        return instances[class_]
+
+    return getinstance
+
+
 # boolean = np.bool
 # int64 = np.int64
+
+
+@singleton
 @jitclass(spec)
-class NumbaGrid:
+class GridFuncs:
+    """
+    All methods are static in practice (numba does not allow @staticmethod),
+    take a grid as input, and read only grid dimensions and neighbors
+    from instance-variables.
+    """
+
     def __init__(self, rows, cols, n_channels):
         self.rows, self.cols, self.n_channels = rows, cols, n_channels
-        self.state = np.zeros((rows, cols, n_channels), dtype=boolean)
         self.neighs1 = np.zeros((rows, cols, 7, 2), dtype=int64)
         self.neighs2 = np.zeros((rows, cols, 19, 2), dtype=int64)
         self.neighs4 = np.zeros((rows, cols, 43, 2), dtype=int64)
@@ -63,6 +76,7 @@ class NumbaGrid:
                                     self.neighs1[r1, c1, self.n_neighs1[r1, c1]] = (r2,
                                                                                     c2)
                                     self.n_neighs1[r1, c1] += 1
+        print("Generated neighbors")
 
     def neighbors_np(self, dist, row, col, include_self=False):
         """np array of 2-dim np arrays"""
@@ -115,18 +129,6 @@ class NumbaGrid:
             raise NotImplementedError
         return (neighs[row, col, start:n_neighs[row, col], 0],
                 neighs[row, col, start:n_neighs[row, col], 1])
-
-    def validate_reuse_constr(self):
-        for r in range(self.rows):
-            for c in range(self.cols):
-                alloc_map = self._inuse_neighs(self.state, r, c)
-                # Channels in use at cell and a neigh
-                inuse_both = np.bitwise_and(self.state[r, c], alloc_map)
-                viols = np.where(inuse_both == 1)[0]
-                if len(viols) > 0:
-                    print("Channel Reuse constraint violated")
-                    return False
-        return True
 
     def _inuse_neighs(self, grid, r, c):
         # Channels in use at neighbors
@@ -202,3 +204,6 @@ class NumbaGrid:
         if ce_type == CEvent.END:
             grid[cell][chs] = 1
         return fgrids
+
+
+GF = GridFuncs(7, 7, 70)

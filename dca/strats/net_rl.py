@@ -1,11 +1,9 @@
 from typing import List, Tuple
 
-import numba as nba
 import numpy as np
-from numba import jit
 
 from eventgen import CEvent
-from grid import Grid
+from gridfuncs_numba import GF
 from nets.acnet import ACNet
 from nets.dqnet import DistQNet
 from nets.qnet import QNet
@@ -172,7 +170,7 @@ class ACNetStrat(NetStrat):
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float]:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             # Calls eligible for assignment
-            chs = Grid.get_eligible_chs(self.grid, cell)
+            chs = GF.get_eligible_chs(self.grid, cell)
         else:
             # Calls in progress
             chs = np.nonzero(self.grid[cell])[0]
@@ -264,8 +262,8 @@ class SinghNetStrat(VNetStrat):
             gamma = bdisc if self.pp['dt_rewards'] else self.gamma
             value_target = reward + gamma * np.array([[self.val]])
             self.backward(
-                self.scale_freps(Grid.feature_reps(grid)),
-                self.scale_freps(Grid.feature_reps(self.grid)), value_target)
+                self.scale_freps(GF.feature_reps(grid)),
+                self.scale_freps(GF.feature_reps(self.grid)), value_target)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -274,13 +272,13 @@ class SinghNetStrat(VNetStrat):
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = Grid.get_eligible_chs(self.grid, cell)
+            chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return None, 0
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        fgrids = Grid.afterstate_freps(self.grid, cell, ce_type, chs)
+        fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
         fgrids = self.scale_freps(fgrids)
         # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
         # assert (fgrids == fgrids2).all()
@@ -293,8 +291,8 @@ class SinghNetStrat(VNetStrat):
         return ch, qvals_dense[amax_idx]
 
     def afterstate_freps_naive(self, grid, cell, ce_type, chs):
-        astates = Grid.afterstates(grid, cell, ce_type, chs)
-        freps = Grid.feature_reps(astates)
+        astates = GF.afterstates(grid, cell, ce_type, chs)
+        freps = GF.feature_reps(astates)
         return freps
 
     def scale_freps(self, freps):

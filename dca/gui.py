@@ -2,7 +2,7 @@
 from math import cos, radians, sin, sqrt
 from tkinter import Canvas, Frame, Tk
 
-from grid import Grid
+from gridfuncs import GF
 
 label_colors = [
     '#FF2D00', '#FFD800', '#00FF68', '#00FFE4', '#0059FF', '#A200FF', '#FF00F7'
@@ -57,7 +57,6 @@ class Hexagon:
 class HexagonGrid(Frame):
     def __init__(self,
                  parent,
-                 grid,
                  rows,
                  cols,
                  labels,
@@ -88,7 +87,6 @@ class HexagonGrid(Frame):
         self.color = color
         self.marked_color = marked_color
         self.cell_printer = cell_printer
-        self.grid = grid
         self.font_size = 28
 
         self.hexagons = []
@@ -202,35 +200,27 @@ class HexagonGrid(Frame):
 
     def mark_neighs(self, row, col, delete_other=False):
         if delete_other:
-            neighs = self.grid.neighbors2(row, col)
+            neighs = GF.neighbors2(row, col)
             for r, li in enumerate(self.hexagons):
                 for c, h in enumerate(li):
                     if (r, c) not in neighs:
                         self.can.delete(h.shape)
         h = self.hexagons[row][col]
         self.can.itemconfigure(h.tags, fill="#808080")
-        for neigh in self.grid.neighbors2(row, col):
+        for neigh in GF.neighbors2(row, col):
             h = self.hexagons[neigh[0]][neigh[1]]
             self.can.itemconfigure(h.tags, fill="#DCDCDC")
-        for neigh in self.grid.neighbors1(row, col):
+        for neigh in GF.neighbors1(row, col):
             h = self.hexagons[neigh[0]][neigh[1]]
             self.can.itemconfigure(h.tags, fill="#C0C0C0")
 
 
 class Gui:
-    def __init__(self, grid, exit_handler, cell_printer):
-        if type(grid) == Grid:
-            shape = "rhomb"
-        else:
-            shape = "rect"
-        self.grid = grid
+    def __init__(self, dims, exit_handler, cell_printer, shape="rhomb"):
         self.root = Tk()
         self.hgrid = HexagonGrid(
             self.root,
-            grid,
-            grid.rows,
-            grid.cols,
-            grid.labels,
+            *dims,
             cell_printer,
             show_coords=True,
             show_labels=False,
@@ -251,8 +241,3 @@ class Gui:
 
 # TODO: Use a gradient color scheme for cells; i.e.
 # the more busy a cell is, the darker/denser its color
-if __name__ == '__main__':
-    g = Grid(7, 7, 70, None)
-    # g = RectOffsetGrid(7, 7, 70, None)
-    gui = Gui(g, None, g.print_cell)
-    gui.test()

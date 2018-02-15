@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import datahandler
-from grid import Grid  # noqa
 from nets.utils import (build_default_trainer, get_act_fn_by_name,
                         get_init_by_name)
 

@@ -1,6 +1,7 @@
 import numpy as np
 
 from eventgen import CEvent, EventGen, ce_str
+from gridfuncs_numba import GF
 from stats import Stats
 
 
@@ -59,7 +60,7 @@ class Env:
         self.stats.iter(t, self.cevent)
 
         # Generate next event, log statistics and update the GUI
-        n_used = np.count_nonzero(self.grid.state[cell])
+        n_used = np.count_nonzero(self.grid[cell])
         if ce_type == CEvent.NEW:
             self.stats.event_new()
             # Generate next incoming call
@@ -73,7 +74,7 @@ class Env:
                 # of generating the usual END event
                 if np.random.random() < self.p_handoff:
                     self.eventgen.event_new_handoff(t, cell, ch,
-                                                    self.grid.neighbors(1, *cell))
+                                                    GF.neighbors(1, *cell, False))
                 else:
                     self.eventgen.event_end(t, cell, ch)
         elif ce_type == CEvent.HOFF:
@@ -94,7 +95,7 @@ class Env:
 
         if ch is not None:
             self.execute_action(self.cevent, ch)
-        if self.verify_grid and not self.grid.validate_reuse_constr():
+        if self.verify_grid and not GF.validate_reuse_constr(self.grid):
             self.logger.error(f"Reuse constraint broken")
             raise Exception
         if self.gui:
@@ -107,7 +108,7 @@ class Env:
 
     def execute_action(self, cevent, ch: int):
         """
-        Change the grid state according to the given action.
+        Change the grid according to the given action.
 
         For NEW or HOFF events, 'ch' specifies the channel to be assigned
         in the cell.
@@ -117,20 +118,20 @@ class Env:
         """
         ce_type, cell = cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            if self.grid.state[cell][ch]:
+            if self.grid[cell][ch]:
                 self.logger.error(f"Tried assigning new call {ce_str(cevent)} to"
                                   f" ch {ch} which is already in use")
                 raise Exception
             self.logger.debug(f"Assigned call in cell {cell} to ch {ch}")
-            self.grid.state[cell][ch] = 1
+            self.grid[cell][ch] = 1
         elif ce_type == CEvent.END:
             reass_ch = cevent[3]
-            if not self.grid.state[cell][reass_ch]:
+            if not self.grid[cell][reass_ch]:
                 self.logger.error(f"Tried to end call {ce_str(cevent)}"
                                   f" which is not in progress")
                 raise Exception
             if reass_ch != ch:
-                if not self.grid.state[cell][ch]:
+                if not self.grid[cell][ch]:
                     self.logger.error(f"Tried to reassign to {ce_str(cevent)}"
                                       f" from ch {ch} which is not in use")
                     raise Exception
@@ -139,14 +140,14 @@ class Env:
                 self.eventgen.reassign(cevent[2], ch, reass_ch)
             else:
                 self.logger.debug(f"Ended call cell in {cell} on ch {ch}")
-            self.grid.state[cell][ch] = 0
+            self.grid[cell][ch] = 0
 
     def reward(self, beta_disc):
         """
         Immediate reward, which is the total number of calls
         currently in progress system-wide
         """
-        count = np.count_nonzero(self.grid.state)
+        count = np.count_nonzero(self.grid)
         if not self.dt_rewards:
             return count
         return ((1 - beta_disc) / self.beta) * count

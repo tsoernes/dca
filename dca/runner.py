@@ -13,7 +13,6 @@ from hyperopt.mongoexp import MongoTrials
 from hyperopt.pyll.base import scope  # noqa
 from matplotlib import pyplot as plt
 
-import grid
 from gui import Gui
 from hopt_utils import (add_pp_mongo, add_pp_pickle, get_pps_mongo,
                         mongo_decide_gpu_usage, mongo_decrease_gpu_procs,
@@ -279,11 +278,12 @@ class Runner:
         plt.show()
 
     def show(self):
-        g = grid.RhombusAxialGrid(logger=self.logger, **self.pp)
-        gui = Gui(g, self.logger, g.print_neighs, "rhomb")
+        # g = grid.RhombusAxialGrid(logger=self.logger, **self.pp)
+        # gui = Gui(g, self.logger, g.print_neighs, "rhomb")
         # grid = RectOffGrid(logger=self.logger, **self.pp)
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
-        gui.test()
+        # gui.test()
+        raise NotImplementedError
 
 
 def hopt_proc(stratclass, pp, space, mongo_uri=None):

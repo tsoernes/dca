@@ -5,7 +5,7 @@ import numpy as np
 
 from environment import Env
 from eventgen import CEvent
-from grid import Grid
+from gridfuncs_numba import GF
 from replaybuffer import ReplayBuffer
 
 
@@ -17,9 +17,8 @@ class Strat:
         self.pp = pp
         self.logger = logger
 
-        grid = Grid(*self.dims, self.logger)
-        self.env = Env(self.pp, grid, self.logger, pid)
-        self.grid = self.env.grid.state
+        self.grid = np.zeros(pp['dims'], np.bool)
+        self.env = Env(self.pp, self.grid, self.logger, pid)
         self.exp_buffer = ReplayBuffer(pp['buffer_size'], *self.dims)
 
         self.quit_sim = False
@@ -203,7 +202,7 @@ class RLStrat(Strat):
         n_used = len(inuse)
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = Grid.get_eligible_chs(self.grid, cell)
+            chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 # No channels available for assignment,
                 return (None, None)
