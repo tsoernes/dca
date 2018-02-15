@@ -261,9 +261,8 @@ class SinghNetStrat(VNetStrat):
         if ch is not None:
             gamma = bdisc if self.pp['dt_rewards'] else self.gamma
             value_target = reward + gamma * np.array([[self.val]])
-            self.backward(
-                self.scale_freps(GF.feature_rep(grid)),
-                self.scale_freps(GF.feature_rep(self.grid)), value_target)
+            self.backward([self.scale_freps(GF.feature_rep(grid))],
+                          [self.scale_freps(GF.feature_rep(self.grid))], value_target)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -278,7 +277,7 @@ class SinghNetStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        fgrids = GF.afterstate_frep(self.grid, cell, ce_type, chs)
+        fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
         fgrids = self.scale_freps(fgrids)
         # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
         # assert (fgrids == fgrids2).all()
@@ -296,10 +295,16 @@ class SinghNetStrat(VNetStrat):
         return freps
 
     def scale_freps(self, freps):
-        assert freps.ndim == 4
         # TODO Try Scale freps in range [-1, 1]
         # Scale freps in range [0, 1]
         freps = freps.astype(np.float16)
-        freps[:, :, :, :-1] /= 43.0  # Max possible neighs within dist 4 including self
-        freps[:, :, :, -1] /= float(self.n_channels)
+        if freps.ndim == 4:
+            freps[:, :, :, :
+                  -1] /= 43.0  # Max possible neighs within dist 4 including self
+            freps[:, :, :, -1] /= float(self.n_channels)
+        elif freps.ndim == 3:
+            freps[:, :, :-1] /= 43.0  # Max possible neighs within dist 4 including self
+            freps[:, :, -1] /= float(self.n_channels)
+        else:
+            raise NotImplementedError
         return freps
