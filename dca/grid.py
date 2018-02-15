@@ -196,14 +196,15 @@ class Grid:
         assert grids.shape == (len(chs), rows, cols, n_channels)
         return grids
 
-    def afterstate_freps(self, grid, cell, ce_type, chs):
+    @staticmethod
+    def afterstate_freps(grid, cell, ce_type, chs):
         """ Get the feature representation for the current grid,
         and from it derive the f.rep for each possible afterstate.
         Current assumptions:
         n_used_neighs (frep[:-1]) does include self
         n_free_self (frep[-1]) counts ELIGIBLE chs
         """
-        fgrid = self.feature_reps(grid)[0]
+        fgrid = Grid.feature_reps(grid)[0]
         r, c = cell
         neighs4 = Grid.neighbors(dist=4, row=r, col=c, separate=True, include_self=True)
         neighs2 = Grid.neighbors(dist=2, row=r, col=c, include_self=True)

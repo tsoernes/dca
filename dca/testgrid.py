@@ -3,6 +3,7 @@ import unittest
 
 import numpy as np
 
+from eventgen import CEvent
 from grid import Grid
 from grid_numba import NumbaGrid
 
@@ -15,81 +16,78 @@ class TestAfterstates(unittest.TestCase):
     """
 
     def setUp(self):
-        self.grid = NumbaGrid(rows=7, cols=7, n_channels=70)
+        self.numba_grid = NumbaGrid(rows=7, cols=7, n_channels=70)
 
     def test_afterstate_freps(self):
         """
         Test incremental vs naive afterstate feature rep. derivation approach
         """
 
-        def check_frep(frep1, frep):
-            self.assertTrue(frep1.shape == frep.shape, (frep1.shape, frep.shape))
-            self.assertTrue(frep.shape == (7, 7, 71))
-            eq_n_used = frep1[:, :, -1] == frep[:, :, -1]
+        def check_frep(frep1, frep2):
+            self.assertTrue(frep1.shape == frep2.shape, (frep1.shape, frep2.shape))
+            self.assertTrue(frep2.shape == (7, 7, 71))
+            eq_n_used = frep1[:, :, -1] == frep2[:, :, -1]
             diff_n_used = np.where(np.invert(eq_n_used))
             self.assertTrue(eq_n_used.all(),
-                            ("\n", diff_n_used, frep1[:, :, -1], frep[:, :, -1]))
-            eq_n_free = frep1[:, :, :-1] == frep[:, :, :-1]
+                            ("\n", diff_n_used, frep1[:, :, -1], frep2[:, :, -1]))
+            eq_n_free = frep1[:, :, :-1] == frep2[:, :, :-1]
             diff_n_free = np.where(np.invert(eq_n_free))
             self.assertTrue(eq_n_free.all(),
-                            (diff_n_free, frep1[diff_n_free], frep[diff_n_free]))
+                            (diff_n_free, frep1[diff_n_free], frep2[diff_n_free]))
 
-        def check_freps(freps1, freps):
-            self.assertTrue(freps1.shape == freps.shape, (freps1.shape, freps.shape))
-            self.assertTrue(freps.shape[1:] == (7, 7, 71))
-            eq_n_free = freps1[:, :, :, :-1] == freps[:, :, :, :-1]
+        def check_freps(freps1, freps2):
+            self.assertTrue(freps1.shape == freps2.shape, (freps1.shape, freps2.shape))
+            self.assertTrue(freps2.shape[1:] == (7, 7, 71))
+            eq_n_free = freps1[:, :, :, :-1] == freps2[:, :, :, :-1]
             diff_n_free = np.where(np.invert(eq_n_free))
             self.assertTrue(eq_n_free.all(),
-                            (diff_n_free, freps1[diff_n_free], freps[diff_n_free]))
-            eq_n_used = freps1[:, :, :, -1] == freps[:, :, :, -1]
+                            (diff_n_free, freps1[diff_n_free], freps2[diff_n_free]))
+            eq_n_used = freps1[:, :, :, -1] == freps2[:, :, :, -1]
             diff_n_used = np.where(np.invert(eq_n_used))
             self.assertTrue(eq_n_used.all(),
-                            ("\n", diff_n_used, freps1[:, :, :, -1], freps[:, :, :, -1]))
+                            ("\n", diff_n_used, freps1[:, :, :, -1], freps2[:, :, :, -1]))
 
-        g = NumbaGrid(7, 7, 70)
-        grid1 = np.zeros(
-            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        rows, cols, n_channels = 7, 7, 70
+        grid1 = np.zeros((rows, cols, n_channels), dtype=bool)
         grid1c = np.copy(grid1)
         cell1 = (2, 3)
         ce_type1 = CEvent.NEW
         chs1 = Grid.get_eligible_chs(grid1, cell1)
-        freps_inc1 = self.strat.afterstate_freps(grid1, cell1, ce_type1, chs1)
-        freps_inc1b = g.afterstate_freps(grid1, cell1, ce_type1, chs1)
+        freps_inc1 = Grid.afterstate_freps(grid1, cell1, ce_type1, chs1)
+        freps_inc1b = self.numba_grid.afterstate_freps(grid1, cell1, ce_type1, chs1)
         astates1 = Grid.afterstates(grid1, cell1, ce_type1, chs1)
-        freps1 = self.strat.feature_reps(astates1)
-        frep1b = g.feature_rep(astates1[0])
+        freps1 = Grid.feature_reps(astates1)
+        frep1b = self.numba_grid.feature_rep(astates1[0])
         check_frep(freps1[0], frep1b)
         check_freps(freps_inc1, freps1)
         check_freps(freps_inc1b, freps1)
         assert (grid1 == grid1c).all()
 
-        grid2 = np.ones(
-            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        grid2 = np.ones((rows, cols, n_channels), dtype=bool)
         cell2 = (2, 3)
         grid2[cell2][4] = 0
         grid2[(2, 4)][:] = 0
         grid2c = np.copy(grid2)
         ce_type2 = CEvent.END
         chs2 = np.nonzero(grid2[cell2])[0]
-        freps_inc2 = self.strat.afterstate_freps(grid2, cell2, ce_type2, chs2)
-        freps_inc2b = g.afterstate_freps(grid2, cell2, ce_type2, chs2)
+        freps_inc2 = Grid.afterstate_freps(grid2, cell2, ce_type2, chs2)
+        freps_inc2b = self.numba_grid.afterstate_freps(grid2, cell2, ce_type2, chs2)
         astates2 = Grid.afterstates(grid2, cell2, ce_type2, chs2)
-        freps2 = self.strat.feature_reps(astates2)
+        freps2 = Grid.feature_reps(astates2)
         check_freps(freps_inc2, freps2)
         check_freps(freps_inc2b, freps2)
         assert (grid2 == grid2c).all()
 
-        grid3 = np.zeros(
-            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        grid3 = np.zeros((rows, cols, n_channels), dtype=bool)
         cell3 = (4, 1)
         grid3[cell3][4] = 1
         grid3c = np.copy(grid3)
         ce_type3 = CEvent.END
         chs3 = np.nonzero(grid3[cell3])[0]
-        freps_inc3 = self.strat.afterstate_freps(grid3, cell3, ce_type3, chs3)
-        freps_inc3b = g.afterstate_freps(grid3, cell3, ce_type3, chs3)
+        freps_inc3 = Grid.afterstate_freps(grid3, cell3, ce_type3, chs3)
+        freps_inc3b = self.numba_grid.afterstate_freps(grid3, cell3, ce_type3, chs3)
         astates3 = Grid.afterstates(grid3, cell3, ce_type3, chs3)
-        freps3 = self.strat.feature_reps(astates3)
+        freps3 = Grid.feature_reps(astates3)
         check_freps(freps_inc3, freps3)
         check_freps(freps_inc3b, freps3)
         assert (grid3 == grid3c).all()
@@ -101,24 +99,22 @@ class TestAfterstates(unittest.TestCase):
         def check_n_used_neighs(grid, n_used):
             self.assertTrue((grid[:, :, :-1] == n_used).all())
 
+        rows, cols, n_channels = 7, 7, 70
         # Three grids in one array. They should not affect each other's
         # feature representation
-        grid1 = np.zeros(
-            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
-        grid2 = np.zeros(
-            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
-        grid3 = np.zeros(
-            (self.pp['rows'], self.pp['cols'], self.pp['n_channels']), dtype=bool)
+        grid1 = np.zeros((rows, cols, n_channels), dtype=bool)
+        grid2 = np.zeros((rows, cols, n_channels), dtype=bool)
+        grid3 = np.zeros((rows, cols, n_channels), dtype=bool)
         grid2[:, :, 0] = 1
         grid3[1, 2, 9] = 1
         grid3c = np.copy(grid3)
-        fgrid1 = self.strat.feature_reps(grid1)[0]
-        fgrid2 = self.strat.feature_reps(grid2)[0]
-        fgrid3 = self.strat.feature_reps(grid3)[0]
+        fgrid1 = Grid.feature_reps(grid1)[0]
+        fgrid2 = Grid.feature_reps(grid2)[0]
+        fgrid3 = Grid.feature_reps(grid3)[0]
 
         # Verify that single- and multi-version works the same
         grids = np.array([grid1, grid2, grid3])
-        fgrids = self.strat.feature_reps(grids)
+        fgrids = Grid.feature_reps(grids)
         assert (grid3 == grid3c).all()
         self.assertTrue((fgrids[0] == fgrid1).all())
         self.assertTrue((fgrids[1] == fgrid2).all())
@@ -131,29 +127,29 @@ class TestAfterstates(unittest.TestCase):
 
         # Verify Grid #1
         # No cell has any channels in use, i.e. all are free
-        check_n_free_self(fgrid1, np.ones((self.rows, self.cols)) * self.n_channels)
+        check_n_free_self(fgrid1, np.ones((rows, cols)) * n_channels)
         # No cell has a channel in use by any of its neighbors
-        check_n_used_neighs(fgrid1, np.zeros((self.rows, self.cols, self.n_channels)))
+        check_n_used_neighs(fgrid1, np.zeros((rows, cols, n_channels)))
 
         # Verify Grid #2
         # All cells have one channel in use
-        check_n_free_self(fgrid2, np.ones((self.rows, self.cols)) * (self.n_channels - 1))
+        check_n_free_self(fgrid2, np.ones((rows, cols)) * (n_channels - 1))
         # Every cell has 'n_neighs(cell)' neighbors4 who uses channel 0
         # ('n_neighs(cell)' depends on cell coordinates)
-        n_used2 = np.zeros((self.rows, self.cols, self.n_channels))
-        for r in range(self.rows):
-            for c in range(self.cols):
+        n_used2 = np.zeros((rows, cols, n_channels))
+        for r in range(rows):
+            for c in range(cols):
                 n_neighs = len(Grid.neighbors(4, r, c))
                 n_used2[r][c][0] = n_neighs + 1
         check_n_used_neighs(fgrid2, n_used2)
 
         # Verify Grid #3
         # Only cell (row, col) = (1, 2) has a channel in use (ch9)
-        n_free3 = np.ones((self.rows, self.cols)) * self.n_channels
-        n_free3[1][2] = self.n_channels - 1
+        n_free3 = np.ones((rows, cols)) * n_channels
+        n_free3[1][2] = n_channels - 1
         # Cell (1, 2) has no neighs that use ch9. The neighs of (1, 2)
         # has 1 cell that use ch9.
-        n_used3 = np.zeros((self.rows, self.cols, self.n_channels))
+        n_used3 = np.zeros((rows, cols, n_channels))
         neighs3 = Grid.neighbors(4, 1, 2, separate=True, include_self=True)
         n_used3[(*neighs3, np.repeat(9, len(neighs3[0])))] = 1
         check_n_used_neighs(fgrid3, n_used3)
