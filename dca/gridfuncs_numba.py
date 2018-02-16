@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit, prange
+from numba import njit
 from numba.types import Array, List, UniTuple, boolean, int32, intp, optional
 
 from eventgen import CEvent
@@ -142,7 +142,6 @@ def get_n_eligible_chs(grid, cell):
     return n_eligible
 
 
-# @njit(cache=True, parallel=True)
 @njit(cache=True)
 def afterstates(grid, cell, ce_type, chs):
     if ce_type == CEvent.END:
@@ -156,7 +155,6 @@ def afterstates(grid, cell, ce_type, chs):
     return grids
 
 
-# @njit(cache=True, parallel=True)
 @njit(cache=True)
 def feature_rep(grid):
     fgrid = np.zeros((intp(rows), intp(cols), n_channels + 1), dtype=int32)
@@ -171,7 +169,6 @@ def feature_rep(grid):
     return fgrid
 
 
-# @njit(cache=True, parallel=True)
 @njit(cache=True)
 def afterstate_freps(grid, cell, ce_type, chs):
     fgrid = feature_rep(grid)
@@ -188,8 +185,7 @@ def afterstate_freps(grid, cell, ce_type, chs):
         n_elig__diff = -1
 
     neighs2 = neighbors_np(2, r, c, True)
-    for i in range(len(chs)):
-        ch = chs[i]
+    for i, ch in enumerate(chs):
         for j in range(len(neighs4)):
             fgrids[i, neighs4[j, 0], neighs4[j, 1], ch] += n_used_neighs_diff
         for j in range(len(neighs2)):
