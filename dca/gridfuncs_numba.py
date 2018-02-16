@@ -174,18 +174,19 @@ def afterstate_freps(grid, cell, ce_type, chs):
     fgrid = feature_rep(grid)
     r, c = cell
     neighs4 = neighbors_np(4, r, c, True)
+    # Is this right, in combination with 'neighs' include_self=False?
+    neighs2 = neighbors_np(2, r, c, True)
     fgrids = np.zeros((len(chs), intp(rows), intp(cols), n_channels + 1), dtype=int32)
     fgrids[:] = fgrid
     if ce_type == CEvent.END:
         n_used_neighs_diff = -1
-        n_elig__diff = 1
+        n_elig_self_diff = 1
         grid[cell][chs] = 0
     else:
         n_used_neighs_diff = 1
-        n_elig__diff = -1
-
-    neighs2 = neighbors_np(2, r, c, True)
-    for i, ch in enumerate(chs):
+        n_elig_self_diff = -1
+    for i in range(len(chs)):
+        ch = chs[i]
         for j in range(len(neighs4)):
             fgrids[i, neighs4[j, 0], neighs4[j, 1], ch] += n_used_neighs_diff
         for j in range(len(neighs2)):
@@ -195,7 +196,9 @@ def afterstate_freps(grid, cell, ce_type, chs):
             for k in range(len(neighs)):
                 inuse = inuse or grid[neighs[k, 0], neighs[k, 1], ch]
             if not inuse:
-                fgrids[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig__diff
+                # For END: ch was in use at (r, c), but is now eligible
+                # For NEW: ch was eligible at given neighs2, but is now in use
+                fgrids[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig_self_diff
     if ce_type == CEvent.END:
         grid[cell][chs] = 1
     return fgrids
