@@ -1,19 +1,20 @@
+import numba as nba
 import numpy as np
 from numba import jitclass
-from numba.types import boolean, int64
+from numba.types import boolean, int32, intp
 
 from eventgen import CEvent
 
 spec = [
-    ('rows', int64),
-    ('cols', int64),
-    ('n_channels', int64),
-    ('neighs1', int64[:, :, :, :]),
-    ('neighs2', int64[:, :, :, :]),
-    ('neighs4', int64[:, :, :, :]),
-    ('n_neighs1', int64[:, :]),
-    ('n_neighs2', int64[:, :]),
-    ('n_neighs4', int64[:, :]),
+    ('rows', int32),
+    ('cols', int32),
+    ('n_channels', int32),
+    ('neighs1', int32[:, :, :, :]),
+    ('neighs2', int32[:, :, :, :]),
+    ('neighs4', int32[:, :, :, :]),
+    ('n_neighs1', int32[:, :]),
+    ('n_neighs2', int32[:, :]),
+    ('n_neighs4', int32[:, :]),
 ]  # yapf: disable
 
 
@@ -29,7 +30,7 @@ def singleton(class_):
 
 
 # boolean = np.bool
-# int64 = np.int64
+# int32 = np.int32
 
 
 @singleton
@@ -42,13 +43,14 @@ class GridFuncs:
     """
 
     def __init__(self, rows, cols, n_channels):
-        self.rows, self.cols, self.n_channels = rows, cols, n_channels
-        self.neighs1 = np.zeros((rows, cols, 7, 2), dtype=int64)
-        self.neighs2 = np.zeros((rows, cols, 19, 2), dtype=int64)
-        self.neighs4 = np.zeros((rows, cols, 43, 2), dtype=int64)
-        self.n_neighs1 = np.zeros((rows, cols), dtype=int64)
-        self.n_neighs2 = np.zeros((rows, cols), dtype=int64)
-        self.n_neighs4 = np.zeros((rows, cols), dtype=int64)
+        self.rows, self.cols, self.n_channels = int32(rows), int32(cols), int32(
+            n_channels)
+        self.neighs1 = np.zeros((rows, cols, 7, 2), dtype=int32)
+        self.neighs2 = np.zeros((rows, cols, 19, 2), dtype=int32)
+        self.neighs4 = np.zeros((rows, cols, 43, 2), dtype=int32)
+        self.n_neighs1 = np.zeros((rows, cols), dtype=int32)
+        self.n_neighs2 = np.zeros((rows, cols), dtype=int32)
+        self.n_neighs4 = np.zeros((rows, cols), dtype=int32)
         self._generate_neighbors()
 
     def _hex_distance(self, r1, c1, r2, c2):
@@ -163,11 +165,12 @@ class GridFuncs:
         return grids
 
     def feature_rep(self, grid):
-        fgrid = np.zeros((self.rows, self.cols, self.n_channels + 1), dtype=np.int16)
+        fgrid = np.zeros(
+            (intp(self.rows), intp(self.cols), self.n_channels + 1), dtype=int32)
         for r in range(self.rows):
             for c in range(self.cols):
                 neighs = self.neighbors_sep(4, r, c, True)
-                n_used = np.zeros(self.n_channels)
+                n_used = np.zeros(self.n_channels, dtype=int32)
                 for i in range(len(neighs[0])):
                     n_used += grid[neighs[0][i], neighs[1][i]]
                 fgrid[r, c, :-1] = n_used
@@ -179,7 +182,8 @@ class GridFuncs:
         r, c = cell
         neighs4 = self.neighbors_sep(4, r, c, True)
         fgrids = np.zeros(
-            (len(chs), self.rows, self.cols, self.n_channels + 1), dtype=int64)
+            (len(chs), intp(self.rows), intp(self.cols), self.n_channels + 1),
+            dtype=int32)
         fgrids[:] = fgrid
         if ce_type == CEvent.END:
             n_used_neighs_diff = -1

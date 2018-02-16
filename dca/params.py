@@ -137,6 +137,13 @@ def get_pparams(defaults=False):
         default="",
         const="qtable.npy")
     parser.add_argument(
+        '--breakout_thresh',
+        '-thresh',
+        type=float,
+        default=0.24,
+        help="Break out early from if cumuluative blocking probability "
+        "exceeds given threshold")
+    parser.add_argument(
         '--hopt',
         nargs='+',
         choices=[
@@ -306,7 +313,7 @@ def get_pparams(defaults=False):
         '--max_gpu_procs',
         type=int,
         help="(Net) Maximum concocurrent processes that utilize the GPU with tensorflow",
-        default=4)
+        default=3)
 
     parser.add_argument(
         '--rng_seed',

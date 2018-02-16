@@ -1,6 +1,8 @@
+import pickle
 from operator import itemgetter
 
 from bson import SON
+from hyperopt.mongoexp import MongoTrials
 from pymongo import MongoClient
 
 port = 1234
@@ -8,6 +10,50 @@ port = 1234
 NOTE For some reason, 'db.col.someFunc' is not the same as
 'col = db['colname']; col.someFunc'. The latter seem to work, the former does not.
 """
+
+
+def hopt_results(pp, trials):
+    """Gather losses and corresponding params for valid results"""
+    if type(trials) is MongoTrials:
+        uri = pp['hopt_fname'].replace('mongo:', '')
+        attachments = get_pps_mongo(uri)
+        valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
+        valid_results = []
+        pkeys = valid[0]['misc']['vals'].keys()
+        params = {key: [] for key in pkeys}
+        for i, res in enumerate(valid):
+            valid_results.append((res['result']['loss'], i))
+            for pkey in pkeys:
+                params[pkey].append(res['misc']['vals'][pkey][0])
+    else:
+        attachments = trials.attachments
+        results = [(e['loss'], i, e['status']) for i, e in enumerate(trials.results)]
+        valid_results = filter(lambda x: x[2] == 'ok', results)
+        params = trials.vals
+    return valid_results, params, attachments
+
+
+def hopt_trials(pp):
+    """Load trials from MongoDB or Pickle file, depending on 'hopt_fname'"""
+    f_name = pp['hopt_fname']
+    try:
+        if f_name.startswith("mongo"):
+            # e.g. 'mongo://localhost:1234/results-singhnet-net_lr-beta/jobs'
+            f_name = f"mongo://localhost:1234/{f_name.replace('mongo:', '')}/jobs"
+            print(f"Attempting to connect to mongodb with url {f_name}")
+            return MongoTrials(f_name)
+        else:
+            f_name = pp['hopt_fname'].replace('.pkl', '') + '.pkl'
+            with open(f_name, "rb") as f:
+                return pickle.load(f)
+    except FileNotFoundError:
+        print(f"Could not find {f_name}.")
+        raise
+    except:
+        print("Have you started mongod server in 'db' dir? \n"
+              "mongod --dbpath . --directoryperdb"
+              " --journal --nohttpinterface --port 1234")
+        raise
 
 
 def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):

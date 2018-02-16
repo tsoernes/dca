@@ -83,7 +83,9 @@ class Strat:
                    self.net_copy_iter > 1:
                     self.net_copy_iter -= 1
                     self.logger.info(f"Decreased net copy iter to {self.net_copy_iter}")
-            if self.env.stats.block_probs_cum and self.env.stats.block_probs_cum[-1] > 0.25:
+            if (self.env.stats.block_probs_cum
+                    and self.env.stats.block_probs_cum[-1] > self.pp['breakout_thresh']):
+                self.logger.error("Block prop threshold exceeded; early breakout")
                 # Premature exit for bad runs
                 self.quit_sim = True
             ch, cevent = next_ch, next_cevent

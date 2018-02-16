@@ -14,7 +14,7 @@ from hyperopt.pyll.base import scope  # noqa
 from matplotlib import pyplot as plt
 
 from gui import Gui
-from hopt_utils import (add_pp_mongo, add_pp_pickle, get_pps_mongo,
+from hopt_utils import (add_pp_mongo, add_pp_pickle, hopt_results, hopt_trials,
                         mongo_decide_gpu_usage, mongo_decrease_gpu_procs,
                         mongo_list_dbs)
 from params import get_pparams
@@ -52,6 +52,18 @@ class Runner:
         else:
             self.run()
 
+    def run(self):
+        strat = self.stratclass(self.pp, logger=self.logger)
+        if self.pp['gui']:
+            # TODO Fix grid etc
+            # gui = Gui(grid, strat.exit_handler, grid.print_cell)
+            # strat.gui = gui
+            raise NotImplementedError
+        if self.pp['profiling']:
+            cProfile.runctx('strat.simulate()', globals(), locals(), sort='tottime')
+        else:
+            strat.simulate()
+
     def avg_run(self):
         t = time.time()
         n_runs = self.pp['avg_runs']
@@ -86,18 +98,6 @@ class Runner:
     def train_net(self):
         strat = self.stratclass(self.pp, logger=self.logger)
         strat.net.train()
-
-    def run(self):
-        strat = self.stratclass(self.pp, logger=self.logger)
-        if self.pp['gui']:
-            # TODO Fix grid etc
-            # gui = Gui(grid, strat.exit_handler, grid.print_cell)
-            # strat.gui = gui
-            raise NotImplementedError
-        if self.pp['profiling']:
-            cProfile.runctx('strat.simulate()', globals(), locals(), sort='tottime')
-        else:
-            strat.simulate()
 
     @staticmethod
     def sim_proc(stratclass, pp, pid, reseed=True):
@@ -201,52 +201,10 @@ class Runner:
             with open(f_name, "wb") as f:
                 pickle.dump(trials, f)
 
-    def _hopt_trials(self):
-        """Load trials from MongoDB or Pickle file, depending on 'hopt_fname'"""
-        f_name = self.pp['hopt_fname']
-        try:
-            if f_name.startswith("mongo"):
-                # e.g. 'mongo://localhost:1234/results-singhnet-net_lr-beta/jobs'
-                f_name = f"mongo://localhost:1234/{f_name.replace('mongo:', '')}/jobs"
-                self.logger.error(f"Attempting to connect to mongodb with url {f_name}")
-                return MongoTrials(f_name)
-            else:
-                f_name = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
-                with open(f_name, "rb") as f:
-                    return pickle.load(f)
-        except FileNotFoundError:
-            self.logger.error(f"Could not find {f_name}.")
-            raise
-        except:
-            self.logger.error("Have you started mongod server in 'db' dir? \n"
-                              "mongod --dbpath . --directoryperdb"
-                              " --journal --nohttpinterface --port 1234")
-            raise
-
-    def _hopt_results(self, trials):
-        """Gather losses and corresponding params for valid results"""
-        if type(trials) is MongoTrials:
-            uri = self.pp['hopt_fname'].replace('mongo:', '')
-            attachments = get_pps_mongo(uri)
-            valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
-            valid_results = []
-            pkeys = valid[0]['misc']['vals'].keys()
-            params = {key: [] for key in pkeys}
-            for i, res in enumerate(valid):
-                valid_results.append((res['result']['loss'], i))
-                for pkey in pkeys:
-                    params[pkey].append(res['misc']['vals'][pkey][0])
-        else:
-            attachments = trials.attachments
-            results = [(e['loss'], i, e['status']) for i, e in enumerate(trials.results)]
-            valid_results = filter(lambda x: x[2] == 'ok', results)
-            params = trials.vals
-        return valid_results, params, attachments
-
     def hopt_best(self, trials=None, n=1, view_pp=True):
         if trials is None:
             try:
-                trials = self._hopt_trials()
+                trials = hopt_trials(self.pp)
             except (FileNotFoundError, ValueError):
                 sys.exit(1)
         # Something below here might throw AttributeError when mongodb exists but is empty
@@ -256,7 +214,7 @@ class Runner:
             fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
             self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
             return
-        valid_results, params, attachments = self._hopt_results(trials)
+        valid_results, params, attachments = hopt_results(self.pp, trials)
         sorted_results = sorted(valid_results)
         self.logger.error(f"Found {len(sorted_results)} valid trials")
         if view_pp and attachments:
@@ -267,8 +225,8 @@ class Runner:
             self.logger.error(f"Loss {lt[0]:.6f}: {fparams}")
 
     def hopt_plot(self):
-        trials = self._hopt_trials()
-        valid_results, params, attachments = self._hopt_results(trials)
+        trials = hopt_trials(self.pp)
+        valid_results, params, attachments = hopt_results(self.pp, trials)
         losses = [x[0] for x in valid_results]
         n_params = len(params.keys())
         for i, (param, values) in zip(range(n_params), params.items()):
