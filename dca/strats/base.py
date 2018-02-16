@@ -3,9 +3,9 @@ from typing import Tuple
 
 import numpy as np
 
+import gridfuncs_numba as GF
 from environment import Env
 from eventgen import CEvent
-from gridfuncs_numba import GF
 from replaybuffer import ReplayBuffer
 
 

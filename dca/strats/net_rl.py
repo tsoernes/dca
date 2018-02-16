@@ -2,8 +2,8 @@ from typing import List, Tuple
 
 import numpy as np
 
+import gridfuncs_numba as GF
 from eventgen import CEvent
-from gridfuncs_numba import GF
 from nets.acnet import ACNet
 from nets.dqnet import DistQNet
 from nets.qnet import QNet

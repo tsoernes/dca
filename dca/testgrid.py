@@ -2,8 +2,7 @@ import unittest
 
 import numpy as np
 
-# from gridfuncs_numba import GF as NGF
-import gridfuncs_numba2 as NGF
+import gridfuncs_numba as NGF
 from eventgen import CEvent
 from gridfuncs import GF
 

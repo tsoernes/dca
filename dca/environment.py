@@ -1,7 +1,7 @@
 import numpy as np
 
+import gridfuncs_numba as GF
 from eventgen import CEvent, EventGen, ce_str
-from gridfuncs_numba import GF
 from stats import Stats
 
 
