@@ -19,20 +19,14 @@ class QNet(Net):
     def _build_net(self, grid, cell, name):
         base_net = self._build_base_net(grid, cell, name)
         with tf.variable_scope('model/' + name) as scope:
-            h1 = tf.layers.dense(
-                inputs=base_net,
-                units=490,
-                kernel_initializer=self.kern_init_dense(),
-                use_bias=False,
-                activation=self.act_fn,
-                name="h1")
             if self.pp['dueling_qnet']:
-                h2 = tf.layers.dense(
-                    inputs=base_net,
-                    units=490,
-                    kernel_initializer=self.kern_init_dense(),
-                    use_bias=False,
-                    name="h2")
+                h1 = base_net
+                # h1 = tf.layers.dense(
+                #     inputs=base_net,
+                #     units=140,
+                #     kernel_initializer=self.kern_init_dense(),
+                #     use_bias=False,
+                #     name="h1")
                 value = tf.layers.dense(
                     inputs=h1,
                     units=1,
@@ -40,7 +34,7 @@ class QNet(Net):
                     use_bias=False,
                     name="value")
                 advantages = tf.layers.dense(
-                    inputs=h2,
+                    inputs=h1,
                     units=self.n_channels,
                     use_bias=False,
                     kernel_initializer=self.kern_init_dense(),
@@ -48,10 +42,10 @@ class QNet(Net):
                 # Avg. dueling supposedly more stable than max according to paper
                 # Max Dueling
                 # q_vals = value + (advantages - tf.reduce_max(
-                #     advantages, axis=1, keep_dims=True))
+                #     advantages, axis=1, keepdims=True))
                 # Average Dueling
                 q_vals = value + (
-                    advantages - tf.reduce_mean(advantages, axis=1, keep_dims=True))
+                    advantages - tf.reduce_mean(advantages, axis=1, keepdims=True))
                 if "online" in name:
                     self.advantages = advantages
                 if "target" in name:
@@ -112,7 +106,8 @@ class QNet(Net):
             name="target_q_selected")
         if self.pp['dueling_qnet']:
             # WHAT?
-            self.next_q = tf.squeeze(self.value)
+            # self.next_q = tf.squeeze(self.value)
+            self.next_q = self.target_q_selected
         elif self.pp['train_net']:
             self.next_q = tf.placeholder(shape=[None], dtype=tf.float32, name="qtarget")
         else:
