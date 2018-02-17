@@ -5,13 +5,25 @@ from operator import itemgetter
 from bson import SON
 from hyperopt.mongoexp import MongoTrials
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
+from pymongo.errors import ServerSelectionTimeoutError
 
 port = 1234
 """
 NOTE For some reason, 'db.col.someFunc' is not the same as
 'col = db['colname']; col.someFunc'. The latter seem to work, the former does not.
 """
+
+mongo_fail_msg = "Have you started mongod server in 'db' dir? \n" \
+                 "mongod --dbpath . --directoryperdb --journal --nohttpinterface --port 1234"
+
+
+def mongo_connect(server='localhost', port=1234):
+    try:
+        client = MongoClient(server, port, document_class=SON, w=1, j=True)
+    except ServerSelectionTimeoutError:
+        print(mongo_fail_msg)
+        sys.exit(1)
+    return client
 
 
 def hopt_results(pp, trials):
@@ -51,10 +63,8 @@ def hopt_trials(pp):
     except FileNotFoundError:
         print(f"Could not find {f_name}.")
         sys.exit(1)
-    except ConnectionFailure:
-        print("Have you started mongod server in 'db' dir? \n"
-              "mongod --dbpath . --directoryperdb"
-              " --journal --nohttpinterface --port 1234")
+    except ServerSelectionTimeoutError:
+        print(mongo_fail_msg)
         sys.exit(1)
 
 
@@ -62,7 +72,7 @@ def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):
     """Decide whether or not to use GPU based on how many proceses currently use it"""
     # The DB should contain a collection 'gpu_procs' with one document,
     # {'gpu_procs': N}, where N is the current number of procs that utilize the GPU.
-    client = MongoClient('localhost', port, document_class=SON, w=1, j=True)
+    client = mongo_connect()
     db = client[mongo_uri]
     col = db['gpu_procs']
     doc = col.find_one()
@@ -82,7 +92,7 @@ def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):
 
 def mongo_decrease_gpu_procs(mongo_uri):
     """Decrease GPU process count in Mongo DB. Fails if none are in use."""
-    client = MongoClient('localhost', port, document_class=SON, w=1, j=True)
+    client = mongo_connect()
     db = client[mongo_uri]
     col = db['gpu_procs']
     doc = col.find_one()
@@ -112,7 +122,7 @@ def add_pp_mongo(mongo_uri, pp):
     """Add problem params to mongo db"""
     if 'dt' in pp:
         del pp['dt']
-    client = MongoClient('localhost', port, document_class=SON, w=1, j=True)
+    client = mongo_connect()
     db = client[mongo_uri]
     col = db['pp']
     # See if given pp already exists in db, and if not, add it
@@ -123,7 +133,7 @@ def add_pp_mongo(mongo_uri, pp):
 def get_pps_mongo(mongo_uri):
     """Get problems params stored in mongo db, sorted by the time they were added"""
     # Does not use attachmens object, will store different loc
-    client = MongoClient('localhost', port, document_class=SON, w=1, j=True)
+    client = mongo_connect()
     db = client[mongo_uri]
     col = db['pp']
     pps = []
@@ -138,7 +148,7 @@ def get_pps_mongo(mongo_uri):
 
 def mongo_prune_suspended(mongo_uri):
     """Remove jobs with status 'suspended'."""
-    client = MongoClient('localhost', port, document_class=SON, w=1, j=True)
+    client = mongo_connect()
     db = client[mongo_uri]
     col = db['jobs']
     pre_count = col.count()
@@ -150,7 +160,7 @@ def mongo_prune_suspended(mongo_uri):
 
 def mongo_list_dbs():
     """List all databases, their GPU process count and collections."""
-    client = MongoClient('localhost', port)
+    client = mongo_connect()
     for dbname in client.list_database_names():
         if dbname in ['admin', 'local']:
             continue

@@ -1,5 +1,0 @@
-ReLU
-
-ELU
-
-Leaky RELU
