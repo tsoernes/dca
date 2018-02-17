@@ -13,8 +13,9 @@ NOTE For some reason, 'db.col.someFunc' is not the same as
 'col = db['colname']; col.someFunc'. The latter seem to work, the former does not.
 """
 
-mongo_fail_msg = "Have you started mongod server in 'db' dir? \n" \
-                 "mongod --dbpath . --directoryperdb --journal --nohttpinterface --port 1234"
+mongo_fail_msg = """
+Failed to connect to MongoDB. Have you started mongod server in 'db' dir? \n
+mongod --dbpath . --directoryperdb --journal --nohttpinterface --port 1234 """
 
 
 def mongo_connect(server='localhost', port=1234):
@@ -173,4 +174,14 @@ def mongo_list_dbs():
         for colname in db.list_collection_names():
             col = db[colname]
             print(f"  Col: {colname}, count: {col.count()}")
+    client.close()
+
+
+def mongo_drop_empty():
+    client = mongo_connect()
+    for dbname in client.list_database_names():
+        if dbname in ['admin', 'local']:
+            continue
+        if client[dbname]['jobs'].count() == 0:
+            client.drop_database(dbname)
     client.close()
