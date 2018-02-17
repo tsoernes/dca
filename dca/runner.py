@@ -161,19 +161,27 @@ class Runner:
             self.logger.error("Prev best:")
             self.hopt_best(trials, n=1, view_pp=False)
             prev_pps = get_pps_mongo(name)
+            # If given pp equals the last one found in MongoDB, don't add it.
+            # Otherwise, ask whether to use the one found in DB instead,
+            # and if not, store given pp in DB.
             if prev_pps:
-                old_pp = prev_pps[-1]
-                dt = old_pp['dt']
-                del old_pp['dt']
-                self.logger.error(f"Found old problem params in MongoDB added "
-                                  f"at {dt}. Diff:\n{diff(old_pp, self.pp)}")
-                ans = ''
-                while ans.lower() not in ['y', 'n']:
-                    ans = input("Use old pp instead? Y/N:")
-                if ans.lower() == 'y':
-                    self.pp = old_pp
-                else:
-                    add_pp_mongo(name, self.pp)
+                mongo_pp = prev_pps[-1]
+                dt = mongo_pp['dt']
+                del mongo_pp['dt']
+                pp_diff = diff(self.pp, mongo_pp)
+                if len(pp_diff.diffs) > 1:
+                    # 'diffs' list has more than 1 entry, i.e. pps are not equal
+                    self.logger.error(f"Found old problem params in MongoDB added "
+                                      f"at {dt}. Diff:\n{pp_diff)}")
+                    ans = ''
+                    while ans.lower() not in ['y', 'n']:
+                        ans = input("Use old pp instead? Y/N:")
+                    if ans.lower() == 'y':
+                        self.pp = old_pp
+                    else:
+                        add_pp_mongo(name, self.pp)
+            else:
+                add_pp_mongo(name, self.pp)
         except ValueError:
             self.logger.error("No existing trials, starting from scratch")
             add_pp_mongo(name, self.pp)

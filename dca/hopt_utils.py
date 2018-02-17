@@ -1,9 +1,11 @@
 import pickle
+import sys
 from operator import itemgetter
 
 from bson import SON
 from hyperopt.mongoexp import MongoTrials
 from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
 
 port = 1234
 """
@@ -48,12 +50,12 @@ def hopt_trials(pp):
                 return pickle.load(f)
     except FileNotFoundError:
         print(f"Could not find {f_name}.")
-        raise
-    except:
+        sys.exit(1)
+    except ConnectionFailure:
         print("Have you started mongod server in 'db' dir? \n"
               "mongod --dbpath . --directoryperdb"
               " --journal --nohttpinterface --port 1234")
-        raise
+        sys.exit(1)
 
 
 def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):
@@ -107,17 +109,14 @@ def add_pp_pickle(trials, pp):
 
 
 def add_pp_mongo(mongo_uri, pp):
-    """Add problem params to mongo db, if it differs from
-    one already added"""
-    # TODO should add if it differs from the last one added
+    """Add problem params to mongo db"""
     if 'dt' in pp:
         del pp['dt']
     client = MongoClient('localhost', port, document_class=SON, w=1, j=True)
     db = client[mongo_uri]
     col = db['pp']
-    doc = col.find_one(pp)
-    if doc is None:
-        col.insert_one(pp)
+    # See if given pp already exists in db, and if not, add it
+    col.insert_one(pp)
     client.close()
 
 
