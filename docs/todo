@@ -7,6 +7,8 @@ Singh:
           - LR decay
 
 QNet:
+  Multi-step returns
+             If 2-step returns are worse, then there's bugs in qnet or wherever
   Test argmaxing in opt_ch on end-events
   Duelling qnet pre-training
   Why is loss increasing for long runs?
@@ -17,9 +19,8 @@ QNet + Singh hybrid:
      Including features for Qnet
      Including convs. for Singh (1x1 before dense?)
 
-
 Progging:
-  Store pp in mongodb
+  Retrieve pp from mongodb
   Batch norm for exp replay
 
 Reading:

@@ -110,6 +110,8 @@ def add_pp_mongo(mongo_uri, pp):
     """Add problem params to mongo db, if it differs from
     one already added"""
     # TODO should add if it differs from the last one added
+    if 'dt' in pp:
+        del pp['dt']
     client = MongoClient('localhost', port, document_class=SON, w=1, j=True)
     db = client[mongo_uri]
     col = db['pp']

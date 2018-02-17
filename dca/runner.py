@@ -8,15 +8,16 @@ from functools import partial
 from multiprocessing import Pool
 
 import numpy as np
+from datadiff import diff
 from hyperopt import Trials, fmin, hp, tpe  # noqa
 from hyperopt.mongoexp import MongoTrials
 from hyperopt.pyll.base import scope  # noqa
 from matplotlib import pyplot as plt
 
 from gui import Gui
-from hopt_utils import (add_pp_mongo, add_pp_pickle, hopt_results, hopt_trials,
-                        mongo_decide_gpu_usage, mongo_decrease_gpu_procs,
-                        mongo_list_dbs)
+from hopt_utils import (add_pp_mongo, add_pp_pickle, get_pps_mongo,
+                        hopt_results, hopt_trials, mongo_decide_gpu_usage,
+                        mongo_decrease_gpu_procs, mongo_list_dbs)
 from params import get_pparams
 
 
@@ -153,14 +154,29 @@ class Runner:
             self._hopt_pickle(space)
 
     def _hopt_mongo(self, space):
+        """Find previous best trial and pp from MongoDB, if any, then run hopt job server"""
         name = self.pp['hopt_fname'].replace('mongo:', '')
         trials = MongoTrials('mongo://localhost:1234/' + name + '/jobs')
-        add_pp_mongo(name, self.pp)
         try:
             self.logger.error("Prev best:")
             self.hopt_best(trials, n=1, view_pp=False)
+            prev_pps = get_pps_mongo(name)
+            if prev_pps:
+                old_pp = prev_pps[-1]
+                dt = old_pp['dt']
+                del old_pp['dt']
+                self.logger.error(f"Found old problem params in MongoDB added "
+                                  f"at {dt}. Diff:\n{diff(old_pp, self.pp)}")
+                ans = ''
+                while ans.lower() not in ['y', 'n']:
+                    ans = input("Use old pp instead? Y/N:")
+                if ans.lower() == 'y':
+                    self.pp = old_pp
+                else:
+                    add_pp_mongo(name, self.pp)
         except ValueError:
             self.logger.error("No existing trials, starting from scratch")
+            add_pp_mongo(name, self.pp)
         fn = partial(hopt_proc, self.stratclass, self.pp, mongo_uri=name)
         fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
 
