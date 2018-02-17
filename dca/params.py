@@ -371,6 +371,8 @@ def get_pparams(defaults=False):
     # We don't want no double negatives
     pp['grid_split'] = not pp['no_grid_split']
     del pp['no_grid_split']
+    pp['use_gpu'] = not pp['no_gpu']
+    del pp['no_gpu']
 
     if (pp['hopt'] or pp['hopt_best'] or pp['hopt_plot']) and not pp['hopt_fname']:
         print("No file name specified for hyperopt ('hopt_fname')")

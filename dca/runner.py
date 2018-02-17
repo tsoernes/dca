@@ -70,7 +70,7 @@ class Runner:
         n_runs = self.pp['avg_runs']
         simproc = partial(self.sim_proc, self.stratclass, self.pp)
         # Net runs use same np seed for all runs; other strats do not
-        if self.pp['net'] and not self.pp['no_gpu']:
+        if self.pp['net'] and self.pp['use_gpu']:
             results = []
             for i in range(n_runs):
                 res = simproc(i, reseed=False)
@@ -279,9 +279,9 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     """
     using_gpu_and_mongo = False
     # Don't override user-given arg for disabling GPU-usage
-    if not pp['no_gpu'] and mongo_uri is not None:
+    if pp['use_gpu'] and mongo_uri is not None:
         using_gpu_and_mongo = mongo_decide_gpu_usage(mongo_uri, pp['max_gpu_procs'])
-        pp['no_gpu'] = not using_gpu_and_mongo
+        pp['use_gpu'] = using_gpu_and_mongo
     for key, val in space.items():
         pp[key] = val
     # import psutil
