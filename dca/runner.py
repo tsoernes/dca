@@ -238,7 +238,11 @@ class Runner:
             fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
             self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
             return
-        valid_results, params, attachments = hopt_results(self.pp, trials)
+        try:
+            valid_results, params, attachments = hopt_results(self.pp, trials)
+        except IndexError:
+            print("Invalid MongoDB identifier")
+            sys.exit(1)
         sorted_results = sorted(valid_results)
         self.logger.error(f"Found {len(sorted_results)} valid trials")
         if view_pp and attachments:

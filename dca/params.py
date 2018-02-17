@@ -184,13 +184,13 @@ def get_pparams(defaults=False):
         dest='net_lr',
         type=float,
         help="(Net) Learning rate. Overrides 'alpha'.",
-        default=3.4e-5)
+        default=2.95e-5)
     parser.add_argument(
         '--net_lr_decay',
         '-lr_dec',
         type=float,
         help="(Net) Exponential Learning rate decay multiplier",
-        default=1.)
+        default=0.96)
     parser.add_argument(
         '--weight_init_conv', choices=weight_initializers, default='zeros')
     parser.add_argument(
