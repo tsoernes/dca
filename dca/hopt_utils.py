@@ -20,6 +20,7 @@ mongo_fail_msg = "Have you started mongod server in 'db' dir? \n" \
 def mongo_connect(server='localhost', port=1234):
     try:
         client = MongoClient(server, port, document_class=SON, w=1, j=True)
+        client.admin.command('ismaster')  # Check if connection is working
     except ServerSelectionTimeoutError:
         print(mongo_fail_msg)
         sys.exit(1)
