@@ -2,7 +2,6 @@ import cProfile
 import datetime
 import logging
 import pickle
-import sys
 import time
 from functools import partial
 from multiprocessing import Pool
@@ -12,12 +11,10 @@ from datadiff import diff
 from hyperopt import Trials, fmin, hp, tpe  # noqa
 from hyperopt.mongoexp import MongoTrials
 from hyperopt.pyll.base import scope  # noqa
-from matplotlib import pyplot as plt
 
 from gui import Gui
 from hopt_utils import (add_pp_mongo, add_pp_pickle, get_pps_mongo,
-                        hopt_results, hopt_trials, mongo_decide_gpu_usage,
-                        mongo_decrease_gpu_procs, mongo_list_dbs)
+                        mongo_decide_gpu_usage, mongo_decrease_gpu_procs)
 from params import get_pparams
 
 
@@ -36,12 +33,6 @@ class Runner:
 
         if self.pp['hopt']:
             self.hopt()
-        elif self.pp['hopt_best'] > 0:
-            self.hopt_best(None, self.pp['hopt_best'], view_pp=True)
-        elif self.pp['hopt_plot']:
-            self.hopt_plot()
-        elif self.pp['hopt_list']:
-            mongo_list_dbs()
         elif self.pp['avg_runs']:
             self.avg_run()
         elif self.pp['strat'] == 'show':
@@ -224,44 +215,6 @@ class Runner:
                 prev_best = best
             with open(f_name, "wb") as f:
                 pickle.dump(trials, f)
-
-    def hopt_best(self, trials=None, n=1, view_pp=True):
-        if trials is None:
-            try:
-                trials = hopt_trials(self.pp)
-            except (FileNotFoundError, ValueError):
-                sys.exit(1)
-        # Something below here might throw AttributeError when mongodb exists but is empty
-        if n == 1:
-            b = trials.best_trial
-            params = b['misc']['vals']
-            fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
-            self.logger.error(f"Loss: {b['result']['loss']}\n{fparams}")
-            return
-        try:
-            valid_results, params, attachments = hopt_results(self.pp, trials)
-        except IndexError:
-            print("Invalid MongoDB identifier")
-            sys.exit(1)
-        sorted_results = sorted(valid_results)
-        self.logger.error(f"Found {len(sorted_results)} valid trials")
-        if view_pp and attachments:
-            self.logger.error(attachments)
-        for lt in sorted_results[:n]:
-            fparams = ' '.join(
-                [f"--{key} {value[lt[1]]}" for key, value in params.items()])
-            self.logger.error(f"Loss {lt[0]:.6f}: {fparams}")
-
-    def hopt_plot(self):
-        trials = hopt_trials(self.pp)
-        valid_results, params, attachments = hopt_results(self.pp, trials)
-        losses = [x[0] for x in valid_results]
-        n_params = len(params.keys())
-        for i, (param, values) in zip(range(n_params), params.items()):
-            pl1 = plt.subplot(n_params, 1, i + 1)
-            pl1.plot(values, losses, 'ro')
-            plt.xlabel(param)
-        plt.show()
 
     def show(self):
         # g = grid.RhombusAxialGrid(logger=self.logger, **self.pp)

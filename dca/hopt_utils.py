@@ -1,9 +1,11 @@
+import argparse
 import pickle
 import sys
 from operator import itemgetter
 
 from bson import SON
 from hyperopt.mongoexp import MongoTrials
+from matplotlib import pyplot as plt
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
@@ -28,10 +30,10 @@ def mongo_connect(server='localhost', port=1234):
     return client
 
 
-def hopt_results(pp, trials):
+def hopt_results(fname, trials):
     """Gather losses and corresponding params for valid results"""
     if type(trials) is MongoTrials:
-        uri = pp['hopt_fname'].replace('mongo:', '')
+        uri = fname.replace('mongo:', '')
         attachments = get_pps_mongo(uri)
         valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
         valid_results = []
@@ -49,21 +51,20 @@ def hopt_results(pp, trials):
     return valid_results, params, attachments
 
 
-def hopt_trials(pp):
+def hopt_trials(fname):
     """Load trials from MongoDB or Pickle file, depending on 'hopt_fname'"""
-    f_name = pp['hopt_fname']
     try:
-        if f_name.startswith("mongo"):
+        if fname.startswith("mongo"):
             # e.g. 'mongo://localhost:1234/results-singhnet-net_lr-beta/jobs'
-            f_name = f"mongo://localhost:1234/{f_name.replace('mongo:', '')}/jobs"
-            print(f"Attempting to connect to mongodb with url {f_name}")
-            return MongoTrials(f_name)
+            fname = f"mongo://localhost:1234/{fname.replace('mongo:', '')}/jobs"
+            print(f"Attempting to connect to mongodb with url {fname}")
+            return MongoTrials(fname)
         else:
-            f_name = pp['hopt_fname'].replace('.pkl', '') + '.pkl'
-            with open(f_name, "rb") as f:
+            fname = fname.replace('.pkl', '') + '.pkl'
+            with open(fname, "rb") as f:
                 return pickle.load(f)
     except FileNotFoundError:
-        print(f"Could not find {f_name}.")
+        print(f"Could not find {fname}.")
         sys.exit(1)
     except ServerSelectionTimeoutError:
         print(mongo_fail_msg)
@@ -185,3 +186,99 @@ def mongo_drop_empty():
         if client[dbname]['jobs'].count() == 0:
             client.drop_database(dbname)
     client.close()
+
+
+def hopt_best(fname, trials=None, n=1, view_pp=True):
+    if trials is None:
+        try:
+            trials = hopt_trials(fname)
+        except (FileNotFoundError, ValueError):
+            sys.exit(1)
+    # Something below here might throw AttributeError when mongodb exists but is empty
+    if n == 1:
+        b = trials.best_trial
+        params = b['misc']['vals']
+        fparams = ' '.join([f"--{key} {value[0]}" for key, value in params.items()])
+        print(f"Loss: {b['result']['loss']}\n{fparams}")
+        return
+    try:
+        valid_results, params, attachments = hopt_results(fname, trials)
+    except IndexError:
+        print("Invalid MongoDB identifier")
+        sys.exit(1)
+    sorted_results = sorted(valid_results)
+    print(f"Found {len(sorted_results)} valid trials")
+    if view_pp and attachments:
+        print(attachments)
+    for lt in sorted_results[:n]:
+        fparams = ' '.join([f"--{key} {value[lt[1]]}" for key, value in params.items()])
+        print(f"Loss {lt[0]:.6f}: {fparams}")
+
+
+def hopt_plot(fname):
+    trials = hopt_trials(fname)
+    valid_results, params, attachments = hopt_results(fname, trials)
+    losses = [x[0] for x in valid_results]
+    n_params = len(params.keys())
+    for i, (param, values) in zip(range(n_params), params.items()):
+        pl1 = plt.subplot(n_params, 1, i + 1)
+        pl1.plot(values, losses, 'ro')
+        plt.xlabel(param)
+    plt.show()
+
+
+def runner():
+    parser = argparse.ArgumentParser(
+        description='DCA', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        'fname',
+        type=str,
+        nargs='?',
+        help="File name or MongoDB data base name"
+        "for hyperopt destination/source. Prepend 'mongo:' to MongoDB names",
+        default=None)
+    parser.add_argument(
+        '--best',
+        dest='hopt_best',
+        metavar='N',
+        nargs='?',
+        type=int,
+        help="Show N best params found and corresponding loss",
+        default=0,
+        const=1)
+    parser.add_argument(
+        '--plot',
+        action='store_true',
+        help="Plot each param against corresponding loss",
+        default=False)
+    parser.add_argument(
+        '--list_dbs',
+        action='store_true',
+        help="(MongoDB) List MongoDB databases",
+        default=False)
+    parser.add_argument(
+        '--drop_empty_dbs',
+        action='store_true',
+        help="(MongoDB) List MongoDB databases",
+        default=False)
+    parser.add_argument(
+        '--prune_jobs',
+        action='store_true',
+        help="(MongoDB) Prune suspended jobs",
+        default=False)
+    args = vars(parser.parse_args())
+    fname = args['fname']
+    if args['hopt_best'] > 0:
+        hopt_best(fname, None, args['hopt_best'], view_pp=True)
+    elif args['plot']:
+        hopt_plot(fname)
+    elif args['list_dbs']:
+        mongo_list_dbs(fname)
+    elif args['drop_empty_dbs']:
+        mongo_drop_empty()
+    elif args['prune_jobs']:
+        mongo_prune_suspended(fname)
+
+
+if __name__ == '__main__':
+    runner()

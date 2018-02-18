@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow import bool as boolean
+from tensorflow import float32, int32
 
-from eventgen import CEvent
 from nets.net import Net
 from nets.utils import (copy_net_op, get_trainable_vars, prep_data_cells,
                         prep_data_grids)
@@ -65,20 +66,18 @@ class QNet(Net):
         depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
         gridshape = [None, self.pp['rows'], self.pp['cols'], depth]
         oh_cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
-        self.grid = tf.placeholder(shape=gridshape, dtype=tf.bool, name="grid")
-        gridf = tf.cast(self.grid, tf.float32)
-        self.cell = tf.placeholder(shape=[None, 2], dtype=tf.int32, name="cell")
-        self.oh_cell = tf.placeholder(
-            shape=oh_cellshape, dtype=tf.float32, name="oh_cell")
-        self.action = tf.placeholder(shape=[None], dtype=tf.int32, name="action")
-        self.reward = tf.placeholder(shape=[None], dtype=tf.float32, name="reward")
-        self.next_grid = tf.placeholder(shape=gridshape, dtype=tf.bool, name="next_grid")
-        next_gridf = tf.cast(self.next_grid, tf.float32)
-        self.next_oh_cell = tf.placeholder(
-            shape=oh_cellshape, dtype=tf.float32, name="next_oh_cell")
-        self.next_action = tf.placeholder(
-            shape=[None], dtype=tf.int32, name="next_action")
-        self.tf_gamma = tf.placeholder(shape=[1], dtype=tf.float32, name="gamma")
+        self.grid = tf.placeholder(boolean, gridshape, "grid")
+        gridf = tf.cast(self.grid, float32)
+        self.cell = tf.placeholder(int32, [None, 2], "cell")
+        self.oh_cell = tf.placeholder(float32, oh_cellshape, "oh_cell")
+        self.action = tf.placeholder(int32, [None], "action")
+        self.reward = tf.placeholder(float32, [None], "reward")
+        self.next_grid = tf.placeholder(boolean, gridshape, "next_grid")
+        next_gridf = tf.cast(self.next_grid, float32)
+        self.next_oh_cell = tf.placeholder(float32, oh_cellshape, "next_oh_cell")
+        self.next_action = tf.placeholder(int32, [None], "next_action")
+        # Allows for passing in varying gamma, e.g. beta discount
+        self.tf_gamma = tf.placeholder(float32, [1], "gamma")
 
         self.online_q_vals, online_vars = self._build_net(
             gridf, self.oh_cell, name="q_networks/online")
@@ -109,7 +108,7 @@ class QNet(Net):
             # self.next_q = tf.squeeze(self.value)
             self.next_q = self.target_q_selected
         elif self.pp['train_net']:
-            self.next_q = tf.placeholder(shape=[None], dtype=tf.float32, name="qtarget")
+            self.next_q = tf.placeholder(shape=[None], dtype=float32, name="qtarget")
         else:
             self.next_q = self.target_q_selected
 
@@ -163,7 +162,7 @@ class QNet(Net):
         If 'next_q', do supervised learning.
         """
         if gamma is None:
-            gamma = self.gamma
+            gamma = self.gamma  # Not using beta-discount; use fixed constant
         data = {
             self.grid: prep_data_grids(grids, self.pp['grid_split']),
             self.oh_cell: prep_data_cells(cells),
@@ -171,6 +170,7 @@ class QNet(Net):
             self.reward: rewards,
         }
         if next_q is not None:
+            # Pass explicit qval when supervised training on e.g. qtable
             data[self.next_q] = next_q
         else:
             p_next_grids = prep_data_grids(next_grids, self.pp['grid_split'])

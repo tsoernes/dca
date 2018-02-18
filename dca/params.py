@@ -43,7 +43,7 @@ def get_pparams(defaults=False):
         stratclasses[i] = (s2, stratclasses[i][1])
     weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
 
-    parser.add_argument('--strat', type=str, choices=stratnames, default="rs_sarsa")
+    parser.add_argument('strat', type=str, choices=stratnames, default="rs_sarsa")
     parser.add_argument('--rows', type=int, help="number of rows in grid", default=7)
     parser.add_argument('--cols', type=int, help="number of columns in grid", default=7)
     parser.add_argument('--n_channels', type=int, help="number of channels", default=70)
@@ -153,24 +153,6 @@ def get_pparams(defaults=False):
         ],
         help="(Hopt) Hyper-parameter optimization with hyperopt.",
         default=None)
-    parser.add_argument(
-        '--hopt_best',
-        metavar='N',
-        nargs='?',
-        type=int,
-        help="(Hopt) Show N best params found and corresponding loss",
-        default=0,
-        const=1)
-    parser.add_argument(
-        '--hopt_plot',
-        action='store_true',
-        help="(Hopt) Plot params found and corresponding loss ",
-        default=False)
-    parser.add_argument(
-        '--hopt_list',
-        action='store_true',
-        help="(Hopt) List mongo databases",
-        default=False)
     parser.add_argument(
         '--hopt_fname',
         type=str,
