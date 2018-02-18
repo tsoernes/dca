@@ -20,6 +20,11 @@ class CEvent(IntEnum):
 
 
 class EventGen:
+    """
+    Generates event tuples of the format (time, type, cell) for NEW/HOFF events
+    and (time, type, cell, ch) for END events.
+    """
+
     def __init__(self, rows, cols, call_rates, call_duration, hoff_call_duration, logger,
                  *args, **kwargs):
         self.rows, self.cols = rows, cols
