@@ -14,8 +14,8 @@ class Stats:
     def __init__(self, pp, logger, pid="", *args, **kwargs):
         self.pp = pp
         self.logger = logger
-        self.pid = pid
-
+        self.pid_str = None  # " " if pid is not None else ""
+        # f"T{pid} "
         self.start_time = time.time()
         self.n_rejected = 0  # Number of rejected calls
         self.n_ended = 0  # Number of ended calls
@@ -128,7 +128,7 @@ class Stats:
         self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         # Avoid zero divisions by adding 1 do dividers
         self.block_prob_cum_hoff = self.n_handoffs_rejected / (self.n_handoffs + 1)
-        self.logger.error(f"\nT{self.pid} Blocking probability:"
+        self.logger.error(f"\n{self.pid_str}Blocking probability:"
                           f" {self.block_prob_cum:.4f} for new calls, "
                           f"{self.block_prob_cum_hoff:.4f} for handoffs")
         self.logger.warn(f"\nAverage number of calls in progress when blocking: "

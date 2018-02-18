@@ -381,8 +381,7 @@ def get_pparams(defaults=False):
         pp['gui'] = False
         # if not pp['log_level']:
         #     pp['log_level'] = logging.ERROR
-        if not pp['log_iter']:
-            pp['log_iter'] = pp['n_events'] // 4
+        pp['log_iter'] = pp['n_events'] // 6
     if pp['hopt'] is not None:
         if pp['net']:
             pp['n_events'] = 100000
