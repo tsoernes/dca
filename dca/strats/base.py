@@ -83,10 +83,9 @@ class Strat:
                    self.net_copy_iter > 1:
                     self.net_copy_iter -= 1
                     self.logger.info(f"Decreased net copy iter to {self.net_copy_iter}")
-            if (self.env.stats.block_probs_cum
-                    and self.env.stats.block_probs_cum[-1] > self.pp['breakout_thresh']):
-                self.logger.error("Block prop threshold exceeded; early breakout")
-                # Premature exit for bad runs
+            if (self.env.stats.block_probs_cum and  # yapf: disable
+                    self.env.stats.block_probs_cum[-1] > self.pp['breakout_thresh']):
+                self.logger.error("Block prob threshold exceeded; breaking out early")
                 self.quit_sim = True
             ch, cevent = next_ch, next_cevent
             i += 1
@@ -144,15 +143,12 @@ class RLStrat(Strat):
         self.alpha = pp['alpha']
         self.alpha_decay = pp['alpha_decay']
         self.gamma = pp['gamma']
-        self.logger.info(f"NP Rand: {np.random.uniform()}")
+        self.logger.info(f"NP seed: {np.random.get_state()[1][0]}")
         self.losses = [0]
 
     def fn_report(self):
         self.env.stats.report_loss(self.losses)
         self.env.stats.report_rl(self.epsilon, self.alpha)
-
-    # def fn_after(self):
-    #     self.logger.info(f"NP Rand: {np.random.uniform()}")
 
     def get_init_action(self, cevent):
         ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])

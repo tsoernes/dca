@@ -24,7 +24,7 @@ class NetStrat(RLStrat):
 
     def fn_after(self):
         ra = self.net.rand_uniform()
-        self.logger.debug(f"TF Rand: {ra}, NP Rand: {np.random.uniform()}")
+        self.logger.info(f"TF Rand: {ra}, NP seed: {np.random.get_state()[1][0]}")
         if self.pp['save_net']:
             inp = ""
             if self.quit_sim:
@@ -39,11 +39,10 @@ class NetStrat(RLStrat):
         loss, lr = self.net.backward(*args, **kwargs)
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
-            self.invalid_loss = True
-            self.quit_sim = True
+            self.invalid_loss, self.quit_sim = True, True
         else:
             self.losses.append(loss)
-            self.last_lr = lr
+        self.last_lr = lr
 
 
 class QNetStrat(NetStrat):
@@ -51,7 +50,7 @@ class QNetStrat(NetStrat):
         super().__init__(*args, **kwargs)
         self.net = QNet(name, self.pp, self.logger)
         ra = self.net.rand_uniform()
-        self.logger.debug(f"TF Rand: {ra}")
+        self.logger.info(f"TF Rand: {ra}")
         if self.batch_size > 1:
             self.update_qval = self.update_qval_experience
             self.logger.warn("Using experience replay with batch"
@@ -82,6 +81,7 @@ class QLearnNetStrat(QNetStrat):
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
         """ Update qval for one experience tuple"""
+        # NOTE bdisc is ignored, can't test dt-rewards
         self.backward(grid, cell, [ch], [reward], self.grid, next_cell)
 
 

@@ -59,6 +59,7 @@ def get_pparams(defaults=False):
         '--call_rates', type=int, help="in calls per minute", default=None)
     parser.add_argument('--call_duration', type=int, help="in minutes", default=3)
     parser.add_argument(
+        '-phoff',
         '--p_handoff',
         type=float,
         help="handoff probability. Default: 0.15",
@@ -140,7 +141,7 @@ def get_pparams(defaults=False):
         '--breakout_thresh',
         '-thresh',
         type=float,
-        default=0.24,
+        default=0.22,
         help="Break out early from if cumuluative blocking probability "
         "exceeds given threshold")
     parser.add_argument(
@@ -356,7 +357,7 @@ def get_pparams(defaults=False):
     pp['use_gpu'] = not pp['no_gpu']
     del pp['no_gpu']
 
-    if (pp['hopt'] or pp['hopt_best'] or pp['hopt_plot']) and not pp['hopt_fname']:
+    if pp['hopt'] and not pp['hopt_fname']:
         print("No file name specified for hyperopt ('hopt_fname')")
         sys.exit(0)
 
@@ -381,15 +382,15 @@ def get_pparams(defaults=False):
         pp['gui'] = False
         # if not pp['log_level']:
         #     pp['log_level'] = logging.ERROR
-        pp['log_iter'] = pp['n_events'] // 6
+        pp['log_iter'] = pp['n_events'] // 8
     if pp['hopt'] is not None:
         if pp['net']:
             pp['n_events'] = 100000
         pp['gui'] = False
         if pp['log_level'] is None:
             pp['log_level'] = logging.ERROR
-            # Since hopt only compares new call block rate,
-        # handoffs are a waste of computational resources.
+        # Since hopt only compares new call block rate,
+        # handoffs are a waste of data/computational resources.
         if pp['p_handoff'] is None:
             pp['p_handoff'] = 0
         # Always log to file so that parameters are recorded

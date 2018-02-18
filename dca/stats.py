@@ -14,19 +14,19 @@ class Stats:
     def __init__(self, pp, logger, pid="", *args, **kwargs):
         self.pp = pp
         self.logger = logger
-        self.pid_str = None  # " " if pid is not None else ""
-        # f"T{pid} "
+        self.pid_str = "" if pid is "" else f"T{pid} "
         self.start_time = time.time()
+
         self.n_rejected = 0  # Number of rejected calls
         self.n_ended = 0  # Number of ended calls
         self.n_handoffs = 0  # Number of handoff events
         self.n_handoffs_rejected = 0  # Number of rejected handoff calls
         # Number of incoming (not necessarily accepted) calls
         self.n_incoming = 0
-        # Number of channels in progress at a cell when call is blocked
+        # Number of channels in use at a cell when call is blocked
         self.n_inuse_rej = 0
-        self.n_curr_rejected = 0  # Number of rejected calls last 100 episodes
-        self.n_curr_incoming = 0  # Number of incoming calls last 100 episodes
+        self.n_curr_rejected = 0  # Number of rejected calls last log_iter events
+        self.n_curr_incoming = 0  # Number of incoming calls last log_iter events
         self.block_probs = []
         self.block_probs_cum = []
         self.i = 0  # Current iteration
@@ -76,7 +76,7 @@ class Stats:
             self.block_probs.append(block_prob)
             block_prob_cum = self.n_rejected / (self.n_incoming + 1)
             self.block_probs_cum.append(block_prob_cum)
-            self.logger.info(f"\nBlocking probability events"
+            self.logger.info(f"\n{self.pid_str}Blocking probability events"
                              f" {self.i-niter}-{self.i}:"
                              f" {block_prob:.4f}, cumulative {block_prob_cum:.4f}")
             self.n_curr_rejected = 0
@@ -118,15 +118,14 @@ class Stats:
                               f"\nRejected: {self.n_rejected}"
                               f"\nRejected handoffs: {self.n_handoffs_rejected}"
                               f"\nEnded: {self.n_ended}")
+
         t = time.time() - self.start_time
         m, s = map(int, divmod(t, 60))
-        self.logger.warn(f"\nSimulation duration: {self.t/60:.2f} sim hours,"
-                         f" {m}m{s}s real,"
-                         f" {self.i+1} events"
-                         f" at {self.pp['n_events']/t:.0f}"
-                         " events/second")
-        self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
+        self.logger.warn(
+            f"\nSimulation duration: {self.t/60:.2f} sim hours,"
+            f" {m}m{s}s real, {self.i} events at {self.i/t:.0f} events/second")
         # Avoid zero divisions by adding 1 do dividers
+        self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         self.block_prob_cum_hoff = self.n_handoffs_rejected / (self.n_handoffs + 1)
         self.logger.error(f"\n{self.pid_str}Blocking probability:"
                           f" {self.block_prob_cum:.4f} for new calls, "

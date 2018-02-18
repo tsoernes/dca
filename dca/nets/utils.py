@@ -89,8 +89,8 @@ def build_default_trainer(pp, loss, var_list=None):
     """
     if pp['net_lr_decay'] < 1:
         global_step = tf.Variable(0, trainable=False)
-        learning_rate = tf.train.exponential_decay(pp['net_lr'], global_step,
-                                                   10000, pp['net_lr_decay'])
+        learning_rate = tf.train.exponential_decay(pp['net_lr'], global_step, 10000,
+                                                   pp['net_lr_decay'])
     else:
         global_step = None
         learning_rate = tf.constant(pp['net_lr'])
@@ -117,6 +117,7 @@ def get_optimizer_by_name(name, lr):
 
 
 def copy_net_op(online_vars, target_vars, tau):
+    """Move target variables 'tau' towards online variables"""
     copy_ops = []
     for var_name, target_var in target_vars.items():
         online_val = online_vars[var_name].value()
@@ -129,7 +130,8 @@ def copy_net_op(online_vars, target_vars, tau):
 
 def prep_data_grids(grids, split=True):
     """
-    split: Double the depth and represent empty channels as 1 on separate layer
+    split: Copy grids in depth with inverse
+    representation (empty as 1; inuse as 0) on the second half
     """
     assert type(grids) == np.ndarray
     if grids.ndim == 3:
