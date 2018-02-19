@@ -77,10 +77,11 @@ class QNet(Net):
         self.tf_gamma = tf.placeholder(float32, [1], "gamma")
         fgrids = tf.cast(self.grids, float32)
         next_fgrids = tf.cast(self.next_grids, float32)
-        ch_range = tf.range(tf.shape(self.chs)[0])
+        chs_range = tf.range(tf.shape(self.chs)[0])
+        next_chs_range = tf.range(tf.shape(self.next_chs)[0])
         # numb_chs = [[0, ch0], [1, ch1], [2, ch2], ..] where ch0=chs[0]
-        numb_chs = tf.stack([ch_range, self.chs], axis=1)
-        numb_next_chs = tf.stack([ch_range, self.next_chs], axis=1)
+        numb_chs = tf.stack([chs_range, self.chs], axis=1)
+        numb_next_chs = tf.stack([next_chs_range, self.next_chs], axis=1)
 
         self.online_q_vals, online_vars = self._build_net(
             fgrids, self.oh_cells, name="q_networks/online")
