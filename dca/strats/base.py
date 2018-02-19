@@ -160,8 +160,9 @@ class RLStrat(Strat):
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
-        if ce_type != CEvent.END and  \
-           ch is not None and next_ch is not None:
+        # if ce_type != CEvent.END and  \
+        #    ch is not None and next_ch is not None:
+        if ch is not None:
             # if ce_type != CEvent.END:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead

@@ -70,12 +70,12 @@ class QNet(Net):
         gridf = tf.cast(self.grid, float32)
         self.cell = tf.placeholder(int32, [None, 2], "cell")
         self.oh_cell = tf.placeholder(float32, oh_cellshape, "oh_cell")
-        self.action = tf.placeholder(int32, [None], "action")
+        self.ch = tf.placeholder(int32, [None], "ch")
         self.reward = tf.placeholder(float32, [None], "reward")
         self.next_grid = tf.placeholder(boolean, gridshape, "next_grid")
         next_gridf = tf.cast(self.next_grid, float32)
         self.next_oh_cell = tf.placeholder(float32, oh_cellshape, "next_oh_cell")
-        self.next_action = tf.placeholder(int32, [None], "next_action")
+        self.next_ch = tf.placeholder(int32, [None], "next_ch")
         # Allows for passing in varying gamma, e.g. beta discount
         self.tf_gamma = tf.placeholder(float32, [1], "gamma")
 
@@ -89,18 +89,18 @@ class QNet(Net):
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
                                                  self.pp['net_creep_tau'])
 
-        # Maximum valued action from online network
+        # Maximum valued ch from online network
         self.online_q_amax = tf.argmax(self.online_q_vals, axis=1, name="online_q_amax")
         # Maximum Q-value for given next state
-        # Q-value for given action
+        # Q-value for given ch
         self.online_q_selected = tf.reduce_sum(
-            self.online_q_vals * tf.one_hot(self.action, self.n_channels),
+            self.online_q_vals * tf.one_hot(self.ch, self.n_channels),
             axis=1,
             name="online_q_selected")
 
-        # Target Q-value for given next action
+        # Target Q-value for given next ch
         self.target_q_selected = tf.reduce_sum(
-            target_q_vals * tf.one_hot(self.next_action, self.n_channels),
+            target_q_vals * tf.one_hot(self.next_ch, self.n_channels),
             axis=1,
             name="target_q_selected")
         if self.pp['dueling_qnet']:
@@ -108,11 +108,15 @@ class QNet(Net):
             # self.next_q = tf.squeeze(self.value)
             self.next_q = self.target_q_selected
         elif self.pp['train_net']:
-            self.next_q = tf.placeholder(shape=[None], dtype=float32, name="qtarget")
+            self.next_q = tf.placeholder(shape=[None], dtype=float32, name="next_q")
         else:
             self.next_q = self.target_q_selected
 
-        self.q_target = self.reward + self.tf_gamma * self.next_q
+        # TODO NOTE TODO
+        if self.pp['strat'].lower() == "nqlearnnet":
+            self.q_target = tf.placeholder(shape=[None], dtype=float32, name="qtarget")
+        else:
+            self.q_target = self.reward + self.tf_gamma * self.next_q
 
         # Below we obtain the loss by taking the sum of squares
         # difference between the target and prediction Q values.
@@ -146,18 +150,60 @@ class QNet(Net):
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
+    def n_step_backward(self, grid, cell, ch, rewards, next_grid, next_cell):
+        """
+        Update Q(grid, cell, ch) = Q(grid, cell, ch) + net_lr *
+            [reward[0] + gamma*reward[1] + (gamma**2)*reward[2] + ...
+             + (gamma**n)*Q(next_grid, next_cell, next_max_ch) - Q(grid, cell, ch)]
+        where n=len(rewards), and next_max_ch is argmax q from online net
+        """
+        p_next_grids = prep_data_grids(next_grid, self.pp['grid_split'])
+        p_next_cells = prep_data_cells(next_cell)
+
+        # SHould get out a value here. Online or target?
+        next_ch = self.sess.run(
+            self.online_q_amax,
+            feed_dict={
+                self.grid: p_next_grids,
+                self.oh_cell: p_next_cells
+            })
+        q_next = self.sess.run(
+            self.target_q_selected,
+            feed_dict={
+                self.next_grid: p_next_grids,
+                self.next_oh_cell: p_next_cells,
+                self.next_ch: next_ch
+            })
+        q_target = 0
+        for i, reward in enumerate(rewards):
+            q_target += (self.gamma**i) * reward
+        q_target += (self.gamma**len(rewards)) * q_next
+
+        data = {
+            self.grid: prep_data_grids(grid, self.pp['grid_split']),
+            self.oh_cell: prep_data_cells(cell),
+            self.ch: [ch],
+            self.q_target: q_target
+        }
+        _, loss, lr = self.sess.run(
+            [self.do_train, self.loss, self.lr],
+            feed_dict=data,
+            options=self.options,
+            run_metadata=self.run_metadata)
+        return loss, lr
+
     def backward(self,
                  grids,
                  cells,
-                 actions,
+                 chs,
                  rewards,
                  next_grids,
                  next_cells,
-                 next_actions=None,
+                 next_chs=None,
                  next_q=None,
                  gamma=None):
         """
-        If 'next_actions' are specified, do SARSA update,
+        If 'next_chs' are specified, do SARSA update,
         else greedy selection (Q-Learning).
         If 'next_q', do supervised learning.
         """
@@ -166,7 +212,7 @@ class QNet(Net):
         data = {
             self.grid: prep_data_grids(grids, self.pp['grid_split']),
             self.oh_cell: prep_data_cells(cells),
-            self.action: actions,
+            self.ch: chs,
             self.reward: rewards,
         }
         if next_q is not None:
@@ -175,9 +221,9 @@ class QNet(Net):
         else:
             p_next_grids = prep_data_grids(next_grids, self.pp['grid_split'])
             p_next_cells = prep_data_cells(next_cells)
-            if next_actions is None:
+            if next_chs is None:
                 # TODO Can't this be done in a single pass
-                next_actions = self.sess.run(
+                next_chs = self.sess.run(
                     self.online_q_amax,
                     feed_dict={
                         self.grid: p_next_grids,
@@ -186,7 +232,7 @@ class QNet(Net):
             data.update({
                 self.next_grid: p_next_grids,
                 self.next_oh_cell: p_next_cells,
-                self.next_action: next_actions,
+                self.next_ch: next_chs,
                 self.tf_gamma: [gamma]
             })
         _, loss, lr = self.sess.run(

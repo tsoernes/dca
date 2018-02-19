@@ -178,6 +178,7 @@ def get_pparams(defaults=False):
         '--weight_init_conv', choices=weight_initializers, default='zeros')
     parser.add_argument(
         '--weight_init_dense', choices=weight_initializers, default='norm_cols')
+    parser.add_argument('--n_step', type=int, help="(Net) N step returns", default=1)
     parser.add_argument(
         '--dueling_qnet',
         '-duel',
