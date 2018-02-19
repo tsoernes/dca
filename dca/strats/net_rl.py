@@ -6,15 +6,16 @@ import gridfuncs_numba as GF
 from eventgen import CEvent
 from nets.acnet import ACNet
 from nets.dqnet import DistQNet
-from nets.qnet import QNet
+from nets.qnet import QNet, TargetType
 from nets.singh import SinghNet
 from nets.utils import softmax
 from strats.base import RLStrat
 
 
 class NetStrat(RLStrat):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, backward_fn, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.backward_fn = backward_fn
         self.net_copy_iter = self.pp['net_copy_iter']
         self.last_lr = 1
 
@@ -36,7 +37,7 @@ class NetStrat(RLStrat):
         self.net.sess.close()
 
     def backward(self, *args, **kwargs):
-        loss, lr = self.net.backward(*args, **kwargs)
+        loss, lr = self.backward_fn(*args, **kwargs)
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.invalid_loss, self.quit_sim = True, True
@@ -46,11 +47,17 @@ class NetStrat(RLStrat):
 
 
 class QNetStrat(NetStrat):
-    def __init__(self, name, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.net = QNet(name, self.pp, self.logger)
-        ra = self.net.rand_uniform()
-        self.logger.info(f"TF Rand: {ra}")
+    def __init__(self, name, target_type, pp, logger, *args, **kwargs):
+        self.net = QNet(name, target_type, pp, logger)
+        print(type(self.net))
+        if target_type == TargetType.SUPERVISED:
+            backward_fn = self.net.backward_supervised
+        elif target_type == TargetType.MAX_NEXT:
+            backward_fn = self.net.backward_max_next
+        elif target_type == TargetType.GIVEN_NEXT:
+            backward_fn = self.net.backward_given_next
+        super().__init__(backward_fn=backward_fn, pp=pp, logger=logger, *args, **kwargs)
+        self.logger.info(f"TF Rand: {self.net.rand_uniform()}")
         if self.batch_size > 1:
             self.update_qval = self.update_qval_experience
             self.logger.warn("Using experience replay with batch"
@@ -77,7 +84,8 @@ class NQLearnNetStrat(QNetStrat):
     """N-step Update towards greedy, possibly illegal, action selection"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__("NQLearnNet", *args, **kwargs)
+        super().__init__(
+            name="NQLearnNet", target_type=TargetType.SUPERVISED, *args, **kwargs)
         self.exps = []
 
     def backward(self, *args, **kwargs):
@@ -111,7 +119,7 @@ class QLearnNetStrat(QNetStrat):
     """Update towards greedy, possibly illegal, action selection"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__("QLearnNet", *args, **kwargs)
+        super().__init__("QLearnNet", TargetType.MAX_NEXT, *args, **kwargs)
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
         next_ce_type, next_cell = next_cevent[1:3]

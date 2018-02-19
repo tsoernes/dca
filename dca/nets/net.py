@@ -1,4 +1,5 @@
 import os
+import signal
 import sys
 from time import time
 
@@ -73,6 +74,10 @@ class Net:
         self.do_train, self.lr = build_default_trainer(pp, self.loss, trainable_vars)
         self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
         self.data_is_loaded = False
+        signal.signal(signal.SIGINT, self.exit_handler)
+
+    def exit_handler(self, *args):
+        self.quit_sim = True
 
     def build(self):
         raise NotImplementedError
@@ -154,6 +159,9 @@ class Net:
             actions = data['actions']
             for j, ch in enumerate(actions):
                 targets[j] = self.qvals[cells[j]][ch]
+            # NOTE TODO NOTE
+            # qnet backward has changed. it now takes target_q instead of next_g
+            # so target_q = reward + gamma * next_q has to be calculated here.
             _, loss = self.backward(**data)
             if i % 50 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)

@@ -23,7 +23,6 @@ class Strat:
 
         self.quit_sim = False
         self.invalid_loss = False
-        self.net = None
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -33,8 +32,6 @@ class Strat:
         """
         self.logger.error("\nPremature exit")
         self.quit_sim = True
-        if self.net is not None:
-            self.net.quit_sim = True
 
     def simulate(self) -> Tuple[float, float]:
         """

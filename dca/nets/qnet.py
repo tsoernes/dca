@@ -1,3 +1,5 @@
+from enum import Enum
+
 import tensorflow as tf
 from tensorflow import bool as boolean
 from tensorflow import float32, int32
@@ -7,12 +9,19 @@ from nets.utils import (copy_net_op, get_trainable_vars, prep_data_cells,
                         prep_data_grids)
 
 
+class TargetType(Enum):
+    SUPERVISED = 0  # Target q-value is provided
+    MAX_NEXT = 1  # Max over next actions/chs (ie Q-Learning)
+    GIVEN_NEXT = 2  # Next action/ch is provided (eg SARSA or Eligible Q-learning)
+
+
 class QNet(Net):
-    def __init__(self, name="QNet", *args, **kwargs):
+    def __init__(self, name, target_type, *args, **kwargs):
         """
-        Lagging QNet. If 'max_next_action', perform greedy
-        Q-learning updates, else SARSA updates.
+        Lagging Double QNet. Can do supervised learning, Q-Learning, SARSA.
+        Optionally duelling architecture.
         """
+        self.target_type = target_type
         super().__init__(name=name, *args, **kwargs)
         self.sess.run(self.copy_online_to_target)
 
@@ -96,22 +105,17 @@ class QNet(Net):
         self.online_q_amax = tf.argmax(self.online_q_vals, axis=1, name="online_q_amax")
         # Q-value for given ch
         self.online_q_selected = tf.gather_nd(self.online_q_vals, numb_chs)
-        # Target Q-value for given next ch
-        self.target_q_selected = tf.gather_nd(target_q_vals, numb_next_chs)
 
-        # TODO This part is abit messy. Not sure if duel target is correct either.
-        if self.pp['dueling_qnet']:
-            # WHAT?
-            # self.next_q = tf.squeeze(self.value)
-            self.next_q = self.target_q_selected
-        elif self.pp['train_net']:
-            self.next_q = tf.placeholder(shape=[None], dtype=float32, name="next_q")
-        else:
-            self.next_q = self.target_q_selected
-
-        if self.pp['strat'].lower() == "nqlearnnet":
+        if self.target_type == TargetType.SUPERVISED:
             self.q_target = tf.placeholder(shape=[None], dtype=float32, name="qtarget")
         else:
+            if self.target_type == TargetType.MAX_NEXT:
+                # Target Q-value for next channel selected by online network
+                self.next_q = tf.gather_nd(target_q_vals, self.online_q_amax)
+            if self.target_type == TargetType.GIVEN_NEXT:
+                # Target Q-value for given next ch
+                self.next_q = tf.gather_nd(target_q_vals, numb_next_chs)
+            # TODO NOTE Is target correct for duelling net?
             self.q_target = self.rewards + self.tf_gamma * self.next_q
 
         # Sum of squares difference between the target and prediction Q values.
@@ -136,28 +140,25 @@ class QNet(Net):
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
-    def n_step_backward(self, grid, cell, ch, rewards, next_grid, next_cell):
-        """
-        Update Q(grid, cell, ch) = Q(grid, cell, ch) + net_lr *
-            [reward[0] + gamma*reward[1] + (gamma**2)*reward[2] + ...
-             + (gamma**n)*Q(next_grid, next_cell, next_max_ch) - Q(grid, cell, ch)]
-        where n=len(rewards), and next_max_ch is argmax q from online net
-        """
+    def _backward(self, data):
+        _, loss, lr = self.sess.run(
+            [self.do_train, self.loss, self.lr],
+            feed_dict=data,
+            options=self.options,
+            run_metadata=self.run_metadata)
+        return loss, lr
+
+    def gae_backward(self, grid, cell, ch, rewards, next_grid, next_cell):
         p_next_grids = prep_data_grids(next_grid, self.pp['grid_split'])
         p_next_cells = prep_data_cells(next_cell)
 
-        next_ch = self.sess.run(
-            self.online_q_amax,
+        q_next = self.sess.run(
+            self.target_next_q_max,
             feed_dict={
                 self.grids: p_next_grids,
-                self.oh_cells: p_next_cells
-            })
-        q_next = self.sess.run(
-            self.target_q_selected,
-            feed_dict={
+                self.oh_cells: p_next_cells,
                 self.next_grids: p_next_grids,
                 self.oh_next_cells: p_next_cells,
-                self.next_chs: next_ch
             })
         q_target = q_next
         for reward in rewards[::-1]:
@@ -169,28 +170,39 @@ class QNet(Net):
             self.chs: [ch],
             self.q_target: q_target
         }
-        _, loss, lr = self.sess.run(
-            [self.do_train, self.loss, self.lr],
-            feed_dict=data,
-            options=self.options,
-            run_metadata=self.run_metadata)
-        return loss, lr
+        return self._backward(data)
 
-    def backward(self,
-                 grids,
-                 cells,
-                 chs,
-                 rewards,
-                 next_grids,
-                 next_cells,
-                 next_chs=None,
-                 next_q=None,
-                 gamma=None):
+    def n_step_backward(self, grid, cell, ch, rewards, next_grid, next_cell):
         """
-        If 'next_chs' are specified, do SARSA update,
-        else greedy selection (Q-Learning).
-        If 'next_q', do supervised learning.
+        Update Q(grid, cell, ch) = Q(grid, cell, ch) + net_lr *
+            [reward[0] + gamma*reward[1] + (gamma**2)*reward[2] + ...
+             + (gamma**n)*Q(next_grid, next_cell, next_max_ch) - Q(grid, cell, ch)]
+        where n=len(rewards), and next_max_ch is argmax q from online net
         """
+        p_next_grids = prep_data_grids(next_grid, self.pp['grid_split'])
+        p_next_cells = prep_data_cells(next_cell)
+
+        q_next = self.sess.run(
+            self.target_next_q_max,
+            feed_dict={
+                self.grids: p_next_grids,
+                self.oh_cells: p_next_cells,
+                self.next_grids: p_next_grids,
+                self.oh_next_cells: p_next_cells,
+            })
+        q_target = q_next
+        for reward in rewards[::-1]:
+            q_target = reward + self.gamma * q_target
+
+        data = {
+            self.grids: prep_data_grids(grid, self.pp['grid_split']),
+            self.oh_cells: prep_data_cells(cell),
+            self.chs: [ch],
+            self.q_target: q_target
+        }
+        return self._backward(data)
+
+    def backward_supervised(self, grids, cells, chs, rewards, q_target=None, gamma=None):
         if gamma is None:
             gamma = self.gamma  # Not using beta-discount; use fixed constant
         data = {
@@ -198,30 +210,41 @@ class QNet(Net):
             self.oh_cells: prep_data_cells(cells),
             self.chs: chs,
             self.rewards: rewards,
+            self.q_target: q_target,
+            self.tf_gamma: [gamma]
         }
-        if next_q is not None:
-            # Pass explicit qval when supervised training on e.g. qtable
-            data[self.next_q] = next_q
-        else:
-            p_next_grids = prep_data_grids(next_grids, self.pp['grid_split'])
-            p_next_cells = prep_data_cells(next_cells)
-            if next_chs is None:
-                # TODO Can't this be done in a single pass
-                next_chs = self.sess.run(
-                    self.online_q_amax,
-                    feed_dict={
-                        self.grids: p_next_grids,
-                        self.oh_cells: p_next_cells
-                    })
-            data.update({
-                self.next_grids: p_next_grids,
-                self.oh_next_cells: p_next_cells,
-                self.next_chs: next_chs,
-                self.tf_gamma: [gamma]
-            })
-        _, loss, lr = self.sess.run(
-            [self.do_train, self.loss, self.lr],
-            feed_dict=data,
-            options=self.options,
-            run_metadata=self.run_metadata)
-        return loss, lr
+        return self._backward(data)
+
+    def backward_max_next(self,
+                          grids,
+                          cells,
+                          chs,
+                          rewards,
+                          next_grids,
+                          next_cells,
+                          gamma=None):
+        """
+        If 'next_chs' are specified, do SARSA update,
+        else greedy selection (Q-Learning).
+        If 'q_target', do supervised learning.
+        """
+        if gamma is None:
+            gamma = self.gamma  # Not using beta-discount; use fixed constant
+        p_next_grids = prep_data_grids(next_grids, self.pp['grid_split'])
+        p_next_cells = prep_data_cells(next_cells)
+        next_chs = self.sess.run(self.online_q_amax, {
+            self.grids: p_next_grids,
+            self.oh_cells: p_next_cells
+        })
+
+        data = {
+            self.grids: prep_data_grids(grids, self.pp['grid_split']),
+            self.oh_cells: prep_data_cells(cells),
+            self.chs: chs,
+            self.rewards: rewards,
+            self.next_grids: p_next_grids,
+            self.oh_next_cells: p_next_cells,
+            self.next_chs: next_chs,
+            self.tf_gamma: [gamma]
+        }
+        return self._backward(data)

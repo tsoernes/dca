@@ -95,3 +95,62 @@ Average cumulative handoff block probability 0.1284 with standard deviation 0.00
  [0.17302946 0.12381256]]
 
 ---------------------------------
+Following runs:
+if ce_type != CEvent.END and ch is not None
+backpropping before optimal_ch
+
+p3 runner.py qlearnnet --avg_runs 4 --no_gpu
+Average cumulative block probability over 4 episodes: 0.1704 with standard deviation 0.00200      
+Average cumulative handoff block probability 0.1279 with standard deviation 0.00263               
+[[0.16823167 0.12943855]                         
+ [0.16871228 0.12366239]                         
+ [0.17139263 0.12792622]                         
+ [0.17312698 0.13061181]]                        
+
+p3 runner.py nqlearnnet --n_step 1 --avg_runs 4 --no_gpu
+Average cumulative block probability over 4 episodes: 0.1701 with standard deviation 0.00234
+Average cumulative handoff block probability 0.1290 with standard deviation 0.00318
+[[0.16729659 0.12415846]
+ [0.16900556 0.13171711]
+ [0.1736556  0.13199442]
+ [0.17043522 0.12811287]]
+
+p3 runner.py nqlearnnet --n_step 2 --avg_runs 4 --no_gpu
+Average cumulative block probability over 4 episodes: 0.1693 with standard deviation 0.00078
+Average cumulative handoff block probability 0.1272 with standard deviation 0.00190
+[[0.16800963 0.12758027]
+ [0.16945853 0.12539885]
+ [0.17007324 0.12558255]
+ [0.16969129 0.13011073]]
+
+p3 runner.py nqlearnnet --n_step 3 --avg_runs 4 --no_gpu
+Average cumulative block probability over 4 episodes: 0.1709 with standard deviation 0.00167
+Average cumulative handoff block probability 0.1275 with standard deviation 0.00206
+[[0.16837892 0.12469515]
+ [0.17130605 0.12974348]
+ [0.17306321 0.12921587]
+ [0.17083514 0.12645591]]
+
+p3 runner.py nqlearnnet --n_step 4 --avg_runs 4 --no_gpu
+Average cumulative block probability over 4 episodes: 0.1697 with standard deviation 0.00376                       
+Average cumulative handoff block probability 0.1276 with standard deviation 0.00321                                
+[[0.17548606 0.13293413]    
+ [0.166876   0.12553026]    
+ [0.16586775 0.12472763]    
+ [0.17041774 0.12719949]]   
+
+p3 runner.py nqlearnnet --n_step 5 --avg_runs 4 --no_gpu
+Average cumulative block probability over 4 episodes: 0.1719 with standard deviation 0.00187                        
+Average cumulative handoff block probability 0.1306 with standard deviation 0.00282                                 
+[[0.1740125  0.12673765]     
+ [0.17286167 0.12985416]     
+ [0.17190152 0.13132534]     
+ [0.16895797 0.13456409]]    
+
+ p3 runner.py nqlearnnet --n_step 6 --avg_runs 4 -lr 1e-5 --no_gpu
+Average cumulative block probability over 4 episodes: 0.1732 with standard deviation 0.00331                       
+Average cumulative handoff block probability 0.1301 with standard deviation 0.00229                                
+[[0.16989514 0.1289815 ]    
+ [0.17015194 0.12858552]    
+ [0.17770339 0.13402244]    
+ [0.1750381  0.12867516]]   
