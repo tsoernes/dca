@@ -66,24 +66,27 @@ class QNet(Net):
         depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
         gridshape = [None, self.pp['rows'], self.pp['cols'], depth]
         oh_cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
-        self.grid = tf.placeholder(boolean, gridshape, "grid")
-        gridf = tf.cast(self.grid, float32)
-        self.cell = tf.placeholder(int32, [None, 2], "cell")
-        self.oh_cell = tf.placeholder(float32, oh_cellshape, "oh_cell")
-        self.ch = tf.placeholder(int32, [None], "ch")
-        self.reward = tf.placeholder(float32, [None], "reward")
-        self.next_grid = tf.placeholder(boolean, gridshape, "next_grid")
-        next_gridf = tf.cast(self.next_grid, float32)
-        self.next_oh_cell = tf.placeholder(float32, oh_cellshape, "next_oh_cell")
-        self.next_ch = tf.placeholder(int32, [None], "next_ch")
+        self.grids = tf.placeholder(boolean, gridshape, "grid")
+        self.oh_cells = tf.placeholder(float32, oh_cellshape, "oh_cell")
+        self.chs = tf.placeholder(int32, [None], "ch")
+        self.rewards = tf.placeholder(float32, [None], "reward")
+        self.next_grids = tf.placeholder(boolean, gridshape, "next_grid")
+        self.oh_next_cells = tf.placeholder(float32, oh_cellshape, "next_oh_cell")
+        self.next_chs = tf.placeholder(int32, [None], "next_ch")
         # Allows for passing in varying gamma, e.g. beta discount
         self.tf_gamma = tf.placeholder(float32, [1], "gamma")
+        fgrids = tf.cast(self.grids, float32)
+        next_fgrids = tf.cast(self.next_grids, float32)
+        ch_range = tf.range(tf.shape(self.chs)[0])
+        # numb_chs = [[0, ch0], [1, ch1], [2, ch2], ..] where ch0=chs[0]
+        numb_chs = tf.stack([ch_range, self.chs], axis=1)
+        numb_next_chs = tf.stack([ch_range, self.next_chs], axis=1)
 
         self.online_q_vals, online_vars = self._build_net(
-            gridf, self.oh_cell, name="q_networks/online")
+            fgrids, self.oh_cells, name="q_networks/online")
         # Keep separate weights for target Q network
         target_q_vals, target_vars = self._build_net(
-            next_gridf, self.next_oh_cell, name="q_networks/target")
+            next_fgrids, self.oh_next_cells, name="q_networks/target")
         # copy_online_to_target should be called periodically to creep
         # weights in the target Q-network towards the online Q-network
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
@@ -91,18 +94,12 @@ class QNet(Net):
 
         # Maximum valued ch from online network
         self.online_q_amax = tf.argmax(self.online_q_vals, axis=1, name="online_q_amax")
-        # Maximum Q-value for given next state
         # Q-value for given ch
-        self.online_q_selected = tf.reduce_sum(
-            self.online_q_vals * tf.one_hot(self.ch, self.n_channels),
-            axis=1,
-            name="online_q_selected")
-
+        self.online_q_selected = tf.gather_nd(self.online_q_vals, numb_chs)
         # Target Q-value for given next ch
-        self.target_q_selected = tf.reduce_sum(
-            target_q_vals * tf.one_hot(self.next_ch, self.n_channels),
-            axis=1,
-            name="target_q_selected")
+        self.target_q_selected = tf.gather_nd(target_q_vals, numb_next_chs)
+
+        # TODO This part is abit messy. Not sure if duel target is correct either.
         if self.pp['dueling_qnet']:
             # WHAT?
             # self.next_q = tf.squeeze(self.value)
@@ -112,25 +109,14 @@ class QNet(Net):
         else:
             self.next_q = self.target_q_selected
 
-        # TODO NOTE TODO
         if self.pp['strat'].lower() == "nqlearnnet":
             self.q_target = tf.placeholder(shape=[None], dtype=float32, name="qtarget")
         else:
-            self.q_target = self.reward + self.tf_gamma * self.next_q
+            self.q_target = self.rewards + self.tf_gamma * self.next_q
 
-        # Below we obtain the loss by taking the sum of squares
-        # difference between the target and prediction Q values.
+        # Sum of squares difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.q_target), predictions=self.online_q_selected)
-        # # Write out statistics to file
-        # with tf.name_scope("summaries"):
-        #     tf.summary.scalar("loss", self.loss)
-        #     # tf.summary.scalar("grad_norm", grad_norms)
-        #     tf.summary.histogram("qvals", self.online_q_vals)
-        # self.summaries = tf.summary.merge_all()
-        # self.train_writer = tf.summary.FileWriter(self.log_path + '/train',
-        #                                           self.sess.graph)
-        # self.eval_writer = tf.summary.FileWriter(self.log_path + '/eval')
         return online_vars
 
     def forward(self, grid, cell, ce_type):
@@ -141,12 +127,12 @@ class QNet(Net):
         q_vals = self.sess.run(
             [q_vals_op],
             feed_dict={
-                self.grid: prep_data_grids(grid, split=self.pp['grid_split']),
-                self.oh_cell: prep_data_cells(cell)
+                self.grids: prep_data_grids(grid, split=self.pp['grid_split']),
+                self.oh_cells: prep_data_cells(cell)
             },
             options=self.options,
             run_metadata=self.run_metadata)
-        q_vals = np.reshape(q_vals, [-1])
+        q_vals = q_vals[0][0]
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
@@ -160,19 +146,18 @@ class QNet(Net):
         p_next_grids = prep_data_grids(next_grid, self.pp['grid_split'])
         p_next_cells = prep_data_cells(next_cell)
 
-        # SHould get out a value here. Online or target?
         next_ch = self.sess.run(
             self.online_q_amax,
             feed_dict={
-                self.grid: p_next_grids,
-                self.oh_cell: p_next_cells
+                self.grids: p_next_grids,
+                self.oh_cells: p_next_cells
             })
         q_next = self.sess.run(
             self.target_q_selected,
             feed_dict={
-                self.next_grid: p_next_grids,
-                self.next_oh_cell: p_next_cells,
-                self.next_ch: next_ch
+                self.next_grids: p_next_grids,
+                self.oh_next_cells: p_next_cells,
+                self.next_chs: next_ch
             })
         q_target = 0
         for i, reward in enumerate(rewards):
@@ -180,9 +165,9 @@ class QNet(Net):
         q_target += (self.gamma**len(rewards)) * q_next
 
         data = {
-            self.grid: prep_data_grids(grid, self.pp['grid_split']),
-            self.oh_cell: prep_data_cells(cell),
-            self.ch: [ch],
+            self.grids: prep_data_grids(grid, self.pp['grid_split']),
+            self.oh_cells: prep_data_cells(cell),
+            self.chs: [ch],
             self.q_target: q_target
         }
         _, loss, lr = self.sess.run(
@@ -210,10 +195,10 @@ class QNet(Net):
         if gamma is None:
             gamma = self.gamma  # Not using beta-discount; use fixed constant
         data = {
-            self.grid: prep_data_grids(grids, self.pp['grid_split']),
-            self.oh_cell: prep_data_cells(cells),
-            self.ch: chs,
-            self.reward: rewards,
+            self.grids: prep_data_grids(grids, self.pp['grid_split']),
+            self.oh_cells: prep_data_cells(cells),
+            self.chs: chs,
+            self.rewards: rewards,
         }
         if next_q is not None:
             # Pass explicit qval when supervised training on e.g. qtable
@@ -226,13 +211,13 @@ class QNet(Net):
                 next_chs = self.sess.run(
                     self.online_q_amax,
                     feed_dict={
-                        self.grid: p_next_grids,
-                        self.oh_cell: p_next_cells
+                        self.grids: p_next_grids,
+                        self.oh_cells: p_next_cells
                     })
             data.update({
-                self.next_grid: p_next_grids,
-                self.next_oh_cell: p_next_cells,
-                self.next_ch: next_chs,
+                self.next_grids: p_next_grids,
+                self.oh_next_cells: p_next_cells,
+                self.next_chs: next_chs,
                 self.tf_gamma: [gamma]
             })
         _, loss, lr = self.sess.run(

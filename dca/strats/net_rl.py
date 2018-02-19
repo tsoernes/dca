@@ -82,7 +82,8 @@ class NQLearnNetStrat(QNetStrat):
         self.exps = []
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
-        # FOR 1-step, this cannot be equal to regular q-earning because 'self.grid' or next_cell is not used
+        # FOR 1-step, this cannot be equivalent to regular q-earning because
+        # 'self.grid' or next_cell is not used
         # as next state
         self.exps.append((grid, cell, ch, reward))
         if len(self.exps) == self.pp['n_step']:
