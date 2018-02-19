@@ -1,0 +1,95 @@
+As normal:
+if ce_type != CEvent.END and  \
+   ch is not None and next_ch is not None:
+
+p3 runner.py qlearnnet --avg_runs 8 --no_gpu
+Starting simulation at 2018-02-18 19:41:19.063863 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'avg_runs': 8, 'alpha': 0.036, 'alpha_decay': 0.999998, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'beta': 10, 'dt_rewards': False, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'breakout_thresh': 0.24, 'hopt': None, 'hopt_fname': None, 'net_lr': 2.95e-05, 'net_lr_decay': 0.96, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'dueling_qnet': False, 'layer_norm': False, 'act_fn': 'relu', 'optimizer': 'sgd-m', 'max_grad_norm': None, 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 20, 'log_file': None, 'log_iter': 78333, 'grid_split': True, 'use_gpu': False, 'dims': (7, 7, 70), 'net': True}
+
+Average cumulative block probability over 8 episodes: 0.1709 with standard deviation 0.00229
+Average cumulative handoff block probability 0.1289 with standard deviation 0.00263
+[[0.17449585 0.13195458]
+ [0.17111667 0.13212408]
+ [0.1699174  0.12748679]
+ [0.17316012 0.12666333]
+ [0.17259581 0.1324993 ]
+ [0.16940023 0.12638448]
+ [0.16958441 0.12820604]
+ [0.16688211 0.12591062]]
+
+
+Changed:
+if ch is not None and next_ch is not None:
+p3 runner.py qlearnnet --avg_runs 8 --no_gpu
+Average cumulative block probability over 8 episodes: 0.1711 with standard deviation 0.00236
+Average cumulative handoff block probability 0.1279 with standard deviation 0.00196
+[[0.17351636 0.12726438]
+ [0.17162147 0.12627255]
+ [0.17174745 0.12971947]
+ [0.17446742 0.13023667]
+ [0.16888304 0.12947668]
+ [0.17210778 0.12734683]
+ [0.16673551 0.12883608]
+ [0.16973767 0.12398969]]
+
+
+Changed:
+BACKproping before action selection
+if ce_type != CEvent.END and ch is not None
+p3 runner.py qlearnnet --avg_runs 8 --no_gpu
+Average cumulative block probability over 8 episodes: 0.1697 with standard deviation 0.00165
+Average cumulative handoff block probability 0.1283 with standard deviation 0.00206
+[[0.16972489 0.12475373]
+ [0.17065908 0.13025583]
+ [0.16767377 0.12683202]
+ [0.1683194  0.12832029]
+ [0.17256538 0.13196907]
+ [0.17029211 0.12704702]
+ [0.1674269  0.1282249 ]
+ [0.17075703 0.12874686]]
+
+
+Changed:
+BACKproping before action selection
+if ch is not None
+p3 runner.py qlearnnet --avg_runs 8 --no_gpu
+Average cumulative block probability over 8 episodes: 0.1719 with standard deviation 0.00198
+Average cumulative handoff block probability 0.1290 with standard deviation 0.00113
+[[0.17064272 0.12808231]
+ [0.17267253 0.12910924]
+ [0.17301546 0.12987653]
+ [0.17324437 0.12986784]
+ [0.17243718 0.12774784]
+ [0.16911787 0.13041792]
+ [0.16900573 0.12699189]
+ [0.17503868 0.12952159]]
+------------
+As normal:
+if ce_type != CEvent.END and  \
+   ch is not None and next_ch is not None:
+
+p3 runner.py qlearnnet --avg_runs 8 --no_gpu -opt adam -lr 1e-3 --net_lr_decay 1
+
+8x470000 events finished with speed 1234 events/second
+Average cumulative block probability over 8 episodes: 0.1749 with standard deviation 0.00280
+Average cumulative handoff block probability 0.1304 with standard deviation 0.00160
+[[0.16999128 0.12771229]
+ [0.17835851 0.13336165]
+ [0.17406355 0.13003052]
+ [0.17455467 0.12896945]
+ [0.17764553 0.13178212]
+ [0.17149849 0.1299433 ]
+ [0.17667058 0.13085473]
+ [0.17674774 0.13028717]]
+
+p3 runner.py qlearnnet --avg_runs 8 --no_gpu -opt adam -lr 1e-2 --net_lr_decay 1
+Average cumulative block probability over 8 episodes: 0.1715 with standard deviation 0.00291
+Average cumulative handoff block probability 0.1284 with standard deviation 0.00267
+[[0.16968067 0.12689161]
+ [0.17176778 0.13351652]
+ [0.16602924 0.12650902]
+ [0.17172235 0.12899263]
+ [0.17069002 0.12846659]
+ [0.17709279 0.13034558]
+ [0.17182508 0.12827616]
+ [0.17302946 0.12381256]]
