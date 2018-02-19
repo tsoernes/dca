@@ -78,8 +78,16 @@ class NQLearnNetStrat(QNetStrat):
 
     def __init__(self, *args, **kwargs):
         super().__init__("NQLearnNet", *args, **kwargs)
-        self.net.backward = self.net.n_step_backward
         self.exps = []
+
+    def backward(self, *args, **kwargs):
+        loss, lr = self.net.n_step_backward(*args, **kwargs)
+        if np.isinf(loss) or np.isnan(loss):
+            self.logger.error(f"Invalid loss: {loss}")
+            self.invalid_loss, self.quit_sim = True, True
+        else:
+            self.losses.append(loss)
+        self.last_lr = lr
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
         # FOR 1-step, this cannot be equivalent to regular q-earning because
@@ -88,7 +96,7 @@ class NQLearnNetStrat(QNetStrat):
         next_ce_type, next_cell = next_cevent[1:3]
         self.exps.append((grid, cell, ch, reward, ce_type))
         if len(self.exps) == self.pp['n_step']:
-            agrid, acell, ach, r0, ace_type = self.exps[0]
+            agrid, acell, ach, _, ace_type = self.exps[0]
             if ace_type != CEvent.END and ach is not None:
                 rewards = [exp[3] for exp in self.exps]
                 self.backward(agrid, acell, ach, rewards, self.grid, next_cell)

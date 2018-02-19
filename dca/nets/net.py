@@ -11,7 +11,7 @@ import datahandler
 from nets.utils import (build_default_trainer, get_act_fn_by_name,
                         get_init_by_name)
 
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  # warn
 """
 Perhaps reducing call rates will increase difference between
 fixed/random and a good alg, thus making testing nets easier.

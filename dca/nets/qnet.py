@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 from tensorflow import bool as boolean
 from tensorflow import float32, int32
@@ -160,10 +159,9 @@ class QNet(Net):
                 self.oh_next_cells: p_next_cells,
                 self.next_chs: next_ch
             })
-        q_target = 0
-        for i, reward in enumerate(rewards):
-            q_target += (self.gamma**i) * reward
-        q_target += (self.gamma**len(rewards)) * q_next
+        q_target = q_next
+        for reward in rewards[::-1]:
+            q_target = reward + self.gamma * q_target
 
         data = {
             self.grids: prep_data_grids(grid, self.pp['grid_split']),
