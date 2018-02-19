@@ -85,18 +85,15 @@ class NQLearnNetStrat(QNetStrat):
         # FOR 1-step, this cannot be equivalent to regular q-earning because
         # 'self.grid' or next_cell is not used
         # as next state
+        next_ce_type, next_cell = next_cevent[1:3]
         self.exps.append((grid, cell, ch, reward))
         if len(self.exps) == self.pp['n_step']:
             agrid, acell, ach, r0 = self.exps[0]
             if ach is not None:
-                rewards = [r0]
-                for exp in self.exps[1:]:
-                    rewards.append(exp[3])
-                anext_grid, anext_cell, *_ = self.exps[-1]
-                self.backward(agrid, acell, ach, rewards, anext_grid, anext_cell)
+                rewards = [exp[3] for exp in self.exps]
+                self.backward(agrid, acell, ach, rewards, self.grid, next_cell)
             del self.exps[0]
 
-        next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
 
         return next_ch
