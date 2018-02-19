@@ -104,23 +104,21 @@ class QNet(Net):
         # Maximum valued ch from online network
         self.online_q_amax = tf.argmax(self.online_q_vals, axis=1, name="online_q_amax")
         # Q-value for given ch
-        self.online_q_selected = tf.gather_nd(self.online_q_vals, numb_chs)
+        online_q_selected = tf.gather_nd(self.online_q_vals, numb_chs)
+        # Target Q-value for next channel selected by online network ?????
+        self.what = tf.gather_nd(target_q_vals, self.online_q_amax)
 
         if self.target_type == TargetType.SUPERVISED:
             self.q_target = tf.placeholder(shape=[None], dtype=float32, name="qtarget")
         else:
-            if self.target_type == TargetType.MAX_NEXT:
-                # Target Q-value for next channel selected by online network
-                self.next_q = tf.gather_nd(target_q_vals, self.online_q_amax)
-            if self.target_type == TargetType.GIVEN_NEXT:
-                # Target Q-value for given next ch
-                self.next_q = tf.gather_nd(target_q_vals, numb_next_chs)
+            # Target Q-value for given next ch
+            self.next_q = tf.gather_nd(target_q_vals, numb_next_chs)
             # TODO NOTE Is target correct for duelling net?
             self.q_target = self.rewards + self.tf_gamma * self.next_q
 
         # Sum of squares difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
-            labels=tf.stop_gradient(self.q_target), predictions=self.online_q_selected)
+            labels=tf.stop_gradient(self.q_target), predictions=online_q_selected)
         return online_vars
 
     def forward(self, grid, cell, ce_type):
@@ -223,11 +221,6 @@ class QNet(Net):
                           next_grids,
                           next_cells,
                           gamma=None):
-        """
-        If 'next_chs' are specified, do SARSA update,
-        else greedy selection (Q-Learning).
-        If 'q_target', do supervised learning.
-        """
         if gamma is None:
             gamma = self.gamma  # Not using beta-discount; use fixed constant
         p_next_grids = prep_data_grids(next_grids, self.pp['grid_split'])

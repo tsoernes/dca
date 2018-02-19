@@ -13,9 +13,8 @@ from strats.base import RLStrat
 
 
 class NetStrat(RLStrat):
-    def __init__(self, backward_fn, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.backward_fn = backward_fn
         self.net_copy_iter = self.pp['net_copy_iter']
         self.last_lr = 1
 
@@ -49,14 +48,7 @@ class NetStrat(RLStrat):
 class QNetStrat(NetStrat):
     def __init__(self, name, target_type, pp, logger, *args, **kwargs):
         self.net = QNet(name, target_type, pp, logger)
-        print(type(self.net))
-        if target_type == TargetType.SUPERVISED:
-            backward_fn = self.net.backward_supervised
-        elif target_type == TargetType.MAX_NEXT:
-            backward_fn = self.net.backward_max_next
-        elif target_type == TargetType.GIVEN_NEXT:
-            backward_fn = self.net.backward_given_next
-        super().__init__(backward_fn=backward_fn, pp=pp, logger=logger, *args, **kwargs)
+        super().__init__(pp=pp, logger=logger, *args, **kwargs)
         self.logger.info(f"TF Rand: {self.net.rand_uniform()}")
         if self.batch_size > 1:
             self.update_qval = self.update_qval_experience
@@ -80,12 +72,28 @@ class QNetStrat(NetStrat):
             self.backward(**self.exp_buffer.sample(self.pp['batch_size']))
 
 
+class QLearnNetStrat(QNetStrat):
+    """Update towards greedy, possibly illegal, action selection"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__("QLearnNet", TargetType.MAX_NEXT, *args, **kwargs)
+        self.backward_fn = self.net.backward_max_next
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        if ce_type != CEvent.END and ch is not None:
+            self.backward(grid, cell, [ch], [reward], self.grid, next_cell)
+        next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
+        return next_ch
+
+
 class NQLearnNetStrat(QNetStrat):
     """N-step Update towards greedy, possibly illegal, action selection"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(
             name="NQLearnNet", target_type=TargetType.SUPERVISED, *args, **kwargs)
+        self.backward_fn = self.net.backward_supervised
         self.exps = []
 
     def backward(self, *args, **kwargs):
@@ -115,25 +123,12 @@ class NQLearnNetStrat(QNetStrat):
         return next_ch
 
 
-class QLearnNetStrat(QNetStrat):
-    """Update towards greedy, possibly illegal, action selection"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__("QLearnNet", TargetType.MAX_NEXT, *args, **kwargs)
-
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
-        next_ce_type, next_cell = next_cevent[1:3]
-        if ce_type != CEvent.END and ch is not None:
-            self.backward(grid, cell, [ch], [reward], self.grid, next_cell)
-        next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
-        return next_ch
-
-
 class QLearnEligibleNetStrat(QNetStrat):
     """Update towards greedy, eligible, action selection"""
 
     def __init__(self, *args, **kwargs):
         super().__init__("QlearnEligibleNet", *args, **kwargs)
+        self.backward_fn = self.net.backward_given_next
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
         """ Update qval for one experience tuple"""
