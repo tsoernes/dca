@@ -23,8 +23,8 @@ class NetStrat(RLStrat):
         self.env.stats.report_rl(self.epsilon, self.last_lr)
 
     def fn_after(self):
-        ra = self.net.rand_uniform()
-        self.logger.info(f"TF Rand: {ra}, NP seed: {np.random.get_state()[1][0]}")
+        self.logger.info(
+            f"TF Rand: {self.net.rand_uniform()}, NP seed: {np.random.get_state()[1][0]}")
         if self.pp['save_net']:
             inp = ""
             if self.quit_sim:
@@ -36,13 +36,12 @@ class NetStrat(RLStrat):
         self.net.sess.close()
 
     def backward(self, *args, **kwargs):
-        loss, lr = self.backward_fn(*args, **kwargs)
+        loss, self.last_lr = self.net.backward(*args, **kwargs)
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.invalid_loss, self.quit_sim = True, True
         else:
             self.losses.append(loss)
-        self.last_lr = lr
 
 
 class QNetStrat(NetStrat):
@@ -77,22 +76,22 @@ class QLearnNetStrat(QNetStrat):
 
     def __init__(self, *args, **kwargs):
         super().__init__("QLearnNet", *args, **kwargs)
-        self.backward_fn = self.net.backward_max_next
+        self.exps = []
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if ce_type != CEvent.END and ch is not None:
-            self.backward(grid, cell, [ch], [reward], self.grid, next_cell, self.gamma)
+            self.backward(grid, cell, [ch], [reward], self.grid, next_cell, None,
+                          self.gamma)
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 
 
 class NQLearnNetStrat(QNetStrat):
-    """N-step Update towards greedy, possibly illegal, action selection"""
+    """Update towards greedy, possibly illegal, action selection"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(name="NQLearnNet", *args, **kwargs)
-        self.backward_fn = self.net.backward_nstep
+        super().__init__("NQLearnNet", *args, **kwargs)
         self.exps = []
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
@@ -102,7 +101,8 @@ class NQLearnNetStrat(QNetStrat):
             agrid, acell, ach, _, ace_type = self.exps[0]
             if ace_type != CEvent.END and ach is not None:
                 rewards = [exp[3] for exp in self.exps]
-                self.backward(agrid, acell, ach, rewards, self.grid, next_cell)
+                self.backward(agrid, acell, [ach], rewards, self.grid, next_cell, None,
+                              self.gamma)
             del self.exps[0]
 
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
@@ -114,7 +114,6 @@ class QLearnEligibleNetStrat(QNetStrat):
 
     def __init__(self, *args, **kwargs):
         super().__init__("QlearnEligibleNet", *args, **kwargs)
-        self.backward_fn = self.net.backward_given_next
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
         """ Update qval for one experience tuple"""

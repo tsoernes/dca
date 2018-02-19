@@ -25,7 +25,6 @@ class Net:
         self.logger = logger
         self.save = pp['save_net']
         restore = pp['restore_net']
-        self.gamma = pp['gamma']
         self.batch_size = pp['batch_size']
         self.n_channels = pp['n_channels']
         self.pp = pp

@@ -69,8 +69,6 @@ if ce_type != CEvent.END and  \
    ch is not None and next_ch is not None:
 
 p3 runner.py qlearnnet --avg_runs 8 --no_gpu -opt adam -lr 1e-3 --net_lr_decay 1
-
-8x470000 events finished with speed 1234 events/second
 Average cumulative block probability over 8 episodes: 0.1749 with standard deviation 0.00280
 Average cumulative handoff block probability 0.1304 with standard deviation 0.00160
 [[0.16999128 0.12771229]
