@@ -86,10 +86,10 @@ class NQLearnNetStrat(QNetStrat):
         # 'self.grid' or next_cell is not used
         # as next state
         next_ce_type, next_cell = next_cevent[1:3]
-        self.exps.append((grid, cell, ch, reward))
+        self.exps.append((grid, cell, ch, reward, ce_type))
         if len(self.exps) == self.pp['n_step']:
-            agrid, acell, ach, r0 = self.exps[0]
-            if ach is not None:
+            agrid, acell, ach, r0, ace_type = self.exps[0]
+            if ace_type != CEvent.END and ach is not None:
                 rewards = [exp[3] for exp in self.exps]
                 self.backward(agrid, acell, ach, rewards, self.grid, next_cell)
             del self.exps[0]
@@ -107,7 +107,7 @@ class QLearnNetStrat(QNetStrat):
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
-        if ch is not None:
+        if ce_type != CEvent.END and ch is not None:
             self.backward(grid, cell, [ch], [reward], self.grid, next_cell)
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
