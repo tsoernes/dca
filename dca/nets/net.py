@@ -73,8 +73,10 @@ class Net:
             self.saver.restore(self.sess, self.model_path)
         self.do_train, self.lr = build_default_trainer(pp, self.loss, trainable_vars)
         self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
-        self.data_is_loaded = False
-        signal.signal(signal.SIGINT, self.exit_handler)
+
+        if pp['train_net']:
+            self.data_is_loaded = False
+            signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
         self.quit_sim = True

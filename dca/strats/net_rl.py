@@ -6,7 +6,7 @@ import gridfuncs_numba as GF
 from eventgen import CEvent
 from nets.acnet import ACNet
 from nets.dqnet import DistQNet
-from nets.qnet import QNet, TargetType
+from nets.qnet import QNet
 from nets.singh import SinghNet
 from nets.utils import softmax
 from strats.base import RLStrat
@@ -46,9 +46,9 @@ class NetStrat(RLStrat):
 
 
 class QNetStrat(NetStrat):
-    def __init__(self, name, target_type, pp, logger, *args, **kwargs):
-        self.net = QNet(name, target_type, pp, logger)
-        super().__init__(pp=pp, logger=logger, *args, **kwargs)
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = QNet(name, self.pp, self.logger)
         self.logger.info(f"TF Rand: {self.net.rand_uniform()}")
         if self.batch_size > 1:
             self.update_qval = self.update_qval_experience
@@ -76,13 +76,13 @@ class QLearnNetStrat(QNetStrat):
     """Update towards greedy, possibly illegal, action selection"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__("QLearnNet", TargetType.MAX_NEXT, *args, **kwargs)
+        super().__init__("QLearnNet", *args, **kwargs)
         self.backward_fn = self.net.backward_max_next
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if ce_type != CEvent.END and ch is not None:
-            self.backward(grid, cell, [ch], [reward], self.grid, next_cell)
+            self.backward(grid, cell, [ch], [reward], self.grid, next_cell, self.gamma)
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 
@@ -91,24 +91,11 @@ class NQLearnNetStrat(QNetStrat):
     """N-step Update towards greedy, possibly illegal, action selection"""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(
-            name="NQLearnNet", target_type=TargetType.SUPERVISED, *args, **kwargs)
-        self.backward_fn = self.net.backward_supervised
+        super().__init__(name="NQLearnNet", *args, **kwargs)
+        self.backward_fn = self.net.backward_nstep
         self.exps = []
 
-    def backward(self, *args, **kwargs):
-        loss, lr = self.net.n_step_backward(*args, **kwargs)
-        if np.isinf(loss) or np.isnan(loss):
-            self.logger.error(f"Invalid loss: {loss}")
-            self.invalid_loss, self.quit_sim = True, True
-        else:
-            self.losses.append(loss)
-        self.last_lr = lr
-
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
-        # FOR 1-step, this cannot be equivalent to regular q-earning because
-        # 'self.grid' or next_cell is not used
-        # as next state
         next_ce_type, next_cell = next_cevent[1:3]
         self.exps.append((grid, cell, ch, reward, ce_type))
         if len(self.exps) == self.pp['n_step']:
@@ -119,7 +106,6 @@ class NQLearnNetStrat(QNetStrat):
             del self.exps[0]
 
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
-
         return next_ch
 
 
