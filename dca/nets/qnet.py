@@ -183,10 +183,12 @@ class QNet(Net):
         """Generalized Advantage Estimation"""
         next_qvals = self._double_q_target(next_grid, next_cell, next_ch)
         vals = self.sess.run(self.target_q_max, {
-            self.grids: grids,
-            self.cells: cells,
+            self.grids: prep_data_grids(grids, self.pp['grid_split']),
+            self.oh_cells: prep_data_cells(cells),
             self.chs: chs
         })
-        value_plus = np.asarray(vals + [next_qvals])
+        value_plus = np.zeros((len(vals) + 1))
+        value_plus[:len(vals)] = vals
+        value_plus[-1] = next_qvals
         advantages = discount(rewards + gamma * value_plus[1:] - value_plus[:-1], gamma)
         return self.backward_supervised(grids, cells, chs, advantages)

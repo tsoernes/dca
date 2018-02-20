@@ -112,8 +112,6 @@ class NQLearnNetStrat(QNetStrat):
 class MNQLearnNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("MNQLearnNet", *args, **kwargs)
-        # DIRTY HACK
-        self.net.backward = self.net.backward_multi_nstep
         self.empty()
 
     def empty(self):
@@ -135,6 +133,13 @@ class MNQLearnNetStrat(QNetStrat):
 
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
+
+
+class GAEQLearnNetStrat(MNQLearnNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__("MNQLearnNet", *args, **kwargs)
+        # DIRTY HACK
+        self.net.backward = self.net.backward_gae
 
 
 class QLearnEligibleNetStrat(QNetStrat):
