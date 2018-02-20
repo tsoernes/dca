@@ -175,7 +175,7 @@ class QNet(Net):
         rewards_plus = np.asarray(rewards + [next_qvals])
         # [(r0 + g*r1 + g**2*r2 +..+ g**n*q_n), (r1 + g*r2 +..+ g**(n-1)*q_n), ..,
         # (r(n-1) + g*q_n)] where g: gamma, q_n: next_qval (bootstrap val)
-        q_targets = discount(rewards_plus, self.gamma)[:-1]
+        q_targets = discount(rewards_plus, gamma)[:-1]
         return self.backward_supervised(grids, cells, chs, q_targets)
 
     def backward_gae(self, grids, cells, chs, rewards, next_grid, next_cell, next_ch,

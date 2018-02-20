@@ -121,19 +121,24 @@ class MNQLearnNetStrat(QNetStrat):
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
-        self.grids.append(grid)
-        self.cells.append(cell)
-        self.chs.append(ch)
-        self.rewards.append(reward)
-        self.ce_types.append(ce_type)
-        if len(self.exps) == self.pp['n_step']:
+        if ch is not None:
+            self.grids.append(grid)
+            self.cells.append(cell)
+            self.chs.append(ch)
+            self.rewards.append(reward)
+            self.ce_types.append(ce_type)
+        if len(self.grids) == self.pp['n_step']:
             ach, ace_type = self.chs[0], self.ce_types[0]
-            if ace_type != CEvent.END and ach is not None:
-                self.backward(self.grids, self.cells, self.chs, self.rewards, self.grid,
+            if ace_type != CEvent.END:
+                self.backward(np.array(self.grids), self.cells, self.chs, self.rewards, self.grid,
                               next_cell, None, self.gamma)
                 self.empty()
             else:
-                del self.exps[0]
+                del self.grids[0]
+                del self.cells[0]
+                del self.chs[0]
+                del self.rewards[0]
+                del self.ce_types[0]
 
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
