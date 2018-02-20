@@ -112,6 +112,7 @@ class NQLearnNetStrat(QNetStrat):
 class MNQLearnNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("MNQLearnNet", *args, **kwargs)
+        self.net.backward = self.net.backward_multi_nstep
         self.empty()
 
     def empty(self):
@@ -137,7 +138,7 @@ class MNQLearnNetStrat(QNetStrat):
 
 class GAEQLearnNetStrat(MNQLearnNetStrat):
     def __init__(self, *args, **kwargs):
-        super().__init__("MNQLearnNet", *args, **kwargs)
+        super().__init__(*args, **kwargs)
         # DIRTY HACK
         self.net.backward = self.net.backward_gae
 
