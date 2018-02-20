@@ -242,10 +242,10 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     # import psutil
     # n_avg = psutil.cpu_count(logical=False)
     # Use same constant numpy seed for all sims
-    np.random.seed(pp['rng_seed'])
+    # np.random.seed(pp['rng_seed'])
     logger = logging.getLogger('')
     logger.error(space)
-    result = Runner.sim_proc(stratclass, pp, pid='', reseed=False)
+    result = Runner.sim_proc(stratclass, pp, pid='', reseed=True)
     if using_gpu_and_mongo:
         # Finished using the GPU, so reduce the 'gpu_procs' count
         mongo_decrease_gpu_procs(mongo_uri)
