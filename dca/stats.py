@@ -85,7 +85,7 @@ class Stats:
     def report_rl(self, epsilon, alpha=None):
         if alpha:
             self.alphas.append(alpha)
-            alpha_str = f", Alpha: {alpha}"
+            alpha_str = f", Alpha: {alpha:.4E}"
         else:
             alpha_str = ""
         self.epsilons.append(epsilon)
@@ -101,8 +101,8 @@ class Stats:
                     avg_losses[i] += loss
             avg_losses /= niter
             # avg_loss = str.join(", ", [f"{i:.1f}" for i in avg_losses])
-            avg_loss = f"Tot:{avg_losses[0]:.1f}, PG:{avg_losses[1]:.1f}" \
-                       f" Val:{avg_losses[2]:.1f}, Ent:{avg_losses[3]:.1}"
+            avg_loss = f"Tot:{avg_losses[0]:.2E}, PG:{avg_losses[1]:.2E}" \
+                       f" Val:{avg_losses[2]:.2E}, Ent:{avg_losses[3]:.2E}"
         else:
             avg_loss = f"{sum(losses[-niter:]) / niter :.6f}"
         self.logger.info(f"Avg. loss last {niter} events: {avg_loss}")
