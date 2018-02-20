@@ -109,6 +109,7 @@ def mongo_decrease_gpu_procs(mongo_uri):
     assert doc['gpu_procs'] > 0
     print("MONGO decreaseing GPU proc count")
     col.find_one_and_update(doc, {'$inc': {'gpu_procs': -1}})
+    client.close()
 
 
 def mongo_list_dbs():
@@ -259,9 +260,10 @@ def runner():
     args = vars(parser.parse_args())
     if args['list_dbs']:
         mongo_list_dbs()
+        return
     elif args['drop_empty_dbs']:
         mongo_drop_empty()
-
+        return
     fname = args['fname']
     trials = hopt_trials(fname)
     if args['hopt_best'] > 0:
