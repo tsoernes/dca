@@ -166,37 +166,27 @@ class QNet(Net):
             q_targets = reward + gamma * q_targets
         return self.backward_supervised(grids, cells, chs, q_targets)
 
-    def backward_multi_nstep(self, grids, cells, chs, rewards, next_grids, next_cells,
-                             next_chs, gamma) -> (float, float):
+    def backward_multi_nstep(self, grids, cells, chs, rewards, next_grid, next_cell,
+                             next_ch, gamma) -> (float, float):
         """
-        Supports n-step learning where (grids, cells) is from time t
-        and (next_grids, next_cells) is from time t+n
-        Support greedy action selection if 'next_chs' is None
+        Multi n-step. Train on n-step, (n-1)-step, (n-2)-step, ..., 1-step returns
         """
-        next_qvals = self._double_q_target(next_grids, next_cells, next_chs)
+        next_qvals = self._double_q_target(next_grid, next_cell, next_ch)
         rewards_plus = np.asarray(rewards + [next_qvals])
         # [(r0 + g*r1 + g**2*r2 +..+ g**n*q_n), (r1 + g*r2 +..+ g**(n-1)*q_n), ..,
         # (r(n-1) + g*q_n)] where g: gamma, q_n: next_qval (bootstrap val)
         q_targets = discount(rewards_plus, self.gamma)[:-1]
         return self.backward_supervised(grids, cells, chs, q_targets)
 
-    def backward_gae(self, grids, cells, vals, chs, rewards, next_grid, next_cell,
+    def backward_gae(self, grids, cells, chs, rewards, next_grid, next_cell, next_ch,
                      gamma) -> (float, float):
         """Generalized Advantage Estimation"""
-        # Estimated value after trajectory, V(S_t+n)
-        next_qvals = self._double_q_target(next_grids, next_cells, next_chs)
-        rewards_plus = np.asarray(rewards + [next_qvals])
-        # [(r0 + g*r1 + g**2*r2 +..+ g**n*q_n), (r1 + g*r2 +..+ g**(n-1)*q_n), ..,
-        # (r(n-1) + g*q_n)] where g: gamma, q_n: next_qval (bootstrap val)
-        discounted_rewards = discount(rewards_plus, self.gamma)[:-1]
+        next_qvals = self._double_q_target(next_grid, next_cell, next_ch)
+        vals = self.sess.run(self.target_q_max, {
+            self.grids: grids,
+            self.cells: cells,
+            self.chs: chs
+        })
         value_plus = np.asarray(vals + [next_qvals])
         advantages = discount(rewards + gamma * value_plus[1:] - value_plus[:-1], gamma)
-
-        data = {
-            self.grid: prep_data_grids(np.array(grids)),
-            self.cell: prep_data_cells(cells),
-            self.value_target: discounted_rewards,
-            self.action: chs,
-            self.psi: advantages
-        }
-        return self._backward(data)
+        return self.backward_supervised(grids, cells, chs, advantages)
