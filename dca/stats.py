@@ -104,7 +104,7 @@ class Stats:
             avg_loss = f"Tot:{avg_losses[0]:.2E}, PG:{avg_losses[1]:.2E}" \
                        f" Val:{avg_losses[2]:.2E}, Ent:{avg_losses[3]:.2E}"
         else:
-            avg_loss = f"{sum(losses[-niter:]) / niter :.6f}"
+            avg_loss = f"{sum(losses[-niter:]) / niter :.3E}"
         self.logger.info(f"Avg. loss last {niter} events: {avg_loss}")
 
     def end_episode(self, n_inprogress):
