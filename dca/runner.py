@@ -127,6 +127,8 @@ class Runner:
                 # Exp. replay
                 'batch_size': scope.int(hp.uniform('batch_size', 8, 16)),
                 'buffer_size': scope.int(hp.uniform('buffer_size', 2000, 10000)),
+                # N-step
+                'n_step': scope.int(hp.uniform('buffer_size', 2, 30)),
                 # Policy
                 'vf_coeff': hp.uniform('vf_coeff', 0.005, 0.5),
                 'entropy_coeff': hp.uniform('entropy_coeff', 1.0, 100.0)
