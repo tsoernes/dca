@@ -1,10 +1,11 @@
+import numpy as np
 import tensorflow as tf
 from tensorflow import bool as boolean
 from tensorflow import float32, int32
 
 from nets.net import Net
-from nets.utils import (copy_net_op, get_trainable_vars, prep_data_cells,
-                        prep_data_grids)
+from nets.utils import (copy_net_op, discount, get_trainable_vars,
+                        prep_data_cells, prep_data_grids)
 
 
 class QNet(Net):
@@ -96,7 +97,6 @@ class QNet(Net):
         self.target_q_selected = tf.gather_nd(target_q_vals, numbered_chs)
         # Online Q-value for given ch
         online_q_selected = tf.gather_nd(self.online_q_vals, numbered_chs)
-
         # Sum of squares difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
             labels=self.q_targets, predictions=online_q_selected)
@@ -119,7 +119,7 @@ class QNet(Net):
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
-    def _backward(self, data):
+    def _backward(self, data) -> (float, float):
         _, loss, lr = self.sess.run(
             [self.do_train, self.loss, self.lr],
             feed_dict=data,
@@ -136,7 +136,7 @@ class QNet(Net):
         }
         return self._backward(data)
 
-    def _double_q_target(self, grids, cells, target_chs=None):
+    def _double_q_target(self, grids, cells, target_chs=None) -> [float]:
         """Find bootstrap value, i.e. Q(Stn, A; Wt).
         where Stn: state at time t+n
               A: target_chs, if specified, else argmax(Q(Stn, a; Wo))
@@ -146,15 +146,15 @@ class QNet(Net):
             self.oh_cells: prep_data_cells(cells)
         }
         if target_chs is None:
-            out = self.target_q_max
+            target_q = self.target_q_max
         else:
-            out = self.target_q_selected
+            target_q = self.target_q_selected
             data.update({self.chs: target_chs})
-        qvals = self.sess.run(out, data)
+        qvals = self.sess.run(target_q, data)
         return qvals
 
     def backward(self, grids, cells, chs, rewards, next_grids, next_cells, next_chs,
-                 gamma):
+                 gamma) -> (float, float):
         """
         Supports n-step learning where (grids, cells) is from time t
         and (next_grids, next_cells) is from time t+n
@@ -165,3 +165,38 @@ class QNet(Net):
         for reward in rewards[::-1]:
             q_targets = reward + gamma * q_targets
         return self.backward_supervised(grids, cells, chs, q_targets)
+
+    def backward_multi_nstep(self, grids, cells, chs, rewards, next_grids, next_cells,
+                             next_chs, gamma) -> (float, float):
+        """
+        Supports n-step learning where (grids, cells) is from time t
+        and (next_grids, next_cells) is from time t+n
+        Support greedy action selection if 'next_chs' is None
+        """
+        next_qvals = self._double_q_target(next_grids, next_cells, next_chs)
+        rewards_plus = np.asarray(rewards + [next_qvals])
+        # [(r0 + g*r1 + g**2*r2 +..+ g**n*q_n), (r1 + g*r2 +..+ g**(n-1)*q_n), ..,
+        # (r(n-1) + g*q_n)] where g: gamma, q_n: next_qval (bootstrap val)
+        q_targets = discount(rewards_plus, self.gamma)[:-1]
+        return self.backward_supervised(grids, cells, chs, q_targets)
+
+    def backward_gae(self, grids, cells, vals, chs, rewards, next_grid, next_cell,
+                     gamma) -> (float, float):
+        """Generalized Advantage Estimation"""
+        # Estimated value after trajectory, V(S_t+n)
+        next_qvals = self._double_q_target(next_grids, next_cells, next_chs)
+        rewards_plus = np.asarray(rewards + [next_qvals])
+        # [(r0 + g*r1 + g**2*r2 +..+ g**n*q_n), (r1 + g*r2 +..+ g**(n-1)*q_n), ..,
+        # (r(n-1) + g*q_n)] where g: gamma, q_n: next_qval (bootstrap val)
+        discounted_rewards = discount(rewards_plus, self.gamma)[:-1]
+        value_plus = np.asarray(vals + [next_qvals])
+        advantages = discount(rewards + gamma * value_plus[1:] - value_plus[:-1], gamma)
+
+        data = {
+            self.grid: prep_data_grids(np.array(grids)),
+            self.cell: prep_data_cells(cells),
+            self.value_target: discounted_rewards,
+            self.action: chs,
+            self.psi: advantages
+        }
+        return self._backward(data)

@@ -80,7 +80,8 @@ class QLearnNetStrat(QNetStrat):
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
-        if ce_type != CEvent.END and ch is not None:
+        # if ce_type != CEvent.END and ch is not None:
+        if ch is not None:
             self.backward(grid, cell, [ch], [reward], self.grid, next_cell, None,
                           self.gamma)
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
