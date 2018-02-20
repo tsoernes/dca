@@ -1,17 +1,15 @@
 import os
 import tempfile
-
-import tensorflow as tf
 import zipfile
+
 import cloudpickle
 import numpy as np
+import tensorflow as tf
 
-import gym
 import baselines.common.tf_util as U
-from baselines import logger
+from baselines import deepq, logger
 from baselines.common.schedules import LinearSchedule
-from baselines import deepq
-from baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
+from baselines.deepq.replay_buffer import PrioritizedReplayBuffer, ReplayBuffer
 from baselines.deepq.utils import BatchInput, load_state, save_state
 
 
@@ -171,6 +169,7 @@ def learn(env,
     # capture the shape outside the closure so that the env object is not serialized
     # by cloudpickle when serializing make_obs_ph
     observation_space_shape = env.observation_space.shape
+
     def make_obs_ph(name):
         return BatchInput(observation_space_shape, name=name)
 
@@ -181,8 +180,7 @@ def learn(env,
         optimizer=tf.train.AdamOptimizer(learning_rate=lr),
         gamma=gamma,
         grad_norm_clipping=10,
-        param_noise=param_noise
-    )
+        param_noise=param_noise)
 
     act_params = {
         'make_obs_ph': make_obs_ph,
@@ -194,19 +192,22 @@ def learn(env,
 
     # Create the replay buffer
     if prioritized_replay:
-        replay_buffer = PrioritizedReplayBuffer(buffer_size, alpha=prioritized_replay_alpha)
+        replay_buffer = PrioritizedReplayBuffer(
+            buffer_size, alpha=prioritized_replay_alpha)
         if prioritized_replay_beta_iters is None:
             prioritized_replay_beta_iters = max_timesteps
-        beta_schedule = LinearSchedule(prioritized_replay_beta_iters,
-                                       initial_p=prioritized_replay_beta0,
-                                       final_p=1.0)
+        beta_schedule = LinearSchedule(
+            prioritized_replay_beta_iters,
+            initial_p=prioritized_replay_beta0,
+            final_p=1.0)
     else:
         replay_buffer = ReplayBuffer(buffer_size)
         beta_schedule = None
     # Create the schedule for exploration starting from 1.
-    exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * max_timesteps),
-                                 initial_p=1.0,
-                                 final_p=exploration_final_eps)
+    exploration = LinearSchedule(
+        schedule_timesteps=int(exploration_fraction * max_timesteps),
+        initial_p=1.0,
+        final_p=exploration_final_eps)
 
     # Initialize the parameters and copy them to the target network.
     U.initialize()
@@ -234,7 +235,8 @@ def learn(env,
                 # policy is comparable to eps-greedy exploration with eps = exploration.value(t).
                 # See Appendix C.1 in Parameter Space Noise for Exploration, Plappert et al., 2017
                 # for detailed explanation.
-                update_param_noise_threshold = -np.log(1. - exploration.value(t) + exploration.value(t) / float(env.action_space.n))
+                update_param_noise_threshold = -np.log(1. - exploration.value(
+                    t) + exploration.value(t) / float(env.action_space.n))
                 kwargs['reset'] = reset
                 kwargs['update_param_noise_threshold'] = update_param_noise_threshold
                 kwargs['update_param_noise_scale'] = True
@@ -255,10 +257,13 @@ def learn(env,
             if t > learning_starts and t % train_freq == 0:
                 # Minimize the error in Bellman's equation on a batch sampled from replay buffer.
                 if prioritized_replay:
-                    experience = replay_buffer.sample(batch_size, beta=beta_schedule.value(t))
-                    (obses_t, actions, rewards, obses_tp1, dones, weights, batch_idxes) = experience
+                    experience = replay_buffer.sample(
+                        batch_size, beta=beta_schedule.value(t))
+                    (obses_t, actions, rewards, obses_tp1, dones, weights,
+                     batch_idxes) = experience
                 else:
-                    obses_t, actions, rewards, obses_tp1, dones = replay_buffer.sample(batch_size)
+                    obses_t, actions, rewards, obses_tp1, dones = replay_buffer.sample(
+                        batch_size)
                     weights, batch_idxes = np.ones_like(rewards), None
                 td_errors = train(obses_t, actions, rewards, obses_tp1, dones, weights)
                 if prioritized_replay:
@@ -275,21 +280,24 @@ def learn(env,
                 logger.record_tabular("steps", t)
                 logger.record_tabular("episodes", num_episodes)
                 logger.record_tabular("mean 100 episode reward", mean_100ep_reward)
-                logger.record_tabular("% time spent exploring", int(100 * exploration.value(t)))
+                logger.record_tabular("% time spent exploring",
+                                      int(100 * exploration.value(t)))
                 logger.dump_tabular()
 
-            if (checkpoint_freq is not None and t > learning_starts and
-                    num_episodes > 100 and t % checkpoint_freq == 0):
+            if (checkpoint_freq is not None and t > learning_starts and num_episodes > 100
+                    and t % checkpoint_freq == 0):
                 if saved_mean_reward is None or mean_100ep_reward > saved_mean_reward:
                     if print_freq is not None:
-                        logger.log("Saving model due to mean reward increase: {} -> {}".format(
-                                   saved_mean_reward, mean_100ep_reward))
+                        logger.log(
+                            "Saving model due to mean reward increase: {} -> {}".format(
+                                saved_mean_reward, mean_100ep_reward))
                     save_state(model_file)
                     model_saved = True
                     saved_mean_reward = mean_100ep_reward
         if model_saved:
             if print_freq is not None:
-                logger.log("Restored model with mean reward: {}".format(saved_mean_reward))
+                logger.log(
+                    "Restored model with mean reward: {}".format(saved_mean_reward))
             load_state(model_file)
 
     return act

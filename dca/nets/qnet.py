@@ -67,21 +67,21 @@ class QNet(Net):
         gridshape = [None, self.pp['rows'], self.pp['cols'], depth]
         oh_cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
         self.grids = tf.placeholder(boolean, gridshape, "grid")
-        self.oh_cells = tf.placeholder(float32, oh_cellshape, "oh_cell")
+        self.oh_cells = tf.placeholder(boolean, oh_cellshape, "oh_cell")
         self.chs = tf.placeholder(int32, [None], "ch")
         self.q_targets = tf.placeholder(float32, [None], "qtarget")
 
-        fgrids = tf.cast(self.grids, float32)
-        # next_fgrids = tf.cast(self.next_grids, float32)
+        grids_f = tf.cast(self.grids, float32)
+        oh_cells_f = tf.cast(self.oh_cells, float32)
         nrange = tf.range(tf.shape(self.grids)[0])
-        # numbered_chs = [[0, ch0], [1, ch1], [2, ch2], ...]
+        # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
         numbered_chs = tf.stack([nrange, self.chs], axis=1)
 
         self.online_q_vals, online_vars = self._build_net(
-            fgrids, self.oh_cells, name="q_networks/online")
+            grids_f, oh_cells_f, name="q_networks/online")
         # Keep separate weights for target Q network
         target_q_vals, target_vars = self._build_net(
-            fgrids, self.oh_cells, name="q_networks/target")
+            grids_f, oh_cells_f, name="q_networks/target")
         # copy_online_to_target should be called periodically to creep
         # weights in the target Q-network towards the online Q-network
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
@@ -100,6 +100,11 @@ class QNet(Net):
         # Sum of squares difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
             labels=self.q_targets, predictions=online_q_selected)
+
+        # td_error = q_t_selected - tf.stop_gradient(q_t_selected_target)
+        # errors = U.huber_loss(td_error)
+        # weighted_error = tf.reduce_mean(importance_weights_ph * errors)
+        # tf.losses.huber_loss
         return online_vars
 
     def forward(self, grid, cell, ce_type):
@@ -182,11 +187,12 @@ class QNet(Net):
                      gamma) -> (float, float):
         """Generalized Advantage Estimation"""
         next_qvals = self._double_q_target(next_grid, next_cell, next_ch)
-        vals = self.sess.run(self.target_q_max, {
-            self.grids: prep_data_grids(grids, self.pp['grid_split']),
-            self.oh_cells: prep_data_cells(cells),
-            self.chs: chs
-        })
+        vals = self.sess.run(
+            self.target_q_max, {
+                self.grids: prep_data_grids(grids, self.pp['grid_split']),
+                self.oh_cells: prep_data_cells(cells),
+                self.chs: chs
+            })
         value_plus = np.zeros((len(vals) + 1))
         value_plus[:len(vals)] = vals
         value_plus[-1] = next_qvals

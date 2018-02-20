@@ -65,7 +65,6 @@ class MongoConn(MongoTrials):
         if 'dt' in pp:
             del pp['dt']
         col = self.db['pp']
-        # See if given pp already exists in db, and if not, add it
         col.insert_one(pp)
 
     def prune_suspended(self):

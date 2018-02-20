@@ -159,15 +159,16 @@ class Runner:
                 mongo_pp = prev_pps[-1]
                 dt = mongo_pp['dt']
                 del mongo_pp['dt']
+                del mongo_pp['_id']
                 pp_diff = diff(self.pp, mongo_pp)
                 if len(pp_diff.diffs) > 1:
                     # 'diffs' list has more than 1 entry, i.e. pps are not equal
                     self.logger.error(f"Found old problem params in MongoDB added "
                                       f"at {dt}. Diff:\n{pp_diff}")
                     ans = ''
-                    while ans.lower() not in ['y', 'n']:
-                        ans = input("Use old pp instead? Y/N:")
-                    if ans.lower() == 'y':
+                    while ans not in ['y', 'n']:
+                        ans = input("Use old pp instead? Y/N:").lower()
+                    if ans == 'y':
                         self.pp = mongo_pp
                     else:
                         trials.add_pp(self.pp)

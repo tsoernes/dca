@@ -146,17 +146,14 @@ def prep_data_grids(grids, split=True):
 
 
 def prep_data_cells(cells):
+    """One-hot cell encoding"""
     if type(cells) == tuple:
         cells = [cells]
     if type(cells[0]) != tuple:
         raise Exception("WHOAH WHOAH using np arrays for indexing works differently")
-    oh_cells = np.zeros((len(cells), 7, 7), dtype=np.float16)
-    # One-hot grid encoding
+    oh_cells = np.zeros((len(cells), 7, 7, 1), dtype=np.bool)
     for i, cell in enumerate(cells):
-        oh_cells[i][cell] = 1
-    oh_cells.shape = (-1, 7, 7, 1)
-    # Should not be used when predicting, but could save mem when training
-    # del cells
+        oh_cells[i][cell][0] = 1
     return oh_cells
 
 
