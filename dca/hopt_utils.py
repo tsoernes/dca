@@ -9,20 +9,15 @@ from matplotlib import pyplot as plt
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
-port = 1234
-"""
-NOTE For some reason, 'db.col.someFunc' is not the same as
-'col = db['colname']; col.someFunc'. The latter seem to work, the former does not.
-"""
 
-mongo_fail_msg = """
-Failed to connect to MongoDB. Have you started mongod server in 'db' dir? \n
-mongod --dbpath . --directoryperdb --journal --nohttpinterface --port 1234 """
+mongo_fail_msg = "Failed to connect to MongoDB. \
+        Have you started mongod server in 'db' dir? \n \
+        mongod --dbpath . --directoryperdb --journal --nohttpinterface --port 1234"
 
 
-def mongo_connect(server='localhost', port=1234):
+def mongo_connect():
     try:
-        client = MongoClient(server, port, document_class=SON, w=1, j=True)
+        client = MongoClient('localhost', 1234, document_class=SON, w=1, j=True)
         client.admin.command('ismaster')  # Check if connection is working
     except ServerSelectionTimeoutError:
         print(mongo_fail_msg)
@@ -30,45 +25,56 @@ def mongo_connect(server='localhost', port=1234):
     return client
 
 
-def hopt_results(fname, trials):
-    """Gather losses and corresponding params for valid results"""
-    if type(trials) is MongoTrials:
-        uri = fname.replace('mongo:', '')
-        attachments = get_pps_mongo(uri)
-        valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
-        valid_results = []
-        pkeys = valid[0]['misc']['vals'].keys()
-        params = {key: [] for key in pkeys}
-        for i, res in enumerate(valid):
-            valid_results.append((res['result']['loss'], i))
-            for pkey in pkeys:
-                params[pkey].append(res['misc']['vals'][pkey][0])
-    else:
-        attachments = trials.attachments
-        results = [(e['loss'], i, e['status']) for i, e in enumerate(trials.results)]
-        valid_results = filter(lambda x: x[2] == 'ok', results)
-        params = trials.vals
-    return valid_results, params, attachments
+class MongoConn(MongoTrials):
+    """
+    NOTE For some reason, 'db.col.someFunc' is not the same as
+    'col = db['colname']; col.someFunc'. The latter seem to work, the former does not.
+    """
 
+    def __init__(self, fname, server='localhost', port=1234):
+        """fname example: 'mongo:qlearnnet' or just 'qlearnnet'"""
+        # e.g. 'mongo://localhost:1234/results-singhnet-net_lr-beta/jobs'
+        self.fname = fname.replace('mongo:', '')
+        url = f"mongo://{server}:{port}/{self.fname}/jobs"
+        print(f"Attempting to connect to mongodb with url {url}")
+        try:
+            super().__init__(url)
+            self.client = MongoClient(server, port, document_class=SON, w=1, j=True)
+            self.client.admin.command('ismaster')  # Check if connection is working
+            self.db = self.client[self.fname]
+        except ServerSelectionTimeoutError:
+            print("Failed to connect to MongoDB. \
+            Have you started mongod server in 'db' dir? \n \
+            mongod --dbpath . --directoryperdb --journal --nohttpinterface --port 1234")
+            sys.exit(1)
 
-def hopt_trials(fname):
-    """Load trials from MongoDB or Pickle file, depending on 'hopt_fname'"""
-    try:
-        if fname.startswith("mongo"):
-            # e.g. 'mongo://localhost:1234/results-singhnet-net_lr-beta/jobs'
-            fname = f"mongo://localhost:1234/{fname.replace('mongo:', '')}/jobs"
-            print(f"Attempting to connect to mongodb with url {fname}")
-            return MongoTrials(fname)
-        else:
-            fname = fname.replace('.pkl', '') + '.pkl'
-            with open(fname, "rb") as f:
-                return pickle.load(f)
-    except FileNotFoundError:
-        print(f"Could not find {fname}.")
-        sys.exit(1)
-    except ServerSelectionTimeoutError:
-        print(mongo_fail_msg)
-        sys.exit(1)
+    def get_pps(self):
+        """Get problems params stored in mongo db, sorted by the time they were added"""
+        # Does not use attachmens object
+        col = self.db['pp']
+        pps = []
+        for ppson in col.find():
+            pp = ppson.to_dict()
+            pp['dt'] = pp['_id'].generation_time
+            pps.append(pp)
+        pps.sort(key=itemgetter('dt'))
+        return pps
+
+    def add_pp(self, pp):
+        """Add problem params to mongo db"""
+        if 'dt' in pp:
+            del pp['dt']
+        col = self.db['pp']
+        # See if given pp already exists in db, and if not, add it
+        col.insert_one(pp)
+
+    def prune_suspended(self):
+        """Remove jobs with status 'suspended'."""
+        col = self.db['jobs']
+        pre_count = col.count()
+        col.delete_many({'results': {'status': 'suspended'}})
+        count = col.count()
+        print(f"Deleted {pre_count-count}, suspended jobs, current count {count}")
 
 
 def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):
@@ -94,71 +100,15 @@ def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):
 
 
 def mongo_decrease_gpu_procs(mongo_uri):
-    """Decrease GPU process count in Mongo DB. Fails if none are in use."""
     client = mongo_connect()
     db = client[mongo_uri]
+    """Decrease GPU process count in Mongo DB. Fails if none are in use."""
     col = db['gpu_procs']
     doc = col.find_one()
     assert doc is not None
     assert doc['gpu_procs'] > 0
     print("MONGO decreaseing GPU proc count")
     col.find_one_and_update(doc, {'$inc': {'gpu_procs': -1}})
-    client.close()
-
-
-def add_pp_pickle(trials, pp):
-    """Add problem params to Trials object attachments, if it differs from
-    the last one added"""
-    att = trials.attachments
-    if "pp0" not in att:
-        att['pp0'] = pp
-        return
-    n = 0
-    while f"pp{n}" in att:
-        n += 1
-    n -= 1
-    if att[f'pp{n}'] != pp:
-        att[f'pp{n+1}'] = pp
-
-
-def add_pp_mongo(mongo_uri, pp):
-    """Add problem params to mongo db"""
-    if 'dt' in pp:
-        del pp['dt']
-    client = mongo_connect()
-    db = client[mongo_uri]
-    col = db['pp']
-    # See if given pp already exists in db, and if not, add it
-    col.insert_one(pp)
-    client.close()
-
-
-def get_pps_mongo(mongo_uri):
-    """Get problems params stored in mongo db, sorted by the time they were added"""
-    # Does not use attachmens object, will store different loc
-    client = mongo_connect()
-    db = client[mongo_uri]
-    col = db['pp']
-    pps = []
-    for ppson in col.find():
-        pp = ppson.to_dict()
-        pp['dt'] = pp['_id'].generation_time
-        pps.append(pp)
-    pps.sort(key=itemgetter('dt'))
-    client.close()
-    return pps
-
-
-def mongo_prune_suspended(mongo_uri):
-    """Remove jobs with status 'suspended'."""
-    client = mongo_connect()
-    db = client[mongo_uri]
-    col = db['jobs']
-    pre_count = col.count()
-    col.delete_many({'results': {'status': 'suspended'}})
-    count = col.count()
-    print(f"Deleted {pre_count-count}, suspended jobs, current count {count}")
-    client.close()
 
 
 def mongo_list_dbs():
@@ -188,13 +138,57 @@ def mongo_drop_empty():
     client.close()
 
 
-def hopt_best(fname, trials=None, n=1, view_pp=True):
-    if trials is None:
-        try:
-            trials = hopt_trials(fname)
-        except (FileNotFoundError, ValueError):
-            sys.exit(1)
-    # Something below here might throw AttributeError when mongodb exists but is empty
+def hopt_results(trials):
+    """Gather losses and corresponding params for valid results"""
+    if type(trials) == MongoConn:
+        attachments = trials.get_pps()
+        valid = list(filter(lambda x: x['result']['status'] == 'ok', trials.trials))
+        valid_results = []
+        pkeys = valid[0]['misc']['vals'].keys()
+        params = {key: [] for key in pkeys}
+        for i, res in enumerate(valid):
+            valid_results.append((res['result']['loss'], i))
+            for pkey in pkeys:
+                params[pkey].append(res['misc']['vals'][pkey][0])
+    else:
+        """Gather losses and corresponding params for valid results"""
+        attachments = trials.attachments
+        results = [(e['loss'], i, e['status']) for i, e in enumerate(trials.results)]
+        valid_results = filter(lambda x: x[2] == 'ok', results)
+        params = trials.vals
+    return valid_results, params, attachments
+
+
+def hopt_trials(fname):
+    """Load trials from MongoDB or Pickle file, depending on 'hopt_fname'"""
+    try:
+        if fname.startswith("mongo"):
+            return MongoConn(fname)
+        else:
+            fname = fname.replace('.pkl', '') + '.pkl'
+            with open(fname, "rb") as f:
+                return pickle.load(f)
+    except FileNotFoundError:
+        print(f"Could not find {fname}.")
+        sys.exit(1)
+
+
+def add_pp_pickle(trials, pp):
+    """Add problem params to Trials object attachments, if it differs from
+    the last one added"""
+    att = trials.attachments
+    if "pp0" not in att:
+        att['pp0'] = pp
+        return
+    n = 0
+    while f"pp{n}" in att:
+        n += 1
+    n -= 1
+    if att[f'pp{n}'] != pp:
+        att[f'pp{n+1}'] = pp
+
+
+def hopt_best(trials, n=1, view_pp=True):
     if n == 1:
         b = trials.best_trial
         params = b['misc']['vals']
@@ -202,7 +196,7 @@ def hopt_best(fname, trials=None, n=1, view_pp=True):
         print(f"Loss: {b['result']['loss']}\n{fparams}")
         return
     try:
-        valid_results, params, attachments = hopt_results(fname, trials)
+        valid_results, params, attachments = hopt_results(trials)
     except IndexError:
         print("Invalid MongoDB identifier")
         sys.exit(1)
@@ -215,9 +209,8 @@ def hopt_best(fname, trials=None, n=1, view_pp=True):
         print(f"Loss {lt[0]:.6f}: {fparams}")
 
 
-def hopt_plot(fname):
-    trials = hopt_trials(fname)
-    valid_results, params, attachments = hopt_results(fname, trials)
+def hopt_plot(trials):
+    valid_results, params, attachments = hopt_results(trials)
     losses = [x[0] for x in valid_results]
     n_params = len(params.keys())
     for i, (param, values) in zip(range(n_params), params.items()):
@@ -252,14 +245,11 @@ def runner():
         help="Plot each param against corresponding loss",
         default=False)
     parser.add_argument(
-        '--list_dbs',
-        action='store_true',
-        help="(MongoDB) List MongoDB databases",
-        default=False)
+        '--list_dbs', action='store_true', help="(MongoDB) List databases", default=False)
     parser.add_argument(
         '--drop_empty_dbs',
         action='store_true',
-        help="(MongoDB) List MongoDB databases",
+        help="(MongoDB) Drop empty databases",
         default=False)
     parser.add_argument(
         '--prune_jobs',
@@ -267,17 +257,22 @@ def runner():
         help="(MongoDB) Prune suspended jobs",
         default=False)
     args = vars(parser.parse_args())
-    fname = args['fname']
-    if args['hopt_best'] > 0:
-        hopt_best(fname, None, args['hopt_best'], view_pp=True)
-    elif args['plot']:
-        hopt_plot(fname)
-    elif args['list_dbs']:
-        mongo_list_dbs(fname)
+    if args['list_dbs']:
+        mongo_list_dbs()
     elif args['drop_empty_dbs']:
         mongo_drop_empty()
+
+    fname = args['fname']
+    trials = hopt_trials(fname)
+    if args['hopt_best'] > 0:
+        hopt_best(trials, args['hopt_best'], view_pp=True)
+    elif args['plot']:
+        hopt_plot(trials)
     elif args['prune_jobs']:
-        mongo_prune_suspended(fname)
+        trials.prune_suspended()
+
+    if type(trials) == MongoConn:
+        trials.client.close()
 
 
 if __name__ == '__main__':

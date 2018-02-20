@@ -2,7 +2,6 @@ import cProfile
 import datetime
 import logging
 import pickle
-import sys
 import time
 from functools import partial
 from multiprocessing import Pool
@@ -10,14 +9,11 @@ from multiprocessing import Pool
 import numpy as np
 from datadiff import diff
 from hyperopt import Trials, fmin, hp, tpe  # noqa
-from hyperopt.mongoexp import MongoTrials
 from hyperopt.pyll.base import scope  # noqa
-from pymongo.errors import ServerSelectionTimeoutError
 
-from gui import Gui
-from hopt_utils import (add_pp_mongo, add_pp_pickle, get_pps_mongo, hopt_best,
-                        mongo_decide_gpu_usage, mongo_decrease_gpu_procs,
-                        mongo_fail_msg)
+from gui import Gui  # noqa
+from hopt_utils import (MongoConn, add_pp_pickle, hopt_best,
+                        mongo_decide_gpu_usage, mongo_decrease_gpu_procs)
 from params import get_pparams
 
 
@@ -151,16 +147,11 @@ class Runner:
 
     def _hopt_mongo(self, space):
         """Find previous best trial and pp from MongoDB, if any, then run hopt job server"""
-        name = self.pp['hopt_fname'].replace('mongo:', '')
-        try:
-            trials = MongoTrials('mongo://localhost:1234/' + name + '/jobs')
-        except ServerSelectionTimeoutError:
-            print(mongo_fail_msg)
-            sys.exit(1)
+        trials = MongoConn(self.pp['hopt_fname'])
         try:
             self.logger.error("Prev best:")
             hopt_best(trials, n=1, view_pp=False)
-            prev_pps = get_pps_mongo(name)
+            prev_pps = trials.get_pps_mongo()
             # If given pp equals the last one found in MongoDB, don't add it.
             # Otherwise, ask whether to use the one found in DB instead,
             # and if not, store given pp in DB.
@@ -179,14 +170,16 @@ class Runner:
                     if ans.lower() == 'y':
                         self.pp = mongo_pp
                     else:
-                        add_pp_mongo(name, self.pp)
+                        trials.add_pp(self.pp)
             else:
-                add_pp_mongo(name, self.pp)
+                trials.add_pp(self.pp)
         except ValueError:
             self.logger.error("No existing trials, starting from scratch")
-            add_pp_mongo(name, self.pp)
-        fn = partial(hopt_proc, self.stratclass, self.pp, mongo_uri=name)
+            trials.add_pp(self.pp)
+        mongo_uri = self.pp['hopt_fname'].replace('mongo:', '')
+        fn = partial(hopt_proc, self.stratclass, self.pp, mongo_uri=mongo_uri)
         fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
+        trials.client.close()
 
     def _hopt_pickle(self, space):
         """
