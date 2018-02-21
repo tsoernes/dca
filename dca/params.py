@@ -82,10 +82,17 @@ def get_pparams(defaults=False):
         help="Number of hours to simulate (overrides n_events)",
         default=None)
     parser.add_argument(
+        '--breakout_thresh',
+        '-thresh',
+        type=float,
+        default=0.22,
+        help="Break out early if cumuluative blocking probability "
+        "exceeds given threshold")
+    parser.add_argument(
         '--avg_runs',
         metavar='N',
         type=int,
-        help="Run simulation N times, report average scores",
+        help="Run simulation N times, report average block probs",
         default=None)
 
     parser.add_argument(
@@ -108,18 +115,19 @@ def get_pparams(defaults=False):
         help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.99999)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
-    parser.add_argument('--beta', type=float, help="(RL) discount factor dt", default=10)
+    parser.add_argument(
+        '--beta',
+        nargs='?',
+        type=float,
+        help="(RL) Instead of using a constant discount factor gamma;"
+        "integrate rewards over dt between events (see Singh96)",
+        const=15,
+        default=None)
     parser.add_argument(
         '--reward_scale',
         type=float,
         help="(RL) Factor by which rewards are scaled",
         default=1)
-    parser.add_argument(
-        '--dt_rewards',
-        '-dt',
-        action='store_true',
-        help="(RL) integrate rewards over dt between events",
-        default=False)
     parser.add_argument(
         '--lambda',
         type=float,
@@ -139,19 +147,13 @@ def get_pparams(defaults=False):
         '--restore_qtable',
         nargs='?',
         type=str,
-        help="(RL/Table) Restore q-values from file",
+        help="(RL/Table) Restore q-values from given file",
         default="",
         const="qtable.npy")
     parser.add_argument(
-        '--breakout_thresh',
-        '-thresh',
-        type=float,
-        default=0.22,
-        help="Break out early from if cumuluative blocking probability "
-        "exceeds given threshold")
-    parser.add_argument(
         '--hopt',
         nargs='+',
+        metavar="PARAM1, PARAM2, ..",
         choices=[
             'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda',
             'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff',
@@ -199,8 +201,14 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--no_grid_split',
         action='store_true',
-        help="(Net) Don't Double the depth and represent empty channels "
+        help="(Net) Don't double the depth and represent empty channels "
         "as 1 on separate layer",
+        default=False)
+    parser.add_argument(
+        '--qnet_freps',
+        action='store_true',
+        help="(Net) Include feature representation a la Singh in "
+        "addition to grid as input to net",
         default=False)
     parser.add_argument(
         '--act_fn',
@@ -371,7 +379,8 @@ def get_pparams(defaults=False):
         # Approximate iters from hours. Only used for calculating
         # log_iter percentages
         pp['n_events'] = 7821 * pp['n_hours'] - 2015
-    # Sensible presets / overrides
+    # Sensible presets, overrides, convenience variables
+    pp['dt_rewards'] = pp['beta'] is not None
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
     if "net" in pp['strat'].lower():
         if not pp['log_iter']:
@@ -410,6 +419,7 @@ def get_pparams(defaults=False):
         pp['log_level'] = logging.INFO
     if pp['p_handoff'] is None:
         pp['p_handoff'] = 0.15
+
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])
 

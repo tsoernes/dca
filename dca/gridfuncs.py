@@ -207,6 +207,11 @@ class GridFuncs(metaclass=Singleton):
             grid[cell][chs] = 1  # Revert changes
         return fgrids
 
+    def afterstate_freps_naive(self, grid, cell, ce_type, chs):
+        astates = GridFuncs.afterstates(grid, cell, ce_type, chs)
+        freps = self.feature_reps(astates)
+        return freps
+
     def feature_reps(self, grids):
         """
         Takes a grid or an array of grids and return the feature representations.

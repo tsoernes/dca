@@ -19,8 +19,7 @@ class NetStrat(RLStrat):
         self.last_lr = 1
 
     def fn_report(self):
-        self.env.stats.report_loss(self.losses)
-        self.env.stats.report_rl(self.epsilon, self.last_lr)
+        self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses)
 
     def fn_after(self):
         self.logger.info(
@@ -78,7 +77,7 @@ class QLearnNetStrat(QNetStrat):
         super().__init__("QLearnNet", *args, **kwargs)
         self.exps = []
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if ce_type != CEvent.END and ch is not None:
             self.backward(grid, cell, [ch], [reward], self.grid, next_cell, None,
@@ -88,13 +87,13 @@ class QLearnNetStrat(QNetStrat):
 
 
 class NQLearnNetStrat(QNetStrat):
-    """Update towards greedy, possibly illegal, action selection"""
+    """Every iteration, train on n-step return"""
 
     def __init__(self, *args, **kwargs):
         super().__init__("NQLearnNet", *args, **kwargs)
         self.exps = []
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         self.exps.append((grid, cell, ch, reward, ce_type))
         if len(self.exps) == self.pp['n_step']:
@@ -110,6 +109,10 @@ class NQLearnNetStrat(QNetStrat):
 
 
 class MNQLearnNetStrat(QNetStrat):
+    """
+    Gather n experiences, then train on n-step return,
+    (n-1)-step return ..., 1-step return"""
+
     def __init__(self, *args, **kwargs):
         super().__init__("MNQLearnNet", *args, **kwargs)
         self.net.backward = self.net.backward_multi_nstep
@@ -118,7 +121,7 @@ class MNQLearnNetStrat(QNetStrat):
     def empty(self):
         self.grids, self.cells, self.chs, self.rewards, self.ce_types = [], [], [], [], []
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if ch is not None and ce_type != CEvent.END:
             self.grids.append(grid)
@@ -149,7 +152,7 @@ class QLearnEligibleNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("QlearnEligibleNet", *args, **kwargs)
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
         self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_max_ch],
                       self.gamma)
@@ -161,7 +164,7 @@ class SARSANetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("SARSANet", *args, **kwargs)
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
         if next_ch is not None:
             self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch],
@@ -183,7 +186,7 @@ class DistQNetStrat(QNetStrat):
     def update_target_net(self):
         pass
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
         self.backward(grid, cell, [ch], [reward], self.grid, next_cell)
 
@@ -304,7 +307,7 @@ class VNetStrat(NetStrat):
             self.update_qval(grid, cell, ch, reward, self.grid, next_cell, next_ch)
         return next_ch
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
         self.backward(grid, reward, self.grid)
 
@@ -315,14 +318,14 @@ class SinghNetStrat(VNetStrat):
         self.net = SinghNet(self.pp, self.logger)
         self.val = 0.0
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         if ch is not None:
-            gamma = bdisc if self.pp['dt_rewards'] else self.gamma
-            value_target = reward + gamma * np.array([[self.val]])
-            # self.backward([self.scale_freps(GF.feature_rep(grid))],
-            #               [self.scale_freps(GF.feature_rep(self.grid))], value_target)
-            self.backward([GF.feature_rep(grid)], [GF.feature_rep(self.grid)],
-                          value_target)
+            value_target = reward + self.gamma * np.array([[self.val]])
+            fgrid = GF.feature_rep(grid)
+            # next_fgrids equivalent to [GF.feature_rep(self.grid)], because executing
+            # (ce_type, cell, ch) on grid led to self.grid
+            next_fgrids = GF.incremental_freps(grid, fgrid, cell, ce_type, np.array([ch]))
+            self.backward([fgrid], next_fgrids, value_target)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -338,9 +341,7 @@ class SinghNetStrat(VNetStrat):
             chs = np.nonzero(self.grid[cell])[0]
 
         fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
-        # fgrids = self.scale_freps(fgrids)
-        # fgrids2 = self.afterstate_freps2(self.grid, cell, ce_type, chs)
-        # assert (fgrids == fgrids2).all()
+        # fgrids = GF.scale_freps(fgrids)
         qvals_dense = self.net.forward(fgrids)
         assert qvals_dense.shape == (len(chs), )
         amax_idx = np.argmax(qvals_dense)
@@ -348,23 +349,3 @@ class SinghNetStrat(VNetStrat):
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, qvals_dense[amax_idx]
-
-    def afterstate_freps_naive(self, grid, cell, ce_type, chs):
-        astates = GF.afterstates(grid, cell, ce_type, chs)
-        freps = GF.feature_reps(astates)
-        return freps
-
-    def scale_freps(self, freps):
-        # TODO Try Scale freps in range [-1, 1]
-        # Scale freps in range [0, 1]
-        freps = freps.astype(np.float16)
-        if freps.ndim == 4:
-            freps[:, :, :, :-1] *= 1 / 43.0
-            freps[:, :, :, -1] *= 1 / float(self.n_channels)
-        elif freps.ndim == 3:
-            # Max possible neighs within dist 4 including self
-            freps[:, :, :-1] *= 1 / 43.0
-            freps[:, :, -1] *= 1 / float(self.n_channels)
-        else:
-            raise NotImplementedError
-        return freps

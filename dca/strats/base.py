@@ -18,11 +18,10 @@ class Strat:
         self.logger = logger
 
         self.grid = np.zeros(pp['dims'], np.bool)
-        self.env = Env(self.pp, self.grid, self.logger, pid)
+        self.env = Env(pp, self.grid, logger, pid)
         self.exp_buffer = ReplayBuffer(pp['buffer_size'], *self.dims)
 
-        self.quit_sim = False
-        self.invalid_loss = False
+        self.quit_sim, self.invalid_loss = False, False
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -42,12 +41,14 @@ class Strat:
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
-        i, t = 0, 0
+        i, t = 0, 0  # Iteration, time
         while self.continue_sim(i, t):
             t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
-            reward, bdisc, next_cevent = self.env.step(ch)
-            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type, bdisc)
+            reward, beta_disc, next_cevent = self.env.step(ch)
+            if self.pp['dt_rewards']:
+                self.gamma = beta_disc
+            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type)
             # NOTE Could do per-strat saving here, as they save different stuff
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
@@ -144,8 +145,7 @@ class RLStrat(Strat):
         self.losses = [0]
 
     def fn_report(self):
-        self.env.stats.report_loss(self.losses)
-        self.env.stats.report_rl(self.epsilon, self.alpha)
+        self.env.stats.report_rl(self.epsilon, self.alpha, self.losses)
 
     def get_init_action(self, cevent):
         ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])

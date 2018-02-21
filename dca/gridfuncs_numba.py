@@ -172,6 +172,16 @@ def feature_rep(grid):
 @njit(cache=True)
 def afterstate_freps(grid, cell, ce_type, chs):
     fgrid = feature_rep(grid)
+    return incremental_freps(grid, fgrid, cell, ce_type, chs)
+
+
+@njit(cache=True)
+def incremental_freps(grid, fgrid, cell, ce_type, chs):
+    """
+    Given a grid, its feature representation fgrid,
+    and a set of actions specified by cell, event type and a list of channels,
+    derive feature representations for the afterstates of grid
+    """
     r, c = cell
     neighs4 = neighbors_np(4, r, c, True)
     # Is this right, in combination with 'neighs' include_self=False?
@@ -202,3 +212,20 @@ def afterstate_freps(grid, cell, ce_type, chs):
     if ce_type == CEvent.END:
         grid[cell][chs] = 1
     return fgrids
+
+
+@njit(cache=True)
+def scale_freps(freps):
+    # Scale freps in range [0, 1]
+    # TODO Try Scale freps in range [-1, 1]
+    freps = freps.astype(np.float16)
+    if freps.ndim == 4:
+        freps[:, :, :, :-1] *= 1 / 43.0
+        freps[:, :, :, -1] *= 1 / float(n_channels)
+    elif freps.ndim == 3:
+        # Max possible neighs within dist 4 including self
+        freps[:, :, :-1] *= 1 / 43.0
+        freps[:, :, -1] *= 1 / float(n_channels)
+    else:
+        raise NotImplementedError
+    return freps

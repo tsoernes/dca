@@ -130,17 +130,21 @@ def copy_net_op(online_vars, target_vars, tau):
 
 def prep_data_grids(grids, split=True):
     """
-    split: Copy grids in depth with inverse
-    representation (empty as 1; inuse as 0) on the second half
+    split: Copy alloc map and invert second copy (empty as 1; inuse as 0).
+    Leaves freps as is.
     """
     assert type(grids) == np.ndarray
     if grids.ndim == 3:
         grids = np.expand_dims(grids, axis=0)
-    assert grids.shape[1:] == (7, 7, 70)
+    assert grids.shape[1:-1] == (7, 7)
     if split:
-        sgrids = np.zeros((len(grids), 7, 7, 140), dtype=np.bool)
-        sgrids[:, :, :, :70] = grids
-        sgrids[:, :, :, 70:] = np.invert(grids)
+        depth = grids.shape[-1]
+        sgrids = np.zeros((len(grids), 7, 7, depth + 70), dtype=np.bool)
+        sgrids[:, :, :, :70] = grids[:70]
+        sgrids[:, :, :, 70:140] = np.invert(grids[:70])
+        if depth > 70:
+            # Copy freps as is
+            sgrids[:, :, :, -71:] = grids[70:]
         grids = sgrids
     return grids
 
@@ -151,6 +155,7 @@ def prep_data_cells(cells):
         cells = [cells]
     if type(cells[0]) != tuple:
         raise Exception("WHOAH WHOAH using np arrays for indexing works differently")
+        # For python atleast. perhaps admissible in TF
     oh_cells = np.zeros((len(cells), 7, 7, 1), dtype=np.bool)
     for i, cell in enumerate(cells):
         oh_cells[i][cell][0] = 1

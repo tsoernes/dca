@@ -46,22 +46,28 @@ class TestAfterstates(unittest.TestCase):
             self.assertTrue(eq_n_used.all(),
                             ("\n", diff_n_used, freps1[:, :, :, -1], freps2[:, :, :, -1]))
 
+        # Grid 1: No channels in use
         rows, cols, n_channels = 7, 7, 70
         grid1 = np.zeros((rows, cols, n_channels), dtype=bool)
         grid1c = np.copy(grid1)
         cell1 = (2, 3)
         ce_type1 = CEvent.NEW
         chs1 = GF.get_eligible_chs(grid1, cell1)
+
+        # Check that vanilla gridfuncs (GF) and numba gridfuncs (NGF) work the same
         freps_inc1 = GF.afterstate_freps(grid1, cell1, ce_type1, chs1)
         freps_inc1b = NGF.afterstate_freps(grid1, cell1, ce_type1, chs1)
+        # Check that incremental frep function works the same as naive approach
         astates1 = GF.afterstates(grid1, cell1, ce_type1, chs1)
-        freps1 = GF.feature_reps(astates1)
-        frep1b = NGF.feature_rep(astates1[0])
+        astates1b = NGF.afterstates(grid1, cell1, ce_type1, chs1)
+        freps1 = GF.feature_reps(astates1)  # GF takes multiple grids
+        frep1b = NGF.feature_rep(astates1b[0])  # NGF version takes a single grid
         check_frep(freps1[0], frep1b)
         check_freps(freps_inc1, freps1)
         check_freps(freps_inc1b, freps1)
-        assert (grid1 == grid1c).all()
+        assert (grid1 == grid1c).all()  # Grid should not have been modified by any funcs
 
+        # Grid 2: All channels in use
         grid2 = np.ones((rows, cols, n_channels), dtype=bool)
         cell2 = (2, 3)
         grid2[cell2][4] = 0
@@ -77,6 +83,7 @@ class TestAfterstates(unittest.TestCase):
         check_freps(freps_inc2b, freps2)
         assert (grid2 == grid2c).all()
 
+        # Grid 3: One channel in use
         grid3 = np.zeros((rows, cols, n_channels), dtype=bool)
         cell3 = (4, 1)
         grid3[cell3][4] = 1
@@ -90,6 +97,15 @@ class TestAfterstates(unittest.TestCase):
         check_freps(freps_inc3, freps3)
         check_freps(freps_inc3b, freps3)
         assert (grid3 == grid3c).all()
+
+        #
+        grid4 = np.zeros((rows, cols, n_channels), dtype=bool)
+        grid4[(4, 1)][4] = 1
+        cell4 = (3, 1)
+        frep_inc4 = NGF.afterstate_freps(grid4, cell4, CEvent.NEW, np.array([3]))[0]
+        grid4[cell4][3] = 1
+        frep4 = NGF.feature_rep(grid4)
+        check_frep(frep_inc4, frep4)
 
     def test_feature_rep(self):
         def check_n_free_self(grid, n_free):
@@ -118,11 +134,6 @@ class TestAfterstates(unittest.TestCase):
         self.assertTrue((fgrids[0] == fgrid1).all())
         self.assertTrue((fgrids[1] == fgrid2).all())
         self.assertTrue((fgrids[2] == fgrid3).all())
-
-        # TODO NOTE TODO
-        # Check if tests below are valid if frep is for ELIGIBLE not
-        # FREE chs. Then, if easy to do, mod feature_reps func to do
-        # the latter.
 
         # Verify Grid #1
         # No cell has any channels in use, i.e. all are free

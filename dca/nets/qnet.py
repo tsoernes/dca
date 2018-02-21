@@ -64,6 +64,8 @@ class QNet(Net):
 
     def build(self):
         depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
+        if self.pp['qnet_freps']:
+            depth += self.n_channels + 1
         gridshape = [None, self.pp['rows'], self.pp['cols'], depth]
         oh_cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
         self.grids = tf.placeholder(boolean, gridshape, "grid")

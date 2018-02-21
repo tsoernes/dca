@@ -82,16 +82,10 @@ class Stats:
             self.n_curr_rejected = 0
             self.n_curr_incoming = 0
 
-    def report_rl(self, epsilon, alpha=None):
-        if alpha:
-            self.alphas.append(alpha)
-            alpha_str = f", Alpha: {alpha:.4E}"
-        else:
-            alpha_str = ""
+    def report_rl(self, epsilon, alpha, losses):
+        self.alphas.append(alpha)
         self.epsilons.append(epsilon)
-        self.logger.info(f"Epsilon: {epsilon:.5f}" + alpha_str)
 
-    def report_loss(self, losses):
         niter = self.pp['log_iter']
         if type(losses[0]) is tuple:
             avg_losses = np.zeros(len(losses[0]))
@@ -104,8 +98,9 @@ class Stats:
             avg_loss = f"Tot:{avg_losses[0]:.2E}, PG:{avg_losses[1]:.2E}" \
                        f" Val:{avg_losses[2]:.2E}, Ent:{avg_losses[3]:.2E}"
         else:
-            avg_loss = f"{sum(losses[-niter:]) / niter :.3E}"
-        self.logger.info(f"Avg. loss last {niter} events: {avg_loss}")
+            avg_loss = f"{sum(losses[-niter:]) / niter :.2E}"
+        self.logger.info(f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
+                         f" Avg. loss last {niter} events: {avg_loss}")
 
     def end_episode(self, n_inprogress):
         delta = self.n_incoming + self.n_handoffs \
