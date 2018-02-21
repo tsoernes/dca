@@ -58,16 +58,10 @@ class Runner:
     def avg_run(self):
         t = time.time()
         n_runs = self.pp['avg_runs']
-        simproc = partial(self.sim_proc, self.stratclass, self.pp)
+        simproc = partial(self.sim_proc, self.stratclass, self.pp, reseed=True)
         # Net runs use same np seed for all runs; other strats do not
-        if self.pp['net'] and self.pp['use_gpu']:
-            results = []
-            for i in range(n_runs):
-                res = simproc(i, reseed=False)
-                results.append(res)
-        else:
-            with Pool() as p:
-                results = p.map(simproc, range(n_runs))
+        with Pool() as p:
+            results = p.map(simproc, range(n_runs))
         results = [r for r in results if r[0] != 1 and r[0] is not None]
         if not results:
             self.logger.error("NO RESULTS")
@@ -95,11 +89,14 @@ class Runner:
         """
         Allows for running simulation in separate process
         """
+        logger = logging.getLogger('')
         if reseed:
             # Must reseed lest all results will be the same.
             # Reseeding is wanted for avg runs but not hopt
             np.random.seed()
-        logger = logging.getLogger('')
+            seed = np.random.get_state()
+            pp['rng_seed'] = seed  # Reseed for tf
+            logger.error(f"Seed: {seed}")
         strat = stratclass(pp, logger=logger, pid=pid)
         result = strat.simulate()
         return result

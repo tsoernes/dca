@@ -395,6 +395,7 @@ def get_pparams(defaults=False):
         pp['call_rates'] = pp['erlangs'] / pp['call_duration']
     if pp['avg_runs']:
         pp['gui'] = False
+        pp['use_gpu'] = False
         # if not pp['log_level']:
         #     pp['log_level'] = logging.ERROR
         pp['log_iter'] = pp['n_events'] // 8
