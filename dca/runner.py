@@ -94,7 +94,7 @@ class Runner:
             # Must reseed lest all results will be the same.
             # Reseeding is wanted for avg runs but not hopt
             np.random.seed()
-            seed = np.random.get_state()
+            seed = np.random.get_state()[1][0]
             pp['rng_seed'] = seed  # Reseed for tf
             logger.error(f"Seed: {seed}")
         strat = stratclass(pp, logger=logger, pid=pid)
