@@ -110,6 +110,11 @@ def get_pparams(defaults=False):
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument('--beta', type=float, help="(RL) discount factor dt", default=10)
     parser.add_argument(
+        '--reward_scale',
+        type=float,
+        help="(RL) Factor by which rewards are scaled",
+        default=1)
+    parser.add_argument(
         '--dt_rewards',
         '-dt',
         action='store_true',

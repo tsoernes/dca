@@ -151,7 +151,8 @@ class QLearnEligibleNetStrat(QNetStrat):
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
         """ Update qval for one experience tuple"""
-        self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_max_ch])
+        self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_max_ch],
+                      self.gamma)
 
 
 class SARSANetStrat(QNetStrat):
@@ -162,7 +163,9 @@ class SARSANetStrat(QNetStrat):
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
         """ Update qval for one experience tuple"""
-        self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch])
+        if next_ch is not None:
+            self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch],
+                          self.gamma)
 
 
 class DistQNetStrat(QNetStrat):

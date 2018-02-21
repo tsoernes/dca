@@ -12,6 +12,7 @@ class Env:
         self.verify_grid = pp['verify_grid']
         self.save = pp['save_exp_data']
         self.log_iter = pp['log_iter']
+        self.reward_scale = pp['reward_scale']
         self.dt_rewards = pp['dt_rewards']
         self.beta = pp['beta']
         self.grid = grid
@@ -30,6 +31,8 @@ class Env:
         Generate DETERMINISTIC initial call events, in
         and return the first event.
         """
+        self.logger.error("USING MARKER CALLS")
+        self.logger.error("USING MARKER CALLS")
         self.logger.error("USING MARKER CALLS")
         dt = 0
         for r in range(self.rows):
@@ -102,9 +105,16 @@ class Env:
             self.gui.step()
 
         self.cevent = self.eventgen.pop()
-        dt = self.cevent[0] - t
-        beta_disc = np.exp(-self.beta * dt)
-        return (self.reward(beta_disc), beta_disc, self.cevent)
+        """
+        Immediate reward, which is the total number of calls
+        currently in progress system-wide
+        """
+        count = np.count_nonzero(self.grid)
+        if self.dt_rewards:
+            dt = self.cevent[0] - t
+            beta_disc = np.exp(-self.beta * dt)
+            return ((1 - beta_disc) / self.beta) * count, beta_disc, self.cevent
+        return count * self.reward_scale, None, self.cevent
 
     def execute_action(self, cevent, ch: int):
         """
@@ -141,13 +151,3 @@ class Env:
             else:
                 self.logger.debug(f"Ended call cell in {cell} on ch {ch}")
             self.grid[cell][ch] = 0
-
-    def reward(self, beta_disc):
-        """
-        Immediate reward, which is the total number of calls
-        currently in progress system-wide
-        """
-        count = np.count_nonzero(self.grid)
-        if not self.dt_rewards:
-            return count
-        return ((1 - beta_disc) / self.beta) * count
