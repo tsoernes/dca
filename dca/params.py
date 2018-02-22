@@ -96,12 +96,13 @@ def get_pparams(defaults=False):
         default=None)
 
     parser.add_argument(
-        '--alpha', type=float, help="(RL/Table) learning rate", default=0.036)
+        '--alpha', type=float, help="(RL/Table) learning rate", default=0.01938893)
     parser.add_argument(
         '--alpha_decay',
         type=float,
         help="(RL/Table) factor by which alpha is multiplied each iteration",
-        default=0.999998)
+        default=0.9999999)
+
     parser.add_argument(
         '--epsilon',
         '-eps',

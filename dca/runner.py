@@ -104,16 +104,18 @@ class Runner:
 
     def hopt_dlib(self):
         import dlib
-        lo_bounds = [0.005, 0.9]  # Lower bound constraints on each var respectively
-        up_bounds = [0.100, 1.0]
-        n = 100  # The number of times find_min_global() will call holder_table()
+        lo_bounds = [7e-6, 0.93]  # Lower bound constraints on each var respectively
+        up_bounds = [6e-5, 1.0]
+        n = 20  # The number of times find_min_global() will call holder_table()
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
+        self.i = 0
 
         def dlib_proc(lr, dec):
-            self.logger.error(f"Testing alpha, dec: {lr, dec}")
-            self.pp['alpha'] = lr
-            self.pp['alpha_decay'] = dec
+            self.logger.error(f"\nIter {self.i}, testing alpha, dec: {lr, dec}")
+            self.i += 1
+            self.pp['net_lr'] = lr
+            self.pp['net_lr_decay'] = dec
             result = Runner.sim_proc(self.stratclass, self.pp, pid='', reseed=True)
             res = result[0]
             if res is None:
