@@ -76,6 +76,11 @@ class QNet(Net):
         grids_f = tf.cast(self.grids, float32)
         freps_f = tf.cast(self.freps, float32)
         oh_cells_f = tf.cast(self.oh_cells, float32)
+        mult1 = np.ones(frepshape[1:], np.float32)
+        mult1[:, :, :-1] /= 43
+        mult1[:, :, -1] /= 70
+        tmult1 = tf.constant(mult1)
+        freps_f = freps_f * tmult1
         nrange = tf.range(tf.shape(self.grids)[0])
         # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
         numbered_chs = tf.stack([nrange, self.chs], axis=1)
