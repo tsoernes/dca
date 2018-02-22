@@ -89,10 +89,11 @@ class Net:
     def backward(self):
         raise NotImplementedError
 
-    def _build_base_net(self, grid, cell, name):
+    def _build_base_net(self, grid, frep, cell, name):
         with tf.variable_scope('model/' + name):
+            inp = tf.concat([grid, frep], axis=3) if self.pp['qnet_freps'] else grid
             conv1 = tf.layers.conv2d(
-                inputs=grid,
+                inputs=inp,
                 filters=self.n_channels,
                 kernel_size=4,
                 padding="same",

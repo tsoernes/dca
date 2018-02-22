@@ -157,28 +157,37 @@ def afterstates(grid, cell, ce_type, chs):
 
 @njit(cache=True)
 def feature_rep(grid):
-    fgrid = np.zeros((intp(rows), intp(cols), n_channels + 1), dtype=int32)
+    frep = np.zeros((intp(rows), intp(cols), n_channels + 1), dtype=int32)
     for r in range(rows):
         for c in range(cols):
             neighs = neighbors_np(4, r, c, True)
             n_used = np.zeros(n_channels, dtype=int32)
             for i in range(len(neighs)):
                 n_used += grid[neighs[i, 0], neighs[i, 1]]
-            fgrid[r, c, :-1] = n_used
-            fgrid[r, c, -1] = get_n_eligible_chs(grid, (r, c))
-    return fgrid
+            frep[r, c, :-1] = n_used
+            frep[r, c, -1] = get_n_eligible_chs(grid, (r, c))
+    return frep
 
 
 @njit(cache=True)
 def afterstate_freps(grid, cell, ce_type, chs):
-    fgrid = feature_rep(grid)
-    return incremental_freps(grid, fgrid, cell, ce_type, chs)
+    """Feature representation for each of the afterstates of grid"""
+    frep = feature_rep(grid)
+    return incremental_freps(grid, frep, cell, ce_type, chs)
 
 
 @njit(cache=True)
-def incremental_freps(grid, fgrid, cell, ce_type, chs):
+def successive_freps(grid, cell, ce_type, chs):
+    """Frep for grid and its afterstates"""
+    frep = feature_rep(grid)
+    next_frep = incremental_freps(grid, frep, cell, ce_type, chs)
+    return (frep, next_frep)
+
+
+@njit(cache=True)
+def incremental_freps(grid, frep, cell, ce_type, chs):
     """
-    Given a grid, its feature representation fgrid,
+    Given a grid, its feature representation frep,
     and a set of actions specified by cell, event type and a list of channels,
     derive feature representations for the afterstates of grid
     """
@@ -186,8 +195,8 @@ def incremental_freps(grid, fgrid, cell, ce_type, chs):
     neighs4 = neighbors_np(4, r, c, True)
     # Is this right, in combination with 'neighs' include_self=False?
     neighs2 = neighbors_np(2, r, c, True)
-    fgrids = np.zeros((len(chs), intp(rows), intp(cols), n_channels + 1), dtype=int32)
-    fgrids[:] = fgrid
+    freps = np.zeros((len(chs), intp(rows), intp(cols), n_channels + 1), dtype=int32)
+    freps[:] = frep
     if ce_type == CEvent.END:
         n_used_neighs_diff = -1
         n_elig_self_diff = 1
@@ -198,7 +207,7 @@ def incremental_freps(grid, fgrid, cell, ce_type, chs):
     for i in range(len(chs)):
         ch = chs[i]
         for j in range(len(neighs4)):
-            fgrids[i, neighs4[j, 0], neighs4[j, 1], ch] += n_used_neighs_diff
+            freps[i, neighs4[j, 0], neighs4[j, 1], ch] += n_used_neighs_diff
         for j in range(len(neighs2)):
             r2, c2 = neighs2[0, j], neighs2[1, j]
             neighs = neighbors_np(2, r2, c2, False)
@@ -208,10 +217,10 @@ def incremental_freps(grid, fgrid, cell, ce_type, chs):
             if not inuse:
                 # For END: ch was in use at (r, c), but is now eligible
                 # For NEW: ch was eligible at given neighs2, but is now in use
-                fgrids[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig_self_diff
+                freps[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig_self_diff
     if ce_type == CEvent.END:
         grid[cell][chs] = 1
-    return fgrids
+    return freps
 
 
 @njit(cache=True)

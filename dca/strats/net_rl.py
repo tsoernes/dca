@@ -77,11 +77,20 @@ class QLearnNetStrat(QNetStrat):
         super().__init__("QLearnNet", *args, **kwargs)
         self.exps = []
 
+    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
+        frep = GF.feature_rep(self.grid) if self.pp['qnet_freps'] else None
+        qvals = self.net.forward(self.grid, frep, cell, ce_type)
+        return qvals[chs]
+
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if ce_type != CEvent.END and ch is not None:
-            self.backward(grid, cell, [ch], [reward], self.grid, next_cell, None,
-                          self.gamma)
+            if self.pp['qnet_freps']:
+                frep, next_frep = GF.successive_freps(grid, cell, ce_type, np.array([ch]))
+            else:
+                frep, next_frep = None, None
+            self.backward(grid, [frep], cell, [ch], [reward], self.grid, next_frep,
+                          next_cell, None, self.gamma)
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 

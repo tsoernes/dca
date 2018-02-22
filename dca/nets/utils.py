@@ -136,15 +136,12 @@ def prep_data_grids(grids, split=True):
     assert type(grids) == np.ndarray
     if grids.ndim == 3:
         grids = np.expand_dims(grids, axis=0)
-    assert grids.shape[1:-1] == (7, 7)
+    assert grids.shape[1:] == (7, 7, 70)
+    np.concatenate
     if split:
-        depth = grids.shape[-1]
-        sgrids = np.zeros((len(grids), 7, 7, depth + 70), dtype=np.bool)
-        sgrids[:, :, :, :70] = grids[:70]
-        sgrids[:, :, :, 70:140] = np.invert(grids[:70])
-        if depth > 70:
-            # Copy freps as is
-            sgrids[:, :, :, -71:] = grids[70:]
+        sgrids = np.zeros((len(grids), 7, 7, 140), dtype=np.bool)
+        sgrids[:, :, :, :70] = grids
+        sgrids[:, :, :, 70:] = np.invert(grids)
         grids = sgrids
     return grids
 

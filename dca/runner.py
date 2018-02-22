@@ -96,7 +96,6 @@ class Runner:
             np.random.seed()
             seed = np.random.get_state()[1][0]
             pp['rng_seed'] = seed  # Reseed for tf
-            logger.error(f"Seed: {seed}")
         strat = stratclass(pp, logger=logger, pid=pid)
         result = strat.simulate()
         return result
