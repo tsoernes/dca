@@ -151,20 +151,17 @@ class RLStrat(Strat):
         ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, bdisc) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
-        # if ce_type != CEvent.END and  \
-        #    ch is not None and next_ch is not None:
-        if ch is not None:
-            # if ce_type != CEvent.END:
+        if ce_type != CEvent.END and  \
+           ch is not None and next_ch is not None:
             # Observe reward from previous action, and
             # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
-                             bdisc)
+            self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch)
         return next_ch
 
     def policy_eps_greedy(self, chs, qvals_dense):

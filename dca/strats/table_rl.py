@@ -31,15 +31,14 @@ class QTable(RLStrat):
         else:
             return self.qvals[rep][chs]
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch, bdisc):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         assert type(ch) == np.int64
         assert ch is not None
         if self.pp['verify_grid']:
             assert np.sum(grid != self.grid) == 1
         next_n_used = np.count_nonzero(self.grid[next_cell])
         next_qval = self.get_qvals(next_cell, next_n_used, next_ch)
-        gamma = bdisc if self.pp['dt_rewards'] else self.gamma
-        target_q = reward + gamma * next_qval
+        target_q = reward + self.gamma * next_qval
         # Counting n_used of self.grid instead of grid yields significantly lower
         # blockprob on (TT-)SARSA for unknown reasons.
         n_used = np.count_nonzero(grid[cell])
@@ -52,7 +51,7 @@ class QTable(RLStrat):
         else:
             self.el_traces[frep][ch] += 1
             self.qvals += self.alpha * td_err * self.el_traces
-            self.el_traces *= gamma * self.lmbda
+            self.el_traces *= self.gamma * self.lmbda
         if self.alpha > self.pp['min_alpha']:
             self.alpha *= self.alpha_decay
         next_frep = self.feature_rep(next_cell, next_n_used)
