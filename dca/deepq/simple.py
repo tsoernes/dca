@@ -284,8 +284,8 @@ def learn(env,
                                       int(100 * exploration.value(t)))
                 logger.dump_tabular()
 
-            if (checkpoint_freq is not None and t > learning_starts and num_episodes > 100
-                    and t % checkpoint_freq == 0):
+            if (checkpoint_freq is not None and t > learning_starts and
+                    num_episodes > 100 and t % checkpoint_freq == 0):  # yapf: disable
                 if saved_mean_reward is None or mean_100ep_reward > saved_mean_reward:
                     if print_freq is not None:
                         logger.log(

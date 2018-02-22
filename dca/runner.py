@@ -32,6 +32,8 @@ class Runner:
 
         if self.pp['hopt']:
             self.hopt()
+        elif self.pp['dlib_hopt']:
+            self.hopt_dlib()
         elif self.pp['avg_runs']:
             self.avg_run()
         elif self.pp['strat'] == 'show':
@@ -99,6 +101,24 @@ class Runner:
         strat = stratclass(pp, logger=logger, pid=pid)
         result = strat.simulate()
         return result
+
+    @staticmethod
+    def dlib_proc(stratclass, pp, lr):
+        pp['alpha'] = lr
+        result = Runner.sim_proc(stratclass, pp, pid='', reseed=False)
+        res = result[0]
+        if res is None:
+            return 1
+        return res
+
+    def hopt_dlib(self):
+        import dlib
+        lo_bounds = [0.005]  # Lower bound constraints on each var respectively
+        up_bounds = [0.100]
+        n = 10  # The number of times find_min_global() will call holder_table()
+        fn = partial(hopt_proc, self.stratclass, self.pp)
+        x = dlib.find_min_global(fn, lo_bounds, up_bounds, n)
+        self.logger.error(f"Min x: {x}")
 
     def hopt(self, net=False):
         """

@@ -132,9 +132,36 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             how much prioritization is used
             (0: no prioritization, 1: full prioritization)
 
-        See Also
         --------
-        ReplayBuffer.__init__
+          prioritized_replay_alpha=0.6,
+          prioritized_replay_beta0=0.4,
+          prioritized_replay_beta_iters=None,
+          prioritized_replay_eps=1e-6,
+
+        prioritized_replay_alpha: float
+            alpha parameter for prioritized replay buffer
+        prioritized_replay_beta0: float
+            initial value of beta for prioritized replay buffer
+        prioritized_replay_beta_iters: int
+            number of iterations over which beta will be annealed from initial value
+            to 1.0. If set to None equals to max_timesteps.
+        prioritized_replay_eps: float
+            epsilon to add to the TD errors when updating priorities.
+
+        replay_buffer = PrioritizedReplayBuffer(
+            buffer_size, alpha=prioritized_replay_alpha)
+        if prioritized_replay_beta_iters is None:
+            prioritized_replay_beta_iters = max_timesteps
+        beta_schedule = LinearSchedule(
+            prioritized_replay_beta_iters,
+            initial_p=prioritized_replay_beta0,
+            final_p=1.0)
+
+        experience = replay_buffer.sample(batch_size, beta=beta_schedule.value(t))
+        (obses_t, actions, rewards, obses_tp1, dones, weights, batch_idxes) = experience
+        td_errors = train(obses_t, actions, rewards, obses_tp1, dones, weights)
+        new_priorities = np.abs(td_errors) + prioritized_replay_eps
+        replay_buffer.update_priorities(batch_idxes, new_priorities)
         """
         super(PrioritizedReplayBuffer, self).__init__(size)
         assert alpha > 0
@@ -163,7 +190,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         res = []
         for _ in range(batch_size):
             # TODO(szymon): should we ensure no repeats?
-            mass = random.random() * self._it_sum.sum(0, len(self._storage) - 1)
+            mass = random.random() * self._it_sum.sum(0, len(self) - 1)
             idx = self._it_sum.find_prefixsum_idx(mass)
             res.append(idx)
         return res
@@ -204,7 +231,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         for idx in idxes:
             p_sample = self._it_sum[idx] / self._it_sum.sum()
-            weight = (p_sample * len(self._storage))**(-beta)
+            weight = (p_sample * len(self))**(-beta)
             weights.append(weight / max_weight)
         weights = np.array(weights)
         encoded_sample = self._encode_sample(idxes)
@@ -228,7 +255,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         assert len(idxes) == len(priorities)
         for idx, priority in zip(idxes, priorities):
             assert priority > 0
-            assert 0 <= idx < len(self._storage)
+            assert 0 <= idx < len(self)
             self._it_sum[idx] = priority**self._alpha
             self._it_min[idx] = priority**self._alpha
 

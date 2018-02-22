@@ -49,8 +49,8 @@ class QNet(Net):
                     advantages - tf.reduce_mean(advantages, axis=1, keepdims=True))
                 if "online" in name:
                     self.advantages = advantages
-                if "target" in name:
-                    self.value = value
+                # if "target" in name:
+                #     self.value = value
             else:
                 q_vals = tf.layers.dense(
                     inputs=base_net,
@@ -72,6 +72,10 @@ class QNet(Net):
         self.oh_cells = tf.placeholder(boolean, oh_cellshape, "oh_cell")
         self.chs = tf.placeholder(int32, [None], "ch")
         self.q_targets = tf.placeholder(float32, [None], "qtarget")
+        if self.pp['prioritized_replay']:
+            self.weights = tf.placeholder(float32, [None], "qtarget")
+        else:
+            self.weights = 1
 
         grids_f = tf.cast(self.grids, float32)
         freps_f = tf.cast(self.freps, float32)
@@ -110,12 +114,14 @@ class QNet(Net):
             self.loss = tf.losses.huber_loss(
                 labels=self.q_targets,
                 predictions=online_q_selected,
-                reduction=tf.losses.Reduction.MEAN,
-                delta=self.pp['huber_loss'])
+                delta=self.pp['huber_loss'],
+                weights=self.weights)
         else:
             self.loss = tf.losses.mean_squared_error(
-                labels=self.q_targets, predictions=online_q_selected)
-
+                labels=self.q_targets,
+                predictions=online_q_selected,
+                weights=self.weights)
+        tf.losses.compute_weighted_loss
         # td_error = q_t_selected - tf.stop_gradient(q_t_selected_target)
         # errors = U.huber_loss(td_error)
         # weighted_error = tf.reduce_mean(importance_weights_ph * errors)

@@ -11,16 +11,19 @@ QNet:
   Why is loss increasing for long runs?
   Pre-training: Shuffled vs sequential
   Can the afterstate approach be combined with duelling qnet?
+  Block prob first 15k iters are EXACTLY the same with/without qnet freps
+  Try simple exp replay (Juliani) too see if it performs the same
+      (to check if current impl has bugs)
+  Prioritized replay
+  Parameter noise instead of epsilon-greedy
+  multiple linear layers with Relu
+  wolf learning rate
 
 QNet + Singh hybrid:
-     Train on features alone
-     Including convs. for Singh (1x1 before dense?)
-     Block prob first 15k iters are EXACTLY the same with/without qnet freps
-     Try simple exp replay (Juliani) too see if it performs the same
-         (to check if current impl has bugs)
-     Prioritized replay
+  Train on features alone
+  Including convs. for Singh (1x1 before dense?)
 
-wolf learning rate
+
 
 Progging:
   Retrieve pp from mongodb

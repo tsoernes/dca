@@ -150,6 +150,7 @@ def get_pparams(defaults=False):
         help="(RL/Table) Restore q-values from given file",
         default="",
         const="qtable.npy")
+    parser.add_argument('--dlib_hopt', action='store_true', default=False)
     parser.add_argument(
         '--hopt',
         nargs='+',
