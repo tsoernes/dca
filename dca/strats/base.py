@@ -14,6 +14,7 @@ class Strat:
         self.rows, self.cols, self.n_channels = self.dims = pp['dims']
         self.save = pp['save_exp_data']
         self.batch_size = pp['batch_size']
+        self.n_hours, self.n_events = pp['n_hours'], pp['n_events']
         self.pp = pp
         self.logger = logger
 
@@ -52,7 +53,6 @@ class Strat:
             # NOTE Could do per-strat saving here, as they save different stuff
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
-                    and next_ch is not None \
                     and ce_type != CEvent.END:
                 # Only add (s, a, r, s', a') tuples for which the events in
                 # s is not an END events, and for which there is an
@@ -102,10 +102,10 @@ class Strat:
     def continue_sim(self, i, t) -> bool:
         if self.quit_sim:
             return False  # Gracefully exit to print stats, clean up etc.
-        elif self.pp['n_hours'] is not None:
-            return (t / 60) < self.pp['n_hours']
+        elif self.n_hours is not None:
+            return (t / 60) < self.n_hours
         else:
-            return i < self.pp['n_events']
+            return i < self.n_events
 
     def get_init_action(self, next_cevent) -> int:
         """Return a channel to be (re)assigned in response to 'next_cevent'."""

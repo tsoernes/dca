@@ -67,7 +67,14 @@ class QNetStrat(NetStrat):
         """
         if len(self.exp_buffer) >= self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
-            self.backward(**self.exp_buffer.sample(self.pp['batch_size']))
+            data = self.exp_buffer.sample(self.pp['batch_size'])
+            data.update({
+                'freps': None,
+                'next_freps': None,
+                'next_chs': None,
+                'gamma': self.gamma
+            })
+            self.backward(**data)
 
 
 class QLearnNetStrat(QNetStrat):
@@ -101,12 +108,13 @@ class NQLearnNetStrat(QNetStrat):
 
     def __init__(self, *args, **kwargs):
         super().__init__("NQLearnNet", *args, **kwargs)
+        self.n_step = self.pp['n_step']
         self.exps = []
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         self.exps.append((grid, cell, ch, reward, ce_type))
-        if len(self.exps) == self.pp['n_step']:
+        if len(self.exps) == self.n_step:
             agrid, acell, ach, _, ace_type = self.exps[0]
             if ace_type != CEvent.END and ach is not None:
                 rewards = [exp[3] for exp in self.exps]
@@ -139,7 +147,7 @@ class MNQLearnNetStrat(QNetStrat):
             self.chs.append(ch)
             self.rewards.append(reward)
             self.ce_types.append(ce_type)
-        if len(self.grids) == self.pp['n_step']:
+        if len(self.grids) == self.n_step:
             self.backward(
                 np.array(self.grids), self.cells, self.chs, self.rewards, self.grid,
                 next_cell, None, self.gamma)

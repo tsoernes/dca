@@ -26,7 +26,8 @@ class Net:
         self.save = pp['save_net']
         restore = pp['restore_net']
         self.batch_size = pp['batch_size']
-        self.n_channels = pp['n_channels']
+        self.grid_split = pp['grid_split']
+        self.rows, self.cols, self.n_channels = pp['dims']
         self.pp = pp
         main_path = "model/" + name
         self.model_path = main_path + "/model.cpkt"

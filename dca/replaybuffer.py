@@ -36,22 +36,24 @@ class ReplayBuffer():
         return len(self._storage['grids'])
 
     def add(self, grid, cell, ch, reward, value=None, next_grid=None, next_cell=None):
-        def add(name, item):
-            if self._next_idx >= len(self._storage):
+        lenn = len(self)
+
+        def _add(name, item):
+            if self._next_idx >= lenn:
                 self._storage[name].append(item)
             else:
                 self._storage[name][self._next_idx] = item
 
-        add('grids', grid)
-        add('cells', cell)
-        add('chs', ch)
-        add('rewards', reward)
+        _add('grids', grid)
+        _add('cells', cell)
+        _add('chs', ch)
+        _add('rewards', reward)
         if value is not None:
-            add('values', value)
+            _add('values', value)
         if next_grid is not None:
-            add('next_grids', next_grid)
+            _add('next_grids', next_grid)
         if next_cell is not None:
-            add('next_cells', next_cell)
+            _add('next_cells', next_cell)
 
         self._next_idx = (self._next_idx + 1) % self._maxsize
 

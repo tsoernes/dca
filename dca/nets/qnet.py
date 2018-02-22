@@ -63,10 +63,10 @@ class QNet(Net):
         return q_vals, trainable_vars_by_name
 
     def build(self):
-        depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
-        gridshape = [None, self.pp['rows'], self.pp['cols'], depth]
-        frepshape = [None, self.pp['rows'], self.pp['cols'], self.n_channels + 1]
-        oh_cellshape = [None, self.pp['rows'], self.pp['cols'], 1]  # Onehot
+        depth = self.n_channels * 2 if self.grid_split else self.n_channels
+        gridshape = [None, self.rows, self.cols, depth]
+        frepshape = [None, self.rows, self.cols, self.n_channels + 1]
+        oh_cellshape = [None, self.rows, self.cols, 1]  # Onehot
         self.grids = tf.placeholder(boolean, gridshape, "grid")
         self.freps = tf.placeholder(int32, frepshape, "frep")
         self.oh_cells = tf.placeholder(boolean, oh_cellshape, "oh_cell")
@@ -128,7 +128,7 @@ class QNet(Net):
         else:
             q_vals_op = self.online_q_vals
         data = {
-            self.grids: prep_data_grids(grid, split=self.pp['grid_split']),
+            self.grids: prep_data_grids(grid, split=self.grid_split),
             self.oh_cells: prep_data_cells(cell)
         }
         if frep is not None:
@@ -149,7 +149,7 @@ class QNet(Net):
 
     def backward_supervised(self, grids, freps, cells, chs, q_targets):
         data = {
-            self.grids: prep_data_grids(grids, self.pp['grid_split']),
+            self.grids: prep_data_grids(grids, self.grid_split),
             self.oh_cells: prep_data_cells(cells),
             self.chs: chs,
             self.q_targets: q_targets,
@@ -164,7 +164,7 @@ class QNet(Net):
               A: target_chs, if specified, else argmax(Q(Stn, a; Wo))
               Wo/Wt: online/target network"""
         data = {
-            self.grids: prep_data_grids(grids, self.pp['grid_split']),
+            self.grids: prep_data_grids(grids, self.grid_split),
             self.oh_cells: prep_data_cells(cells)
         }
         if target_chs is None:
@@ -208,7 +208,7 @@ class QNet(Net):
         next_qvals = self._double_q_target(next_grid, next_cell, next_ch)
         vals = self.sess.run(
             self.target_q_max, {
-                self.grids: prep_data_grids(grids, self.pp['grid_split']),
+                self.grids: prep_data_grids(grids, self.grid_split),
                 self.oh_cells: prep_data_cells(cells),
                 self.chs: chs
             })
