@@ -78,7 +78,12 @@ class QNetStrat(NetStrat):
 
 
 class QLearnNetStrat(QNetStrat):
-    """Update towards greedy, possibly illegal, action selection"""
+    """Update towards greedy, possibly illegal, action selection
+
+    TODO
+    1) Block prob first 15k iters are EXACTLY the same with/without qnet freps
+    2) exp replay is not used because update_qvals is not used
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__("QLearnNet", *args, **kwargs)
@@ -89,8 +94,7 @@ class QLearnNetStrat(QNetStrat):
         qvals = self.net.forward(self.grid, frep, cell, ce_type)
         return qvals[chs]
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        next_ce_type, next_cell = next_cevent[1:3]
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell):
         if ce_type != CEvent.END and ch is not None:
             if self.pp['qnet_freps']:
                 frep, next_frep = GF.successive_freps(grid, cell, ce_type, np.array([ch]))
@@ -99,6 +103,10 @@ class QLearnNetStrat(QNetStrat):
                 frep, next_frep = None, None
             self.backward(grid, frep, cell, [ch], [reward], self.grid, next_frep,
                           next_cell, None, self.gamma)
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell)
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 

@@ -104,21 +104,15 @@ class ReplayBuffer():
         idxs = range(len(self) - batch_size - 1, len(self) - 1)
         return self._encode_sample(idxs)
 
-    def sample(self, batch_size, include_freshest=False):
+    def sample(self, batch_size):
         """Sample a batch of experiences.
 
         Parameters
         ----------
         batch_size: int
             How many transitions to sample.
-        include_freshest: bool
-            Guarantee that the newest experience is included
         """
-        if include_freshest:
-            batch_size -= 1
         idxs = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
-        if include_freshest:
-            idxs.append(len(self._storage) - 1)
         return self._encode_sample(idxs)
 
     def save_experience_to_disk(self):
