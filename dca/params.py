@@ -367,7 +367,7 @@ def get_pparams(defaults=False):
         default=None)
 
     if defaults:
-        args = parser.parse_args([])
+        args = parser.parse_args(['rs_sarsa'])
     else:
         args = parser.parse_args()
     pp = vars(args)

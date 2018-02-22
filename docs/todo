@@ -7,17 +7,20 @@ Singh:
           - LR decay
 
 QNet:
-  Multi-step returns
-             If 2-step returns are worse, then there's bugs in qnet or wherever
-  Test argmaxing in opt_ch on end-events
   Duelling qnet pre-training
   Why is loss increasing for long runs?
   Pre-training: Shuffled vs sequential
   Can the afterstate approach be combined with duelling qnet?
 
 QNet + Singh hybrid:
-     Including features for Qnet
+     Train on features alone
      Including convs. for Singh (1x1 before dense?)
+     Block prob first 15k iters are EXACTLY the same with/without qnet freps
+     Try simple exp replay (Juliani) too see if it performs the same
+         (to check if current impl has bugs)
+     Prioritized replay
+
+wolf learning rate
 
 Progging:
   Retrieve pp from mongodb

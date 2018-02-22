@@ -79,9 +79,6 @@ class QNetStrat(NetStrat):
 
 class QLearnNetStrat(QNetStrat):
     """Update towards greedy, possibly illegal, action selection
-
-    TODO
-    1) Block prob first 15k iters are EXACTLY the same with/without qnet freps
     """
 
     def __init__(self, *args, **kwargs):
@@ -100,7 +97,7 @@ class QLearnNetStrat(QNetStrat):
                 frep = [frep]
             else:
                 frep, next_frep = None, None
-            self.backward(grid, frep, cell, [ch], [reward], self.grid, next_frep,
+            self.backward(grid, frep, cell, [ch], [reward], next_grid, next_frep,
                           next_cell, None, self.gamma)
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
