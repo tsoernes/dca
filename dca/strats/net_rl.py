@@ -82,7 +82,6 @@ class QLearnNetStrat(QNetStrat):
 
     TODO
     1) Block prob first 15k iters are EXACTLY the same with/without qnet freps
-    2) exp replay is not used because update_qvals is not used
     """
 
     def __init__(self, *args, **kwargs):

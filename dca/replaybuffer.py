@@ -16,6 +16,10 @@ class ReplayBuffer():
             Max number of transitions to store in the buffer. When the buffer
             overflows the old memories are dropped.
         """
+        self.rows = rows
+        self.cols = cols
+        self.n_channels = n_channels
+
         self._storage = {
             'grids': [],
             'cells': [],
@@ -27,10 +31,6 @@ class ReplayBuffer():
         }
         self._maxsize = size
         self._next_idx = 0
-
-        self.rows = rows
-        self.cols = cols
-        self.n_channels = n_channels
 
     def __len__(self):
         return len(self._storage['grids'])
@@ -66,11 +66,9 @@ class ReplayBuffer():
             'grids':
             np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8),
             'cells': [],
-            'chs':
-            np.zeros(n_samples, dtype=np.int32),
-            'rewards':
-            np.zeros(n_samples, dtype=np.float32)
-        }
+            'chs': np.zeros(n_samples, dtype=np.int32),
+            'rewards': np.zeros(n_samples, dtype=np.float32)
+        }  # yapf: disable
         if include_val:
             data['values'] = np.zeros(n_samples, dtype=np.float32)
         if include_ng:
@@ -112,12 +110,12 @@ class ReplayBuffer():
         batch_size: int
             How many transitions to sample.
         """
-        idxs = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
+        idxs = [random.randint(0, len(self) - 1) for _ in range(batch_size)]
         return self._encode_sample(idxs)
 
     def save_experience_to_disk(self):
         raise NotImplementedError  # Untested
-        data = self._encode_sample(range(len(self._storage)))
+        data = self._encode_sample(range(len(self)))
         h5py_save_append("data-experience", *data)
 
 
