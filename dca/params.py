@@ -182,6 +182,29 @@ def get_pparams(defaults=False):
         help="(Net) Exponential Learning rate decay multiplier",
         default=0.96)
     parser.add_argument(
+        '--optimizer',
+        '-opt',
+        dest='optimizer',
+        choices=['sgd', 'sgd-m', 'adam', 'rmsprop'],
+        default='sgd-m')
+    parser.add_argument(
+        '--huber_loss',
+        nargs='?',
+        type=float,
+        help="(Net) Enable huble loss with given delta",
+        default=None,
+        const=100000)
+    parser.add_argument(
+        '--max_grad_norm',
+        '-norm',
+        dest='max_grad_norm',
+        type=float,
+        metavar='N',
+        nargs='?',
+        help="(Net) Clip gradient to N",
+        default=None,
+        const=100000)
+    parser.add_argument(
         '--weight_init_conv', choices=weight_initializers, default='zeros')
     parser.add_argument(
         '--weight_init_dense', choices=weight_initializers, default='norm_cols')
@@ -215,22 +238,6 @@ def get_pparams(defaults=False):
         help="(Net) Activation function",
         choices=['relu', 'elu', 'leaky_relu'],
         default='relu')
-    parser.add_argument(
-        '--optimizer',
-        '-opt',
-        dest='optimizer',
-        choices=['sgd', 'sgd-m', 'adam', 'rmsprop'],
-        default='sgd-m')
-    parser.add_argument(
-        '--max_grad_norm',
-        '-norm',
-        dest='max_grad_norm',
-        type=float,
-        metavar='N',
-        nargs='?',
-        help="(Net) Clip gradient to N",
-        default=None,
-        const=100000)
     parser.add_argument(
         '--save_net',
         action='store_true',

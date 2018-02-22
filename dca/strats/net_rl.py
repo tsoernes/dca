@@ -87,9 +87,10 @@ class QLearnNetStrat(QNetStrat):
         if ce_type != CEvent.END and ch is not None:
             if self.pp['qnet_freps']:
                 frep, next_frep = GF.successive_freps(grid, cell, ce_type, np.array([ch]))
+                frep = [frep]
             else:
                 frep, next_frep = None, None
-            self.backward(grid, [frep], cell, [ch], [reward], self.grid, next_frep,
+            self.backward(grid, frep, cell, [ch], [reward], self.grid, next_frep,
                           next_cell, None, self.gamma)
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch

@@ -101,8 +101,15 @@ class QNet(Net):
         # Online Q-value for given ch
         online_q_selected = tf.gather_nd(self.online_q_vals, numbered_chs)
         # Sum of squares difference between the target and prediction Q values.
-        self.loss = tf.losses.mean_squared_error(
-            labels=self.q_targets, predictions=online_q_selected)
+        if self.pp['huber_loss'] is not None:
+            self.loss = tf.losses.huber_loss(
+                labels=self.q_targets,
+                predictions=online_q_selected,
+                reduction=tf.losses.Reduction.MEAN,
+                delta=self.pp['huber_loss'])
+        else:
+            self.loss = tf.losses.mean_squared_error(
+                labels=self.q_targets, predictions=online_q_selected)
 
         # td_error = q_t_selected - tf.stop_gradient(q_t_selected_target)
         # errors = U.huber_loss(td_error)
