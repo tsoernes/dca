@@ -262,6 +262,12 @@ def get_pparams(defaults=False):
         help="(Net/Exp) Buffer size for experience replay",
         default=5000)
     parser.add_argument(
+        '-pri',
+        '--prioritized_replay',
+        action='store_true',
+        help="(Net) Prioritized Experience Replay",
+        default=False)
+    parser.add_argument(
         '--bench_batch_size',
         action='store_true',
         help="(Net) Benchmark batch size for neural network",
