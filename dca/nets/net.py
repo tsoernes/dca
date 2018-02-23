@@ -93,25 +93,17 @@ class Net:
     def _build_base_net(self, grid, frep, cell, name):
         with tf.variable_scope('model/' + name):
             inp = tf.concat([grid, frep], axis=3) if self.pp['qnet_freps'] else grid
-            conv1 = tf.layers.conv2d(
-                inputs=inp,
-                filters=self.n_channels,
-                kernel_size=4,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                use_bias=True,  # Default setting
-                activation=self.act_fn)
-            conv2 = tf.layers.conv2d(
-                inputs=conv1,
-                filters=70,
-                kernel_size=3,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                use_bias=True,
-                activation=self.act_fn)
-            stacked = tf.concat([conv2, cell], axis=3)
+            for i in range(len(self.pp['conv_nfilters'])):
+                inp = tf.layers.conv2d(
+                    inputs=inp,
+                    filters=self.pp['conv_nfilters'][i],
+                    kernel_size=self.pp['conv_kernel_sizes'][i],
+                    padding="same",
+                    kernel_initializer=self.kern_init_conv(),
+                    kernel_regularizer=self.regularizer,
+                    use_bias=self.pp['conv_bias'],
+                    activation=self.act_fn)
+            stacked = tf.concat([inp, cell], axis=3)
             flat = tf.layers.flatten(stacked)
             return flat
 

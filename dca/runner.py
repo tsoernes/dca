@@ -130,6 +130,7 @@ class Runner:
             if res is None:
                 res = 1
             results.append((res, args))
+            # If user quits sim, need to abort further calls to dlib_proc
             if strat.quit_sim is True and strat.invalid_loss is False and \
                strat.exceeded_bthresh is False:
                 self.logger.error(f"Top 5: {results.sort()[:5]}")

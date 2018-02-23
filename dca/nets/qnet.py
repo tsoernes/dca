@@ -111,7 +111,6 @@ class QNet(Net):
         online_q_selected = tf.gather_nd(self.online_q_vals, numbered_chs)
 
         self.td_err = self.q_targets - online_q_selected
-        # Sum of squares difference between the target and prediction Q values.
         if self.pp['huber_loss'] is not None:
             self.loss = tf.losses.huber_loss(
                 labels=self.q_targets,
@@ -119,14 +118,11 @@ class QNet(Net):
                 delta=self.pp['huber_loss'],
                 weights=self.weights)
         else:
+            # Sum of squares difference between the target and prediction Q values.
             self.loss = tf.losses.mean_squared_error(
                 labels=self.q_targets,
                 predictions=online_q_selected,
                 weights=self.weights)
-        # td_error = q_t_selected - tf.stop_gradient(q_t_selected_target)
-        # errors = U.huber_loss(td_error)
-        # weighted_error = tf.reduce_mean(importance_weights_ph * errors)
-        # tf.losses.huber_loss
         return online_vars
 
     def forward(self, grid, cell, ce_type, frep=None):
@@ -171,6 +167,7 @@ class QNet(Net):
         """Find bootstrap value, i.e. Q(Stn, A; Wt).
         where Stn: state at time t+n
               A: target_chs, if specified, else argmax(Q(Stn, a; Wo))
+              n: usually 1, unless n-step Q-learning
               Wo/Wt: online/target network"""
         data = {
             self.grids: prep_data_grids(grids, self.grid_split),
@@ -180,7 +177,7 @@ class QNet(Net):
             # Greedy Q-Learning
             target_q = self.target_q_max
         else:
-            # SARSA or Eligible Q-learn
+            # SARSA or Eligible Q-learning
             target_q = self.target_q_selected
             data[self.chs] = target_chs
         if freps is not None:
@@ -204,6 +201,7 @@ class QNet(Net):
         Supports n-step learning where (grids, cells) is from time t
         and (next_grids, next_cells) is from time t+n
         Support greedy action selection if 'next_chs' is None
+        Feature representations (freps) of grids are optional
         """
         next_qvals = self._double_q_target(next_grids, next_cells, next_freps, next_chs)
         q_targets = next_qvals
@@ -225,6 +223,7 @@ class QNet(Net):
         """
         next_qvals = self._double_q_target(next_grid, next_cell, next_ch)
         rewards_plus = np.asarray(rewards + [next_qvals])
+        # q_targets:
         # [(r0 + g*r1 + g**2*r2 +..+ g**n*q_n), (r1 + g*r2 +..+ g**(n-1)*q_n), ..,
         # (r(n-1) + g*q_n)] where g: gamma, q_n: next_qval (bootstrap val)
         q_targets = discount(rewards_plus, gamma)[:-1]
@@ -251,4 +250,4 @@ class QNet(Net):
         value_plus[:len(vals)] = vals
         value_plus[-1] = next_qvals
         advantages = discount(rewards + gamma * value_plus[1:] - value_plus[:-1], gamma)
-        return self.backward_supervised(grids, cells, chs, advantages)
+        return self.backward_supervised(grids, cells, chs, q_targes=advantages)
