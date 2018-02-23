@@ -118,7 +118,6 @@ class Runner:
 
         def dlib_proc(*args):
             self.logger.error(f"\nIter {self.i}, testing {space}: {args}")
-            self.i += 1
             for j, key in enumerate(space):
                 self.pp[key] = args[j]
             strat = self.stratclass(self.pp, logger=self.logger, pid=self.i)
@@ -129,6 +128,7 @@ class Runner:
             results.append((res, args))
             if strat.quit_sim is True:
                 sys.exit(0)
+            self.i += 1
             return res
 
         """ the search will only attempt to find a global minimizer to at most
@@ -145,6 +145,7 @@ class Runner:
         super high precision solution."""
         solver_epsilon = 0.00005
         x = dlib.find_min_global(dlib_proc, lo_bounds, up_bounds, n, solver_epsilon=0)
+        self.logger.error(f"Top 5: {results.sort()[:5]}")
         self.logger.error(f"Min x: {x}")
 
     def hopt(self, net=False):
