@@ -440,9 +440,10 @@ def get_pparams(defaults=False):
         # Always log to file so that parameters are recorded
         if pp['dlib_hopt'] is not None:
             libname = "dlib"
+            pnames = str.join("-", pp['dlib_hopt'])
         elif pp['hopt'] is not None:
             libname = "hopt"
-        pnames = str.join("-", pp['hopt'])
+            pnames = str.join("-", pp['hopt'])
         f_name = f"results-{libname}-{pp['strat']}-{pnames}"
         pp['log_file'] = f_name
     if pp['bench_batch_size']:

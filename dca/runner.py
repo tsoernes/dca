@@ -113,11 +113,11 @@ class Runner:
         up_bounds = [9e-5, 0.96]  # Should increase
         # lo_bounds = [0.65]  # Lower bound constraints on each var respectively
         # up_bounds = [0.85]  # Should increase
-        n = 20  # The number of times find_min_global() will call holder_table()
+        n = 50  # The number of times find_min_global() will call holder_table()
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
         self.i = 0
-        space = ['gamma']
+        space = ['net_lr', 'net_lr_decay']
         results = []
 
         def dlib_proc(*args):

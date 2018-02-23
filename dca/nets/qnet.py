@@ -72,10 +72,10 @@ class QNet(Net):
         self.oh_cells = tf.placeholder(boolean, oh_cellshape, "oh_cell")
         self.chs = tf.placeholder(int32, [None], "ch")
         self.q_targets = tf.placeholder(float32, [None], "qtarget")
-        # if self.pp['prioritized_replay']:
-        self.weights = tf.placeholder(float32, [None], "qtarget")
-        # else:
-        #     self.weights = 1
+        if self.pp['batch_size'] > 1:
+            self.weights = tf.placeholder(float32, [None], "qtarget")
+        else:
+            self.weights = 1
 
         grids_f = tf.cast(self.grids, float32)
         freps_f = tf.cast(self.freps, float32)

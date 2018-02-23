@@ -102,8 +102,8 @@ class QLearnNetStrat(QNetStrat):
                 frep = [frep]
             else:
                 frep, next_frep = None, None
-            self.backward(grid, frep, cell, [ch], [reward], next_grid, next_frep,
-                          next_cell, None)
+            self.backward(grid, cell, [ch], [reward], next_grid,
+                          next_cell, frep, next_frep, next_chs=None, weights=None)
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
