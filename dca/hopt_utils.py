@@ -9,10 +9,35 @@ from matplotlib import pyplot as plt
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
+from strats.net_rl import QNetStrat
+
 
 mongo_fail_msg = "Failed to connect to MongoDB. \
         Have you started mongod server in 'db' dir? \n \
         mongod --dbpath . --directoryperdb --journal --nohttpinterface --port 1234"
+
+
+def hopt_bounds(stratclass, params):
+    general = {
+        'gamma': [0.65, 0.85],
+        'alpha': [0.01, 0.04],
+        'alpha_dec': [0.99999, 1.00],
+        'epsilon': [0.3, 0.9],
+        'epsilon_decay': [0.9999, 1.0],
+        'beta': [7, 23],
+        'n_step': [2, 40],
+    }
+    specific = {
+        QNetStrat: {
+            'net_lr': [1e-5, 9e-5],
+            'net_lr_decay': [0.9, 0.96],
+            'net_creep_tau': [0.001, 0.2]  # Assuming copy iter of 5
+        }
+    }
+    for strat in specific:
+        if isinstance(stratclass, strat):
+            pass
+    return None
 
 
 def mongo_connect():

@@ -120,7 +120,7 @@ class ReplayBuffer():
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
-    def __init__(self, size, alpha):
+    def __init__(self, size, rows, cols, n_channels, alpha=0.6):
         """Create Prioritized Replay buffer.
 
         Parameters
@@ -133,29 +133,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             (0: no prioritization, 1: full prioritization)
 
         --------
-          prioritized_replay_alpha=0.6,
-          prioritized_replay_beta0=0.4,
-          prioritized_replay_beta_iters=None,
-          prioritized_replay_eps=1e-6,
-
-        prioritized_replay_alpha: float
-            alpha parameter for prioritized replay buffer
-        prioritized_replay_beta0: float
-            initial value of beta for prioritized replay buffer
-        prioritized_replay_beta_iters: int
-            number of iterations over which beta will be annealed from initial value
-            to 1.0. If set to None equals to max_timesteps.
-        prioritized_replay_eps: float
-            epsilon to add to the TD errors when updating priorities.
-
-        replay_buffer = PrioritizedReplayBuffer(
-            buffer_size, alpha=prioritized_replay_alpha)
-        if prioritized_replay_beta_iters is None:
-            prioritized_replay_beta_iters = max_timesteps
-        beta_schedule = LinearSchedule(
-            prioritized_replay_beta_iters,
-            initial_p=prioritized_replay_beta0,
-            final_p=1.0)
+        new_obs, rew, done, _ = env.step(env_action)
+        # Store transition in the replay buffer.
+        replay_buffer.add(obs, action, rew, new_obs, float(done))
 
         experience = replay_buffer.sample(batch_size, beta=beta_schedule.value(t))
         (obses_t, actions, rewards, obses_tp1, dones, weights, batch_idxes) = experience
@@ -163,7 +143,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         new_priorities = np.abs(td_errors) + prioritized_replay_eps
         replay_buffer.update_priorities(batch_idxes, new_priorities)
         """
-        super(PrioritizedReplayBuffer, self).__init__(size)
+        super().__init__(size, rows, cols, n_channels)
         assert alpha > 0
         self._alpha = alpha
 
@@ -180,7 +160,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         raise NotImplementedError
 
     def add(self, *args, **kwargs):
-        """See ReplayBuffer.store_effect"""
+        """Experiences are added with maximum priority,
+        ensuring they are trained on at least once"""
         idx = self._next_idx
         super().add(*args, **kwargs)
         self._it_sum[idx] = self._max_priority**self._alpha
@@ -189,7 +170,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
     def _sample_proportional(self, batch_size):
         res = []
         for _ in range(batch_size):
-            # TODO(szymon): should we ensure no repeats?
             mass = random.random() * self._it_sum.sum(0, len(self) - 1)
             idx = self._it_sum.find_prefixsum_idx(mass)
             res.append(idx)
@@ -235,7 +215,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             weights.append(weight / max_weight)
         weights = np.array(weights)
         encoded_sample = self._encode_sample(idxes)
-        return tuple(list(encoded_sample) + [weights, idxes])
+        # return tuple(list(encoded_sample) + [weights, idxes])
+        return (encoded_sample, weights, idxes)
 
     def update_priorities(self, idxes, priorities):
         """Update priorities of sampled transitions.

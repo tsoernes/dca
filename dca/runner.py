@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
-import argcomplete
 import cProfile
 import datetime
 import logging
@@ -11,6 +10,7 @@ import time
 from functools import partial
 from multiprocessing import Pool
 
+import argcomplete
 import numpy as np
 from datadiff import diff
 from hyperopt import Trials, fmin, hp, tpe  # noqa
@@ -130,7 +130,9 @@ class Runner:
             if res is None:
                 res = 1
             results.append((res, args))
-            if strat.quit_sim is True:
+            if strat.quit_sim is True and strat.invalid_loss is False and \
+               strat.exceeded_bthresh is False:
+                self.logger.error(f"Top 5: {results.sort()[:5]}")
                 sys.exit(0)
             self.i += 1
             return res

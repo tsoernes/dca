@@ -1,12 +1,12 @@
 #! /usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 import argparse
-import argcomplete
 import inspect
 import logging
 import random
 import sys
 
+import argcomplete
 import numpy as np
 
 import strats.fixedstrats  # noqa
@@ -154,7 +154,17 @@ def get_pparams(defaults=False):
         help="(RL/Table) Restore q-values from given file",
         default="",
         const="qtable.npy")
-    parser.add_argument('--dlib_hopt', action='store_true', default=False)
+    parser.add_argument(
+        '--dlib_hopt',
+        nargs='+',
+        metavar="PARAM1, PARAM2, ..",
+        choices=[
+            'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda',
+            'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff',
+            'beta', 'net_lr_decay', 'n_step'
+        ],
+        help="(Hopt) Hyper-parameter optimization with dlib.",
+        default=None)
     parser.add_argument(
         '--hopt',
         nargs='+',
@@ -264,12 +274,12 @@ def get_pparams(defaults=False):
         type=int,
         help="(Net/Exp) Buffer size for experience replay",
         default=5000)
-    parser.add_argument(
-        '-pri',
-        '--prioritized_replay',
-        action='store_true',
-        help="(Net) Prioritized Experience Replay",
-        default=False)
+    # parser.add_argument(
+    #     '-pri',
+    #     '--prioritized_replay',
+    #     action='store_true',
+    # help="(Net) Prioritized Experience Replay",
+    # default=False)
     parser.add_argument(
         '--bench_batch_size',
         action='store_true',
@@ -394,11 +404,11 @@ def get_pparams(defaults=False):
         print("No file name specified for hyperopt ('hopt_fname')")
         sys.exit(0)
 
+    # Sensible presets, overrides, convenience variables
     if pp['n_hours'] is not None:
         # Approximate iters from hours. Only used for calculating
-        # log_iter percentages
+        # log_iter percentages and param decay schedules if log iter is not given
         pp['n_events'] = 7821 * pp['n_hours'] - 2015
-    # Sensible presets, overrides, convenience variables
     pp['dt_rewards'] = pp['beta'] is not None
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
     if "net" in pp['strat'].lower():
@@ -415,23 +425,8 @@ def get_pparams(defaults=False):
     if pp['avg_runs']:
         pp['gui'] = False
         pp['use_gpu'] = False
-        # if not pp['log_level']:
-        #     pp['log_level'] = logging.ERROR
         pp['log_iter'] = pp['n_events'] // 8
-
-    if pp['dlib_hopt'] is True:
-        pp['breakout_thresh'] = 0.18
-        if pp['net']:
-            pp['n_events'] = 100000
-        pp['gui'] = False
-        if pp['log_level'] is None:
-            pp['log_level'] = logging.ERROR
-        # Since hopt only compares new call block rate,
-        # handoffs are a waste of data/computational resources.
-        if pp['p_handoff'] is None:
-            pp['p_handoff'] = 0
-
-    if pp['hopt'] is not None:
+    if pp['dlib_hopt'] is not None or pp['hopt'] is not None:
         if pp['net']:
             pp['n_events'] = 100000
         pp['gui'] = False
@@ -443,8 +438,12 @@ def get_pparams(defaults=False):
         if pp['p_handoff'] is None:
             pp['p_handoff'] = 0
         # Always log to file so that parameters are recorded
+        if pp['dlib_hopt'] is not None:
+            libname = "dlib"
+        elif pp['hopt'] is not None:
+            libname = "hopt"
         pnames = str.join("-", pp['hopt'])
-        f_name = f"results-{pp['strat']}-{pnames}"
+        f_name = f"results-{libname}-{pp['strat']}-{pnames}"
         pp['log_file'] = f_name
     if pp['bench_batch_size']:
         if pp['log_level'] is None:

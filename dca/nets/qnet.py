@@ -72,10 +72,10 @@ class QNet(Net):
         self.oh_cells = tf.placeholder(boolean, oh_cellshape, "oh_cell")
         self.chs = tf.placeholder(int32, [None], "ch")
         self.q_targets = tf.placeholder(float32, [None], "qtarget")
-        if self.pp['prioritized_replay']:
-            self.weights = tf.placeholder(float32, [None], "qtarget")
-        else:
-            self.weights = 1
+        # if self.pp['prioritized_replay']:
+        self.weights = tf.placeholder(float32, [None], "qtarget")
+        # else:
+        #     self.weights = 1
 
         grids_f = tf.cast(self.grids, float32)
         freps_f = tf.cast(self.freps, float32)
@@ -128,7 +128,7 @@ class QNet(Net):
         # tf.losses.huber_loss
         return online_vars
 
-    def forward(self, grid, frep, cell, ce_type):
+    def forward(self, grid, cell, ce_type, frep=None):
         if self.pp['dueling_qnet']:
             q_vals_op = self.advantages
         else:
@@ -153,7 +153,7 @@ class QNet(Net):
             run_metadata=self.run_metadata)
         return loss, lr
 
-    def backward_supervised(self, grids, freps, cells, chs, q_targets):
+    def backward_supervised(self, grids, cells, chs, q_targets, freps=None, weights=None):
         data = {
             self.grids: prep_data_grids(grids, self.grid_split),
             self.oh_cells: prep_data_cells(cells),
@@ -162,9 +162,11 @@ class QNet(Net):
         }
         if freps is not None:
             data[self.freps] = freps
+        if weights is not None:
+            data[self.weights] = weights
         return self._backward(data)
 
-    def _double_q_target(self, grids, freps, cells, target_chs=None) -> [float]:
+    def _double_q_target(self, grids, cells, freps=None, target_chs=None) -> [float]:
         """Find bootstrap value, i.e. Q(Stn, A; Wt).
         where Stn: state at time t+n
               A: target_chs, if specified, else argmax(Q(Stn, a; Wo))
@@ -174,8 +176,10 @@ class QNet(Net):
             self.oh_cells: prep_data_cells(cells)
         }
         if target_chs is None:
+            # Greedy Q-Learning
             target_q = self.target_q_max
         else:
+            # SARSA or Eligible Q-learn
             target_q = self.target_q_selected
             data[self.chs] = target_chs
         if freps is not None:
@@ -183,21 +187,38 @@ class QNet(Net):
         qvals = self.sess.run(target_q, data)
         return qvals
 
-    def backward(self, grids, freps, cells, chs, rewards, next_grids, next_freps,
-                 next_cells, next_chs, gamma) -> (float, float):
+    def backward(self,
+                 grids,
+                 cells,
+                 chs,
+                 rewards,
+                 next_grids,
+                 next_cells,
+                 gamma,
+                 freps=None,
+                 next_freps=None,
+                 next_chs=None,
+                 weights=None) -> (float, float):
         """
         Supports n-step learning where (grids, cells) is from time t
         and (next_grids, next_cells) is from time t+n
         Support greedy action selection if 'next_chs' is None
         """
-        next_qvals = self._double_q_target(next_grids, next_freps, next_cells, next_chs)
+        next_qvals = self._double_q_target(next_grids, next_cells, next_freps, next_chs)
         q_targets = next_qvals
         for reward in rewards[::-1]:
             q_targets = reward + gamma * q_targets
-        return self.backward_supervised(grids, freps, cells, chs, q_targets)
+        return self.backward_supervised(grids, cells, chs, q_targets, freps, weights)
 
-    def backward_multi_nstep(self, grids, cells, chs, rewards, next_grid, next_cell,
-                             next_ch, gamma) -> (float, float):
+    def backward_multi_nstep(self,
+                             grids,
+                             cells,
+                             chs,
+                             rewards,
+                             next_grid,
+                             next_cell,
+                             gamma,
+                             next_ch=None) -> (float, float):
         """
         Multi n-step. Train on n-step, (n-1)-step, (n-2)-step, ..., 1-step returns
         """
@@ -208,8 +229,15 @@ class QNet(Net):
         q_targets = discount(rewards_plus, gamma)[:-1]
         return self.backward_supervised(grids, cells, chs, q_targets)
 
-    def backward_gae(self, grids, cells, chs, rewards, next_grid, next_cell, next_ch,
-                     gamma) -> (float, float):
+    def backward_gae(self,
+                     grids,
+                     cells,
+                     chs,
+                     rewards,
+                     next_grid,
+                     next_cell,
+                     gamma,
+                     next_ch=None) -> (float, float):
         """Generalized Advantage Estimation"""
         next_qvals = self._double_q_target(next_grid, next_cell, next_ch)
         vals = self.sess.run(

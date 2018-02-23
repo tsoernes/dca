@@ -35,12 +35,13 @@ class NetStrat(RLStrat):
         self.net.sess.close()
 
     def backward(self, *args, **kwargs):
-        loss, self.last_lr = self.net.backward(*args, **kwargs)
+        loss, self.last_lr, td_errs = self.net.backward(*args, gamma=self.gamma, **kwargs)
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.invalid_loss, self.quit_sim = True, True
         else:
             self.losses.append(loss)
+        return td_errs
 
 
 class QNetStrat(NetStrat):
@@ -63,18 +64,22 @@ class QNetStrat(NetStrat):
     def update_qval_experience(self, *args, **kwargs):
         """
         Update qval for pp['batch_size'] experience tuples,
-        randomly sampled from the experience replay memory.
+        sampled from the experience replay memory.
         """
         if len(self.exp_buffer) >= self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
-            data = self.exp_buffer.sample(self.pp['batch_size'])
-            data.update({
-                'freps': None,
-                'next_freps': None,
-                'next_chs': None,
-                'gamma': self.gamma
-            })
-            self.backward(**data)
+            data, weights, batch_idxes = self.exp_buffer.sample(
+                self.pp['batch_size'], beta=self.pri_beta_schedule(self.i))
+            # data.update({
+            #     'freps': None,
+            #     'next_freps': None,
+            #     'next_chs': None,
+            #     'gamma': self.gamma
+            # })
+            data['weights'] = weights
+            td_errs = self.backward(**data)
+            new_priorities = np.abs(td_errs) + self.prioritized_replay_eps
+            self.exp_buffer.update_priorities(batch_idxes, new_priorities)
 
 
 class QLearnNetStrat(QNetStrat):
@@ -87,7 +92,7 @@ class QLearnNetStrat(QNetStrat):
 
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
         frep = GF.feature_rep(self.grid) if self.pp['qnet_freps'] else None
-        qvals = self.net.forward(self.grid, frep, cell, ce_type)
+        qvals = self.net.forward(self.grid, cell, ce_type, frep)
         return qvals[chs]
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell):
@@ -98,7 +103,7 @@ class QLearnNetStrat(QNetStrat):
             else:
                 frep, next_frep = None, None
             self.backward(grid, frep, cell, [ch], [reward], next_grid, next_frep,
-                          next_cell, None, self.gamma)
+                          next_cell, None)
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
@@ -122,8 +127,7 @@ class NQLearnNetStrat(QNetStrat):
             agrid, acell, ach, _, ace_type = self.exps[0]
             if ace_type != CEvent.END and ach is not None:
                 rewards = [exp[3] for exp in self.exps]
-                self.backward(agrid, acell, [ach], rewards, self.grid, next_cell, None,
-                              self.gamma)
+                self.backward(agrid, acell, [ach], rewards, self.grid, next_cell, None)
             del self.exps[0]
 
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
@@ -154,7 +158,7 @@ class MNQLearnNetStrat(QNetStrat):
         if len(self.grids) == self.n_step:
             self.backward(
                 np.array(self.grids), self.cells, self.chs, self.rewards, self.grid,
-                next_cell, None, self.gamma)
+                next_cell, None)
             self.empty()
 
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
@@ -176,8 +180,7 @@ class QLearnEligibleNetStrat(QNetStrat):
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
-        self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_max_ch],
-                      self.gamma)
+        self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_max_ch])
 
 
 class SARSANetStrat(QNetStrat):
@@ -189,8 +192,7 @@ class SARSANetStrat(QNetStrat):
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
         if next_ch is not None:
-            self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch],
-                          self.gamma)
+            self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch])
 
 
 class DistQNetStrat(QNetStrat):

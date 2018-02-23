@@ -6,7 +6,8 @@ import numpy as np
 import gridfuncs_numba as GF
 from environment import Env
 from eventgen import CEvent
-from replaybuffer import ReplayBuffer
+from replaybuffer import PrioritizedReplayBuffer
+from utils import LinearSchedule
 
 
 class Strat:
@@ -20,9 +21,20 @@ class Strat:
 
         self.grid = np.zeros(pp['dims'], np.bool)
         self.env = Env(pp, self.grid, logger, pid)
-        self.exp_buffer = ReplayBuffer(pp['buffer_size'], *self.dims)
+        if (self.save or self.batch_size > 1):
+            self.exp_buffer = PrioritizedReplayBuffer(
+                size=pp['buffer_size'],
+                rows=self.rows,
+                cols=self.cols,
+                n_channels=self.n_channels,
+                alpha=0.6)
+            self.pri_beta_schedule = LinearSchedule(
+                self.n_events,
+                initial_p=0.4,  # pp['prioritized_replay_beta'],
+                final_p=1.0)
+            self.prioritized_replay_eps = float(1e-6)
 
-        self.quit_sim, self.invalid_loss = False, False
+        self.quit_sim, self.invalid_loss, self.exceeded_bthresh = False, False, False
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -42,8 +54,8 @@ class Strat:
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
-        i, t = 0, 0  # Iteration, time
-        while self.continue_sim(i, t):
+        self.i, t = 0, 0  # Iteration, time
+        while self.continue_sim(self.i, t):
             t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
             reward, beta_disc, next_cevent = self.env.step(ch)
@@ -69,15 +81,15 @@ class Strat:
                 self.exp_buffer.add(
                     grid, cell, ch, reward, next_grid=next_grid, next_cell=next_cell)
 
-            if i > 0:
-                if i % self.pp['log_iter'] == 0:
+            if self.i > 0:
+                if self.i % self.pp['log_iter'] == 0:
                     self.fn_report()
                 # NOTE Could do per iteration stuff in strats
                 if self.pp['net'] and \
-                        i % self.net_copy_iter == 0:
+                        self.i % self.net_copy_iter == 0:
                     self.update_target_net()
                 if self.pp['net_copy_iter_decr'] and \
-                   i % self.pp['net_copy_iter_decr'] == 0 and \
+                   self.i % self.pp['net_copy_iter_decr'] == 0 and \
                    self.net_copy_iter > 1:
                     self.net_copy_iter -= 1
                     self.logger.info(f"Decreased net copy iter to {self.net_copy_iter}")
@@ -85,8 +97,9 @@ class Strat:
                     self.env.stats.block_probs_cum[-1] > self.pp['breakout_thresh']):
                 self.logger.error("Block prob threshold exceeded; breaking out early")
                 self.quit_sim = True
+                self.exceeded_bthresh = True
             ch, cevent = next_ch, next_cevent
-            i += 1
+            self.i += 1
         self.env.stats.end_episode(np.count_nonzero(self.grid))
         self.fn_after()
         if self.save:
