@@ -1,4 +1,7 @@
+#! /usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 import argparse
+import argcomplete
 import inspect
 import logging
 import random
@@ -377,6 +380,7 @@ def get_pparams(defaults=False):
     if defaults:
         args = parser.parse_args(['rs_sarsa'])
     else:
+        argcomplete.autocomplete(parser)
         args = parser.parse_args()
     pp = vars(args)
 

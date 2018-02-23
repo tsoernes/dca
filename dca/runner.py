@@ -1,3 +1,7 @@
+#! /usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
+
+import argcomplete
 import cProfile
 import datetime
 import logging
@@ -105,10 +109,10 @@ class Runner:
 
     def hopt_dlib(self):
         import dlib
-        # lo_bounds = [7e-6, 0.93]  # Lower bound constraints on each var respectively
-        # up_bounds = [6e-5, 1.0]  # Should increase
-        lo_bounds = [0.5]  # Lower bound constraints on each var respectively
-        up_bounds = [1.0]  # Should increase
+        lo_bounds = [2e-5, 0.90]  # Lower bound constraints on each var respectively
+        up_bounds = [9e-5, 0.96]  # Should increase
+        # lo_bounds = [0.65]  # Lower bound constraints on each var respectively
+        # up_bounds = [0.85]  # Should increase
         n = 20  # The number of times find_min_global() will call holder_table()
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
