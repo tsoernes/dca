@@ -69,7 +69,7 @@ class QNetStrat(NetStrat):
         if len(self.exp_buffer) >= self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             data, weights, batch_idxes = self.exp_buffer.sample(
-                self.pp['batch_size'], beta=self.pri_beta_schedule(self.i))
+                self.pp['batch_size'], beta=self.pri_beta_schedule.value(self.i))
             # data.update({
             #     'freps': None,
             #     'next_freps': None,
