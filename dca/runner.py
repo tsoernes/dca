@@ -109,10 +109,10 @@ class Runner:
 
     def hopt_dlib(self):
         import dlib
-        lo_bounds = [2e-5, 0.90]  # Lower bound constraints on each var respectively
-        up_bounds = [9e-5, 0.96]  # Should increase
-        # lo_bounds = [0.65]  # Lower bound constraints on each var respectively
-        # up_bounds = [0.85]  # Should increase
+        lo_bounds = [8e-6, 0.85]  # Lower bound constraints on each var respectively
+        up_bounds = [9e-5, 0.98]
+        # lo_bounds = [0.65]
+        # up_bounds = [0.85]
         n = 50  # The number of times find_min_global() will call holder_table()
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
@@ -133,7 +133,8 @@ class Runner:
             # If user quits sim, need to abort further calls to dlib_proc
             if strat.quit_sim is True and strat.invalid_loss is False and \
                strat.exceeded_bthresh is False:
-                self.logger.error(f"Top 5: {results.sort()[:5]}")
+                results.sort()
+                self.logger.error(f"Top 5: {results[:5]}")
                 sys.exit(0)
             self.i += 1
             return res
@@ -152,7 +153,8 @@ class Runner:
         super high precision solution."""
         solver_epsilon = 0.00005
         x = dlib.find_min_global(dlib_proc, lo_bounds, up_bounds, n, solver_epsilon=0)
-        self.logger.error(f"Top 5: {results.sort()[:5]}")
+        results.sort()
+        self.logger.error(f"Top 5: {results[:5]}")
         self.logger.error(f"Min x: {x}")
 
     def hopt(self, net=False):

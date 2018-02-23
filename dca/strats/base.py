@@ -153,7 +153,8 @@ class RLStrat(Strat):
         self.epsilon_decay = pp['epsilon_decay']
         self.alpha = pp['alpha']
         self.alpha_decay = pp['alpha_decay']
-        self.gamma = pp['gamma']
+        if self.pp['dt_rewards'] is False:
+            self.gamma = pp['gamma']
         self.logger.info(f"NP seed: {np.random.get_state()[1][0]}")
         self.losses = [0]
 
