@@ -151,7 +151,7 @@ class Runner:
         objective function has many local minima and you don't care about a
         super high precision solution."""
         solver_epsilon = 0.00005
-        x = dlib.findobal(dlib_proc, lo_bounds, up_bounds, n, solver_epsilon=0)
+        x = dlib.find_min_global(dlib_proc, lo_bounds, up_bounds, n, solver_epsilon=0)
         results.sort()
         self.logger.error(f"Top 5: {results[:5]}")
         self.logger.error(f"Min x: {x}")
