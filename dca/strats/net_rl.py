@@ -98,12 +98,20 @@ class QLearnNetStrat(QNetStrat):
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell):
         if ce_type != CEvent.END and ch is not None:
             if self.pp['qnet_freps']:
-                frep, next_frep = GF.successive_freps(grid, cell, ce_type, np.array([ch]))
-                frep = [frep]
+                frep, next_freps = GF.successive_freps(grid, cell, ce_type,
+                                                       np.array([ch]))
+                freps = [frep]
             else:
-                frep, next_frep = None, None
-            self.backward(grid, cell, [ch], [reward], next_grid,
-                          next_cell, frep, next_frep, next_chs=None, weights=None)
+                freps, next_freps = None, None
+            self.backward(
+                grid,
+                cell, [ch], [reward],
+                next_grid,
+                next_cell,
+                freps=freps,
+                next_freps=next_freps,
+                next_chs=None,
+                weights=None)
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]

@@ -109,6 +109,8 @@ class QNet(Net):
         self.target_q_selected = tf.gather_nd(target_q_vals, numbered_chs)
         # Online Q-value for given ch
         online_q_selected = tf.gather_nd(self.online_q_vals, numbered_chs)
+
+        self.td_err = self.q_targets - online_q_selected
         # Sum of squares difference between the target and prediction Q values.
         if self.pp['huber_loss'] is not None:
             self.loss = tf.losses.huber_loss(
@@ -121,7 +123,6 @@ class QNet(Net):
                 labels=self.q_targets,
                 predictions=online_q_selected,
                 weights=self.weights)
-        tf.losses.compute_weighted_loss
         # td_error = q_t_selected - tf.stop_gradient(q_t_selected_target)
         # errors = U.huber_loss(td_error)
         # weighted_error = tf.reduce_mean(importance_weights_ph * errors)
@@ -146,12 +147,12 @@ class QNet(Net):
         return q_vals
 
     def _backward(self, data) -> (float, float):
-        _, loss, lr = self.sess.run(
-            [self.do_train, self.loss, self.lr],
+        _, loss, lr, td_err = self.sess.run(
+            [self.do_train, self.loss, self.lr, self.td_err],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
-        return loss, lr
+        return loss, lr, td_err
 
     def backward_supervised(self, grids, cells, chs, q_targets, freps=None, weights=None):
         data = {
