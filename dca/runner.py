@@ -2,6 +2,7 @@ import cProfile
 import datetime
 import logging
 import pickle
+import sys
 import time
 from functools import partial
 from multiprocessing import Pool
@@ -104,25 +105,46 @@ class Runner:
 
     def hopt_dlib(self):
         import dlib
-        lo_bounds = [7e-6, 0.93]  # Lower bound constraints on each var respectively
-        up_bounds = [6e-5, 1.0]
+        # lo_bounds = [7e-6, 0.93]  # Lower bound constraints on each var respectively
+        # up_bounds = [6e-5, 1.0]  # Should increase
+        lo_bounds = [0.5]  # Lower bound constraints on each var respectively
+        up_bounds = [1.0]  # Should increase
         n = 20  # The number of times find_min_global() will call holder_table()
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
         self.i = 0
+        space = ['gamma']
+        results = []
 
-        def dlib_proc(lr, dec):
-            self.logger.error(f"\nIter {self.i}, testing alpha, dec: {lr, dec}")
+        def dlib_proc(*args):
+            self.logger.error(f"\nIter {self.i}, testing {space}: {args}")
             self.i += 1
-            self.pp['net_lr'] = lr
-            self.pp['net_lr_decay'] = dec
-            result = Runner.sim_proc(self.stratclass, self.pp, pid='', reseed=True)
+            for j, key in enumerate(space):
+                self.pp[key] = args[j]
+            strat = self.stratclass(self.pp, logger=self.logger, pid=self.i)
+            result = strat.simulate()
             res = result[0]
             if res is None:
-                return 1
+                res = 1
+            results.append((res, args))
+            if strat.quit_sim is True:
+                sys.exit(0)
             return res
 
-        x = dlib.find_min_global(dlib_proc, lo_bounds, up_bounds, n)
+        """ the search will only attempt to find a global minimizer to at most
+        solver_epsilon accuracy. Once a local minimizer is found to that
+        accuracy the search will focus entirely on finding other minima
+        elsewhere rather than on further improving the current local optima
+        found so far. That is, once a local minima is identified to about
+        solver_epsilon accuracy, the algorithm will spend all its time
+        exploring the functions to find other local minima to investigate. An
+        epsilon of 0 means it will keep solving until it reaches full floating
+        point precision. Larger values will cause it to switch to pure global
+        exploration sooner and therefore might be more effective if your
+        objective function has many local minima and you don't care about a
+        super high precision solution."""
+        solver_epsilon = 0.00005
+        x = dlib.find_min_global(dlib_proc, lo_bounds, up_bounds, n, solver_epsilon=0)
         self.logger.error(f"Min x: {x}")
 
     def hopt(self, net=False):

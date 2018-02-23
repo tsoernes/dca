@@ -414,12 +414,26 @@ def get_pparams(defaults=False):
         # if not pp['log_level']:
         #     pp['log_level'] = logging.ERROR
         pp['log_iter'] = pp['n_events'] // 8
+
+    if pp['dlib_hopt'] is True:
+        pp['breakout_thresh'] = 0.18
+        if pp['net']:
+            pp['n_events'] = 100000
+        pp['gui'] = False
+        if pp['log_level'] is None:
+            pp['log_level'] = logging.ERROR
+        # Since hopt only compares new call block rate,
+        # handoffs are a waste of data/computational resources.
+        if pp['p_handoff'] is None:
+            pp['p_handoff'] = 0
+
     if pp['hopt'] is not None:
         if pp['net']:
             pp['n_events'] = 100000
         pp['gui'] = False
         if pp['log_level'] is None:
             pp['log_level'] = logging.ERROR
+        pp['breakout_thresh'] = 0.18
         # Since hopt only compares new call block rate,
         # handoffs are a waste of data/computational resources.
         if pp['p_handoff'] is None:
