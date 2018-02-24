@@ -124,15 +124,33 @@ def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):
 
 
 def mongo_decrease_gpu_procs(mongo_uri):
+    """Decrease GPU process count in Mongo DB. Fails if none are in use."""
     client = mongo_connect()
     db = client[mongo_uri]
-    """Decrease GPU process count in Mongo DB. Fails if none are in use."""
     col = db['gpu_procs']
     doc = col.find_one()
     assert doc is not None
     assert doc['gpu_procs'] > 0
     print("MONGO decreaseing GPU proc count")
     col.find_one_and_update(doc, {'$inc': {'gpu_procs': -1}})
+    client.close()
+
+
+def mongo_reset_gpu_procs(mongo_uri=None):
+    client = mongo_connect()
+    if mongo_uri is None:
+        dbnames = client.list_database_names()
+    else:
+        dbnames = [mongo_uri]
+    for dbn in dbnames:
+        try:
+            db = client[dbn]
+            col = db['gpu_procs']
+            doc = col.find_one()
+            if doc is not None:
+                col.find_one_and_update(doc, {'$set': {'gpu_procs': 0}})
+        except KeyError:
+            pass
     client.close()
 
 
@@ -272,6 +290,11 @@ def runner():
     parser.add_argument(
         '--list_dbs', action='store_true', help="(MongoDB) List databases", default=False)
     parser.add_argument(
+        '--reset_gpu_procs',
+        action='store_true',
+        help="(MongoDB) Reset gpu proc count for all dbs",
+        default=False)
+    parser.add_argument(
         '--drop_empty_dbs',
         action='store_true',
         help="(MongoDB) Drop empty databases",
@@ -287,6 +310,9 @@ def runner():
         return
     elif args['drop_empty_dbs']:
         mongo_drop_empty()
+        return
+    elif args['reset_gpu_procs']:
+        mongo_reset_gpu_procs(None)
         return
     fname = args['fname']
     trials = hopt_trials(fname)
