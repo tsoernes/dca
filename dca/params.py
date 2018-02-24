@@ -223,6 +223,25 @@ def get_pparams(defaults=False):
         '--weight_init_conv', choices=weight_initializers, default='zeros')
     parser.add_argument(
         '--weight_init_dense', choices=weight_initializers, default='norm_cols')
+    parser.add_argument(
+        '-filters',
+        '--conv_nfilters',
+        nargs='+',
+        type=int,
+        help='(Net) Number of convolutional filters',
+        default=[70, 70])
+    parser.add_argument(
+        '-kernels',
+        '--conv_kernel_sizes',
+        nargs='+',
+        type=int,
+        help='(Net) Convolutional kernel sizes',
+        default=[4, 3])
+    parser.add_argument(
+        '--no_conv_bias',
+        action='store_true',
+        help="(Net) Disable bias for convolutional layers",
+        default=False)
     parser.add_argument('--n_step', type=int, help="(Net) N step returns", default=1)
     parser.add_argument(
         '--dueling_qnet',
@@ -399,6 +418,10 @@ def get_pparams(defaults=False):
     del pp['no_grid_split']
     pp['use_gpu'] = not pp['no_gpu']
     del pp['no_gpu']
+    pp['conv_bias'] = not pp['no_conv_bias']
+    del pp['no_conv_bias']
+
+    assert len(pp['conv_kernel_sizes']) == len(pp['conv_nfilters'])
 
     if pp['hopt'] and not pp['hopt_fname']:
         print("No file name specified for hyperopt ('hopt_fname')")

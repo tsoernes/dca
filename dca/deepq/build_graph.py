@@ -184,7 +184,8 @@ def build_act_with_param_noise(make_obs_ph,
                                scope="deepq",
                                reuse=None,
                                param_noise_filter_func=None):
-    """Creates the act function with support for parameter space noise exploration (https://arxiv.org/abs/1706.01905):
+    """Creates the act function with support for parameter space
+    noise exploration (https://arxiv.org/abs/1706.01905):
 
     Parameters
     ----------
@@ -267,7 +268,8 @@ def build_act_with_param_noise(make_obs_ph,
             return tf.group(*perturb_ops)
 
         # Set up functionality to re-compute `param_noise_scale`. This perturbs yet another copy
-        # of the network and measures the effect of that perturbation in action space. If the perturbation
+        # of the network and measures the effect of that perturbation in action space.
+        # If the perturbation
         # is too big, reduce scale of perturbation, otherwise increase.
         q_values_adaptive = q_func(
             observations_ph.get(), num_actions, scope="adaptive_q_func")
@@ -309,8 +311,14 @@ def build_act_with_param_noise(make_obs_ph,
             tf.cond(update_eps_ph >= 0, lambda: update_eps_ph, lambda: eps))
         updates = [
             update_eps_expr,
-            tf.cond(reset_ph, lambda: perturb_vars(original_scope="q_func", perturbed_scope="perturbed_q_func"), lambda: tf.group(*[])),
-            tf.cond(update_param_noise_scale_ph, lambda: update_scale(), lambda: tf.Variable(0., trainable=False)),
+            tf.cond(
+                reset_ph,
+                lambda: perturb_vars(original_scope="q_func", perturbed_scope="perturbed_q_func"),
+                lambda: tf.group(*[])),
+            tf.cond(
+                update_param_noise_scale_ph,
+                lambda: update_scale(),
+                lambda: tf.Variable(0., trainable=False)),
             update_param_noise_threshold_expr,
         ]
         act = U.function(
