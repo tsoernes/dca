@@ -124,15 +124,33 @@ def mongo_decide_gpu_usage(mongo_uri, max_gpu_procs):
 
 
 def mongo_decrease_gpu_procs(mongo_uri):
+    """Decrease GPU process count in Mongo DB. Fails if none are in use."""
     client = mongo_connect()
     db = client[mongo_uri]
-    """Decrease GPU process count in Mongo DB. Fails if none are in use."""
     col = db['gpu_procs']
     doc = col.find_one()
     assert doc is not None
     assert doc['gpu_procs'] > 0
     print("MONGO decreaseing GPU proc count")
     col.find_one_and_update(doc, {'$inc': {'gpu_procs': -1}})
+    client.close()
+
+
+def mongo_reset_gpu_procs(mongo_uri=None):
+    client = mongo_connect()
+    if mongo_uri is None:
+        dbnames = client.list_database_names()
+    else:
+        dbnames = [mongo_uri]
+    for dbn in dbnames:
+        try:
+            db = client[dbn]
+            col = db['gpu_procs']
+            doc = col.find_one()
+            if doc is not None:
+                col.find_one_and_update(doc, {'$set': {'gpu_procs': 0}})
+        except KeyError:
+            pass
     client.close()
 
 
@@ -146,7 +164,7 @@ def mongo_list_dbs():
         gpup = db['gpu_procs'].find_one()
         if gpup is not None:
             gpup = gpup['gpu_procs']
-        print(f"DB: {dbname}, GPU proc count: {gpup}")
+        print(f"DB: {dbname}\n  GPU proc count: {gpup}")
         for colname in db.list_collection_names():
             col = db[colname]
             print(f"  Col: {colname}, count: {col.count()}")
@@ -245,7 +263,7 @@ def hopt_plot(trials):
     plt.show()
 
 
-def runner():
+def runner(inp=None):
     parser = argparse.ArgumentParser(
         description='DCA', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
@@ -272,6 +290,11 @@ def runner():
     parser.add_argument(
         '--list_dbs', action='store_true', help="(MongoDB) List databases", default=False)
     parser.add_argument(
+        '--reset_gpu_procs',
+        action='store_true',
+        help="(MongoDB) Reset gpu proc count for all dbs",
+        default=False)
+    parser.add_argument(
         '--drop_empty_dbs',
         action='store_true',
         help="(MongoDB) Drop empty databases",
@@ -281,12 +304,20 @@ def runner():
         action='store_true',
         help="(MongoDB) Prune suspended jobs",
         default=False)
-    args = vars(parser.parse_args())
+    parser.add_argument(
+        '--clean',
+        action='store_true',
+        help="(MongoDB) Prune suspended jobs, drop empty dbs, reset gpu proc count",
+        default=False)
+    args = vars(parser.parse_args(inp))
     if args['list_dbs']:
         mongo_list_dbs()
         return
     elif args['drop_empty_dbs']:
         mongo_drop_empty()
+        return
+    elif args['reset_gpu_procs']:
+        mongo_reset_gpu_procs(None)
         return
     fname = args['fname']
     trials = hopt_trials(fname)
@@ -296,6 +327,10 @@ def runner():
         hopt_plot(trials)
     elif args['prune_jobs']:
         trials.prune_suspended()
+    elif args['clean']:
+        mongo_drop_empty()
+        trials.prune_suspended()
+        mongo_reset_gpu_procs(None)
 
     if type(trials) == MongoConn:
         trials.client.close()

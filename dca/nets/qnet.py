@@ -17,11 +17,10 @@ class QNet(Net):
         super().__init__(name=name, *args, **kwargs)
         self.sess.run(self.copy_online_to_target)
 
-    def _build_net(self, grid, frep, cell, name):
-        base_net = self._build_base_net(grid, frep, cell, name)
+    def _build_head(self, inp, name):
         with tf.variable_scope('model/' + name) as scope:
             if self.pp['dueling_qnet']:
-                h1 = base_net
+                h1 = inp
                 # h1 = tf.layers.dense(
                 #     inputs=base_net,
                 #     units=140,
@@ -53,7 +52,7 @@ class QNet(Net):
                 #     self.value = value
             else:
                 q_vals = tf.layers.dense(
-                    inputs=base_net,
+                    inputs=inp,
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     kernel_regularizer=self.regularizer,
@@ -63,6 +62,7 @@ class QNet(Net):
         return q_vals, trainable_vars_by_name
 
     def build(self):
+        # Create input placeholders
         depth = self.n_channels * 2 if self.grid_split else self.n_channels
         gridshape = [None, self.rows, self.cols, depth]
         frepshape = [None, self.rows, self.cols, self.n_channels + 1]
@@ -77,6 +77,7 @@ class QNet(Net):
         else:
             self.weights = 1
 
+        # Prepare inputs for network
         grids_f = tf.cast(self.grids, float32)
         freps_f = tf.cast(self.freps, float32)
         oh_cells_f = tf.cast(self.oh_cells, float32)
@@ -89,11 +90,27 @@ class QNet(Net):
         # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
         numbered_chs = tf.stack([nrange, self.chs], axis=1)
 
-        self.online_q_vals, online_vars = self._build_net(
+        # Create online and target networks with optional RNN
+        online_base_net = self._build_base_net(
             grids_f, freps_f, oh_cells_f, name="q_networks/online")
-        # Keep separate weights for target Q network
-        target_q_vals, target_vars = self._build_net(
+        target_base_net = self._build_base_net(
             grids_f, freps_f, oh_cells_f, name="q_networks/target")
+        if self.pp['rnn']:
+            orrn = self._build_base_net_rnn(online_base_net)
+            trrn = self._build_base_net_rnn(target_base_net)
+            # (Net output, rnn input state, rnn input state placeholder, rnn output state)
+            (online_net, self.online_state, self.online_state_in,
+             self.online_state_out) = orrn
+            (target_net, self.target_state, self.target_state_in,
+             self.target_state_out) = trrn
+        else:
+            online_net = online_base_net
+            target_net = target_base_net
+        self.online_q_vals, online_vars = self._build_head(
+            online_net, name="q_networks/online")
+        # Keep separate weights for target Q network
+        target_q_vals, target_vars = self._build_head(
+            target_net, name="q_networks/target")
         # copy_online_to_target should be called periodically to creep
         # weights in the target Q-network towards the online Q-network
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
@@ -112,6 +129,7 @@ class QNet(Net):
 
         self.td_err = self.q_targets - online_q_selected
         if self.pp['huber_loss'] is not None:
+            # Linear when loss is above delta and squared difference below
             self.loss = tf.losses.huber_loss(
                 labels=self.q_targets,
                 predictions=online_q_selected,
@@ -136,6 +154,8 @@ class QNet(Net):
         }
         if frep is not None:
             data[self.freps] = [frep]
+        if self.pp['rnn']:
+            data[self.online_state_in] = self.online_state
         q_vals = self.sess.run(
             [q_vals_op], data, options=self.options, run_metadata=self.run_metadata)
         q_vals = q_vals[0][0]
@@ -143,8 +163,9 @@ class QNet(Net):
         return q_vals
 
     def _backward(self, data) -> (float, float):
-        _, loss, lr, td_err = self.sess.run(
-            [self.do_train, self.loss, self.lr, self.td_err],
+        rnn_out_state = self.target_state_out if self.pp['rnn'] else tf.no_op()
+        _, loss, lr, td_err, self.online_state = self.sess.run(
+            [self.do_train, self.loss, self.lr, self.td_err, rnn_out_state],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)

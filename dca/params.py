@@ -77,8 +77,8 @@ def get_pparams(defaults=False):
         '-i',
         dest='n_events',
         type=int,
-        help="number of events to simulate",
-        default=470000)
+        help="number of events to simulate (Default: 470 000)",
+        default=None)
     parser.add_argument(
         '--n_hours',
         type=float,
@@ -249,6 +249,11 @@ def get_pparams(defaults=False):
         dest='dueling_qnet',
         action='store_true',
         help="(Net/Duel) Dueling QNet",
+        default=False)
+    parser.add_argument(
+        '--rnn',
+        action='store_true',
+        help="(Net) Add RNN after convolutional layers",
         default=False)
     parser.add_argument(
         '--layer_norm',
@@ -451,7 +456,8 @@ def get_pparams(defaults=False):
         pp['log_iter'] = pp['n_events'] // 8
     if pp['dlib_hopt'] is not None or pp['hopt'] is not None:
         if pp['net']:
-            pp['n_events'] = 100000
+            if pp['n_events'] is None:
+                pp['n_events'] = 100000
         pp['gui'] = False
         if pp['log_level'] is None:
             pp['log_level'] = logging.ERROR
@@ -476,6 +482,8 @@ def get_pparams(defaults=False):
         pp['log_level'] = logging.INFO
     if pp['p_handoff'] is None:
         pp['p_handoff'] = 0.15
+    if pp['n_events'] is None:
+        pp['n_events'] = 470000
 
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])

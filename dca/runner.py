@@ -169,8 +169,8 @@ class Runner:
         if self.pp['net']:
             space = {
                 # Qlearnnet
-                'net_lr': hp.uniform('net_lr', 1e-6, 1e-4),
-                'net_lr_decay': hp.uniform('net_lr_decay', 0.80, 0.9999999),
+                'net_lr': hp.uniform('net_lr', 1e-5, 5e-5),
+                'net_lr_decay': hp.uniform('net_lr_decay', 0.90, 0.98),
                 # Singh
                 # 'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
                 'beta': hp.loguniform('beta', np.log(7), np.log(23)),
@@ -209,7 +209,7 @@ class Runner:
         try:
             self.logger.error("Prev best:")
             hopt_best(trials, n=1, view_pp=False)
-            prev_pps = trials.get_pps_mongo()
+            prev_pps = trials.get_pps()
             # If given pp equals the last one found in MongoDB, don't add it.
             # Otherwise, ask whether to use the one found in DB instead,
             # and if not, store given pp in DB.
@@ -218,11 +218,11 @@ class Runner:
                 dt = mongo_pp['dt']
                 del mongo_pp['dt']
                 del mongo_pp['_id']
-                pp_diff = diff(self.pp, mongo_pp)
+                pp_diff = diff(mongo_pp, self.pp)
                 if len(pp_diff.diffs) > 1:
                     # 'diffs' list has more than 1 entry, i.e. pps are not equal
                     self.logger.error(f"Found old problem params in MongoDB added "
-                                      f"at {dt}. Diff:\n{pp_diff}")
+                                      f"at {dt}. Diff(a:old, from db. b: from args):\n{pp_diff}")
                     ans = ''
                     while ans not in ['y', 'n']:
                         ans = input("Use old pp instead? Y/N:").lower()
@@ -237,6 +237,7 @@ class Runner:
             trials.add_pp(self.pp)
         mongo_uri = self.pp['hopt_fname'].replace('mongo:', '')
         fn = partial(hopt_proc, self.stratclass, self.pp, mongo_uri=mongo_uri)
+        self.logger.error("Started hyperopt job server")
         fmin(fn=fn, space=space, algo=tpe.suggest, max_evals=1000, trials=trials)
         trials.client.close()
 
