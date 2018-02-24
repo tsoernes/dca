@@ -251,6 +251,11 @@ def get_pparams(defaults=False):
         help="(Net/Duel) Dueling QNet",
         default=False)
     parser.add_argument(
+        '--rnn',
+        action='store_true',
+        help="(Net) Add RNN after convolutional layers",
+        default=False)
+    parser.add_argument(
         '--layer_norm',
         action='store_true',
         help="(Net) Use layer normalization",

@@ -164,7 +164,7 @@ def mongo_list_dbs():
         gpup = db['gpu_procs'].find_one()
         if gpup is not None:
             gpup = gpup['gpu_procs']
-        print(f"DB: {dbname}, GPU proc count: {gpup}")
+        print(f"DB: {dbname}\n  GPU proc count: {gpup}")
         for colname in db.list_collection_names():
             col = db[colname]
             print(f"  Col: {colname}, count: {col.count()}")
@@ -263,7 +263,7 @@ def hopt_plot(trials):
     plt.show()
 
 
-def runner():
+def runner(inp=None):
     parser = argparse.ArgumentParser(
         description='DCA', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
@@ -304,7 +304,12 @@ def runner():
         action='store_true',
         help="(MongoDB) Prune suspended jobs",
         default=False)
-    args = vars(parser.parse_args())
+    parser.add_argument(
+        '--clean',
+        action='store_true',
+        help="(MongoDB) Prune suspended jobs, drop empty dbs, reset gpu proc count",
+        default=False)
+    args = vars(parser.parse_args(inp))
     if args['list_dbs']:
         mongo_list_dbs()
         return
@@ -322,6 +327,10 @@ def runner():
         hopt_plot(trials)
     elif args['prune_jobs']:
         trials.prune_suspended()
+    elif args['clean']:
+        mongo_drop_empty()
+        trials.prune_suspended()
+        mongo_reset_gpu_procs(None)
 
     if type(trials) == MongoConn:
         trials.client.close()
