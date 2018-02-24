@@ -24,3 +24,20 @@ T Blocking probability: 0.1773 for new calls, 0.1369 for handoffs
 
 p3 runner.py --strat qlearnnet --net_lr 1e-4
 T Blocking probability: 0.1725 for new calls, 0.1298 for handoffs
+
+----------------------
+p3 runner.py qlearnnet --beta 12 --no_gpu -lr 7e-3 --avg_runs 8
+Starting simulation at 2018-02-24 00:08:10.370616 with params:
+{'strat': 'qlearnnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'breakout_thresh': 0.22, 'avg_runs': 8, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'epsilon': 0.75443, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'beta': 12.0, 'reward_scale': 1, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'dlib_hopt': None, 'hopt': None, 'hopt_fname': None, 'net_lr': 0.007, 'net_lr_decay': 0.96, 'optimizer': 'sgd-m', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'zeros', 'weight_init_dense': 'norm_cols', 'n_step': 1, 'dueling_qnet': False, 'layer_norm': False, 'qnet_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 45, 'net_copy_iter_decr': None, 'net_creep_tau': 1, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 20, 'log_file': None, 'log_iter': 58750, 'grid_split': True, 'use_gpu': False, 'dt_rewards': True, 'dims': (7, 7, 70), 'net': True}
+
+8x470000 events finished with speed 1250 events/second
+Average cumulative block probability over 8 episodes: 0.1720 with standard deviation 0.00137
+Average cumulative handoff block probability 0.1323 with standard deviation 0.00168
+[[0.17054372 0.12904486]
+ [0.17080469 0.13266062]
+ [0.17290438 0.13385053]
+ [0.17345716 0.13281305]
+ [0.17209325 0.13116489]
+ [0.17013872 0.13106882]
+ [0.17208028 0.13288519]
+ [0.1742587  0.13477811]]

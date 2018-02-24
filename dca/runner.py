@@ -118,6 +118,7 @@ class Runner:
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
         self.i = 0
         space = ['net_lr', 'net_lr_decay']
+        is_integer_variable = [False, False]
         results = []
 
         def dlib_proc(*args):
@@ -131,8 +132,7 @@ class Runner:
                 res = 1
             results.append((res, args))
             # If user quits sim, need to abort further calls to dlib_proc
-            if strat.quit_sim is True and strat.invalid_loss is False and \
-               strat.exceeded_bthresh is False:
+            if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
                 results.sort()
                 self.logger.error(f"Top 5: {results[:5]}")
                 sys.exit(0)
@@ -150,9 +150,14 @@ class Runner:
         point precision. Larger values will cause it to switch to pure global
         exploration sooner and therefore might be more effective if your
         objective function has many local minima and you don't care about a
-        super high precision solution."""
+        super high precision solution.
+
+        On even iterations we pick the next x according to our upper bound while
+        on odd iterations we pick the next x according to the trust region model
+        """
         solver_epsilon = 0.00005
-        x = dlib.find_min_global(dlib_proc, lo_bounds, up_bounds, n, solver_epsilon=0)
+        x = dlib.find_min_global(
+            dlib_proc, lo_bounds, up_bounds, is_integer_variable, n, solver_epsilon=0)
         results.sort()
         self.logger.error(f"Top 5: {results[:5]}")
         self.logger.error(f"Min x: {x}")

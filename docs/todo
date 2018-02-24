@@ -9,6 +9,8 @@ Singh:
 
 
 QNet:
+  Boltzmann explore.
+  Exponential decay of epsilon seems excessive. Should start lower, decay slower.
   Try dt rewards
   Duelling qnet pre-training
   Why is loss increasing for long runs?
@@ -24,15 +26,10 @@ QNet:
   experiment qnet arch
   RNN
   Train on features alone
+  is it better to have 7x7x70 outputs, one for each cell-channel pair?
 
 
 
 Progging:
   Retrieve pp from mongodb
   Batch norm for exp replay
-
-
-Reading:
-  Look up neural net output repr for Go
-       - is it better to have 7x7x70 outputs, one for each cell-channel pair?
-

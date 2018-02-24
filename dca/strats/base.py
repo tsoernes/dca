@@ -104,7 +104,8 @@ class Strat:
         self.fn_after()
         if self.save:
             self.exp_buffer.save_experience_to_disk()
-        if self.quit_sim and (self.pp['hopt'] or self.pp['avg_runs']):
+        if self.quit_sim and (self.pp['hopt'] or self.pp['dlib_hopt'] or self.pp['avg_runs']) \
+           and not self.exceeded_bthresh:
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
             if self.invalid_loss:
