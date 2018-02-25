@@ -99,15 +99,15 @@ class QNet(Net):
 
         # Create online and target networks
         online_net = self._build_base_net(
-            grids_f, freps_f, cells, name="q_networks/online")
+            grids_f, freps_f, cells, name="q_networks/base/online")
         target_net = self._build_base_net(
-            grids_f, freps_f, cells, name="q_networks/target")
+            grids_f, freps_f, cells, name="q_networks/base/target")
 
         self.online_q_vals, online_vars = self._build_head(
-            online_net, name="q_networks/online")
+            online_net, name="q_networks/head/online")
         # Keep separate weights for target Q network
         target_q_vals, target_vars = self._build_head(
-            target_net, name="q_networks/target")
+            target_net, name="q_networks/head/target")
         # copy_online_to_target should be called periodically to creep
         # weights in the target Q-network towards the online Q-network
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
@@ -138,7 +138,6 @@ class QNet(Net):
                 labels=self.q_targets,
                 predictions=online_q_selected,
                 weights=self.weights)
-        print(online_vars)
         return online_vars
 
     def forward(self, grid, cell, ce_type, frep=None):
