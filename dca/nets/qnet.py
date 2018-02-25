@@ -138,6 +138,7 @@ class QNet(Net):
                 labels=self.q_targets,
                 predictions=online_q_selected,
                 weights=self.weights)
+        print(online_vars)
         return online_vars
 
     def forward(self, grid, cell, ce_type, frep=None):
