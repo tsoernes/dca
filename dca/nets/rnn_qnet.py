@@ -8,7 +8,7 @@ from nets.utils import (copy_net_op, discount, get_trainable_vars,
                         prep_data_cells, prep_data_grids)
 
 
-class QNet(Net):
+class RQNet(Net):
     def __init__(self, name, *args, **kwargs):
         """
         Lagging Double QNet. Can do supervised learning, Q-Learning, SARSA.
@@ -90,30 +90,26 @@ class QNet(Net):
         # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
         numbered_chs = tf.stack([nrange, self.chs], axis=1)
 
-        # Create online and target networks
-        online_net = self._build_base_net(
+        # Create online and target networks with optional RNN
+        online_base_net = self._build_base_net(
             grids_f, freps_f, oh_cells_f, name="q_networks/online")
-        target_net = self._build_base_net(
-            grids_f, freps_f, oh_cells_f, name="q_networks/target")
+        orrn = self._build_base_net_rnn(online_base_net, name="q_networks/rnn/online")
+        # (Net output, rnn input state, rnn input state placeholder, rnn output state)
+        (online_net, self.online_state, self.online_state_in,
+         self.online_state_out) = orrn
 
         self.online_q_vals, online_vars = self._build_head(
             online_net, name="q_networks/online")
-        # Keep separate weights for target Q network
-        target_q_vals, target_vars = self._build_head(
-            target_net, name="q_networks/target")
-        # copy_online_to_target should be called periodically to creep
-        # weights in the target Q-network towards the online Q-network
-        self.copy_online_to_target = copy_net_op(online_vars, target_vars,
-                                                 self.pp['net_creep_tau'])
+        self.copy_online_to_target = tf.no_op()
 
         # Maximum valued ch from online network
         self.online_q_amax = tf.argmax(
             self.online_q_vals, axis=1, name="online_q_amax", output_type=int32)
         # Target Q-value for greedy channel as selected by online network
         numbered_q_amax = tf.stack([nrange, self.online_q_amax], axis=1)
-        self.target_q_max = tf.gather_nd(target_q_vals, numbered_q_amax)
+        self.online_q_max = tf.gather_nd(self.online_q_vals, numbered_q_amax)
         # Target Q-value for given ch
-        self.target_q_selected = tf.gather_nd(target_q_vals, numbered_chs)
+        self.online_q_selected = tf.gather_nd(self.online_q_vals, numbered_chs)
         # Online Q-value for given ch
         online_q_selected = tf.gather_nd(self.online_q_vals, numbered_chs)
 
@@ -136,7 +132,8 @@ class QNet(Net):
     def forward(self, grid, cell, ce_type, frep=None):
         data = {
             self.grids: prep_data_grids(grid, split=self.grid_split),
-            self.oh_cells: prep_data_cells(cell)
+            self.oh_cells: prep_data_cells(cell),
+            self.online_state_in: self.online_state
         }
         if frep is not None:
             data[self.freps] = [frep]
@@ -144,15 +141,20 @@ class QNet(Net):
             q_vals_op = self.advantages
         else:
             q_vals_op = self.online_q_vals
-        q_vals = self.sess.run(
-            q_vals_op, data, options=self.options, run_metadata=self.run_metadata)
+        q_vals, self.online_state = self.sess.run(
+            [q_vals_op, self.online_state_out],
+            data,
+            options=self.options,
+            run_metadata=self.run_metadata)
         q_vals = q_vals[0]
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
     def _backward(self, data) -> (float, float):
-        _, loss, lr, td_err = self.sess.run(
-            [self.do_train, self.loss, self.lr, self.td_err],
+        data[self.online_state_in] = self.online_state
+        # data[self.online_state_in] = self.online_state
+        _, loss, lr, td_err, self.online_state = self.sess.run(
+            [self.do_train, self.loss, self.lr, self.td_err, self.online_state_out],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
@@ -181,16 +183,17 @@ class QNet(Net):
             self.grids: prep_data_grids(grids, self.grid_split),
             self.oh_cells: prep_data_cells(cells)
         }
+        data[self.online_state_in] = self.online_state
         if target_chs is None:
             # Greedy Q-Learning
-            target_q = self.target_q_max
+            target_q = self.online_q_max
         else:
             # SARSA or Eligible Q-learning
-            target_q = self.target_q_selected
+            target_q = self.online_q_selected
             data[self.chs] = target_chs
         if freps is not None:
             data[self.freps] = freps
-        qvals = self.sess.run(target_q, data)
+        qvals, self.online_state = self.sess.run([target_q, self.online_state_out], data)
         return qvals
 
     def backward(self,

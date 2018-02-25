@@ -47,7 +47,11 @@ class NetStrat(RLStrat):
 class QNetStrat(NetStrat):
     def __init__(self, name, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = QNet(name, self.pp, self.logger)
+        if self.pp['rnn']:
+            from nets.rnn_qnet import RQNet
+            self.net = RQNet(name, self.pp, self.logger)
+        else:
+            self.net = QNet(name, self.pp, self.logger)
         self.logger.info(f"TF Rand: {self.net.rand_uniform()}")
         if self.batch_size > 1:
             self.update_qval = self.update_qval_experience
