@@ -143,6 +143,21 @@ def get_n_eligible_chs(grid, cell):
 
 
 @njit(cache=True)
+def validate_reuse_constr(grid):
+    for r in range(rows):
+        for c in range(cols):
+            # Channels in use at neighbors
+            inuse = _inuse_neighs(grid, r, c)
+            # Channels in use at a neigh and cell
+            inuse_both = np.bitwise_and(grid[r, c], inuse)
+            viols = np.where(inuse_both == 1)[0]
+            if len(viols) > 0:
+                print("Channel Reuse constraint violated")
+                return False
+    return True
+
+
+@njit(cache=True)
 def afterstates(grid, cell, ce_type, chs):
     if ce_type == CEvent.END:
         targ_val = False
