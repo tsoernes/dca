@@ -17,9 +17,10 @@ class NetStrat(RLStrat):
         super().__init__(*args, **kwargs)
         self.net_copy_iter = self.pp['net_copy_iter']
         self.last_lr = 1
+        self.qval_means = []
 
     def fn_report(self):
-        self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses)
+        self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses, self.qval_means)
 
     def fn_after(self):
         self.logger.info(
@@ -51,7 +52,7 @@ class QNetStrat(NetStrat):
             from nets.rnn_qnet import RQNet
             self.net = RQNet(name, self.pp, self.logger)
         elif self.pp['bighead']:
-            from nets.qnet_bighead import BigHeadQNet
+            from nets.bighead import BigHeadQNet
             self.net = BigHeadQNet(name, self.pp, self.logger)
         else:
             self.net = QNet(name, self.pp, self.logger)
@@ -100,6 +101,7 @@ class QLearnNetStrat(QNetStrat):
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
         frep = GF.feature_rep(self.grid) if self.pp['qnet_freps'] else None
         qvals = self.net.forward(self.grid, cell, ce_type, frep)
+        self.qval_means.append(np.mean(qvals))
         return qvals[chs]
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell):

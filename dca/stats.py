@@ -82,7 +82,7 @@ class Stats:
             self.n_curr_rejected = 0
             self.n_curr_incoming = 0
 
-    def report_rl(self, epsilon, alpha, losses):
+    def report_rl(self, epsilon, alpha, losses, qval_means):
         self.alphas.append(alpha)
         self.epsilons.append(epsilon)
 
@@ -99,8 +99,10 @@ class Stats:
                        f" Val:{avg_losses[2]:.2E}, Ent:{avg_losses[3]:.2E}"
         else:
             avg_loss = f"{sum(losses[-niter:]) / niter :.2E}"
+
+        avg_qval = f"{sum(qval_means[-niter:]) / niter :.2E}"
         self.logger.info(f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
-                         f" Avg. loss last {niter} events: {avg_loss}")
+                         f" Avg. loss last {niter} events: {avg_loss}, qvals: {avg_qval}")
 
     def end_episode(self, n_inprogress):
         delta = self.n_incoming + self.n_handoffs \

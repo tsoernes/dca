@@ -17,7 +17,8 @@ class QNet(Net):
         super().__init__(name=name, *args, **kwargs)
         self.sess.run(self.copy_online_to_target)
 
-    def _build_head(self, inp, name):
+    def _build_net(self, grids, freps, cells, name):
+        inp = self._build_base_net(grids, freps, cells, name)
         with tf.variable_scope('model/' + name) as scope:
             if self.pp['dueling_qnet']:
                 h1 = inp
@@ -98,16 +99,11 @@ class QNet(Net):
         numbered_chs = tf.stack([nrange, self.chs], axis=1)
 
         # Create online and target networks
-        online_net = self._build_base_net(
-            grids_f, freps_f, cells, name="q_networks/base/online")
-        target_net = self._build_base_net(
-            grids_f, freps_f, cells, name="q_networks/base/target")
-
-        self.online_q_vals, online_vars = self._build_head(
-            online_net, name="q_networks/head/online")
+        self.online_q_vals, online_vars = self._build_net(
+            grids_f, freps_f, cells, name="q_networks/online")
         # Keep separate weights for target Q network
-        target_q_vals, target_vars = self._build_head(
-            target_net, name="q_networks/head/target")
+        target_q_vals, target_vars = self._build_net(
+            grids_f, freps_f, cells, name="q_networks/target")
         # copy_online_to_target should be called periodically to creep
         # weights in the target Q-network towards the online Q-network
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
