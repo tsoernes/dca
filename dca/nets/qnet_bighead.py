@@ -9,7 +9,7 @@ class BigHeadQNet(QNet):
         super().__init__(*args, **kwargs)
 
     def _build_base_net(self, grid, freps, ncell, name):
-        with tf.variable_scope(name) as scope:
+        with tf.variable_scope('model' + name):
             conv1 = tf.layers.conv2d(
                 inputs=grid,
                 filters=self.n_channels,
