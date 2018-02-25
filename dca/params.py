@@ -244,6 +244,11 @@ def get_pparams(defaults=False):
         default=False)
     parser.add_argument('--n_step', type=int, help="(Net) N step returns", default=1)
     parser.add_argument(
+        '--bighead',
+        action='store_true',
+        help="(Net) rows X cols X n_channels net output",
+        default=False)
+    parser.add_argument(
         '--dueling_qnet',
         '-duel',
         dest='dueling_qnet',

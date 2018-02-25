@@ -17,6 +17,32 @@ class RQNet(Net):
         super().__init__(name=name, *args, **kwargs)
         self.sess.run(self.copy_online_to_target)
 
+    def _build_base_net_rnn(self, inp, name):
+        n_units = 256
+        with tf.variable_scope('model/' + name):
+            hidden = tf.layers.dense(inp, n_units, tf.nn.relu)
+            # Recurrent network for temporal dependencies
+            lstm_cell = tf.contrib.rnn.BasicLSTMCell(n_units, state_is_tuple=True)
+            c_init = np.zeros((1, lstm_cell.state_size.c), np.float32)
+            h_init = np.zeros((1, lstm_cell.state_size.h), np.float32)
+            state_init = [c_init, h_init]
+            c_in = tf.placeholder(tf.float32, [1, lstm_cell.state_size.c])
+            h_in = tf.placeholder(tf.float32, [1, lstm_cell.state_size.h])
+            state_in = (c_in, h_in)
+            rnn_in = tf.expand_dims(hidden, [0])
+            step_size = tf.shape(inp)[:1]
+            state_in = tf.contrib.rnn.LSTMStateTuple(c_in, h_in)
+            lstm_outputs, lstm_state = tf.nn.dynamic_rnn(
+                lstm_cell,
+                rnn_in,
+                initial_state=state_in,
+                sequence_length=step_size,
+                time_major=False)
+            lstm_c, lstm_h = lstm_state
+            state_out = (lstm_c[:1, :], lstm_h[:1, :])
+            out = tf.reshape(lstm_outputs, [-1, n_units])
+        return (out, state_init, state_in, state_out)
+
     def _build_head(self, inp, name):
         with tf.variable_scope('model/' + name) as scope:
             if self.pp['dueling_qnet']:

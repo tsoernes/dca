@@ -66,35 +66,42 @@ class QNet(Net):
         depth = self.n_channels * 2 if self.grid_split else self.n_channels
         gridshape = [None, self.rows, self.cols, depth]
         frepshape = [None, self.rows, self.cols, self.n_channels + 1]
-        oh_cellshape = [None, self.rows, self.cols, 1]  # Onehot
         self.grids = tf.placeholder(boolean, gridshape, "grid")
+        nrange = tf.range(tf.shape(self.grids)[0])
         self.freps = tf.placeholder(int32, frepshape, "frep")
-        self.oh_cells = tf.placeholder(boolean, oh_cellshape, "oh_cell")
+        if self.pp['bighead']:
+            # Numbered representation, eg [[0,3,2], [1,3,3], [2,2,2], ..]
+            self.cells = tf.placeholder(int32, [None, 2], "cell")
+            cells = tf.concat([tf.expand_dims(nrange, axis=1), self.cells], axis=1)
+        else:
+            # Onehot representation
+            oh_cellshape = [None, self.rows, self.cols, 1]
+            self.cells = tf.placeholder(boolean, oh_cellshape, "oh_cell")
+            cells = tf.cast(self.cells, float32)
         self.chs = tf.placeholder(int32, [None], "ch")
         self.q_targets = tf.placeholder(float32, [None], "qtarget")
         if self.pp['batch_size'] > 1:
+            # Importance weights to offset bias in prioritized replay
             self.weights = tf.placeholder(float32, [None], "qtarget")
         else:
             self.weights = 1
 
+        tf.one_hot
         # Prepare inputs for network
         grids_f = tf.cast(self.grids, float32)
         freps_f = tf.cast(self.freps, float32)
-        oh_cells_f = tf.cast(self.oh_cells, float32)
-        mult1 = np.ones(frepshape[1:], np.float32)
+        mult1 = np.ones(frepshape[1:], np.float32)  # Scaling feature reps
         mult1[:, :, :-1] /= 43
         mult1[:, :, -1] /= 70
-        tmult1 = tf.constant(mult1)
-        freps_f = freps_f * tmult1
-        nrange = tf.range(tf.shape(self.grids)[0])
+        freps_f = freps_f * tf.constant(mult1)
         # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
         numbered_chs = tf.stack([nrange, self.chs], axis=1)
 
         # Create online and target networks
         online_net = self._build_base_net(
-            grids_f, freps_f, oh_cells_f, name="q_networks/online")
+            grids_f, freps_f, cells, name="q_networks/online")
         target_net = self._build_base_net(
-            grids_f, freps_f, oh_cells_f, name="q_networks/target")
+            grids_f, freps_f, cells, name="q_networks/target")
 
         self.online_q_vals, online_vars = self._build_head(
             online_net, name="q_networks/online")
@@ -136,8 +143,11 @@ class QNet(Net):
     def forward(self, grid, cell, ce_type, frep=None):
         data = {
             self.grids: prep_data_grids(grid, split=self.grid_split),
-            self.oh_cells: prep_data_cells(cell)
         }
+        if self.pp['bighead']:
+            data[self.cells] = [cell]
+        else:
+            data[self.cells] = prep_data_cells(cell)
         if frep is not None:
             data[self.freps] = [frep]
         if self.pp['dueling_qnet']:
@@ -161,10 +171,13 @@ class QNet(Net):
     def backward_supervised(self, grids, cells, chs, q_targets, freps=None, weights=None):
         data = {
             self.grids: prep_data_grids(grids, self.grid_split),
-            self.oh_cells: prep_data_cells(cells),
             self.chs: chs,
             self.q_targets: q_targets,
         }
+        if self.pp['bighead']:
+            data[self.cells] = [cells]
+        else:
+            data[self.cells] = prep_data_cells(cells)
         if freps is not None:
             data[self.freps] = freps
         if weights is not None:
@@ -179,8 +192,11 @@ class QNet(Net):
               Wo/Wt: online/target network"""
         data = {
             self.grids: prep_data_grids(grids, self.grid_split),
-            self.oh_cells: prep_data_cells(cells)
         }
+        if self.pp['bighead']:
+            data[self.cells] = [cells]
+        else:
+            data[self.cells] = prep_data_cells(cells)
         if target_chs is None:
             # Greedy Q-Learning
             target_q = self.target_q_max

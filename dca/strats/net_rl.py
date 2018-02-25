@@ -50,6 +50,9 @@ class QNetStrat(NetStrat):
         if self.pp['rnn']:
             from nets.rnn_qnet import RQNet
             self.net = RQNet(name, self.pp, self.logger)
+        elif self.pp['bighead']:
+            from nets.qnet_bighead import BigHeadQNet
+            self.net = BigHeadQNet(name, self.pp, self.logger)
         else:
             self.net = QNet(name, self.pp, self.logger)
         self.logger.info(f"TF Rand: {self.net.rand_uniform()}")
