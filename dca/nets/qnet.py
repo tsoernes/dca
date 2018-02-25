@@ -96,8 +96,8 @@ class QNet(Net):
         target_base_net = self._build_base_net(
             grids_f, freps_f, oh_cells_f, name="q_networks/target")
         if self.pp['rnn']:
-            orrn = self._build_base_net_rnn(online_base_net)
-            trrn = self._build_base_net_rnn(target_base_net)
+            orrn = self._build_base_net_rnn(online_base_net, name="q_networks/rnn/online")
+            trrn = self._build_base_net_rnn(target_base_net, name="q_networks/rnn/target")
             # (Net output, rnn input state, rnn input state placeholder, rnn output state)
             (online_net, self.online_state, self.online_state_in,
              self.online_state_out) = orrn
@@ -106,6 +106,7 @@ class QNet(Net):
         else:
             online_net = online_base_net
             target_net = target_base_net
+            self.rnn_out = tf.no_op()
         self.online_q_vals, online_vars = self._build_head(
             online_net, name="q_networks/online")
         # Keep separate weights for target Q network
@@ -144,10 +145,6 @@ class QNet(Net):
         return online_vars
 
     def forward(self, grid, cell, ce_type, frep=None):
-        if self.pp['dueling_qnet']:
-            q_vals_op = self.advantages
-        else:
-            q_vals_op = self.online_q_vals
         data = {
             self.grids: prep_data_grids(grid, split=self.grid_split),
             self.oh_cells: prep_data_cells(cell)
@@ -156,16 +153,25 @@ class QNet(Net):
             data[self.freps] = [frep]
         if self.pp['rnn']:
             data[self.online_state_in] = self.online_state
-        q_vals = self.sess.run(
-            [q_vals_op], data, options=self.options, run_metadata=self.run_metadata)
-        q_vals = q_vals[0][0]
+        if self.pp['dueling_qnet']:
+            q_vals_op = self.advantages
+        else:
+            q_vals_op = self.online_q_vals
+        q_vals, self.online_state = self.sess.run(
+            [q_vals_op, self.online_state_out],
+            data,
+            options=self.options,
+            run_metadata=self.run_metadata)
+        q_vals = q_vals[0]
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
     def _backward(self, data) -> (float, float):
-        rnn_out_state = self.target_state_out if self.pp['rnn'] else tf.no_op()
+        if self.pp['rnn']:
+            data[self.online_state_in] = self.online_state
+        # data[self.online_state_in] = self.online_state
         _, loss, lr, td_err, self.online_state = self.sess.run(
-            [self.do_train, self.loss, self.lr, self.td_err, rnn_out_state],
+            [self.do_train, self.loss, self.lr, self.td_err, self.online_state_out],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
@@ -194,6 +200,9 @@ class QNet(Net):
             self.grids: prep_data_grids(grids, self.grid_split),
             self.oh_cells: prep_data_cells(cells)
         }
+        if self.pp['rnn']:
+            data[self.online_state_in] = self.online_state
+            data[self.target_state_in] = self.target_state
         if target_chs is None:
             # Greedy Q-Learning
             target_q = self.target_q_max
@@ -203,7 +212,7 @@ class QNet(Net):
             data[self.chs] = target_chs
         if freps is not None:
             data[self.freps] = freps
-        qvals = self.sess.run(target_q, data)
+        qvals, self.target_state = self.sess.run([target_q, self.target_state_out], data)
         return qvals
 
     def backward(self,
