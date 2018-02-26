@@ -275,7 +275,13 @@ def get_pparams(defaults=False):
         '--qnet_freps',
         action='store_true',
         help="(Net) Include feature representation a la Singh in "
-        "addition to grid as input to net",
+        "addition to grid as input to qnet",
+        default=False)
+    parser.add_argument(
+        '--qnet_freps_only',
+        action='store_true',
+        help="(Net) Feature representation a la Singh in "
+        "replacement to grid as input to qnet",
         default=False)
     parser.add_argument(
         '--act_fn',
@@ -433,6 +439,7 @@ def get_pparams(defaults=False):
 
     assert len(pp['conv_kernel_sizes']) == len(pp['conv_nfilters'])
 
+    pp['freps'] = pp['qnet_freps'] or pp['qnet_freps_only']
     if pp['hopt'] and not pp['hopt_fname']:
         print("No file name specified for hyperopt ('hopt_fname')")
         sys.exit(0)

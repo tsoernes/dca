@@ -56,20 +56,14 @@ def normalized_columns_initializer(std=1.0):
 
 def get_init_by_name(name):
     inits = {
-        "zeros":
-        tf.zeros_initializer,
-        "glorot_unif":
-        # The default for dense, perhaps for conv2d also. AKA Xavier.
+        "zeros": tf.zeros_initializer,
+        "glorot_unif":  # The default for dense, perhaps for conv2d also. AKA Xavier.
         tf.glorot_uniform_initializer,
-        "glorot_norm":
-        tf.glorot_normal_initializer,
-        "norm_cols":
-        normalized_columns_initializer,
-        "norm_pos":
-        tf.random_normal_initializer(0., 0.2),  # Try for dense kernel
-        "const_pos":
-        tf.constant_initializer(0.1)  # Try for dense bias
-    }
+        "glorot_norm": tf.glorot_normal_initializer,
+        "norm_cols": normalized_columns_initializer,
+        "norm_pos": tf.random_normal_initializer(0., 0.2),  # Try for dense kernel
+        "const_pos": tf.constant_initializer(0.1)  # Try for dense bias
+    }  # yapf: disable
     return inits[name]
 
 

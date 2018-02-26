@@ -17,8 +17,8 @@ class QNet(Net):
         super().__init__(name=name, *args, **kwargs)
         # self.sess.run(self.copy_online_to_target)
 
-    def _build_net(self, grids, freps, cells, name):
-        inp, _ = self._build_base_net(grids, freps, cells, name)
+    def _build_net(self, top_inp, cells, name):
+        inp = self._build_base_net(top_inp, cells, name)
         with tf.variable_scope('model/' + name) as scope:
             if self.pp['dueling_qnet']:
                 h1 = inp
@@ -63,14 +63,26 @@ class QNet(Net):
             trainable_vars_by_name = get_trainable_vars(scope)
         return q_vals, trainable_vars_by_name
 
-    def build(self):
+    def _build_inputs(self):
+        """
+        Net inputs can be:
+        - grid, split or not, and/or feature reps
+        - one hot cells or regular cells (in case of bighead)
+        - optional weights, in case of prioritized exp replay
+        """
         # Create input placeholders
         depth = self.n_channels * 2 if self.grid_split else self.n_channels
         gridshape = [None, self.rows, self.cols, depth]
         frepshape = [None, self.rows, self.cols, self.n_channels + 1]
         self.grids = tf.placeholder(boolean, gridshape, "grid")
-        nrange = tf.range(tf.shape(self.grids)[0])
         self.freps = tf.placeholder(int32, frepshape, "frep")
+        self.chs = tf.placeholder(int32, [None], "ch")
+        self.q_targets = tf.placeholder(float32, [None], "qtarget")
+        if self.pp['qnet_freps_only']:
+            # [0, 1, 2, 3, ..., n] where n is batch size
+            nrange = tf.range(tf.shape(self.freps)[0])
+        else:
+            nrange = tf.range(tf.shape(self.grids)[0])
         if self.pp['bighead']:
             # Numbered representation, eg [[0,3,2], [1,3,3], [2,2,2], ..]
             self.cells = tf.placeholder(int32, [None, 2], "cell")
@@ -80,8 +92,6 @@ class QNet(Net):
             oh_cellshape = [None, self.rows, self.cols, 1]
             self.cells = tf.placeholder(boolean, oh_cellshape, "oh_cell")
             cells = tf.cast(self.cells, float32)
-        self.chs = tf.placeholder(int32, [None], "ch")
-        self.q_targets = tf.placeholder(float32, [None], "qtarget")
         if not self.pp['train_net'] and self.pp['batch_size'] > 1:
             # Importance weights to offset bias in prioritized replay
             self.weights = tf.placeholder(float32, [None], "qtarget")
@@ -92,20 +102,29 @@ class QNet(Net):
         # Prepare inputs for network
         grids_f = tf.cast(self.grids, float32)
         freps_f = tf.cast(self.freps, float32)
-        mult1 = np.ones(frepshape[1:], np.float32)  # Scaling feature reps
+        mult1 = np.ones(frepshape[1:], np.float32)  # Scale feature reps
         mult1[:, :, :-1] /= 43
         mult1[:, :, -1] /= 70
         freps_f = freps_f * tf.constant(mult1)
         # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
         numbered_chs = tf.stack([nrange, self.chs], axis=1)
+        if self.pp['qnet_freps']:
+            top_inp = tf.concat([grids_f, freps_f], axis=3)
+        if self.pp['qnet_freps_only']:
+            top_inp = freps_f
+        else:
+            top_inp = grids_f
+        return (top_inp, cells), nrange, numbered_chs
+
+    def build(self):
+        net_inputs, nrange, numbered_chs = self._build_inputs()
 
         # Create online and target networks
         self.online_q_vals, online_vars = self._build_net(
-            grids_f, freps_f, cells, name="q_networks/online")
-        print(online_vars)
+            *net_inputs, name="q_networks/online")
         # Keep searate weights for target Q network
         target_q_vals, target_vars = self._build_net(
-            grids_f, freps_f, cells, name="q_networks/target")
+            *net_inputs, name="q_networks/target")
         # copy_online_to_target should be called periodically to creep
         # weights in the target Q-network towards the online Q-network
         self.copy_online_to_target = copy_net_op(online_vars, target_vars,
