@@ -1,7 +1,4 @@
-import numpy as np
 import tensorflow as tf
-from tensorflow import bool as boolean
-from tensorflow import float32, int32
 
 from nets.qnet import QNet
 from nets.utils import get_trainable_vars
@@ -11,7 +8,7 @@ class BigHeadQNet(QNet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _build_net(self, grids, freps, ncells, name):
+    def _build_base_net(self, grids, freps, ncells, name):
         with tf.variable_scope('model/' + name) as scope:
             conv1 = tf.layers.conv2d(
                 inputs=grids,
