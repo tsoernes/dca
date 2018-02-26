@@ -144,7 +144,15 @@ class NQLearnNetStrat(QNetStrat):
             agrid, acell, ach, _, ace_type = self.exps[0]
             if ace_type != CEvent.END and ach is not None:
                 rewards = [exp[3] for exp in self.exps]
-                self.backward(agrid, acell, [ach], rewards, self.grid, next_cell, None)
+                self.backward(
+                    agrid,
+                    acell, [ach],
+                    rewards,
+                    self.grid,
+                    next_cell,
+                    freps=None,
+                    next_freps=None,
+                    next_chs=None)
             del self.exps[0]
 
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
@@ -209,7 +217,14 @@ class SARSANetStrat(QNetStrat):
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
         if next_ch is not None:
-            self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_ch])
+            self.backward(
+                grid,
+                cell, [ch], [reward],
+                self.grid,
+                next_cell,
+                freps=None,
+                next_freps=None,
+                next_chs=[next_ch])
 
 
 class DistQNetStrat(QNetStrat):

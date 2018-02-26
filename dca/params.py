@@ -88,7 +88,7 @@ def get_pparams(defaults=False):
         '--breakout_thresh',
         '-thresh',
         type=float,
-        default=0.22,
+        default=0.23,
         help="Break out early if cumuluative blocking probability "
         "exceeds given threshold")
     parser.add_argument(
@@ -320,7 +320,7 @@ def get_pparams(defaults=False):
         metavar='N',
         help="(Net/Double) Copy weights from online to target "
         "net every N iterations",
-        default=45)
+        default=5)
     parser.add_argument(
         '--net_copy_iter_decr',
         type=int,
@@ -338,7 +338,7 @@ def get_pparams(defaults=False):
         "towards online net every 'net_copy_iter' iterations. "
         "Net copy iter should be decreased as tau decreases. "
         "'tau' ~ 0.1 when 'net_copy_iter' is 5 is good starting point.",
-        default=1,
+        default=0.12,
         const=0.12)
     parser.add_argument(
         '--vf_coeff',

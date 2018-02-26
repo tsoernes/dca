@@ -15,7 +15,7 @@ class QNet(Net):
         Optionally duelling architecture.
         """
         super().__init__(name=name, *args, **kwargs)
-        self.sess.run(self.copy_online_to_target)
+        # self.sess.run(self.copy_online_to_target)
 
     def _build_net(self, grids, freps, cells, name):
         inp = self._build_base_net(grids, freps, cells, name)
@@ -81,7 +81,7 @@ class QNet(Net):
             cells = tf.cast(self.cells, float32)
         self.chs = tf.placeholder(int32, [None], "ch")
         self.q_targets = tf.placeholder(float32, [None], "qtarget")
-        if self.pp['batch_size'] > 1:
+        if not self.pp['train_net'] and self.pp['batch_size'] > 1:
             # Importance weights to offset bias in prioritized replay
             self.weights = tf.placeholder(float32, [None], "qtarget")
         else:
@@ -141,7 +141,9 @@ class QNet(Net):
             self.grids: prep_data_grids(grid, split=self.grid_split),
         }
         if self.pp['bighead']:
-            data[self.cells] = [cell]
+            if type(cell) == tuple:
+                cell = [cell]
+            data[self.cells] = cell
         else:
             data[self.cells] = prep_data_cells(cell)
         if frep is not None:
@@ -171,7 +173,9 @@ class QNet(Net):
             self.q_targets: q_targets,
         }
         if self.pp['bighead']:
-            data[self.cells] = [cells]
+            if type(cells) == tuple:
+                cells = [cells]
+            data[self.cells] = cells
         else:
             data[self.cells] = prep_data_cells(cells)
         if freps is not None:
@@ -190,7 +194,9 @@ class QNet(Net):
             self.grids: prep_data_grids(grids, self.grid_split),
         }
         if self.pp['bighead']:
-            data[self.cells] = [cells]
+            if type(cells) == tuple:
+                cells = [cells]
+            data[self.cells] = cells
         else:
             data[self.cells] = prep_data_cells(cells)
         if target_chs is None:
