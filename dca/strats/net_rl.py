@@ -416,20 +416,18 @@ class SinghNetStrat(VNetStrat):
             # value_target = reward + self.gamma * np.array([[self.val]])
             freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
 
-            # next_fgrids equivalent to [GF.feature_rep(self.grid)], because executing
+            # next_freps equivalent to [GF.feature_rep(self.grid)], because executing
             # (ce_type, cell, ch) on grid led to self.grid
-
-            # next_freps = GF.incremental_freps(grid, frep, cell, ce_type, np.array([ch]))
-            next_freps = np.expand_dims(NGF.feature_rep(self.grid), axis=0)
+            next_freps = NGF.incremental_freps(grid, freps[0], cell, ce_type,
+                                               np.array([ch]))
             if self.pp['debug']:
                 freps2 = GF.feature_reps(grid)
                 next_freps2 = GF.feature_reps(self.grid)
-                # next_freps3 = NGF.incremental_freps(grid, freps[0], cell, ce_type,
-                #                                     np.array([ch]))
+                next_freps3 = np.expand_dims(NGF.feature_rep(self.grid), axis=0)
                 assert (freps == freps2).all()
                 assert (next_freps == next_freps2).all()
-                # assert (next_freps == next_freps3).all(), (next_freps.shape,
-                #                                            next_freps3.shape)
+                assert (next_freps == next_freps3).all(), (next_freps.shape,
+                                                           next_freps3.shape)
             self.backward(freps, reward, next_freps)
 
         next_ce_type, next_cell = next_cevent[1:3]

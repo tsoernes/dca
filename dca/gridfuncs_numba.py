@@ -242,7 +242,7 @@ def incremental_freps(grid, frep, cell, ce_type, chs):
         for j in range(len(neighs4)):
             freps[i, neighs4[j, 0], neighs4[j, 1], ch] += n_used_neighs_diff
         for j in range(len(neighs2)):
-            r2, c2 = neighs2[0, j], neighs2[1, j]
+            r2, c2 = neighs2[j, 0], neighs2[j, 1]
             neighs = neighbors_np(2, r2, c2, False)
             inuse = grid[r2, c2, ch]
             for k in range(len(neighs)):
