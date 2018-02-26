@@ -169,11 +169,11 @@ class Runner:
         if self.pp['net']:
             space = {
                 # Qlearnnet
-                'net_lr': hp.uniform('net_lr', 1e-7, 5e-4),
+                'net_lr': hp.uniform('net_lr', 1e-6, 5e-5),
                 'net_lr_decay': hp.uniform('net_lr_decay', 0.90, 0.98),
                 # Singh
                 # 'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
-                'beta': hp.uniform('beta', 0.1, 40),
+                'beta': hp.uniform('beta', 5, 40),
                 # Double
                 'net_copy_iter': hp.loguniform('net_copy_iter', np.log(5), np.log(150)),
                 'net_creep_tau': hp.loguniform('net_creep_tau', np.log(0.01),
@@ -224,6 +224,8 @@ class Runner:
                 del self.pp['dims']
                 del mongo_pp['dims']
                 pp_diff = diff(mongo_pp, self.pp)
+                self.pp['dims'] = dims
+                mongo_pp['dims'] = dims
                 if len(pp_diff.diffs) > 1:
                     # 'diffs' list has more than 1 entry, i.e. pps are not equal
                     self.logger.error(f"Found old problem params in MongoDB added "
@@ -235,7 +237,6 @@ class Runner:
                         self.pp = mongo_pp
                     else:
                         trials.add_pp(self.pp)
-                self.pp['dims'] = dims
             else:
                 trials.add_pp(self.pp)
         except ValueError:
