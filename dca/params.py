@@ -391,6 +391,7 @@ def get_pparams(defaults=False):
         action='store_true',
         help="Verify channel reuse constraint each iteration",
         default=False)
+    parser.add_argument('--debug', action='store_true', help="Debug flag", default=False)
     parser.add_argument(
         '--prof',
         dest='profiling',
