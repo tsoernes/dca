@@ -172,6 +172,7 @@ def afterstates(grid, cell, ce_type, chs):
 
 @njit(cache=True)
 def feature_rep(grid):
+    assert grid.ndim == 3
     frep = np.zeros((intp(rows), intp(cols), n_channels + 1), dtype=int32)
     for r in range(rows):
         for c in range(cols):
@@ -186,6 +187,7 @@ def feature_rep(grid):
 
 @njit(cache=True)
 def feature_reps(grids):
+    assert grids.ndim == 4
     n = len(grids)
     freps = np.zeros((n, rows, cols, n_channels + 1), dtype=np.int16)
     for r in range(rows):

@@ -2,8 +2,8 @@ from typing import List, Tuple
 
 import numpy as np
 
+import gridfuncs_numba as NGF
 from eventgen import CEvent
-# import gridfuncs_numba as GF
 from gridfuncs import GF
 from nets.acnet import ACNet
 from nets.afterstate import AfterstateNet
@@ -414,11 +414,22 @@ class SinghNetStrat(VNetStrat):
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         if ch is not None:
             # value_target = reward + self.gamma * np.array([[self.val]])
-            freps = GF.feature_reps(grid)
+            freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
+
             # next_fgrids equivalent to [GF.feature_rep(self.grid)], because executing
             # (ce_type, cell, ch) on grid led to self.grid
+
             # next_freps = GF.incremental_freps(grid, frep, cell, ce_type, np.array([ch]))
-            next_freps = GF.feature_reps(self.grid)
+            next_freps = np.expand_dims(NGF.feature_rep(self.grid), axis=0)
+            if self.pp['debug']:
+                freps2 = GF.feature_reps(grid)
+                next_freps2 = GF.feature_reps(self.grid)
+                # next_freps3 = NGF.incremental_freps(grid, freps[0], cell, ce_type,
+                #                                     np.array([ch]))
+                assert (freps == freps2).all()
+                assert (next_freps == next_freps2).all()
+                # assert (next_freps == next_freps3).all(), (next_freps.shape,
+                #                                            next_freps3.shape)
             self.backward(freps, reward, next_freps)
 
         next_ce_type, next_cell = next_cevent[1:3]
@@ -434,10 +445,11 @@ class SinghNetStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        # fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
-        fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
-        # fgrids = GF.scale_freps(fgrids)
-        qvals_dense = self.net.forward(fgrids)
+        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
+        if self.pp['debug']:
+            freps2 = GF.afterstate_freps(self.grid, cell, ce_type, chs)
+            assert (freps == freps2).all(), (freps.shape, freps2.shape)
+        qvals_dense = self.net.forward(freps)
         assert qvals_dense.shape == (len(chs), )
         amax_idx = np.argmax(qvals_dense)
         ch = chs[amax_idx]
