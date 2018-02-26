@@ -5,6 +5,7 @@ import numpy as np
 import gridfuncs_numba as GF
 from eventgen import CEvent
 from nets.acnet import ACNet
+from nets.afterstate import AfterstateNet
 from nets.dqnet import DistQNet
 from nets.qnet import QNet
 from nets.singh import SinghNet
@@ -366,6 +367,41 @@ class VNetStrat(NetStrat):
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
         """ Update qval for one experience tuple"""
         self.backward(grid, reward, self.grid)
+
+
+class AfterstateStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = AfterstateNet(self.pp, self.logger)
+        self.val = 0.0
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        if ch is not None:
+            value_target = reward + self.gamma * np.array([[self.val]])
+            self.backward(np.array(grid), np.array(self.grid), value_target)
+
+        next_ce_type, next_cell = next_cevent[1:3]
+        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
+        self.val = next_val
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> int:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                # NOTE IS this correct? Is val=0 trained on ever?
+                return None, 0
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+
+        agrids = GF.afterstates(self.grid, cell, ce_type, chs)
+        qvals = self.net.forward(agrids)
+        assert qvals.shape == (len(chs), )
+        amax_idx = np.argmax(qvals)
+        ch = chs[amax_idx]
+        if ch is None:
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals}\n")
+        return ch, qvals[amax_idx]
 
 
 class SinghNetStrat(VNetStrat):
