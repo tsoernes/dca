@@ -88,9 +88,9 @@ def get_pparams(defaults=False):
         '--breakout_thresh',
         '-thresh',
         type=float,
-        default=0.23,
+        default=None,
         help="Break out early if cumuluative blocking probability "
-        "exceeds given threshold")
+        "exceeds given threshold (Default: 0.23")
     parser.add_argument(
         '--avg_runs',
         metavar='N',
@@ -478,7 +478,8 @@ def get_pparams(defaults=False):
         pp['gui'] = False
         if pp['log_level'] is None:
             pp['log_level'] = logging.ERROR
-        pp['breakout_thresh'] = 0.18
+        if pp['breakout_thresh'] is None:
+            pp['breakout_thresh'] = 0.18
         # Since hopt only compares new call block rate,
         # handoffs are a waste of data/computational resources.
         if pp['p_handoff'] is None:
@@ -501,6 +502,8 @@ def get_pparams(defaults=False):
         pp['p_handoff'] = 0.15
     if pp['n_events'] is None:
         pp['n_events'] = 470000
+    if pp['breakout_thresh'] is None:
+        pp['breakout_thresh'] = 0.23
 
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])

@@ -10,7 +10,7 @@ import time
 from functools import partial
 from multiprocessing import Pool
 
-import argcomplete
+#  import argcomplete
 import numpy as np
 from datadiff import diff
 from hyperopt import Trials, fmin, hp, tpe  # noqa
@@ -219,6 +219,10 @@ class Runner:
                 dt = mongo_pp['dt']
                 del mongo_pp['dt']
                 del mongo_pp['_id']
+                # Dims are converted from list to tuple in DB, so don't diff
+                dims = self.pp['dims']
+                del self.pp['dims']
+                del mongo_pp['dims']
                 pp_diff = diff(mongo_pp, self.pp)
                 if len(pp_diff.diffs) > 1:
                     # 'diffs' list has more than 1 entry, i.e. pps are not equal
@@ -231,6 +235,7 @@ class Runner:
                         self.pp = mongo_pp
                     else:
                         trials.add_pp(self.pp)
+                self.pp['dims'] = dims
             else:
                 trials.add_pp(self.pp)
         except ValueError:
