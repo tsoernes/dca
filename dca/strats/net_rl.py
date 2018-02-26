@@ -2,8 +2,9 @@ from typing import List, Tuple
 
 import numpy as np
 
-import gridfuncs_numba as GF
 from eventgen import CEvent
+# import gridfuncs_numba as GF
+from gridfuncs import GF
 from nets.acnet import ACNet
 from nets.afterstate import AfterstateNet
 from nets.dqnet import DistQNet
@@ -412,12 +413,13 @@ class SinghNetStrat(VNetStrat):
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         if ch is not None:
-            value_target = reward + self.gamma * np.array([[self.val]])
-            frep = GF.feature_rep(grid)
+            # value_target = reward + self.gamma * np.array([[self.val]])
+            freps = GF.feature_reps(grid)
             # next_fgrids equivalent to [GF.feature_rep(self.grid)], because executing
             # (ce_type, cell, ch) on grid led to self.grid
-            next_freps = GF.incremental_freps(grid, frep, cell, ce_type, np.array([ch]))
-            self.backward([frep], next_freps, value_target)
+            # next_freps = GF.incremental_freps(grid, frep, cell, ce_type, np.array([ch]))
+            next_freps = GF.feature_reps(self.grid)
+            self.backward(freps, reward, next_freps)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -432,6 +434,7 @@ class SinghNetStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
+        # fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
         fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
         # fgrids = GF.scale_freps(fgrids)
         qvals_dense = self.net.forward(fgrids)

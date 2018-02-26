@@ -284,6 +284,8 @@ def get_pparams(defaults=False):
         "replacement to grid as input to qnet",
         default=False)
     parser.add_argument(
+        '--scale_freps', action='store_true', help="(Net) Scale freps", default=False)
+    parser.add_argument(
         '--act_fn',
         help="(Net) Activation function",
         choices=['relu', 'elu', 'leaky_relu'],

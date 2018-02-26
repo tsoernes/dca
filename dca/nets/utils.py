@@ -4,6 +4,17 @@ import numpy as np
 import tensorflow as tf
 
 
+def scale_freps(freps):
+    """Scale feature reps"""
+    # TODO Scale -1 to 1
+    freps_f = tf.cast(freps, tf.float32)
+    mult1 = np.ones(freps.shape[1:], np.float32)
+    mult1[:, :, :-1] /= 43
+    mult1[:, :, -1] /= 70
+    freps_f = freps_f * tf.constant(mult1)
+    return freps_f
+
+
 def softmax(x, axis=None):
     """Compute softmax values for each sets of scores in x. If axis is not given,
     softmax over the last dimension."""
