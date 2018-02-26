@@ -34,6 +34,7 @@ class SinghNet(Net):
                 name="vals")
             online_vars = get_trainable_vars(scope)
 
+        self.err = self.value_target - self.value
         self.loss = tf.losses.mean_squared_error(
             labels=tf.stop_gradient(self.value_target), predictions=self.value)
         return online_vars
@@ -47,7 +48,7 @@ class SinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, next_freps, value_target):
+    def backward(self, freps, next_freps, value_target, gamma):
         # next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
         # TODO NOTE TODO IS this really the correct reward, and the
         # correct target
@@ -55,9 +56,9 @@ class SinghNet(Net):
         #     print(next_value, next_val)
         # value_target = reward + self.gamma * next_val
         data = {self.freps: freps, self.value_target: value_target}
-        _, loss, lr = self.sess.run(
-            [self.do_train, self.loss, self.lr],
+        _, loss, lr, err = self.sess.run(
+            [self.do_train, self.loss, self.lr, self.err],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
-        return loss, lr
+        return loss, lr, err
