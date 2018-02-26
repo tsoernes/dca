@@ -111,9 +111,12 @@ class Env:
         """
         count = np.count_nonzero(self.grid)
         if self.dt_rewards:
-            dt = self.cevent[0] - t
+            t1 = self.cevent[0]
+            dt = t1 - t
             beta_disc = np.exp(-self.beta * dt)
-            return ((1 - beta_disc) / self.beta) * count, beta_disc, self.cevent
+            # return ((1 - beta_disc) / self.beta) * count, beta_disc, self.cevent
+            reward = -(count * (np.exp(self.beta * (t1 - 1)))) / self.beta
+            return reward, beta_disc, self.cevent
         return count * self.reward_scale, None, self.cevent
 
     def execute_action(self, cevent, ch: int):
