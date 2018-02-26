@@ -216,11 +216,12 @@ class GridFuncs(metaclass=Singleton):
         """
         Takes a grid or an array of grids and return the feature representations.
 
-        For each cell, the number of ELIGIBLE channels in that cell.
         For each cell-channel pair, the number of times that channel is
         used by neighbors with a distance of 4 or less.
         NOTE The latter does not include whether or not the channel is
         in use by the cell itself, though that may be the better option.
+
+        For each cell, the number of ELIGIBLE channels in that cell.
         """
         assert type(grids) == np.ndarray
         if grids.ndim == 3:

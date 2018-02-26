@@ -9,7 +9,7 @@ def scale_freps(freps):
     # TODO Scale -1 to 1
     freps_f = tf.cast(freps, tf.float32)
     mult1 = np.ones(freps.shape[1:], np.float32)
-    mult1[:, :, :-1] /= 43
+    mult1[:, :, :-1] /= 7
     mult1[:, :, -1] /= 70
     freps_f = freps_f * tf.constant(mult1)
     return freps_f
