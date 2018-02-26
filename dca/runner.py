@@ -226,10 +226,10 @@ class Runner:
                 pp_diff = diff(mongo_pp, self.pp)
                 self.pp['dims'] = dims
                 mongo_pp['dims'] = dims
-                if len(pp_diff.diffs) > 1:
-                    # 'diffs' list has more than 1 entry, i.e. pps are not equal
-                    self.logger.error(f"Found old problem params in MongoDB added "
-                                      f"at {dt}. Diff(a:old, from db. b: from args):\n{pp_diff}")
+                if mongo_pp != self.pp:
+                    self.logger.error(
+                        f"Found old problem params in MongoDB added "
+                        f"at {dt}. Diff(a:old, from db. b: from args):\n{pp_diff}")
                     ans = ''
                     while ans not in ['y', 'n']:
                         ans = input("Use old pp instead? Y/N:").lower()
