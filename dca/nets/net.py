@@ -146,21 +146,31 @@ class Net:
 
     def train(self):
         self.load_data()
+        gamma = self.pp['gamma']
         losses = []
         self.logger.warn(f"Training {self.n_train_steps} minibatches of size"
                          f" {self.batch_size} for a total of"
                          f" {self.n_train_steps * self.batch_size} examples")
         for i in range(self.n_train_steps):
             data = next(self.train_gen)
+            grids = data['grids']
             cells = data['cells']
-            targets = np.zeros(len(cells), dtype=np.float32)
-            actions = data['actions']
-            for j, ch in enumerate(actions):
-                targets[j] = self.qvals[cells[j]][ch]
+            q_targets = np.zeros(len(cells), dtype=np.float32)
+            chs = data['chs']
+            for j, ch in enumerate(chs):
+                q_targets[j] = self.qvals[cells[j]][ch]
+            if False:
+                self.logger.error(f"grid: {data['grids'][0]} \n"
+                                  f"cell: {data['cells'][0]} \n"
+                                  f"action: {data['chs'][0]} \n"
+                                  f"reward: {data['rewards'][0]} \n"
+                                  f"target: {q_targets[0]} \n")
+                sys.exit(0)
             # NOTE TODO NOTE
             # qnet backward has changed. it now takes target_q instead of next_g
             # so target_q = reward + gamma * next_q has to be calculated here.
-            _, loss = self.backward(**data)
+            loss, lr, td_err = self.backward_supervised(
+                grids=grids, cells=cells, chs=chs, q_targets=q_targets)
             if i % 50 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 # run_metadata = tf.RunMetadata()
@@ -168,15 +178,6 @@ class Net:
                 #     run_metadata, 'step%d' % i)
                 self.logger.info(f"Iter {i}\tloss: {loss:.2f}")
                 losses.append(loss)
-            if False:
-                self.logger.debug(f"grid: {data['grids'][0]} \n"
-                                  f"cell: {data['cells'][0]} \n"
-                                  f"oh_cell: {data['oh_cells'][0]} \n"
-                                  f"action: {data['actions'][0]} \n"
-                                  f"reward: {data['rewards'][0]} \n"
-                                  f"target: {targets[0]} \n"
-                                  f"loss: {loss} \n")
-                sys.exit(0)
             if np.isnan(loss) or np.isinf(loss):
                 self.logger.error(f"Invalid loss: {loss}")
                 sys.exit(0)
@@ -185,10 +186,10 @@ class Net:
                 sys.exit(0)
         if self.save:
             self.save_model()
-        plt.plot(losses)
-        plt.ylabel("Loss")
-        plt.xlabel(f"Iterations, in {self.batch_size}s")
-        plt.show()
+        # plt.plot(losses)
+        # plt.ylabel("Loss")
+        # plt.xlabel(f"Iterations, in {self.batch_size}s")
+        # plt.show()
 
     def bench_batch_size(self):
         for bs in [256, 512, 1024, 2048]:
