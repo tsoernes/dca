@@ -355,19 +355,6 @@ class VNetStrat(NetStrat):
     def update_target_net(self):
         pass
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        next_ce_type, next_cell = next_cevent[1:3]
-        # Choose A' from S'
-        next_ch, _ = self.optimal_ch(next_ce_type, next_cell)
-        if ce_type != CEvent.END and \
-           ch is not None and next_ch is not None:
-            self.update_qval(grid, cell, ch, reward, self.grid, next_cell, next_ch)
-        return next_ch
-
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
-        """ Update qval for one experience tuple"""
-        self.backward(grid, reward, self.grid)
-
 
 class AfterstateStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
@@ -378,7 +365,11 @@ class AfterstateStrat(VNetStrat):
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         if ch is not None:
             value_target = reward + self.gamma * np.array([[self.val]])
-            self.backward(np.array(grid), np.array(self.grid), value_target)
+            fgrid = GF.feature_rep(grid)
+            # next_fgrids equivalent to [GF.feature_rep(self.grid)], because executing
+            # (ce_type, cell, ch) on grid led to self.grid
+            next_fgrids = GF.incremental_freps(grid, fgrid, cell, ce_type, np.array([ch]))
+            self.backward([fgrid], next_fgrids, value_target)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -394,14 +385,21 @@ class AfterstateStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        agrids = GF.afterstates(self.grid, cell, ce_type, chs)
-        qvals = self.net.forward(agrids)
+        fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
+        # fgrids = GF.scale_freps(fgrids)
+        qvals = self.net.forward(fgrids)
+        self.qval_means.append(np.mean(qvals))
         assert qvals.shape == (len(chs), )
-        amax_idx = np.argmax(qvals)
-        ch = chs[amax_idx]
+        if np.random.random() < self.epsilon:
+            idx = np.random.randint(0, len(qvals))
+            ch = chs[idx]
+        else:
+            idx = np.argmax(qvals)
+            ch = chs[idx]
+        self.epsilon *= self.epsilon_decay
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals}\n")
-        return ch, qvals[amax_idx]
+        return ch, qvals[idx]
 
 
 class SinghNetStrat(VNetStrat):

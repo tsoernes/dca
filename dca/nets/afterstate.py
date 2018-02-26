@@ -14,7 +14,8 @@ class AfterstateNet(Net):
         super().__init__(name=self.name, *args, **kwargs)
 
     def build(self):
-        depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
+        # depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
+        depth = self.n_channels + 1
         self.grids = tf.placeholder(
             tf.float32, [None, self.pp['rows'], self.pp['cols'], depth], "grids")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
@@ -22,7 +23,7 @@ class AfterstateNet(Net):
         with tf.variable_scope('model/' + self.name) as scope:
             conv1 = tf.layers.conv2d(
                 inputs=self.grids,
-                filters=140,
+                filters=70,
                 kernel_size=5,
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
@@ -57,7 +58,8 @@ class AfterstateNet(Net):
     def forward(self, grids):
         values = self.sess.run(
             self.value,
-            feed_dict={self.grids: prep_data_grids(grids, self.pp['grid_split'])},
+            # feed_dict={self.grids: prep_data_grids(grids, self.pp['grid_split'])},
+            feed_dict={self.grids: grids},
             options=self.options,
             run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
@@ -65,7 +67,8 @@ class AfterstateNet(Net):
 
     def backward(self, grids, next_grids, value_target, gamma):
         data = {
-            self.grids: prep_data_grids(grids, self.pp['grid_split']),
+            # self.grids: prep_data_grids(grids, self.pp['grid_split']),
+            self.grids: grids,
             self.value_target: value_target
         }
         _, loss, lr, err = self.sess.run(
