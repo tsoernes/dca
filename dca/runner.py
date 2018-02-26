@@ -189,7 +189,8 @@ class Runner:
             }
         else:
             space = {
-                'alpha': hp.loguniform('alpha', np.log(0.001), np.log(0.1)),
+                'beta': hp.loguniform('beta', np.log(7), np.log(23)),
+                'alpha': hp.loguniform('alpha', np.log(0.0001), np.log(0.4)),
                 'alpha_decay': hp.uniform('alpha_decay', 0.9999, 0.9999999),
                 'epsilon': hp.loguniform('epsilon', np.log(0.2), np.log(0.8)),
                 'epsilon_decay': hp.uniform('epsilon_decay', 0.9995, 0.9999999),

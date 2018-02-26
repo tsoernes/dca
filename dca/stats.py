@@ -82,7 +82,7 @@ class Stats:
             self.n_curr_rejected = 0
             self.n_curr_incoming = 0
 
-    def report_rl(self, epsilon, alpha, losses, qval_means):
+    def report_rl(self, epsilon, alpha, losses, qval_means=None):
         self.alphas.append(alpha)
         self.epsilons.append(epsilon)
 
@@ -100,7 +100,10 @@ class Stats:
         else:
             avg_loss = f"{sum(losses[-niter:]) / niter :.2E}"
 
-        avg_qval = f"{sum(qval_means[-niter:]) / niter :.2E}"
+        if qval_means:
+            avg_qval = f"{sum(qval_means[-niter:]) / niter :.2E}"
+        else:
+            avg_qval = ""
         self.logger.info(f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
                          f" Avg. loss last {niter} events: {avg_loss}, qvals: {avg_qval}")
 
