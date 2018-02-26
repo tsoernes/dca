@@ -102,6 +102,7 @@ class QNet(Net):
         # Create online and target networks
         self.online_q_vals, online_vars = self._build_net(
             grids_f, freps_f, cells, name="q_networks/online")
+        print(online_vars)
         # Keep searate weights for target Q network
         target_q_vals, target_vars = self._build_net(
             grids_f, freps_f, cells, name="q_networks/target")
