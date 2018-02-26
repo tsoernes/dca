@@ -18,7 +18,7 @@ class QNet(Net):
         # self.sess.run(self.copy_online_to_target)
 
     def _build_net(self, grids, freps, cells, name):
-        inp = self._build_base_net(grids, freps, cells, name)
+        inp, _ = self._build_base_net(grids, freps, cells, name)
         with tf.variable_scope('model/' + name) as scope:
             if self.pp['dueling_qnet']:
                 h1 = inp
@@ -34,8 +34,7 @@ class QNet(Net):
                     kernel_initializer=self.kern_init_dense(),
                     use_bias=False,
                     name="value")
-                # NOTE NOTE NOTE
-                # NOTE TODO NOTE what's the shape of value???
+                assert (value.shape[-1] == 1)
                 advantages = tf.layers.dense(
                     inputs=h1,
                     units=self.n_channels,
@@ -103,7 +102,7 @@ class QNet(Net):
         # Create online and target networks
         self.online_q_vals, online_vars = self._build_net(
             grids_f, freps_f, cells, name="q_networks/online")
-        # Keep separate weights for target Q network
+        # Keep searate weights for target Q network
         target_q_vals, target_vars = self._build_net(
             grids_f, freps_f, cells, name="q_networks/target")
         # copy_online_to_target should be called periodically to creep
