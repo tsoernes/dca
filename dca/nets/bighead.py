@@ -12,8 +12,8 @@ class BigHeadQNet(QNet):
         with tf.variable_scope('model/' + name) as scope:
             conv1 = tf.layers.conv2d(
                 inputs=top_inp,
-                filters=140,
-                kernel_size=5,
+                filters=70,
+                kernel_size=4,
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,

@@ -79,12 +79,14 @@ class QNetStrat(NetStrat):
             # Can't backprop before exp store has enough experiences
             data, weights, batch_idxes = self.exp_buffer.sample(
                 self.pp['batch_size'], beta=self.pri_beta_schedule.value(self.i))
-            # data.update({
-            #     'freps': None,
-            #     'next_freps': None,
-            #     'next_chs': None,
-            #     'gamma': self.gamma
-            # })
+            if self.pp['freps']:
+                freps = GF.feature_reps(data['grids'])
+                next_freps = GF.feature_reps(data['next_grids'])
+            data.update({
+                'freps': freps,
+                'next_freps': next_freps,
+                'next_chs': None,
+            })
             data['weights'] = weights
             td_errs = self.backward(**data)
             new_priorities = np.abs(td_errs) + self.prioritized_replay_eps
@@ -411,11 +413,11 @@ class SinghNetStrat(VNetStrat):
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         if ch is not None:
             value_target = reward + self.gamma * np.array([[self.val]])
-            fgrid = GF.feature_rep(grid)
+            frep = GF.feature_rep(grid)
             # next_fgrids equivalent to [GF.feature_rep(self.grid)], because executing
             # (ce_type, cell, ch) on grid led to self.grid
-            next_fgrids = GF.incremental_freps(grid, fgrid, cell, ce_type, np.array([ch]))
-            self.backward([fgrid], next_fgrids, value_target)
+            next_freps = GF.incremental_freps(grid, frep, cell, ce_type, np.array([ch]))
+            self.backward([frep], next_freps, value_target)
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)

@@ -185,6 +185,22 @@ def feature_rep(grid):
 
 
 @njit(cache=True)
+def feature_reps(grids):
+    n = len(grids)
+    freps = np.zeros((n, rows, cols, n_channels + 1), dtype=np.int16)
+    for r in range(rows):
+        for c in range(cols):
+            neighs = neighbors_np(4, r, c, True)
+            for i in range(n):
+                n_used = np.zeros(n_channels, dtype=int32)
+                for j in range(len(neighs)):
+                    n_used += grids[i, neighs[j, 0], neighs[j, 1]]
+                freps[i, r, c, :-1] = n_used
+                freps[i, r, c, -1] = get_n_eligible_chs(grids[i], (r, c))
+    return freps
+
+
+@njit(cache=True)
 def afterstate_freps(grid, cell, ce_type, chs):
     """Feature representation for each of the afterstates of grid"""
     frep = feature_rep(grid)
