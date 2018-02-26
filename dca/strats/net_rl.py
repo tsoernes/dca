@@ -100,14 +100,14 @@ class QLearnNetStrat(QNetStrat):
         self.exps = []
 
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
-        frep = GF.feature_rep(self.grid) if self.pp['qnet_freps'] else None
+        frep = GF.feature_rep(self.grid) if self.pp['freps'] else None
         qvals = self.net.forward(self.grid, cell, ce_type, frep)
         self.qval_means.append(np.mean(qvals))
         return qvals[chs]
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell):
         if ce_type != CEvent.END and ch is not None:
-            if self.pp['qnet_freps']:
+            if self.pp['freps']:
                 frep, next_freps = GF.successive_freps(grid, cell, ce_type,
                                                        np.array([ch]))
                 freps = [frep]

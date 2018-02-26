@@ -90,12 +90,12 @@ class Net:
     def backward(self):
         raise NotImplementedError
 
-    def _build_base_net(self, grid, frep, cell, name):
+    def _build_base_net(self, top_inp, cell, name):
         """A series of convolutional layers with 'grid' and 'frep' as inputs,
         and 'cell' stacked with the outputs"""
         # TODO Try one conv after cell stack
         with tf.variable_scope('model/' + name):
-            inp = tf.concat([grid, frep], axis=3) if self.pp['qnet_freps'] else grid
+            inp = top_inp
             for i in range(len(self.pp['conv_nfilters'])):
                 inp = tf.layers.conv2d(
                     inputs=inp,
