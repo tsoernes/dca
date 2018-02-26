@@ -34,6 +34,8 @@ class QNet(Net):
                     kernel_initializer=self.kern_init_dense(),
                     use_bias=False,
                     name="value")
+                # NOTE NOTE NOTE
+                # NOTE TODO NOTE what's the shape of value???
                 advantages = tf.layers.dense(
                     inputs=h1,
                     units=self.n_channels,
