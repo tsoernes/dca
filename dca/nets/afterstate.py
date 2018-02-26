@@ -20,10 +20,16 @@ class AfterstateNet(Net):
             tf.float32, [None, self.pp['rows'], self.pp['cols'], depth], "grids")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
 
+        frepshape = [None, self.rows, self.cols, self.n_channels + 1]
+        mult1 = np.ones(frepshape[1:], np.float32)  # Scaling feature reps
+        mult1[:, :, :-1] /= 43
+        mult1[:, :, -1] /= 70
+        freps_f = self.grids * tf.constant(mult1)
+
         with tf.variable_scope('model/' + self.name) as scope:
             conv1 = tf.layers.conv2d(
-                inputs=self.grids,
-                filters=70,
+                inputs=freps_f,
+                filters=140,
                 kernel_size=5,
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
