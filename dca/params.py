@@ -465,6 +465,8 @@ def get_pparams(defaults=False):
     if pp['avg_runs']:
         pp['gui'] = False
         pp['use_gpu'] = False
+        if pp['n_events'] is None:
+            pp['n_events'] = 470000
         pp['log_iter'] = pp['n_events'] // 8
     if pp['dlib_hopt'] is not None or pp['hopt'] is not None:
         if pp['net']:
