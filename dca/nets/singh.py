@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import get_trainable_vars
+from nets.utils import get_trainable_vars, scale_freps
 
 
 class SinghNet(Net):
@@ -14,17 +14,17 @@ class SinghNet(Net):
         super().__init__(name=self.name, *args, **kwargs)
 
     def build(self):
-        self.freps = tf.placeholder(
-            shape=[None, self.pp['rows'], self.pp['cols'], self.n_channels + 1],
-            dtype=tf.float32,
-            name="feature_representations")
-        self.value_target = tf.placeholder(
-            shape=[None, 1], dtype=tf.float32, name="value_target")
+        frepshape = [None, self.rows, self.cols, self.n_channels + 1]
+        self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
+        self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
 
-        inp = tf.layers.flatten(self.freps)
+        if self.pp['scale_freps']:
+            freps = scale_freps(self.freps)
+        else:
+            freps = self.freps
         with tf.variable_scope('model/' + self.name) as scope:
             self.value = tf.layers.dense(
-                inputs=inp,
+                inputs=tf.layers.flatten(freps),
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
@@ -48,8 +48,9 @@ class SinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, next_freps, value_target, gamma):
-        # next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
+    def backward(self, freps, rewards, next_freps, gamma):
+        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
+        value_target = rewards + gamma * next_value
         # TODO NOTE TODO IS this really the correct reward, and the
         # correct target
         # if next_value[0] != next_val:
