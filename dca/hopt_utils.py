@@ -241,7 +241,7 @@ def hopt_best(trials, n=1, view_pp=True):
     try:
         valid_results, params, attachments = hopt_results(trials)
     except IndexError:
-        print("Invalid MongoDB identifier")
+        print("Invalid MongoDB identifier or no finished jobs")
         sys.exit(1)
     sorted_results = sorted(valid_results)
     print(f"Found {len(sorted_results)} valid trials")

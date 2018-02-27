@@ -442,8 +442,9 @@ class SinghNetStrat(VNetStrat):
         #     gamma = beta_disc
         # else:
         gamma = self.gamma
+        # self.logger.error(f"{gamma}, {reward}")
         self.backward(freps=freps, rewards=reward, next_freps=next_freps, gamma=gamma)
-        self.b_t0 = next_cevent[0]
+        # self.b_t0 = next_cevent[0]
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
@@ -462,6 +463,7 @@ class SinghNetStrat(VNetStrat):
         if self.pp['debug']:
             freps2 = GF.afterstate_freps(self.grid, cell, ce_type, chs)
             assert (freps == freps2).all(), (freps.shape, freps2.shape)
+        # Just contains qvals for 'chs'
         qvals_dense = self.net.forward(freps)
         assert qvals_dense.shape == (len(chs), )
         amax_idx = np.argmax(qvals_dense)

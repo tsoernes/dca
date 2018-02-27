@@ -169,7 +169,7 @@ class Runner:
         if self.pp['net']:
             space = {
                 # Qlearnnet
-                'net_lr': hp.loguniform('net_lr', np.log(1e-6), np.log(4e-5)),
+                'net_lr': hp.loguniform('net_lr', np.log(5e-7), np.log(6e-6)),
                 'net_lr_decay': hp.loguniform('net_lr_decay', np.log(0.90), np.log(0.99)),
                 # Singh
                 # 'net_lr': hp.loguniform('net_lr', np.log(1e-7), np.log(5e-4)),
