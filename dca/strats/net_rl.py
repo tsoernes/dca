@@ -471,3 +471,36 @@ class SinghNetStrat(VNetStrat):
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, qvals_dense[amax_idx]
+
+
+class RSMART(SinghNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(self.pp, self.logger)
+        self.beta = self.pp['beta']
+        self.avg_reward = 0
+        self.tot_reward = 0
+        self.tot_time = 0
+        self.t0 = 0
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        # value_target = reward + self.gamma * np.array([[self.val]])
+
+        if ch is not None:
+            freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
+            next_freps = NGF.incremental_freps(grid, freps[0], cell, ce_type,
+                                               np.array([ch]))
+
+            dt = next_cevent[0] - self.t0
+            treward = reward - self.avg_reward * dt
+            self.backward(freps=freps, rewards=treward, next_freps=next_freps, gamma=0.90)
+            self.tot_reward += reward
+            self.tot_time += dt
+            self.avg_reward = (1 - self.alpha) * self.avg_reward + self.alpha * (
+                self.tot_reward / self.tot_time)
+            self.alpha *= self.alpha_decay
+
+        self.t0 = next_cevent[0]
+        next_ce_type, next_cell = next_cevent[1:3]
+        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
+        return next_ch
