@@ -21,6 +21,10 @@ class GridFuncs(metaclass=Singleton):
 
     def __init__(self, rows, cols, n_channels):
         self.rows, self.cols, self.n_channels = rows, cols, n_channels
+        # Whether or not the part of the feature representation which
+        # count the number of channels in use at neighbors with
+        # a distance of 4 or less should include the cell itself in the count.
+        self.countself = False
 
     def validate_reuse_constr(self, grid):
         """
@@ -179,33 +183,37 @@ class GridFuncs(metaclass=Singleton):
         n_used_neighs (frep[:-1]) does include self
         n_free_self (frep[-1]) counts ELIGIBLE chs
         """
-        fgrid = self.feature_reps(grid)[0]
+        frep = self.feature_reps(grid)[0]
         r, c = cell
-        neighs4 = self.neighbors(dist=4, row=r, col=c, separate=True, include_self=True)
-        neighs2 = self.neighbors(dist=2, row=r, col=c, include_self=True)
-        fgrids = np.repeat(np.expand_dims(fgrid, axis=0), len(chs), axis=0)
+        neighs4 = self.neighbors(4, r, c, separate=True, include_self=self.countself)
+        neighs2 = self.neighbors(2, r, c, include_self=True)
+        freps = np.repeat(np.expand_dims(frep, axis=0), len(chs), axis=0)
         if ce_type == CEvent.END:
-            # One less channel will be in use by neighs
+            # One less channel will be in use
             n_used_neighs_diff = -1
-            # One more channel MIGHT become eligible
+            # The ch was not eligible for neighs2 of 'cell'
+            # since it was in use at 'cell', but it MIGHT become
+            # eligible if, for a given neigh2, its neighs2 or itself
+            # does not use it.
             # Temporarily modify grid and check if that's the case
             n_elig_self_diff = 1
             grid[cell][chs] = 0
         else:
             # One more ch will be in use
             n_used_neighs_diff = 1
-            # One less ch will be eligible.
-            # Since the channel is in 'chs' it must be eligible before assignment
+            # The number of eligible channels for the neighs2 of 'cell'
+            # MIGHT decrease by 1 if the channel is currently eligible
+            # for a particular neighs2.
             n_elig_self_diff = -1
         eligible_chs = [self.get_eligible_chs(grid, neigh2) for neigh2 in neighs2]
         for i, ch in enumerate(chs):
-            fgrids[i, neighs4[0], neighs4[1], ch] += n_used_neighs_diff
+            freps[i, neighs4[0], neighs4[1], ch] += n_used_neighs_diff
             for j, neigh2 in enumerate(neighs2):
                 if ch in eligible_chs[j]:
-                    fgrids[i, neigh2[0], neigh2[1], -1] += n_elig_self_diff
+                    freps[i, neigh2[0], neigh2[1], -1] += n_elig_self_diff
         if ce_type == CEvent.END:
             grid[cell][chs] = 1  # Revert changes
-        return fgrids
+        return freps
 
     def afterstate_freps_naive(self, grid, cell, ce_type, chs):
         astates = GridFuncs.afterstates(grid, cell, ce_type, chs)
@@ -226,19 +234,20 @@ class GridFuncs(metaclass=Singleton):
         assert type(grids) == np.ndarray
         if grids.ndim == 3:
             grids = np.expand_dims(grids, axis=0)
-        fgrids = np.zeros(
+        freps = np.zeros(
             (len(grids), self.rows, self.cols, self.n_channels + 1), dtype=np.int16)
-        # fgrids[:, :, :, n_channels] = n_channels \
+        # freps[:, :, :, n_channels] = n_channels \
         #     - np.count_nonzero(grids, axis=3)
         for r in range(self.rows):
             for c in range(self.cols):
                 # TODO all onehot
-                neighs = self.neighbors(4, r, c, separate=True, include_self=True)
+                neighs = self.neighbors(
+                    4, r, c, separate=True, include_self=self.countself)
                 n_used = np.count_nonzero(grids[:, neighs[0], neighs[1]], axis=1)
-                fgrids[:, r, c, :-1] = n_used
+                freps[:, r, c, :-1] = n_used
                 for i in range(len(grids)):
-                    fgrids[i, r, c, -1] = self.get_n_eligible_chs(grids[i], (r, c))
-        return fgrids
+                    freps[i, r, c, -1] = self.get_n_eligible_chs(grids[i], (r, c))
+        return freps
 
     @staticmethod
     def print_cell(grid, r, c):

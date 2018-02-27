@@ -4,6 +4,10 @@ from numba.types import Array, List, UniTuple, boolean, int32, intp, optional
 
 from eventgen import CEvent
 
+# Whether or not the part of the feature representation which
+# count the number of channels in use at neighbors with
+# a distance of 4 or less should include the cell itself in the count.
+countself = False
 rows, cols, n_channels = 7, 7, 70
 neighs1 = np.zeros((rows, cols, 7, 2), dtype=np.int32)
 neighs2 = np.zeros((rows, cols, 19, 2), dtype=np.int32)
@@ -176,7 +180,7 @@ def feature_rep(grid):
     frep = np.zeros((intp(rows), intp(cols), n_channels + 1), dtype=int32)
     for r in range(rows):
         for c in range(cols):
-            neighs = neighbors_np(4, r, c, True)
+            neighs = neighbors_np(4, r, c, countself)
             n_used = np.zeros(n_channels, dtype=int32)
             for i in range(len(neighs)):
                 n_used += grid[neighs[i, 0], neighs[i, 1]]
@@ -192,7 +196,7 @@ def feature_reps(grids):
     freps = np.zeros((n, rows, cols, n_channels + 1), dtype=np.int16)
     for r in range(rows):
         for c in range(cols):
-            neighs = neighbors_np(4, r, c, True)
+            neighs = neighbors_np(4, r, c, countself)
             for i in range(n):
                 n_used = np.zeros(n_channels, dtype=int32)
                 for j in range(len(neighs)):
@@ -225,8 +229,7 @@ def incremental_freps(grid, frep, cell, ce_type, chs):
     derive feature representations for the afterstates of grid
     """
     r, c = cell
-    neighs4 = neighbors_np(4, r, c, True)
-    # Is this right, in combination with 'neighs' include_self=False?
+    neighs4 = neighbors_np(4, r, c, countself)
     neighs2 = neighbors_np(2, r, c, True)
     freps = np.zeros((len(chs), intp(rows), intp(cols), n_channels + 1), dtype=int32)
     freps[:] = frep
@@ -244,12 +247,12 @@ def incremental_freps(grid, frep, cell, ce_type, chs):
         for j in range(len(neighs2)):
             r2, c2 = neighs2[j, 0], neighs2[j, 1]
             neighs = neighbors_np(2, r2, c2, False)
-            inuse = grid[r2, c2, ch]
+            not_eligible = grid[r2, c2, ch]
             for k in range(len(neighs)):
-                inuse = inuse or grid[neighs[k, 0], neighs[k, 1], ch]
-            if not inuse:
-                # For END: ch was in use at (r, c), but is now eligible
-                # For NEW: ch was eligible at given neighs2, but is now in use
+                not_eligible = not_eligible or grid[neighs[k, 0], neighs[k, 1], ch]
+            if not not_eligible:
+                # For END: ch is in use at 'cell', but will become eligible
+                # For NEW: ch is eligible at given neighs2, but will be taken in use
                 freps[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig_self_diff
     if ce_type == CEvent.END:
         grid[cell][chs] = 1

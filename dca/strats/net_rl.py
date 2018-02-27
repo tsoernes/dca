@@ -37,8 +37,9 @@ class NetStrat(RLStrat):
         self.net.save_timeline()
         self.net.sess.close()
 
-    def backward(self, *args, **kwargs):
-        loss, self.last_lr, td_errs = self.net.backward(*args, gamma=self.gamma, **kwargs)
+    def backward(self, gamma=None, *args, **kwargs):
+        gamma = self.gamma if gamma is None else gamma
+        loss, self.last_lr, td_errs = self.net.backward(*args, gamma=gamma, **kwargs)
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.invalid_loss, self.quit_sim = True, True
@@ -409,13 +410,15 @@ class SinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
+        self.beta = self.pp['beta']
         self.val = 0.0
+        self.b_t0 = 0
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        if ch is not None:
-            # value_target = reward + self.gamma * np.array([[self.val]])
-            freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
+        # value_target = reward + self.gamma * np.array([[self.val]])
+        freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
 
+        if ch is not None:
             # next_freps equivalent to [GF.feature_rep(self.grid)], because executing
             # (ce_type, cell, ch) on grid led to self.grid
             next_freps = NGF.incremental_freps(grid, freps[0], cell, ce_type,
@@ -428,11 +431,23 @@ class SinghNetStrat(VNetStrat):
                 assert (next_freps == next_freps2).all()
                 assert (next_freps == next_freps3).all(), (next_freps.shape,
                                                            next_freps3.shape)
-            self.backward(freps, reward, next_freps)
+        else:
+            next_freps = freps
+
+        # if self.pp['dt_rewards']:
+        #     dt = next_cevent[0] - self.b_t0
+        #     beta_disc = np.exp(-self.beta * dt)
+        #     reward = reward * (1 - beta_disc) / self.beta
+        #     # reward = np.count_nonzero(self.grid) * (1 - beta_disc) / self.beta
+        #     gamma = beta_disc
+        # else:
+        gamma = self.gamma
+        self.backward(freps=freps, rewards=reward, next_freps=next_freps, gamma=gamma)
+        self.b_t0 = next_cevent[0]
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
-        self.val = next_val
+        # self.val = next_val
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:

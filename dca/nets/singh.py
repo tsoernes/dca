@@ -28,15 +28,15 @@ class SinghNet(Net):
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
-                bias_initializer=tf.zeros_initializer(),
-                use_bias=True,
+                # bias_initializer=tf.zeros_initializer(),
+                use_bias=False,
                 activation=None,
                 name="vals")
             online_vars = get_trainable_vars(scope)
 
         self.err = self.value_target - self.value
         self.loss = tf.losses.mean_squared_error(
-            labels=tf.stop_gradient(self.value_target), predictions=self.value)
+            labels=self.value_target, predictions=self.value)
         return online_vars
 
     def forward(self, freps):
