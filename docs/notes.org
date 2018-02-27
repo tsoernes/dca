@@ -45,3 +45,15 @@ The other problem is that the “true” reward structure is always a moving tar
 As an agent improves its policy, then the expected rewards should increase as
 well. This causes the unintuitive experience of the loss function increasing,
 even though the agent’s policy is more successful.
+
+-----
+
+dt-rewards/beta performs better than gamma (at least on singh). Why?
+The actions of the agent does not affect the duration of calls.
+Three explanations:
+  a) A scaled reward (much lower in value) is easier to learn, ref Deep RL that Matters
+  b) For a given Q, reward and next Q, the loss will vary according to the time between
+     events (will it??). So in effect it acts as learning rate noise. noisy learning rates
+     may improve network convergence, ref paper with cyclic /triangular LR
+  c) For a given Q, reward and next Q, the weight of reward vs next Q will vary, thus
+     so emulates noisy gamma.
