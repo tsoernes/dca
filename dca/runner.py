@@ -15,6 +15,7 @@ import numpy as np
 from datadiff import diff
 from hyperopt import Trials, fmin, hp, tpe  # noqa
 from hyperopt.pyll.base import scope  # noqa
+from icecream import ic
 
 from gui import Gui  # noqa
 from hopt_utils import (MongoConn, add_pp_pickle, hopt_best,
@@ -39,6 +40,8 @@ class Runner:
             self.hopt()
         elif self.pp['dlib_hopt']:
             self.hopt_dlib()
+        elif self.pp['random_hopt']:
+            self.hopt_random()
         elif self.pp['avg_runs']:
             self.avg_run()
         elif self.pp['strat'] == 'show':
@@ -162,7 +165,23 @@ class Runner:
         self.logger.error(f"Top 5: {results[:5]}")
         self.logger.error(f"Min x: {x}")
 
-    def hopt(self, net=False):
+    def hopt_random(self):
+        """
+        Hyper-parameter optimization with hyperopt.
+        """
+        space = {
+            'net_lr': [1e-6, 4e-5],
+            'net_lr_decay': [0.80, 0.999],
+            'beta': [0.1, 100]
+        }
+        # Only optimize parameters specified in args
+        space = {param: space[param] for param in self.pp['random_hopt']}
+        simproc = partial(self.hopt_random, self.stratclass, self.pp, space)
+
+        with Pool() as p:
+            results = p.map(simproc, range(10000))
+
+    def hopt(self):
         """
         Hyper-parameter optimization with hyperopt.
         """
@@ -292,6 +311,25 @@ class Runner:
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
         # gui.test()
         raise NotImplementedError
+
+
+def hopt_random_proc(stratclass, pp, space, n):
+    # import psutil
+    # n_avg = psutil.cpu_count(logical=False)
+    # Use same constant numpy seed for all sims
+    # np.random.seed(pp['rng_seed'])
+    print(space)
+    for param, (lb, ub) in space.items():
+        pp[param] = np.random.uniform(lb, ub)
+    result = Runner.sim_proc(stratclass, pp, pid=n, reseed=True)
+    res = result[0]
+    if res is None:
+        # Loss is inf or nan
+        return {"status": "fail"}
+    elif res is 1:
+        # User quit, e.g. ctrl-c
+        return {"status": "suspended"}
+    return {'status': "ok", "loss": res, "hoff_loss": result[1]}
 
 
 def hopt_proc(stratclass, pp, space, mongo_uri=None):

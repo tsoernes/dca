@@ -45,6 +45,11 @@ def get_pparams(defaults=False):
             stratnames.append(s2)
         stratclasses[i] = (s2, stratclasses[i][1])
     weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
+    hopt_opts = [
+        'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
+        'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff', 'beta',
+        'net_lr_decay', 'n_step'
+    ]
 
     parser.add_argument('strat', type=str, choices=stratnames, default="rs_sarsa")
     parser.add_argument('--rows', type=int, help="number of rows in grid", default=7)
@@ -155,25 +160,24 @@ def get_pparams(defaults=False):
         default="",
         const="qtable.npy")
     parser.add_argument(
+        '--random_hopt',
+        nargs='+',
+        metavar="PARAM1, PARAM2, ..",
+        choices=hopt_opts,
+        help="(Hopt) Hyper-parameter optimization with dlib.",
+        default=None)
+    parser.add_argument(
         '--dlib_hopt',
         nargs='+',
         metavar="PARAM1, PARAM2, ..",
-        choices=[
-            'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda',
-            'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff',
-            'beta', 'net_lr_decay', 'n_step'
-        ],
+        choices=hopt_opts,
         help="(Hopt) Hyper-parameter optimization with dlib.",
         default=None)
     parser.add_argument(
         '--hopt',
         nargs='+',
         metavar="PARAM1, PARAM2, ..",
-        choices=[
-            'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda',
-            'net_lr', 'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff',
-            'beta', 'net_lr_decay', 'n_step'
-        ],
+        choices=hopt_opts,
         help="(Hopt) Hyper-parameter optimization with hyperopt.",
         default=None)
     parser.add_argument(
