@@ -390,52 +390,6 @@ class VNetStrat(NetStrat):
         pass
 
 
-class AfterstateStrat(VNetStrat):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.net = AfterstateNet(self.pp, self.logger)
-        self.val = 0.0
-
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        if ch is not None:
-            value_target = reward + self.gamma * np.array([[self.val]])
-            fgrid = GF.feature_rep(grid)
-            # next_fgrids equivalent to [GF.feature_rep(self.grid)], because executing
-            # (ce_type, cell, ch) on grid led to self.grid
-            next_fgrids = GF.incremental_freps(grid, fgrid, cell, ce_type, np.array([ch]))
-            self.backward([fgrid], next_fgrids, value_target)
-
-        next_ce_type, next_cell = next_cevent[1:3]
-        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
-        self.val = next_val
-        return next_ch
-
-    def optimal_ch(self, ce_type, cell) -> int:
-        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
-            if len(chs) == 0:
-                # NOTE IS this correct? Is val=0 trained on ever?
-                return None, 0
-        else:
-            chs = np.nonzero(self.grid[cell])[0]
-
-        fgrids = GF.afterstate_freps(self.grid, cell, ce_type, chs)
-        # fgrids = GF.scale_freps(fgrids)
-        qvals = self.net.forward(fgrids)
-        self.qval_means.append(np.mean(qvals))
-        assert qvals.shape == (len(chs), )
-        if np.random.random() < self.epsilon:
-            idx = np.random.randint(0, len(qvals))
-            ch = chs[idx]
-        else:
-            idx = np.argmax(qvals)
-            ch = chs[idx]
-        self.epsilon *= self.epsilon_decay
-        if ch is None:
-            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals}\n")
-        return ch, qvals[idx]
-
-
 class SinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -490,6 +444,12 @@ class SinghNetStrat(VNetStrat):
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, qvals_dense[amax_idx]
+
+
+class VConvNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = AfterstateNet(self.pp, self.logger)
 
 
 class RSMART(SinghNetStrat):
