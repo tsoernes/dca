@@ -416,9 +416,9 @@ class SinghNetStrat(VNetStrat):
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         # value_target = reward + self.gamma * np.array([[self.val]])
-        freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
 
         if ch is not None:
+            freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
             # next_freps equivalent to [GF.feature_rep(self.grid)], because executing
             # (ce_type, cell, ch) on grid led to self.grid
             next_freps = NGF.incremental_freps(grid, freps[0], cell, ce_type,
@@ -431,24 +431,13 @@ class SinghNetStrat(VNetStrat):
                 assert (next_freps == next_freps2).all()
                 assert (next_freps == next_freps3).all(), (next_freps.shape,
                                                            next_freps3.shape)
-        else:
-            next_freps = freps
-
-        # if self.pp['dt_rewards']:
-        #     dt = next_cevent[0] - self.b_t0
-        #     beta_disc = np.exp(-self.beta * dt)
-        #     reward = reward * (1 - beta_disc) / self.beta
-        #     # reward = np.count_nonzero(self.grid) * (1 - beta_disc) / self.beta
-        #     gamma = beta_disc
-        # else:
-        gamma = self.gamma
-        # self.logger.error(f"{gamma}, {reward}")
-        self.backward(freps=freps, rewards=reward, next_freps=next_freps, gamma=gamma)
-        # self.b_t0 = next_cevent[0]
+            gamma = self.gamma
+            # self.logger.error(f"{gamma}, {reward}")
+            self.backward(freps=freps, rewards=reward, next_freps=next_freps, gamma=gamma)
+            # self.b_t0 = next_cevent[0]
 
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
-        # self.val = next_val
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
@@ -477,7 +466,6 @@ class RSMART(SinghNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
-        self.beta = self.pp['beta']
         self.avg_reward = 0
         self.tot_reward = 0
         self.tot_time = 0
@@ -493,7 +481,7 @@ class RSMART(SinghNetStrat):
 
             dt = next_cevent[0] - self.t0
             treward = reward - self.avg_reward * dt
-            self.backward(freps=freps, rewards=treward, next_freps=next_freps, gamma=0.90)
+            self.backward(freps=freps, rewards=treward, next_freps=next_freps, gamma=0.9)
             self.tot_reward += reward
             self.tot_time += dt
             self.avg_reward = (1 - self.alpha) * self.avg_reward + self.alpha * (

@@ -7,7 +7,7 @@ from eventgen import CEvent
 # Whether or not the part of the feature representation which
 # count the number of channels in use at neighbors with
 # a distance of 4 or less should include the cell itself in the count.
-countself = False
+countself = True
 rows, cols, n_channels = 7, 7, 70
 neighs1 = np.zeros((rows, cols, 7, 2), dtype=np.int32)
 neighs2 = np.zeros((rows, cols, 19, 2), dtype=np.int32)

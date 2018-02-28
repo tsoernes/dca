@@ -28,8 +28,8 @@ class SinghNet(Net):
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
-                # bias_initializer=tf.zeros_initializer(),
-                use_bias=False,
+                bias_initializer=tf.zeros_initializer(),
+                use_bias=True,
                 activation=None,
                 name="vals")
             online_vars = get_trainable_vars(scope)
