@@ -114,6 +114,7 @@ class Env:
             dt = self.cevent[0] - t
             beta_disc = np.exp(-self.beta * dt)
             reward = count * (1 - beta_disc) / self.beta
+            # reward = (1 - beta_disc) / self.beta
             return reward, beta_disc, self.cevent
         return count * self.reward_scale, None, self.cevent
 
