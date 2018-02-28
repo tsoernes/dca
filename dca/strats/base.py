@@ -3,9 +3,10 @@ from typing import Tuple
 
 import numpy as np
 
-import gridfuncs_numba as GF
+import gridfuncs_numba as NGF
 from environment import Env
 from eventgen import CEvent
+from gridfuncs import GF
 from replaybuffer import PrioritizedReplayBuffer
 from utils import LinearSchedule
 
@@ -191,6 +192,26 @@ class RLStrat(Strat):
         self.epsilon *= self.epsilon_decay  # Epsilon decay
         return ch
 
+    def policy_part_eps_greedy(self, chs, qvals_dense, cell):
+        """Epsilon greedy where exploration actions are selected from
+        the cells nominal channels, if possible"""
+        if np.random.random() < self.epsilon:
+            # Choose an eligible channel at random
+            nominal_eligible_chs = []
+            for ch in chs:
+                if GF.nom_chs[cell][ch]:
+                    nominal_eligible_chs.append(ch)
+            if nominal_eligible_chs:
+                ch = np.random.choice(nominal_eligible_chs)
+            else:
+                ch = np.random.choice(chs)
+        else:
+            # Choose greedily
+            idx = np.argmax(qvals_dense)
+            ch = chs[idx]
+        self.epsilon *= self.epsilon_decay  # Epsilon decay
+        return ch
+
     def policy_boltzmann(self, chs, qvals_dense):
         scaled = np.exp((qvals_dense - np.max(qvals_dense)) / self.temp)
         probs = scaled / np.sum(scaled)
@@ -211,7 +232,7 @@ class RLStrat(Strat):
         n_used = len(inuse)
 
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 # No channels available for assignment,
                 return (None, None)
@@ -234,8 +255,8 @@ class RLStrat(Strat):
             ch = chs[amin_idx]
             max_ch = ch
         else:
-            # print(qvals_dense.shape, chs.shape)
-            ch = self.policy_eps_greedy(chs, qvals_dense)
+            # ch = self.policy_eps_greedy(chs, qvals_dense)
+            ch = self.policy_part_eps_greedy(chs, qvals_dense, cell)
             amax_idx = np.argmax(qvals_dense)
             max_ch = chs[amax_idx]
 

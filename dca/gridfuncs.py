@@ -1,4 +1,5 @@
 import functools
+import math
 
 import numpy as np
 
@@ -24,7 +25,13 @@ class GridFuncs(metaclass=Singleton):
         # Whether or not the part of the feature representation which
         # count the number of channels in use at neighbors with
         # a distance of 4 or less should include the cell itself in the count.
+        # Nominal channels for each cell
         self.countself = False
+
+        self.labels = np.zeros((self.rows, self.cols), dtype=int)
+        self._partition_cells()
+        self.nom_chs = np.zeros((self.rows, self.cols, self.n_channels), dtype=bool)
+        self._assign_chs()
 
     def validate_reuse_constr(self, grid):
         """
@@ -147,8 +154,6 @@ class GridFuncs(metaclass=Singleton):
         Create an n*m array with the label for each cell.
         """
 
-        labels = np.zeros((self.rows, self.cols), dtype=int)
-
         def label(l, y, x):
             # A center and some part of its subgrid may be out of bounds.
             if (x >= 0 and x < self.cols and y >= 0 and y < self.rows):
@@ -160,7 +165,41 @@ class GridFuncs(metaclass=Singleton):
             label(0, *center)
             for i, neigh in enumerate(self.neighbors1sparse(*center)):
                 label(i + 1, *neigh)
-        return labels
+
+    def _assign_chs(self, n_nom_channels=0):
+        """
+        Partition the cells and channels up to and including 'n_nom_channels'
+        into 7 lots, and assign
+        the channels to cells such that they will not interfere with each
+        other within a channel reuse constraint of 3.
+        The channels assigned to a cell are its nominal channels.
+
+        Create a (rows*cols*n_channels) array
+        where a channel for a cell has value 1 if nominal, 0 otherwise.
+        """
+        if n_nom_channels == 0:
+            n_nom_channels = self.n_channels
+        channels_per_subgrid_cell = []
+        channels_per_subgrid_cell_accu = [0]
+        channels_per_cell = n_nom_channels / 7
+        ceil = math.ceil(channels_per_cell)
+        floor = math.floor(channels_per_cell)
+        tot = 0
+        for i in range(7):
+            if tot + ceil + (6 - i) * floor > n_nom_channels:
+                tot += ceil
+                cell_channels = ceil
+            else:
+                tot += floor
+                cell_channels = floor
+            channels_per_subgrid_cell.append(cell_channels)
+            channels_per_subgrid_cell_accu.append(tot)
+        for r in range(self.rows):
+            for c in range(self.cols):
+                label = self.labels[r][c]
+                lo = channels_per_subgrid_cell_accu[label]
+                hi = channels_per_subgrid_cell_accu[label + 1]
+                self.nom_chs[r][c][lo:hi] = 1
 
     @staticmethod
     def afterstates(grid, cell, ce_type, chs):
