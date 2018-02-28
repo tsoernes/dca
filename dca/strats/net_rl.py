@@ -69,7 +69,9 @@ class QNetStrat(NetStrat):
         self.net.sess.run(self.net.copy_online_to_target)
 
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
-        qvals = self.net.forward(self.grid, cell, ce_type)
+        frep = GF.feature_rep(self.grid) if self.pp['freps'] else None
+        qvals = self.net.forward(self.grid, cell, ce_type, frep)
+        self.qval_means.append(np.mean(qvals))
         return qvals[chs]
 
     def update_qval_experience(self, *args, **kwargs):
@@ -94,6 +96,15 @@ class QNetStrat(NetStrat):
             new_priorities = np.abs(td_errs) + self.prioritized_replay_eps
             self.exp_buffer.update_priorities(batch_idxes, new_priorities)
 
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        # NOTE For greedy qlearning, strictly speaking, the correct thing to do
+        # is to update_qval before finding optimal_ch
+        next_ce_type, next_cell = next_cevent[1:3]
+        next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
+        self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell, next_ch,
+                         next_max_ch)
+        return next_ch
+
 
 class QLearnNetStrat(QNetStrat):
     """Update towards greedy, possibly illegal, action selection
@@ -103,13 +114,8 @@ class QLearnNetStrat(QNetStrat):
         super().__init__("QLearnNet", *args, **kwargs)
         self.exps = []
 
-    def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
-        frep = GF.feature_rep(self.grid) if self.pp['freps'] else None
-        qvals = self.net.forward(self.grid, cell, ce_type, frep)
-        self.qval_means.append(np.mean(qvals))
-        return qvals[chs]
-
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell):
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_ch,
+                    next_max_ch):
         if ce_type != CEvent.END and ch is not None:
             if self.pp['freps']:
                 frep, next_freps = GF.successive_freps(grid, cell, ce_type,
@@ -118,20 +124,16 @@ class QLearnNetStrat(QNetStrat):
             else:
                 freps, next_freps = None, None
             self.backward(
-                grid,
-                cell, [ch], [reward],
-                next_grid,
-                next_cell,
+                grids=grid,
+                cells=cell,
+                chs=[ch],
+                rewards=[reward],
+                next_grids=next_grid,
+                next_cells=next_cell,
                 freps=freps,
                 next_freps=next_freps,
                 next_chs=None,
                 weights=None)
-
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        next_ce_type, next_cell = next_cevent[1:3]
-        self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell)
-        next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
-        return next_ch
 
 
 class NQLearnNetStrat(QNetStrat):
@@ -208,9 +210,27 @@ class QLearnEligibleNetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("QlearnEligibleNet", *args, **kwargs)
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_ch,
+                    next_max_ch):
         """ Update qval for one experience tuple"""
-        self.backward(grid, cell, [ch], [reward], self.grid, next_cell, [next_max_ch])
+        if ce_type != CEvent.END and ch is not None and next_max_ch is not None:
+            if self.pp['freps']:
+                frep, next_freps = GF.successive_freps(grid, cell, ce_type,
+                                                       np.array([ch]))
+                freps = [frep]
+            else:
+                freps, next_freps = None, None
+            self.backward(
+                grids=grid,
+                cells=cell,
+                chs=[ch],
+                rewards=[reward],
+                next_grids=next_grid,
+                next_cells=next_cell,
+                freps=freps,
+                next_freps=next_freps,
+                next_chs=[next_max_ch],
+                weights=None)
 
 
 class SARSANetStrat(QNetStrat):
@@ -219,17 +239,27 @@ class SARSANetStrat(QNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__("SARSANet", *args, **kwargs)
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_ch,
+                    next_max_ch):
         """ Update qval for one experience tuple"""
-        if next_ch is not None:
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+            if self.pp['freps']:
+                frep, next_freps = GF.successive_freps(grid, cell, ce_type,
+                                                       np.array([ch]))
+                freps = [frep]
+            else:
+                freps, next_freps = None, None
             self.backward(
-                grid,
-                cell, [ch], [reward],
-                self.grid,
-                next_cell,
-                freps=None,
-                next_freps=None,
-                next_chs=[next_ch])
+                grids=grid,
+                cells=cell,
+                chs=[ch],
+                rewards=[reward],
+                next_grids=next_grid,
+                next_cells=next_cell,
+                freps=freps,
+                next_freps=next_freps,
+                next_chs=[next_ch],
+                weights=None)
 
 
 class DistQNetStrat(QNetStrat):
