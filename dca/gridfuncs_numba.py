@@ -9,12 +9,11 @@ from eventgen import CEvent
 # a distance of 4 or less should include the cell itself in the count.
 countself = True
 rows, cols, n_channels = 7, 7, 70
-neighs1 = np.zeros((rows, cols, 7, 2), dtype=np.int32)
-neighs2 = np.zeros((rows, cols, 19, 2), dtype=np.int32)
-neighs4 = np.zeros((rows, cols, 43, 2), dtype=np.int32)
-n_neighs1 = np.zeros((rows, cols), dtype=np.int32)
-n_neighs2 = np.zeros((rows, cols), dtype=np.int32)
-n_neighs4 = np.zeros((rows, cols), dtype=np.int32)
+_neighs1 = np.zeros((rows, cols, 7, 2), dtype=np.int32)
+_neighs2 = np.zeros((rows, cols, 19, 2), dtype=np.int32)
+_neighs3 = np.zeros((rows, cols, 37, 2), dtype=np.int32)
+_neighs4 = np.zeros((rows, cols, 43, 2), dtype=np.int32)
+_n_neighs = np.zeros((4, rows, cols), dtype=np.int32)
 
 
 def _hex_distance(r1, c1, r2, c2):
@@ -24,34 +23,35 @@ def _hex_distance(r1, c1, r2, c2):
 def _generate_neighbors():
     for r1 in range(rows):
         for c1 in range(cols):
-            neighs1[r1, c1, 0] = (r1, c1)
-            neighs2[r1, c1, 0] = (r1, c1)
-            neighs4[r1, c1, 0] = (r1, c1)
-            n_neighs1[r1, c1] += 1
-            n_neighs2[r1, c1] += 1
-            n_neighs4[r1, c1] += 1
+            _neighs1[r1, c1, 0] = (r1, c1)
+            _neighs2[r1, c1, 0] = (r1, c1)
+            _neighs3[r1, c1, 0] = (r1, c1)
+            _neighs4[r1, c1, 0] = (r1, c1)
+            _n_neighs[:, r1, c1] += 1
             for r2 in range(rows):
                 for c2 in range(cols):
                     dist = _hex_distance(r1, c1, r2, c2)
                     if (r1, c1) != (r2, c2) and dist <= 4:
-                        neighs4[r1, c1, n_neighs4[r1, c1]] = (r2, c2)
-                        n_neighs4[r1, c1] += 1
-                        if dist <= 2:
-                            neighs2[r1, c1, n_neighs2[r1, c1]] = (r2, c2)
-                            n_neighs2[r1, c1] += 1
-                            if dist <= 1:
-                                neighs1[r1, c1, n_neighs1[r1, c1]] = (r2, c2)
-                                n_neighs1[r1, c1] += 1
+                        _neighs4[r1, c1, _n_neighs[3, r1, c1]] = (r2, c2)
+                        _n_neighs[3, r1, c1] += 1
+                        if (r1, c1) != (r2, c2) and dist <= 3:
+                            _neighs3[r1, c1, _n_neighs[2, r1, c1]] = (r2, c2)
+                            _n_neighs[2, r1, c1] += 1
+                            if dist <= 2:
+                                _neighs2[r1, c1, _n_neighs[1, r1, c1]] = (r2, c2)
+                                _n_neighs[1, r1, c1] += 1
+                                if dist <= 1:
+                                    _neighs1[r1, c1, _n_neighs[0, r1, c1]] = (r2, c2)
+                                    _n_neighs[0, r1, c1] += 1
     print("Generated neighbors")
 
 
 _generate_neighbors()
-neighs1.setflags(write=False)
-neighs2.setflags(write=False)
-neighs4.setflags(write=False)
-n_neighs1.setflags(write=False)
-n_neighs2.setflags(write=False)
-n_neighs4.setflags(write=False)
+_neighs1.setflags(write=False)
+_neighs2.setflags(write=False)
+_neighs3.setflags(write=False)
+_neighs4.setflags(write=False)
+_n_neighs.setflags(write=False)
 
 
 @njit(Array(int32, 2, 'C', readonly=True)
@@ -60,17 +60,16 @@ def neighbors_np(dist, row, col, include_self=False):
     """np array of 2-dim np arrays"""
     start = 0 if include_self else 1
     if dist == 1:
-        neighs = neighs1
-        n_neighs = n_neighs1
+        neighs = _neighs1
     elif dist == 2:
-        neighs = neighs2
-        n_neighs = n_neighs2
+        neighs = _neighs2
+    elif dist == 3:
+        neighs = _neighs3
     elif dist == 4:
-        neighs = neighs4
-        n_neighs = n_neighs4
+        neighs = _neighs4
     else:
         raise NotImplementedError
-    return neighs[row, col, start:n_neighs[row, col]]
+    return neighs[row, col, start:_n_neighs[dist - 1, row, col]]
 
 
 @njit(List(UniTuple(int32, 2))
@@ -79,18 +78,17 @@ def neighbors_tups(dist, row, col, include_self=False):
     """list of tuples"""
     start = 0 if include_self else 1
     if dist == 1:
-        neighs = neighs1
-        n_neighs = n_neighs1
+        neighs = _neighs1
     elif dist == 2:
-        neighs = neighs2
-        n_neighs = n_neighs2
+        neighs = _neighs2
+    elif dist == 3:
+        neighs = _neighs3
     elif dist == 4:
-        neighs = neighs4
-        n_neighs = n_neighs4
+        neighs = _neighs4
     else:
         raise NotImplementedError
     return [(neighs[row, col, i, 0], neighs[row, col, i, 1])
-            for i in range(start, n_neighs[row, col])]
+            for i in range(start, _n_neighs[dist - 1, row, col])]
 
 
 @njit(UniTuple(Array(int32, 1, 'A', readonly=True), 2)
@@ -99,18 +97,17 @@ def neighbors_sep(dist, row, col, include_self=False):
     """2-Tuple of np arrays"""
     start = 0 if include_self else 1
     if dist == 1:
-        neighs = neighs1
-        n_neighs = n_neighs1
+        neighs = _neighs1
     elif dist == 2:
-        neighs = neighs2
-        n_neighs = n_neighs2
+        neighs = _neighs2
+    elif dist == 3:
+        neighs = _neighs3
     elif dist == 4:
-        neighs = neighs4
-        n_neighs = n_neighs4
+        neighs = _neighs4
     else:
         raise NotImplementedError
-    return (neighs[row, col, start:n_neighs[row, col], 0],
-            neighs[row, col, start:n_neighs[row, col], 1])
+    return (neighs[row, col, start:_n_neighs[dist - 1, row, col], 0],
+            neighs[row, col, start:_n_neighs[dist - 1, row, col], 1])
 
 
 def neighbors(dist, row, col, separate=False, include_self=False):
@@ -122,7 +119,7 @@ def neighbors(dist, row, col, separate=False, include_self=False):
 
 @njit(cache=True)
 def _inuse_neighs(grid, r, c):
-    # Channels in use at neighbors
+    """Channels in use at cell neighbors within distance of 2"""
     neighs = neighbors_np(2, r, c, False)
     alloc_map = grid[neighs[0, 0], neighs[0, 1]]
     for i in range(1, len(neighs)):
@@ -131,19 +128,18 @@ def _inuse_neighs(grid, r, c):
 
 
 @njit(cache=True)
-def get_eligible_chs(grid, cell):
-    alloc_map = _inuse_neighs(grid, *cell)
-    alloc_map = np.bitwise_or(alloc_map, grid[cell])
-    eligible = np.nonzero(np.invert(alloc_map))[0]
-    return eligible
+def _eligible_map(grid, r, c):
+    """Channels in use at cell or its neighbors within distance of 2"""
+    inuse = _inuse_neighs(grid, r, c)
+    inuse = np.bitwise_or(inuse, grid[(r, c)])
+    eligible_map = np.invert(inuse)
+    return eligible_map
 
 
 @njit(cache=True)
-def get_n_eligible_chs(grid, cell):
-    alloc_map = _inuse_neighs(grid, *cell)
-    alloc_map = np.bitwise_or(alloc_map, grid[cell])
-    n_eligible = np.sum(np.invert(alloc_map))
-    return n_eligible
+def get_eligible_chs(grid, cell):
+    eligible = np.nonzero(_eligible_map(grid, *cell))[0]
+    return eligible
 
 
 @njit(cache=True)
@@ -185,25 +181,38 @@ def feature_rep(grid):
             for i in range(len(neighs)):
                 n_used += grid[neighs[i, 0], neighs[i, 1]]
             frep[r, c, :-1] = n_used
-            frep[r, c, -1] = get_n_eligible_chs(grid, (r, c))
+            frep[r, c, -1] = np.sum(_eligible_map(grid, r, c))
     return frep
 
 
 @njit(cache=True)
-def feature_reps(grids):
-    assert grids.ndim == 4
-    n = len(grids)
-    freps = np.zeros((n, rows, cols, n_channels + 1), dtype=np.int16)
+def feature_rep_big(grid):
+    """
+    For each cell:
+      - The number of eligible channels
+    For each cell-channel pair:
+      - The number of times the ch is used by neighbors with dist 3 or less
+      - The number of times the ch is used by neighbors with dist 2 or less
+      - If the ch is eligible or not
+    """
+    assert grid.ndim == 3
+    frep = np.zeros((intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
     for r in range(rows):
         for c in range(cols):
-            neighs = neighbors_np(4, r, c, countself)
-            for i in range(n):
-                n_used = np.zeros(n_channels, dtype=int32)
-                for j in range(len(neighs)):
-                    n_used += grids[i, neighs[j, 0], neighs[j, 1]]
-                freps[i, r, c, :-1] = n_used
-                freps[i, r, c, -1] = get_n_eligible_chs(grids[i], (r, c))
-    return freps
+            neighs3 = neighbors_np(3, r, c, countself)
+            neighs4 = neighbors_np(4, r, c, countself)
+            n_used3 = np.zeros(n_channels, dtype=int32)
+            n_used4 = np.zeros(n_channels, dtype=int32)
+            for i in range(len(neighs3)):
+                n_used3 += grid[neighs3[i, 0], neighs3[i, 1]]
+            for i in range(len(neighs4)):
+                n_used4 += grid[neighs4[i, 0], neighs4[i, 1]]
+            frep[r, c, :n_channels] = n_used3
+            frep[r, c, n_channels:n_channels * 2] = n_used4
+            elig = _eligible_map(grid, r, c)
+            frep[r, c, n_channels * 2:n_channels * 3] = elig
+            frep[r, c, -1] = np.sum(elig)
+    return frep
 
 
 @njit(cache=True)
@@ -214,10 +223,25 @@ def afterstate_freps(grid, cell, ce_type, chs):
 
 
 @njit(cache=True)
+def afterstate_freps_big(grid, cell, ce_type, chs):
+    """Feature representation for each of the afterstates of grid"""
+    frep = feature_rep_big(grid)
+    return incremental_freps_big(grid, frep, cell, ce_type, chs)
+
+
+@njit(cache=True)
 def successive_freps(grid, cell, ce_type, chs):
     """Frep for grid and its afterstates"""
     frep = feature_rep(grid)
     next_frep = incremental_freps(grid, frep, cell, ce_type, chs)
+    return (frep, next_frep)
+
+
+@njit(cache=True)
+def successive_freps_big(grid, cell, ce_type, chs):
+    """Frep for grid and its afterstates"""
+    frep = feature_rep_big(grid)
+    next_frep = incremental_freps_big(grid, frep, cell, ce_type, chs)
     return (frep, next_frep)
 
 
@@ -253,6 +277,50 @@ def incremental_freps(grid, frep, cell, ce_type, chs):
             if not not_eligible:
                 # For END: ch is in use at 'cell', but will become eligible
                 # For NEW: ch is eligible at given neighs2, but will be taken in use
+                freps[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig_self_diff
+    if ce_type == CEvent.END:
+        grid[cell][chs] = 1
+    return freps
+
+
+@njit(cache=True)
+def incremental_freps_big(grid, frep, cell, ce_type, chs):
+    """
+    Given a grid, its feature representation frep,
+    and a set of actions specified by cell, event type and a list of channels,
+    derive feature representations for the afterstates of grid
+    """
+    r, c = cell
+    neighs3 = neighbors_np(3, r, c, countself)
+    neighs4 = neighbors_np(4, r, c, countself)
+    neighs2 = neighbors_np(2, r, c, True)
+    freps = np.zeros((len(chs), intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
+    freps[:] = frep
+    if ce_type == CEvent.END:
+        n_used_neighs_diff = -1
+        n_elig_self_diff = 1
+        bflip = 0
+        grid[cell][chs] = 0
+    else:
+        n_used_neighs_diff = 1
+        n_elig_self_diff = -1
+        bflip = 1
+    for i in range(len(chs)):
+        ch = chs[i]
+        for j in range(len(neighs3)):
+            freps[i, neighs3[j, 0], neighs3[j, 1], ch] += n_used_neighs_diff
+        for j in range(len(neighs4)):
+            freps[i, neighs4[j, 0], neighs4[j, 1], n_channels + ch] += n_used_neighs_diff
+        for j in range(len(neighs2)):
+            r2, c2 = neighs2[j, 0], neighs2[j, 1]
+            neighs = neighbors_np(2, r2, c2, False)
+            not_eligible = grid[r2, c2, ch]
+            for k in range(len(neighs)):
+                not_eligible = not_eligible or grid[neighs[k, 0], neighs[k, 1], ch]
+            if not not_eligible:
+                # For END: ch is in use at 'cell', but will become eligible
+                # For NEW: ch is eligible at given neighs2, but will be taken in use
+                freps[i, neighs2[j, 0], neighs2[j, 1], n_channels * 2 + ch] = bflip
                 freps[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig_self_diff
     if ce_type == CEvent.END:
         grid[cell][chs] = 1
