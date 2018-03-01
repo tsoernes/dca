@@ -98,7 +98,6 @@ class QNet(Net):
         else:
             self.weights = 1
 
-        tf.one_hot
         # Prepare inputs for network
         grids_f = tf.cast(self.grids, float32)
         if self.pp['scale_freps']:
