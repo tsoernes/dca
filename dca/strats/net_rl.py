@@ -446,7 +446,7 @@ class SinghNetStrat(VNetStrat):
         return ch, qvals_dense[amax_idx]
 
 
-class VConvNetStrat(VNetStrat):
+class VConvNetStrat(SinghNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = AfterstateNet(self.pp, self.logger)

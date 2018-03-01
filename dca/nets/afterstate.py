@@ -16,7 +16,7 @@ class AfterstateNet(Net):
     def build(self):
         # depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
         depth = self.n_channels + 1
-        self.grids = tf.placeholder(
+        self.freps = tf.placeholder(
             tf.float32, [None, self.pp['rows'], self.pp['cols'], depth], "grids")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
 
@@ -25,9 +25,9 @@ class AfterstateNet(Net):
             mult1 = np.ones(frepshape[1:], np.float32)  # Scaling feature reps
             mult1[:, :, :-1] /= 43
             mult1[:, :, -1] /= 70
-            inp = self.grids * tf.constant(mult1)
+            inp = self.freps * tf.constant(mult1)
         else:
-            inp = self.grids
+            inp = self.freps
 
         with tf.variable_scope('model/' + self.name) as scope:
             conv1 = tf.layers.conv2d(
@@ -43,13 +43,20 @@ class AfterstateNet(Net):
                 inputs=conv1,
                 filters=70,
                 kernel_size=3,
-                padding="same",
+                kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.regularizer,
+                use_bias=False,
+                activation=self.act_fn)
+            conv3 = tf.layers.conv2d(
+                inputs=conv2,
+                filters=30,
+                kernel_size=3,
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,
                 use_bias=False,
                 activation=self.act_fn)
             self.value = tf.layers.dense(
-                inputs=tf.layers.flatten(conv2),
+                inputs=tf.layers.flatten(conv3),
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
@@ -64,22 +71,24 @@ class AfterstateNet(Net):
             labels=self.value_target, predictions=self.value)
         return online_vars
 
-    def forward(self, grids):
+    def forward(self, freps):
         values = self.sess.run(
             self.value,
-            # feed_dict={self.grids: prep_data_grids(grids, self.pp['grid_split'])},
-            feed_dict={self.grids: grids},
+            feed_dict={self.freps: freps},
             options=self.options,
             run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, grids, next_grids, value_target, gamma):
-        data = {
-            # self.grids: prep_data_grids(grids, self.pp['grid_split']),
-            self.grids: grids,
-            self.value_target: value_target
-        }
+    def backward(self, freps, rewards, next_freps, gamma):
+        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
+        value_target = rewards + gamma * next_value
+        # TODO NOTE TODO IS this really the correct reward, and the
+        # correct target
+        # if next_value[0] != next_val:
+        #     print(next_value, next_val)
+        # value_target = reward + self.gamma * next_val
+        data = {self.freps: freps, self.value_target: value_target}
         _, loss, lr, err = self.sess.run(
             [self.do_train, self.loss, self.lr, self.err],
             feed_dict=data,
