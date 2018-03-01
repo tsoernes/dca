@@ -4,14 +4,24 @@ import numpy as np
 import tensorflow as tf
 
 
-def scale_freps(freps):
-    """Scale feature reps"""
-    # TODO Scale -1 to 1
+def scale_and_centre_freps(freps):
+    """Scale feature reps to range [-1, 1]"""
     freps_f = tf.cast(freps, tf.float32)
     mult1 = np.ones(freps.shape[1:], np.float32)
     mult1[:, :, :-1] /= 3.5
     mult1[:, :, -1] /= 35
     freps_f = freps_f * tf.constant(mult1) - 1
+    return freps_f
+
+
+def scale_freps_big(freps):
+    """Scale feature reps [0, 1]"""
+    freps_f = tf.cast(freps, tf.float32)
+    mult1 = np.ones(freps.shape[1:], np.float32)
+    mult1[:, :, :70] /= 7
+    mult1[:, :, 70:140] /= 7
+    mult1[:, :, -1] /= 70
+    freps_f = freps_f * tf.constant(mult1)
     return freps_f
 
 

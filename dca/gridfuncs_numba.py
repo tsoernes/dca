@@ -7,13 +7,19 @@ from eventgen import CEvent
 # Whether or not the part of the feature representation which
 # count the number of channels in use at neighbors with
 # a distance of 4 or less should include the cell itself in the count.
-countself = True
+countself = False
 rows, cols, n_channels = 7, 7, 70
+# Neighs at dist less than
 _neighs1 = np.zeros((rows, cols, 7, 2), dtype=np.int32)
 _neighs2 = np.zeros((rows, cols, 19, 2), dtype=np.int32)
 _neighs3 = np.zeros((rows, cols, 37, 2), dtype=np.int32)
 _neighs4 = np.zeros((rows, cols, 43, 2), dtype=np.int32)
 _n_neighs = np.zeros((4, rows, cols), dtype=np.int32)
+# Neighs at exactly dist
+_neighs2o = np.zeros((rows, cols, 12, 2), dtype=np.int32)
+_neighs3o = np.zeros((rows, cols, 18, 2), dtype=np.int32)
+_neighs4o = np.zeros((rows, cols, 15, 2), dtype=np.int32)
+_n_neighs_o = np.zeros((3, rows, cols), dtype=np.int32)
 
 
 def _hex_distance(r1, c1, r2, c2):
@@ -34,12 +40,21 @@ def _generate_neighbors():
                     if (r1, c1) != (r2, c2) and dist <= 4:
                         _neighs4[r1, c1, _n_neighs[3, r1, c1]] = (r2, c2)
                         _n_neighs[3, r1, c1] += 1
-                        if (r1, c1) != (r2, c2) and dist <= 3:
+                        if dist == 4:
+                            _neighs4o[r1, c1, _n_neighs_o[2, r1, c1]] = (r2, c2)
+                            _n_neighs_o[2, r1, c1] += 1
+                        if dist <= 3:
                             _neighs3[r1, c1, _n_neighs[2, r1, c1]] = (r2, c2)
                             _n_neighs[2, r1, c1] += 1
+                            if dist == 3:
+                                _neighs3o[r1, c1, _n_neighs_o[1, r1, c1]] = (r2, c2)
+                                _n_neighs_o[1, r1, c1] += 1
                             if dist <= 2:
                                 _neighs2[r1, c1, _n_neighs[1, r1, c1]] = (r2, c2)
                                 _n_neighs[1, r1, c1] += 1
+                                if dist == 2:
+                                    _neighs2o[r1, c1, _n_neighs_o[0, r1, c1]] = (r2, c2)
+                                    _n_neighs_o[0, r1, c1] += 1
                                 if dist <= 1:
                                     _neighs1[r1, c1, _n_neighs[0, r1, c1]] = (r2, c2)
                                     _n_neighs[0, r1, c1] += 1
@@ -191,8 +206,8 @@ def feature_rep_big(grid):
     For each cell:
       - The number of eligible channels
     For each cell-channel pair:
+      - The number of times the ch is used by neighbors with dist 4 or less
       - The number of times the ch is used by neighbors with dist 3 or less
-      - The number of times the ch is used by neighbors with dist 2 or less
       - If the ch is eligible or not
     """
     assert grid.ndim == 3
@@ -207,6 +222,36 @@ def feature_rep_big(grid):
                 n_used3 += grid[neighs3[i, 0], neighs3[i, 1]]
             for i in range(len(neighs4)):
                 n_used4 += grid[neighs4[i, 0], neighs4[i, 1]]
+            frep[r, c, :n_channels] = n_used3
+            frep[r, c, n_channels:n_channels * 2] = n_used4
+            elig = _eligible_map(grid, r, c)
+            frep[r, c, n_channels * 2:n_channels * 3] = elig
+            frep[r, c, -1] = np.sum(elig)
+    return frep
+
+
+@njit(cache=True)
+def feature_rep_big2(grid):
+    """
+    For each cell:
+      - The number of eligible channels
+    For each cell-channel pair:
+      - The number of times the ch is used by neighbors with dist 4
+      - The number of times the ch is used by neighbors with dist 3
+      - If the ch is eligible or not
+    """
+    assert grid.ndim == 3
+    frep = np.zeros((intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
+    for r in range(rows):
+        for c in range(cols):
+            neighs3o = _neighs3o[r, c, :_n_neighs_o[1, r, c]]
+            neighs4o = _neighs4o[r, c, :_n_neighs_o[2, r, c]]
+            n_used3 = np.zeros(n_channels, dtype=int32)
+            n_used4 = np.zeros(n_channels, dtype=int32)
+            for i in range(len(neighs3o)):
+                n_used3 += grid[neighs3o[i, 0], neighs3o[i, 1]]
+            for i in range(len(neighs4o)):
+                n_used4 += grid[neighs4o[i, 0], neighs4o[i, 1]]
             frep[r, c, :n_channels] = n_used3
             frep[r, c, n_channels:n_channels * 2] = n_used4
             elig = _eligible_map(grid, r, c)
@@ -299,12 +344,12 @@ def incremental_freps_big(grid, frep, cell, ce_type, chs):
     if ce_type == CEvent.END:
         n_used_neighs_diff = -1
         n_elig_self_diff = 1
-        bflip = 0
+        bflip = 1
         grid[cell][chs] = 0
     else:
         n_used_neighs_diff = 1
         n_elig_self_diff = -1
-        bflip = 1
+        bflip = 0
     for i in range(len(chs)):
         ch = chs[i]
         for j in range(len(neighs3)):

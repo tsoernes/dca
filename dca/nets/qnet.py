@@ -5,7 +5,8 @@ from tensorflow import float32, int32
 
 from nets.net import Net
 from nets.utils import (copy_net_op, discount, get_trainable_vars,
-                        prep_data_cells, prep_data_grids, scale_freps)
+                        prep_data_cells, prep_data_grids,
+                        scale_and_centre_freps)
 
 
 class QNet(Net):

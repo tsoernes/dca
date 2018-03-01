@@ -15,7 +15,8 @@ class AfterstateNet(Net):
 
     def build(self):
         # depth = self.n_channels * 2 if self.pp['grid_split'] else self.n_channels
-        depth = self.n_channels + 1
+        # depth = self.n_channels + 1
+        depth = self.n_channels
         self.freps = tf.placeholder(
             tf.float32, [None, self.pp['rows'], self.pp['cols'], depth], "grids")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
@@ -32,36 +33,28 @@ class AfterstateNet(Net):
         with tf.variable_scope('model/' + self.name) as scope:
             conv1 = tf.layers.conv2d(
                 inputs=inp,
-                filters=140,
-                kernel_size=5,
+                filters=70,
+                kernel_size=8,
                 padding="same",
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.regularizer,
-                use_bias=False,
+                use_bias=True,
                 activation=self.act_fn)
-            conv2 = tf.layers.conv2d(
-                inputs=conv1,
-                filters=70,
-                kernel_size=3,
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                use_bias=False,
-                activation=self.act_fn)
-            conv3 = tf.layers.conv2d(
-                inputs=conv2,
-                filters=30,
-                kernel_size=3,
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                use_bias=False,
-                activation=self.act_fn)
+            # conv2 = tf.layers.conv2d(
+            #     inputs=conv1,
+            #     filters=140,
+            #     kernel_size=4,
+            #     kernel_initializer=self.kern_init_conv(),
+            #     kernel_regularizer=self.regularizer,
+            #     use_bias=True,
+            #     activation=self.act_fn)
             self.value = tf.layers.dense(
-                inputs=tf.layers.flatten(conv3),
+                inputs=tf.layers.flatten(conv1),
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
                 bias_initializer=tf.zeros_initializer(),
-                use_bias=False,
+                use_bias=True,
                 activation=None,
                 name="vals")
             online_vars = get_trainable_vars(scope)

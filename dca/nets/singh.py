@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import get_trainable_vars, scale_freps
+from nets.utils import get_trainable_vars, scale_freps_big
 
 
 class SinghNet(Net):
@@ -14,12 +14,13 @@ class SinghNet(Net):
         super().__init__(name=self.name, *args, **kwargs)
 
     def build(self):
-        frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
+        # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
+        frepshape = [None, self.rows, self.cols, self.n_channels + 1]
         self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
 
         if self.pp['scale_freps']:
-            freps = scale_freps(self.freps)
+            freps = scale_freps_big(self.freps)
         else:
             freps = self.freps
         with tf.variable_scope('model/' + self.name) as scope:
@@ -51,11 +52,6 @@ class SinghNet(Net):
     def backward(self, freps, rewards, next_freps, gamma):
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
         value_target = rewards + gamma * next_value
-        # TODO NOTE TODO IS this really the correct reward, and the
-        # correct target
-        # if next_value[0] != next_val:
-        #     print(next_value, next_val)
-        # value_target = reward + self.gamma * next_val
         data = {self.freps: freps, self.value_target: value_target}
         _, loss, lr, err = self.sess.run(
             [self.do_train, self.loss, self.lr, self.err],
