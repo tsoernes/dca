@@ -372,11 +372,11 @@ class SinghNetStrat(VNetStrat):
         # value_target = reward + self.gamma * np.array([[self.val]])
 
         if ch is not None:
-            freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
+            freps = np.expand_dims(NGF.feature_rep_big(grid), axis=0)
             # next_freps equivalent to [GF.feature_rep(self.grid)], because executing
             # (ce_type, cell, ch) on grid led to self.grid
-            next_freps = NGF.incremental_freps(grid, freps[0], cell, ce_type,
-                                               np.array([ch]))
+            next_freps = NGF.incremental_freps_big(grid, freps[0], cell, ce_type,
+                                                   np.array([ch]))
             if self.pp['debug']:
                 freps2 = GF.feature_reps(grid)
                 next_freps2 = GF.feature_reps(self.grid)
@@ -402,7 +402,7 @@ class SinghNetStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
+        freps = NGF.afterstate_freps_big(self.grid, cell, ce_type, chs)
         if self.pp['debug']:
             freps2 = GF.afterstate_freps(self.grid, cell, ce_type, chs)
             assert (freps == freps2).all(), (freps.shape, freps2.shape)

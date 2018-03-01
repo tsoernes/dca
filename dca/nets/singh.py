@@ -14,7 +14,7 @@ class SinghNet(Net):
         super().__init__(name=self.name, *args, **kwargs)
 
     def build(self):
-        frepshape = [None, self.rows, self.cols, self.n_channels + 1]
+        frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
         self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
 
