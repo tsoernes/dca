@@ -9,7 +9,7 @@ from nets.acnet import ACNet
 from nets.afterstate import AfterstateNet
 from nets.dqnet import DistQNet
 from nets.qnet import QNet
-from nets.singhf import SinghNet
+from nets.singh import SinghNet
 # from nets.singhf import SinghNet
 from nets.singhq import SinghQNet
 from nets.utils import softmax

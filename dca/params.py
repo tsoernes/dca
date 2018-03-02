@@ -125,6 +125,12 @@ def get_pparams(defaults=False):
         default=0.99999)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
+        '-wbeta',
+        '--weight_beta',
+        type=float,
+        help="(RL) Singh weight correction",
+        default=1e-6)
+    parser.add_argument(
         '--beta',
         nargs='?',
         type=float,
