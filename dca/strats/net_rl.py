@@ -11,6 +11,7 @@ from nets.dqnet import DistQNet
 from nets.qnet import QNet
 from nets.singhf import SinghNet
 # from nets.singhf import SinghNet
+from nets.singhq import SinghQNet
 from nets.utils import softmax
 from strats.base import RLStrat
 
@@ -386,43 +387,17 @@ class ACNetStrat(NetStrat):
 class VNetStrat(NetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.beta = self.pp['beta']
 
     def update_target_net(self):
         pass
 
-
-class SinghNetStrat(VNetStrat):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.net = SinghNet(self.pp, self.logger)
-        self.beta = self.pp['beta']
-        self.val = 0.0
-        self.b_t0 = 0
-
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
-        # value_target = reward + self.gamma * np.array([[self.val]])
-
-        if ch is not None:
-            freps = np.expand_dims(NGF.feature_rep_big(grid), axis=0)
-            # next_freps equivalent to [GF.feature_rep(self.grid)], because executing
-            # (ce_type, cell, ch) on grid led to self.grid
-            next_freps = NGF.incremental_freps_big(grid, freps[0], cell, ce_type,
-                                                   np.array([ch]))
-            if self.pp['debug']:
-                freps2 = GF.feature_reps(grid)
-                next_freps2 = GF.feature_reps(self.grid)
-                next_freps3 = np.expand_dims(NGF.feature_rep(self.grid), axis=0)
-                assert (freps == freps2).all()
-                assert (next_freps == next_freps2).all()
-                assert (next_freps == next_freps3).all(), (next_freps.shape,
-                                                           next_freps3.shape)
-            gamma = self.gamma
-            # self.logger.error(f"{gamma}, {reward}")
-            self.backward(freps=freps, rewards=reward, next_freps=next_freps, gamma=gamma)
-            # self.b_t0 = next_cevent[0]
-
         next_ce_type, next_cell = next_cevent[1:3]
-        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
+        if ch is not None:
+            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell)
+
+        next_ch, _ = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
@@ -433,24 +408,101 @@ class SinghNetStrat(VNetStrat):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        freps = NGF.afterstate_freps_big(self.grid, cell, ce_type, chs)
-        if self.pp['debug']:
-            freps2 = GF.afterstate_freps(self.grid, cell, ce_type, chs)
-            assert (freps == freps2).all(), (freps.shape, freps2.shape)
+        qvals_dense = self.get_qvals(self.grid, cell, ce_type, chs)
+        self.qval_means.append(np.mean(qvals_dense))
+        if ce_type == CEvent.END:
+            amax_idx = np.argmax(qvals_dense)
+            ch = chs[amax_idx]
+        else:
+            ch = self.policy_part_eps_greedy(chs, qvals_dense, cell)
+
+        if ch is None:
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
+        return ch, None
+
+
+class SinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(self.pp, self.logger)
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, *args, **kwargs):
+        freps, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+        self.backward(
+            freps=[freps], rewards=[reward], next_freps=next_freps, gamma=self.gamma)
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
         # Just contains qvals for 'chs'
         qvals_dense = self.net.forward(freps)
         assert qvals_dense.shape == (len(chs), )
-        amax_idx = np.argmax(qvals_dense)
-        ch = chs[amax_idx]
+        return qvals_dense
+
+
+class SinghQNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghQNet(self.pp, self.logger)
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, *args,
+                    **kwargs):
+        frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+        self.backward(
+            freps=[frep],
+            cells=cell,
+            chs=[ch],
+            rewards=[reward],
+            next_freps=next_freps,
+            next_cells=next_cell,
+            gamma=self.gamma)
+
+    def update_target_net(self):
+        self.net.sess.run(self.net.copy_online_to_target)
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        frep = NGF.feature_rep(self.grid)
+        # Just contains qvals for 'chs'
+        qvals_dense = self.net.forward([frep], cell)
+        assert qvals_dense.shape == (self.n_channels, )
+        return qvals_dense[chs]
+
+    def optimal_ch(self, ce_type, cell) -> int:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return None, 0
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+
+        qvals_dense = self.get_qvals(self.grid, cell, ce_type, chs)
+        self.qval_means.append(np.mean(qvals_dense))
+        if ce_type == CEvent.END:
+            amax_idx = np.argmin(qvals_dense)
+            ch = chs[amax_idx]
+        else:
+            ch = self.policy_part_eps_greedy(chs, qvals_dense, cell)
+
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
-        return ch, qvals_dense[amax_idx]
+        return ch, None
 
 
-class VConvNetStrat(VNetStrat):
+class VConvNetStrat(SinghNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = AfterstateNet(self.pp, self.logger)
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        # Just contains qvals for 'chs'
+        qvals_dense = self.net.forward(NGF.afterstates(self.grid, cell, ce_type, chs))
+        assert qvals_dense.shape == (len(chs), )
+        return qvals_dense
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, *args, **kwargs):
+        gamma = self.gamma
+        # self.logger.error(
+        #     f"{gamma}, {reward}, {gamma/(gamma+(1-gamma)/self.pp['beta'])}")
+        self.backward(freps=[grid], rewards=reward, next_freps=[self.grid], gamma=gamma)
 
 
 class RSMART(SinghNetStrat):

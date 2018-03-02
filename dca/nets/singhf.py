@@ -63,11 +63,6 @@ class SinghNet(Net):
     def backward(self, freps, rewards, next_freps, gamma):
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
         value_target = rewards + gamma * next_value
-        # TODO NOTE TODO IS this really the correct reward, and the
-        # correct target
-        # if next_value[0] != next_val:
-        #     print(next_value, next_val)
-        # value_target = reward + self.gamma * next_val
         next_g = self.sess.run(
             self.gradients_out,
             feed_dict={

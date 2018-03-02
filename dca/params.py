@@ -224,7 +224,7 @@ def get_pparams(defaults=False):
         default=None,
         const=100000)
     parser.add_argument(
-        '--weight_init_conv', choices=weight_initializers, default='zeros')
+        '--weight_init_conv', choices=weight_initializers, default='glorot_unif')
     parser.add_argument(
         '--weight_init_dense', choices=weight_initializers, default='norm_cols')
     parser.add_argument(

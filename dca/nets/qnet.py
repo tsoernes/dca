@@ -5,7 +5,8 @@ from tensorflow import float32, int32
 
 from nets.net import Net
 from nets.utils import (copy_net_op, discount, get_trainable_vars,
-                        prep_data_cells, prep_data_grids, scale_freps)
+                        prep_data_cells, prep_data_grids,
+                        scale_and_centre_freps)
 
 
 class QNet(Net):
@@ -101,7 +102,7 @@ class QNet(Net):
         # Prepare inputs for network
         grids_f = tf.cast(self.grids, float32)
         if self.pp['scale_freps']:
-            freps = scale_freps(self.freps)
+            freps = scale_and_centre_freps(self.freps)
         else:
             freps = self.freps
         # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
