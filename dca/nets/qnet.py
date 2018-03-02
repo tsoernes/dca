@@ -102,7 +102,7 @@ class QNet(Net):
         # Prepare inputs for network
         grids_f = tf.cast(self.grids, float32)
         if self.pp['scale_freps']:
-            freps = scale_freps(self.freps)
+            freps = scale_and_centre_freps(self.freps)
         else:
             freps = self.freps
         # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
