@@ -1,6 +1,8 @@
 import numpy as np
 
+import gridfuncs_numba as NGF
 from eventgen import CEvent
+from gridfuncs import GF
 from strats.base import Strat
 
 
@@ -17,7 +19,7 @@ class RandomAssign(Strat):
     def get_action(self, next_cevent, *args):
         ce_type, next_cell = next_cevent[1:3]
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            free = self.env.grid.get_free_chs(next_cell)
+            free = NGF.get_eligible_chs(self.grid, next_cell)
             if len(free) == 0:
                 return None
             else:
@@ -46,7 +48,7 @@ class FixedAssign(Strat):
             # When a call arrives in a cell,
             # if any pre-assigned channel is unused;
             # it is assigned, else the call is blocked.
-            for ch, isNom in enumerate(self.nom_chs[next_cell]):
+            for ch, isNom in enumerate(GF.nom_chs[next_cell]):
                 if isNom and self.grid[next_cell][ch] == 0:
                     return ch
             return None
