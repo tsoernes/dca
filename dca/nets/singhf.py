@@ -46,6 +46,7 @@ class SinghNet(Net):
 
         target_val = self.rewards + self.gamma * self.value_t
         self.err = target_val - self.value_o
+        # self.loss = tf.reduce_sum(tf.pow(self.value - self.value_target,2))
         self.loss = tf.losses.mean_squared_error(
             labels=target_val, predictions=self.value_o)
         if self.pp['net_lr_decay'] < 1:
@@ -55,15 +56,19 @@ class SinghNet(Net):
         else:
             global_step = None
             learning_rate = tf.constant(self.pp['net_lr'])
+        self.lr = learning_rate
         trainer = get_optimizer_by_name(self.pp['optimizer'], learning_rate)
         gradients_o, trainable_vars = zip(
-            *trainer.compute_gradients(self.loss, var_list=online_vars))
-        gradients_t, _ = zip(*trainer.compute_gradients(self.loss, var_list=target_vars))
-        full_grads = (gradients_t[0] + gradients_o[0], )
-        print(full_grads[0].shape)
-        print(gradients_t[0].shape)
+            *trainer.compute_gradients(self.value_o, var_list=online_vars))
+        gradients_t, _ = zip(
+            *trainer.compute_gradients(self.value_t, var_list=target_vars))
+        full_grads = (-(self.err * (gradients_o[0] - self.gamma * gradients_t[0])), )
+        # full_grads = (-(self.err * (gradients_o[0])), )
+        # print(full_grads[0].shape)
+        # print(gradients_t[0].shape)
         self.do_train2 = trainer.apply_gradients(
             zip(full_grads, trainable_vars), global_step=global_step)
+        # return online_vars
 
         copy_ops = []
         for var_name, target_var in target_vars.items():
@@ -71,7 +76,6 @@ class SinghNet(Net):
             op = target_var.assign(online_val)
             copy_ops.append(op)
         self.copy = tf.group(*copy_ops)
-        return online_vars
 
     def forward(self, freps):
         values = self.sess.run(
