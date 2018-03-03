@@ -48,7 +48,7 @@ def policy_nom_eps_greedy2(epsilon, chs, qvals_dense, cell):
         nom_elig = _nominal_eligible_chs(chs, cell)
         if nom_elig:
             idx = np.argmax(nom_elig)
-            ch = chs[idx]
+            ch = nom_elig[idx]
         else:
             ch = np.random.choice(chs)
     else:
