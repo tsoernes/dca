@@ -1,0 +1,41 @@
+Using residual gradient, (singf.py)
+
+p3 runner.py singhnet -opt sgd -phoff 0 -eps 0 --no_gpu -lr 2e-5 --avg_runs 16
+16x470000 events finished with speed 6827 events/second
+Average cumulative block probability over 16 episodes: 0.1370 with standard deviation 0.00152
+Average cumulative handoff block probability 0.0000 with standard deviation 0.00000
+[[0.13738983 0.        ]
+ [0.13742957 0.        ]
+ [0.13915248 0.        ]
+ [0.13649148 0.        ]
+ [0.13674388 0.        ]
+ [0.13814407 0.        ]
+ [0.13886966 0.        ]
+ [0.1359326  0.        ]
+ [0.13611601 0.        ]
+ [0.13756434 0.        ]
+ [0.13976258 0.        ]
+ [0.13390165 0.        ]
+ [0.13753677 0.        ]
+ [0.13516663 0.        ]
+ [0.1351526  0.        ]
+ [0.1363305  0.        ]]
+
+p3 runner.py singhnet -opt sgd -phoff 0 -eps 0 --no_gpu --beta 2687 -lr 2e-7 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1322 with standard deviation 0.00079
+Average cumulative handoff block probability 0.0000 with standard deviation 0.00000
+[[0.13135241 0.        ]
+ [0.13202243 0.        ]
+ [0.13179643 0.        ]
+ [0.13345633 0.        ]]
+
+ p3 runner.py singhnet -opt sgd -phoff 0 -eps 0 --no_gpu --beta 2687 -lr 8e-8 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1335 with standard deviation 0.00184
+Average cumulative handoff block probability 0.0000 with standard deviation 0.00000
+[[0.13068168 0.        ]
+ [0.1330931  0.        ]
+ [0.13485418 0.        ]
+ [0.13541237 0.        ]]
+
+Becase the first run (no beta) had only a roughly tuned learning rate; CANNOT conclude that
+using beta/dt rewards is better.

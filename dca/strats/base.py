@@ -6,8 +6,8 @@ import numpy as np
 import gridfuncs_numba as NGF
 from environment import Env
 from eventgen import CEvent
-from gridfuncs import GF
 from replaybuffer import PrioritizedReplayBuffer
+from strats.exp_policies import exp_pol_funcs
 from utils import LinearSchedule
 
 
@@ -151,6 +151,7 @@ class Strat:
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
         super().__init__(pp, *args, **kwargs)
+        self.exploration_policy = exp_pol_funcs[pp['exp_policy']]
         self.epsilon = pp['epsilon']
         self.epsilon_decay = pp['epsilon_decay']
         self.alpha = pp['alpha']
@@ -179,44 +180,6 @@ class RLStrat(Strat):
             # update q-values with one-step lookahead
             self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch)
         return next_ch
-
-    def policy_eps_greedy(self, chs, qvals_dense):
-        """Epsilon greedy action selection with expontential decay"""
-        if np.random.random() < self.epsilon:
-            # Choose an eligible channel at random
-            ch = np.random.choice(chs)
-        else:
-            # Choose greedily
-            idx = np.argmax(qvals_dense)
-            ch = chs[idx]
-        self.epsilon *= self.epsilon_decay  # Epsilon decay
-        return ch
-
-    def policy_part_eps_greedy(self, chs, qvals_dense, cell):
-        """Epsilon greedy where exploration actions are selected from
-        the cells nominal channels, if possible"""
-        if np.random.random() < self.epsilon:
-            # Choose an eligible channel at random
-            nominal_eligible_chs = []
-            for ch in chs:
-                if GF.nom_chs[cell][ch]:
-                    nominal_eligible_chs.append(ch)
-            if nominal_eligible_chs:
-                ch = np.random.choice(nominal_eligible_chs)
-            else:
-                ch = np.random.choice(chs)
-        else:
-            # Choose greedily
-            idx = np.argmax(qvals_dense)
-            ch = chs[idx]
-        self.epsilon *= self.epsilon_decay  # Epsilon decay
-        return ch
-
-    def policy_boltzmann(self, chs, qvals_dense):
-        scaled = np.exp((qvals_dense - np.max(qvals_dense)) / self.temp)
-        probs = scaled / np.sum(scaled)
-        ch = np.random.choice(chs, p=probs)
-        return ch
 
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float, int]:
         """Select the channel fitting for assignment that
@@ -255,8 +218,8 @@ class RLStrat(Strat):
             ch = chs[amin_idx]
             max_ch = ch
         else:
-            # ch = self.policy_eps_greedy(chs, qvals_dense)
-            ch = self.policy_part_eps_greedy(chs, qvals_dense, cell)
+            ch = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            self.epsilon *= self.epsilon_decay
             amax_idx = np.argmax(qvals_dense)
             max_ch = chs[amax_idx]
 
