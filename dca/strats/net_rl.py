@@ -71,7 +71,7 @@ class QNetStrat(NetStrat):
         self.net.sess.run(self.net.copy_online_to_target)
 
     def get_qvals(self, cell, ce_type, chs, *args, **kwargs):
-        frep = GF.feature_rep(self.grid) if self.pp['freps'] else None
+        frep = NGF.feature_rep(self.grid) if self.pp['freps'] else None
         qvals = self.net.forward(self.grid, cell, ce_type, frep)
         self.qval_means.append(np.mean(qvals))
         return qvals[chs]
@@ -120,8 +120,8 @@ class QLearnNetStrat(QNetStrat):
                     next_max_ch):
         if ce_type != CEvent.END and ch is not None:
             if self.pp['freps']:
-                frep, next_freps = GF.successive_freps(grid, cell, ce_type,
-                                                       np.array([ch]))
+                frep, next_freps = NGF.successive_freps(grid, cell, ce_type,
+                                                        np.array([ch]))
                 freps = [frep]
             else:
                 freps, next_freps = None, None

@@ -50,9 +50,9 @@ class QNet(Net):
                 q_vals = value + (
                     advantages - tf.reduce_mean(advantages, axis=1, keepdims=True))
                 if "online" in name:
-                    self.advantages = advantages
-                # if "target" in name:
-                #     self.value = value
+                    self.online_advantages = advantages
+                if "target" in name:
+                    self.target_value = value
             else:
                 q_vals = tf.layers.dense(
                     inputs=inp,
@@ -104,7 +104,7 @@ class QNet(Net):
         if self.pp['scale_freps']:
             freps = scale_and_centre_freps(self.freps)
         else:
-            freps = self.freps
+            freps = tf.cast(self.freps, float32)
         # numbered_chs: [[0, ch0], [1, ch1], [2, ch2], ..., [n, ch_n]]
         numbered_chs = tf.stack([nrange, self.chs], axis=1)
         if self.pp['qnet_freps']:
@@ -169,7 +169,7 @@ class QNet(Net):
         if frep is not None:
             data[self.freps] = [frep]
         if self.pp['dueling_qnet']:
-            q_vals_op = self.advantages
+            q_vals_op = self.online_advantages
         else:
             q_vals_op = self.online_q_vals
         q_vals = self.sess.run(
@@ -219,7 +219,9 @@ class QNet(Net):
             data[self.cells] = cells
         else:
             data[self.cells] = prep_data_cells(cells)
-        if target_chs is None:
+        if self.pp['dueling_qnet']:
+            target_q = self.target_value
+        elif target_chs is None:
             # Greedy Q-Learning
             target_q = self.target_q_max
         else:
@@ -229,6 +231,8 @@ class QNet(Net):
         if freps is not None:
             data[self.freps] = freps
         qvals = self.sess.run(target_q, data)
+        if self.pp['dueling_qnet']:
+            qvals = qvals[0]
         return qvals
 
     def backward(self,
