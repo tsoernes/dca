@@ -58,6 +58,19 @@ def policy_nom_eps_greedy2(epsilon, chs, qvals_dense, cell):
     return ch
 
 
+def policy_nom_greedy(epsilon, chs, qvals_dense, cell):
+    """Channel is greedily selected from the cells nominal channels, if one is available,
+    else greedily from those that are available"""
+    nom_elig = _nominal_eligible_chs(chs, cell)
+    if nom_elig:
+        idx = np.argmax(nom_elig)
+        ch = nom_elig[idx]
+    else:
+        idx = np.argmax(qvals_dense)
+        ch = chs[idx]
+    return ch
+
+
 def policy_boltzmann(temp, chs, qvals_dense, *args):
     scaled = np.exp((qvals_dense - np.max(qvals_dense)) / temp)
     probs = scaled / np.sum(scaled)
