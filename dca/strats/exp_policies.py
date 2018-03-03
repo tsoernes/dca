@@ -89,6 +89,7 @@ def policy_nom_boltzmann(temp, chs, qvals_dense, cell):
 
 exp_pol_funcs = {
     'eps_greedy': policy_eps_greedy,
+    'nom_greedy': policy_nom_greedy,
     'nom_eps_greedy': policy_nom_eps_greedy,
     'nom_eps_greedy2': policy_nom_eps_greedy2,
     'boltzmann': policy_boltzmann,
