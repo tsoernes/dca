@@ -12,11 +12,12 @@ import numpy as np
 import strats.fixedstrats  # noqa
 import strats.net_rl  # noqa
 import strats.table_rl  # noqa
+from strats.exp_policies import exp_pol_funcs
 
 
-def strat_classes(module_name):
+def get_classes(module_name):
     """
-    Return a list with (name, class) for all the strats
+    Return a list with (name, class) for all the classes in 'module_name'
     """
 
     def is_class_member(member):
@@ -35,8 +36,8 @@ def get_pparams(defaults=False):
         description='DCA', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # Get available strategies and format their names real nice
-    stratclasses = strat_classes("strats.net_rl") + strat_classes(
-        "strats.fixedstrats") + strat_classes("strats.table_rl")
+    stratclasses = get_classes("strats.net_rl") + get_classes(
+        "strats.fixedstrats") + get_classes("strats.table_rl")
     stratnames = ['show']
     for i, s in enumerate(stratclasses):
         s1 = s[0].lower()
@@ -44,6 +45,8 @@ def get_pparams(defaults=False):
         if s2 not in ["net", "qnet", "rl", "qtable"]:
             stratnames.append(s2)
         stratclasses[i] = (s2, stratclasses[i][1])
+
+    policy_func_names = exp_pol_funcs.keys()
     weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
     hopt_opts = [
         'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
@@ -111,6 +114,13 @@ def get_pparams(defaults=False):
         help="(RL/Table) factor by which alpha is multiplied each iteration",
         default=0.9999999)
 
+    parser.add_argument(
+        '-epol',
+        '--exp_policy',
+        type=str,
+        help="Exploration policy",
+        choices=policy_func_names,
+        default="nom_eps_greedy")
     parser.add_argument(
         '--epsilon',
         '-eps',
