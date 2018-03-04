@@ -4,6 +4,7 @@ from gridfuncs import GF
 
 
 def _nominal_eligible_idxs(chs, cell):
+    """Return the indecies of 'chs' which correspond to nominal channels in 'cell'"""
     nominal_eligible_idxs = []
     for i, ch in enumerate(chs):
         if GF.nom_chs[cell][ch]:
@@ -92,28 +93,8 @@ def policy_nom_boltzmann(temp, chs, qvals_dense, cell):
     return ch
 
 
-def policy_nom_boltzmann2(temp, chs, qvals_dense, cell):
-    nom_elig = []
-    for ch in chs:
-        if GF.nom_chs[cell][ch]:
-            nom_elig.append(ch)
-
-    if nom_elig:
-        scaled = np.exp((nom_elig - np.max(nom_elig)) / temp)
-        probs = scaled / np.sum(scaled)
-        ch = np.random.choice(nom_elig, p=probs)
-    else:
-        ch = policy_boltzmann(temp, chs, qvals_dense)
-
-    return ch
-
-
 def policy_nom_greedy_fixed(temp, chs, qvals_dense, cell):
-    nom_elig = []
-    for ch in chs:
-        if GF.nom_chs[cell][ch]:
-            nom_elig.append(ch)
-
+    nom_elig = [ch for ch in chs if GF.nom_chs[cell][ch]]
     if nom_elig:
         ch = nom_elig[-1]
     else:
@@ -128,6 +109,5 @@ exp_pol_funcs = {
     'nom_eps_greedy2': policy_nom_eps_greedy2,
     'boltzmann': policy_boltzmann,
     'nom_boltzmann': policy_nom_boltzmann,
-    'nom_boltzmann2': policy_nom_boltzmann2,
     'nom_greedy_fixed': policy_nom_greedy_fixed
 }  # yapf: disable

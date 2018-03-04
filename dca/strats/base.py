@@ -214,9 +214,9 @@ class RLStrat(Strat):
         # Selecting a ch for reassigment is always greedy because no learning
         # is done on the reassignment actions.
         if ce_type == CEvent.END:
+            ch = self.exploration_policy(self.epsilon, chs, -qvals_dense, cell)
             amin_idx = np.argmin(qvals_dense)
-            ch = chs[amin_idx]
-            max_ch = ch
+            max_ch = chs[amin_idx]
         else:
             ch = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             self.epsilon *= self.epsilon_decay

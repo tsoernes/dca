@@ -171,6 +171,17 @@ FIXEDASSIGN (no exploration, obviously):
 Average cumulative block probability over 16 episodes: 0.2313 with standard deviation 0.00217
 Average cumulative handoff block probability 0.2349 with standard deviation 0.00532
 
+GREEDY FIXED NOMINAL:
+
+p3 runner.py rs_sarsa -epol nom_greedy_fixed -eps 1 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1602 with standard deviation 0.00119
+Average cumulative handoff block probability 0.1218 with standard deviation 0.00245
+
+p3 runner.py rs_sarsa -epol nom_greedy_fixed -eps 1 --epsilon_decay 1 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1608 with standard deviation 0.00215
+Average cumulative handoff block probability 0.1221 with standard deviation 0.00256
+
 TODO
 - singh exploration/nom chs with importance sampling
 - redo testing for: nom boltz, nom eps greedy, nom greedy
+- What happens if a fixed nominal policy is applied to reassignment on END events?
