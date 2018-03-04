@@ -1,0 +1,176 @@
+Starting simulation at 2018-03-03 21:45:15.787476 with params:
+{'strat': 'rs_sarsa', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'call_rates': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'breakout_thresh': 0.23, 'avg_runs': 16, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'exp_policy': 'boltzmann', 'epsilon': 0.5, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'weight_beta': 1e-06, 'beta': None, 'reward_scale': 1, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'random_hopt': None, 'dlib_hopt': None, 'hopt': None, 'hopt_fname': None, 'net_lr': 2.95e-05, 'net_lr_decay': 0.96, 'optimizer': 'sgd-m', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'glorot_unif', 'weight_init_dense': 'norm_cols', 'conv_nfilters': [70, 70], 'conv_kernel_sizes': [4, 3], 'n_step': 1, 'bighead': False, 'dueling_qnet': False, 'rnn': False, 'layer_norm': False, 'qnet_freps': False, 'qnet_freps_only': False, 'scale_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_copy_iter_decr': None, 'net_creep_tau': 0.12, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'debug': False, 'profiling': False, 'tfprofiling': '', 'gui': False, 'do_plot': False, 'log_level': 20, 'log_file': None, 'log_iter': 58750, 'grid_split': True, 'use_gpu': False, 'conv_bias': True, 'freps': False, 'dt_rewards': False, 'dims': (7, 7, 70), 'net': False}
+
+REGULAR BOLTZMANN:
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 0.001 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1766 with standard deviation 0.00340
+Average cumulative handoff block probability 0.1336 with standard deviation 0.00210
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 0.05 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1763 with standard deviation 0.00245
+Average cumulative handoff block probability 0.1330 with standard deviation 0.00298
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 0.1 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1770 with standard deviation 0.00210
+Average cumulative handoff block probability 0.1346 with standard deviation 0.00186
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 0.5 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1763 with standard deviation 0.00332
+Average cumulative handoff block probability 0.1344 with standard deviation 0.00179
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 0.8 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1758 with standard deviation 0.00209
+Average cumulative handoff block probability 0.1335 with standard deviation 0.00275
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 1.5 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1752 with standard deviation 0.00145
+Average cumulative handoff block probability 0.1328 with standard deviation 0.00220
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 2 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1752 with standard deviation 0.00254
+Average cumulative handoff block probability 0.1338 with standard deviation 0.00179
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 5 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1748 with standard deviation 0.00272
+Average cumulative handoff block probability 0.1333 with standard deviation 0.00238
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 10 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1737 with standard deviation 0.00294
+Average cumulative handoff block probability 0.1330 with standard deviation 0.00244
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 20 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1724 with standard deviation 0.00239
+Average cumulative handoff block probability 0.1330 with standard deviation 0.00249
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 50 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1711 with standard deviation 0.00210
+Average cumulative handoff block probability 0.1327 with standard deviation 0.00247
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 100 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1693 with standard deviation 0.00242
+Average cumulative handoff block probability 0.1315 with standard deviation 0.00199
+
+p3 runner.py rs_sarsa -epol boltzmann -eps 200 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1693 with standard deviation 0.00140
+Average cumulative handoff block probability 0.1302 with standard deviation 0.00210
+
+
+BOLTZMANN WITH NOMINAL CHANNEL PREFERENCE:
+
+THESE RESULTS ARE FROM AN INCORRECT IMPLEMENTATION AND MIGHT BE INVALID
+
+If none of the runs with nom can beat 1605, go back and find out why the incorrect version of
+nom_boltzmann worked so well. Did it violate reuse constr or something?
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.0001 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1640 with standard deviation 0.00161
+Average cumulative handoff block probability 0.1272 with standard deviation 0.00227
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.001 --avg_runs 16
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.01 --avg_runs 16
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.2 --avg_runs 16
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.5 --avg_runs 16
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 2 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1642 with standard deviation 0.00189
+Average cumulative handoff block probability 0.1274 with standard deviation 0.00219
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 5 --avg_runs 16
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 7 --avg_runs 16
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 10 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1637 with standard deviation 0.00157
+Average cumulative handoff block probability 0.1269 with standard deviation 0.00270
+
+p3 runner.py rs_sarsa -epol nom_boltzmann -eps 100 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1651 with standard deviation 0.00191
+Average cumulative handoff block probability 0.1287 with standard deviation 0.00359
+
+
+
+EPS-GREEDY:
+p3 runner.py rs_sarsa -epol eps_greedy -eps 0.75443 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1716 with standard deviation 0.00139
+Average cumulative handoff block probability 0.1302 with standard deviation 0.00293
+
+p3 runner.py rs_sarsa -epol eps_greedy -eps 1 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1703 with standard deviation 0.00180
+Average cumulative handoff block probability 0.1294 with standard deviation 0.00235
+
+p3 runner.py rs_sarsa -epol eps_greedy -eps 1.0 --epsilon_decay 1 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1732 with standard deviation 0.00211
+Average cumulative handoff block probability 0.1240 with standard deviation 0.00157
+
+p3 runner.py rs_sarsa -epol eps_greedy -eps 1 --avg_runs 16 --erlangs 8
+Average cumulative block probability over 16 episodes: 0.0722 with standard deviation 0.00178
+Average cumulative handoff block probability 0.0549 with standard deviation 0.00170
+
+p3 runner.py rs_sarsa -epol eps_greedy -eps 1.0 --epsilon_decay 1 --avg_runs 16 --erlangs 8
+Average cumulative block probability over 16 episodes: 0.0770 with standard deviation 0.00119
+Average cumulative handoff block probability 0.0538 with standard deviation 0.00197
+
+
+EPS-GREEDY WITH NOMINAL CHANNEL PREFERENCE:
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 0.5 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1661 with standard deviation 0.00143
+Average cumulative handoff block probability 0.1290 with standard deviation 0.00192
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 0.8 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1651 with standard deviation 0.00219
+Average cumulative handoff block probability 0.1276 with standard deviation 0.00163
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 1.0 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1641 with standard deviation 0.00151
+Average cumulative handoff block probability 0.1274 with standard deviation 0.00247
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 1.0 --epsilon_decay 1 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1646 with standard deviation 0.00213
+Average cumulative handoff block probability 0.1259 with standard deviation 0.00250
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 1.0 --avg_runs 16 --erlangs 8
+Average cumulative block probability over 16 episodes: 0.0615 with standard deviation 0.00157
+Average cumulative handoff block probability 0.0505 with standard deviation 0.00151
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 1.0 --epsilon_decay 1 --avg_runs 16 --erlangs 8
+Average cumulative block probability over 16 episodes: 0.0621 with standard deviation 0.00154
+Average cumulative handoff block probability 0.0499 with standard deviation 0.00151
+
+
+EPS-GREEDY WITH GREEDY NOMINAL CHANNEL PREFERENCE:
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 0.5 --avg_runs 16
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 0.8 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1644 with standard deviation 0.00155
+Average cumulative handoff block probability 0.1275 with standard deviation 0.00259
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 1.0 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1641 with standard deviation 0.00117
+Average cumulative handoff block probability 0.1266 with standard deviation 0.00227
+
+p3 runner.py rs_sarsa -epol nom_eps_greedy -eps 1.0 --epsilon_decay 1 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1646 with standard deviation 0.00191
+Average cumulative handoff block probability 0.1270 with standard deviation 0.00187
+
+
+GREEDY NOMINAL CHANNEL PREFERENCE:
+
+p3 runner.py rs_sarsa -epol nom_greedy --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1639 with standard deviation 0.00209
+Average cumulative handoff block probability 0.1271 with standard deviation 0.00203
+
+
+FIXEDASSIGN (no exploration, obviously):
+
+Average cumulative block probability over 16 episodes: 0.2313 with standard deviation 0.00217
+Average cumulative handoff block probability 0.2349 with standard deviation 0.00532
+
+TODO
+- singh exploration/nom chs with importance sampling
+- redo testing for: nom boltz, nom eps greedy, nom greedy
