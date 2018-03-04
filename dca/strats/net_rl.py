@@ -448,6 +448,10 @@ class WSinghNetStrat(VNetStrat):
         self.w = 1
         self.max_ch = 0
 
+    def get_init_action(self, cevent):
+        ch, self.w, self.max_ch = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        return ch
+
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if self.max_ch is not None:
