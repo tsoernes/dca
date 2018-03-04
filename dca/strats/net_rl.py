@@ -446,11 +446,13 @@ class WSinghNetStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
         self.w = 1
+        self.max_ch = 0
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
-        if ch is not None:
-            freps, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+        if self.max_ch is not None:
+            freps, next_freps = NGF.successive_freps(grid, cell, ce_type,
+                                                     np.array([self.max_ch]))
             self.backward(
                 freps=[freps],
                 rewards=[reward],
@@ -458,22 +460,23 @@ class WSinghNetStrat(VNetStrat):
                 weight=self.w,
                 gamma=self.gamma)
 
-        next_ch, self.w = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, self.w, self.max_ch = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
-                return None, 0
+                return None, 0, None
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
         qvals_dense = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
+        amax_idx = np.argmax(qvals_dense)
+        max_ch = chs[amax_idx]
         if ce_type == CEvent.END:
-            amax_idx = np.argmax(qvals_dense)
-            ch = chs[amax_idx]
+            ch = max_ch
             weight = 1
         else:
             ch = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
@@ -486,7 +489,7 @@ class WSinghNetStrat(VNetStrat):
 
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
-        return ch, weight
+        return ch, weight, max_ch
 
     def get_qvals(self, grid, cell, ce_type, chs):
         freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
