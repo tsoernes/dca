@@ -118,9 +118,9 @@ def get_pparams(defaults=False):
         '-epol',
         '--exp_policy',
         type=str,
-        help="Exploration policy",
+        help="Exploration policy (only used for NEW/HOFF events)",
         choices=policy_func_names,
-        default="nom_eps_greedy")
+        default="nom_greedy_fixed")
     parser.add_argument(
         '--epsilon',
         '-eps',

@@ -61,8 +61,9 @@ def policy_nom_eps_greedy2(epsilon, chs, qvals_dense, cell):
 
 
 def policy_nom_greedy(epsilon, chs, qvals_dense, cell):
-    """Channel is greedily selected from the cells nominal channels, if one is available,
-    else greedily from those that are available"""
+    """Channel is always greedily selected from the cells nominal channels, if one
+    is available, else greedily from the eligible channels.
+    """
     nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
     if nom_elig_idxs:
         idx = np.argmax(qvals_dense[nom_elig_idxs])
@@ -73,7 +74,20 @@ def policy_nom_greedy(epsilon, chs, qvals_dense, cell):
     return ch
 
 
+def policy_nom_greedy_fixed(temp, chs, qvals_dense, cell):
+    """The lowest numbered nominal channel is selected, if any, else boltzmann selection"""
+    nom_elig = [ch for ch in chs if GF.nom_chs[cell][ch]]
+    if nom_elig:
+        ch = nom_elig[0]
+    else:
+        idx = np.argmax(qvals_dense)
+        ch = chs[idx]
+        # ch = policy_boltzmann(temp, chs, qvals_dense)
+    return ch
+
+
 def policy_boltzmann(temp, chs, qvals_dense, *args):
+    """Boltzmann selection"""
     scaled = np.exp((qvals_dense - np.max(qvals_dense)) / temp)
     probs = scaled / np.sum(scaled)
     ch = np.random.choice(chs, p=probs)
@@ -81,6 +95,8 @@ def policy_boltzmann(temp, chs, qvals_dense, *args):
 
 
 def policy_nom_boltzmann(temp, chs, qvals_dense, cell):
+    """Boltzmann selection from the nominal channels, if any, else boltzmann
+    selection from the eligible channels"""
     nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
     if nom_elig_idxs:
         nom_qvals = qvals_dense[nom_elig_idxs]
@@ -88,15 +104,6 @@ def policy_nom_boltzmann(temp, chs, qvals_dense, cell):
         probs = scaled / np.sum(scaled)
         nom_elig_idx = np.random.choice(nom_elig_idxs, p=probs)
         ch = chs[nom_elig_idx]
-    else:
-        ch = policy_boltzmann(temp, chs, qvals_dense)
-    return ch
-
-
-def policy_nom_greedy_fixed(temp, chs, qvals_dense, cell):
-    nom_elig = [ch for ch in chs if GF.nom_chs[cell][ch]]
-    if nom_elig:
-        ch = nom_elig[-1]
     else:
         ch = policy_boltzmann(temp, chs, qvals_dense)
     return ch
