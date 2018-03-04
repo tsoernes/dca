@@ -9,8 +9,8 @@ from nets.acnet import ACNet
 from nets.afterstate import AfterstateNet
 from nets.dqnet import DistQNet
 from nets.qnet import QNet
-# from nets.singh import SinghNet
-from nets.singhf import SinghNet
+from nets.singh import SinghNet
+# from nets.singhf import SinghNet
 from nets.singhq import SinghQNet
 from nets.utils import softmax
 from strats.base import RLStrat
@@ -414,7 +414,8 @@ class VNetStrat(NetStrat):
             amax_idx = np.argmax(qvals_dense)
             ch = chs[amax_idx]
         else:
-            ch = self.exploration_policy(chs, qvals_dense, cell)
+            ch = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            self.epsilon *= self.epsilon_decay
 
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
