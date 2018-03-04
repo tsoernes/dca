@@ -414,7 +414,7 @@ class VNetStrat(NetStrat):
             amax_idx = np.argmax(qvals_dense)
             ch = chs[amax_idx]
         else:
-            ch = self.policy_part_eps_greedy(chs, qvals_dense, cell)
+            ch = self.exploration_policy(chs, qvals_dense, cell)
 
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
