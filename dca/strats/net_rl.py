@@ -9,8 +9,8 @@ from nets.acnet import ACNet
 from nets.afterstate import AfterstateNet
 from nets.dqnet import DistQNet
 from nets.qnet import QNet
-# from nets.singh import SinghNet
-from nets.singhf import SinghNet
+from nets.singh import SinghNet
+# from nets.singhf import SinghNet
 from nets.singhq import SinghQNet
 from nets.utils import softmax
 from strats.base import RLStrat
@@ -430,6 +430,62 @@ class SinghNetStrat(VNetStrat):
         freps, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
         self.backward(
             freps=[freps], rewards=[reward], next_freps=next_freps, gamma=self.gamma)
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
+        # Just contains qvals for 'chs'
+        qvals_dense = self.net.forward(freps)
+        assert qvals_dense.shape == (len(chs), )
+        return qvals_dense
+
+
+class WSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        """Importance sampling"""
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(self.pp, self.logger)
+        self.w = 1
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        if ch is not None:
+            freps, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+            self.backward(
+                freps=[freps],
+                rewards=[reward],
+                next_freps=next_freps,
+                weight=self.w,
+                gamma=self.gamma)
+
+        next_ch, self.w = self.optimal_ch(next_ce_type, next_cell)
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> int:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return None, 0
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+
+        qvals_dense = self.get_qvals(self.grid, cell, ce_type, chs)
+        self.qval_means.append(np.mean(qvals_dense))
+        if ce_type == CEvent.END:
+            amax_idx = np.argmax(qvals_dense)
+            ch = chs[amax_idx]
+            weight = 1
+        else:
+            ch = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            scaled = np.exp((qvals_dense - np.max(qvals_dense)) / self.epsilon)
+            probs = scaled / np.sum(scaled)
+            for i, ch2 in enumerate(chs):
+                if ch == ch2:
+                    weight = probs[i]
+            self.epsilon *= self.epsilon_decay
+
+        if ch is None:
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
+        return ch, weight
 
     def get_qvals(self, grid, cell, ce_type, chs):
         freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)

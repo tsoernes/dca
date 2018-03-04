@@ -18,6 +18,7 @@ class SinghNet(Net):
         frepshape = [None, self.rows, self.cols, self.n_channels + 1]
         self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
+        self.weights = tf.placeholder(tf.float32, [None, 1], "weight")
 
         if self.pp['scale_freps']:
             freps = scale_freps_big(self.freps)
@@ -37,7 +38,7 @@ class SinghNet(Net):
 
         self.err = self.value_target - self.value
         self.loss = tf.losses.mean_squared_error(
-            labels=self.value_target, predictions=self.value)
+            labels=self.value_target, predictions=self.value, weights=self.weights)
         return online_vars
 
     def forward(self, freps):
@@ -49,12 +50,13 @@ class SinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, rewards, next_freps, gamma):
+    def backward(self, freps, rewards, next_freps, gamma, weight=1):
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
         value_target = rewards + gamma * next_value
         data = {
             self.freps: freps,
             self.value_target: value_target,
+            self.weights: [[weight]]
         }
         _, loss, lr, err = self.sess.run(
             [self.do_train, self.loss, self.lr, self.err],
