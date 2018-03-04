@@ -119,3 +119,38 @@ class RS_SARSA(QTable):
 
     def feature_rep(self, cell, n_used):
         return cell
+
+
+class E_RS_SARSA(QTable):
+    """
+    Expected Reduced-state SARSA.
+    State consists of cell coordinates only.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.qvals = np.zeros(self.dims)
+        self.load_qvals()
+
+    def feature_rep(self, cell, n_used):
+        return cell
+
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
+        assert type(ch) == np.int64
+        assert ch is not None
+        next_n_used = np.count_nonzero(self.grid[next_cell])
+        next_qvals = self.get_qvals(next_cell, next_n_used)
+        scaled = np.exp((next_qvals - np.max(next_qvals)) / self.epsilon)
+        probs = scaled / np.sum(scaled)
+        expected_next_q = np.sum(probs * next_qvals)
+        target_q = reward + self.gamma * expected_next_q
+
+        n_used = np.count_nonzero(grid[cell])
+        q = self.get_qvals(cell, n_used, ch)
+        td_err = target_q - q
+        self.losses.append(td_err**2)
+
+        frep = self.feature_rep(cell, n_used)
+        self.qvals[frep][ch] += self.alpha * td_err
+        if self.alpha > self.pp['min_alpha']:
+            self.alpha *= self.alpha_decay

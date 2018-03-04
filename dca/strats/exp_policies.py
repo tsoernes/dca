@@ -72,7 +72,7 @@ def policy_nom_greedy(epsilon, chs, qvals_dense, cell):
 
 
 def policy_nom_greedy_fixed(temp, chs, qvals_dense, cell):
-    """The lowest numbered nominal channel is selected, if any, else boltzmann selection"""
+    """The lowest numbered nominal channel is selected, if any, else greedy selection"""
     nom_elig = [ch for ch in chs if GF.nom_chs[cell][ch]]
     if nom_elig:
         ch = nom_elig[0]
