@@ -85,8 +85,8 @@ def policy_nom_boltzmann(temp, chs, qvals_dense, cell):
         nom_qvals = qvals_dense[nom_elig_idxs]
         scaled = np.exp((nom_qvals - np.max(nom_qvals)) / temp)
         probs = scaled / np.sum(scaled)
-        idx = np.random.choice(nom_elig_idxs, p=probs)
-        ch = chs[nom_elig_idxs[idx]]
+        nom_elig_idx = np.random.choice(nom_elig_idxs, p=probs)
+        ch = chs[nom_elig_idx]
     else:
         ch = policy_boltzmann(temp, chs, qvals_dense)
     return ch
