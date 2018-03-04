@@ -3,12 +3,12 @@ import numpy as np
 from gridfuncs import GF
 
 
-def _nominal_eligible_chs(chs, cell):
-    nominal_eligible_chs = []
-    for ch in chs:
+def _nominal_eligible_idxs(chs, cell):
+    nominal_eligible_idxs = []
+    for i, ch in enumerate(chs):
         if GF.nom_chs[cell][ch]:
-            nominal_eligible_chs.append(ch)
-    return nominal_eligible_chs
+            nominal_eligible_idxs.append(i)
+    return nominal_eligible_idxs
 
 
 def policy_eps_greedy(epsilon, chs, qvals_dense, *args):
@@ -28,9 +28,10 @@ def policy_nom_eps_greedy(epsilon, chs, qvals_dense, cell):
     the cells nominal channels, if possible"""
     if np.random.random() < epsilon:
         # Choose at random, but prefer nominal channels
-        nom_elig = _nominal_eligible_chs(chs, cell)
-        if nom_elig:
-            ch = np.random.choice(nom_elig)
+        nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
+        if nom_elig_idxs:
+            idx = np.random.choice(nom_elig_idxs)
+            ch = chs[idx]
         else:
             ch = np.random.choice(chs)
     else:
@@ -45,10 +46,10 @@ def policy_nom_eps_greedy2(epsilon, chs, qvals_dense, cell):
     the cells nominal channels, if possible"""
     if np.random.random() < epsilon:
         # Choose at random, but prefer nominal channels
-        nom_elig = _nominal_eligible_chs(chs, cell)
-        if nom_elig:
-            idx = np.argmax(nom_elig)
-            ch = nom_elig[idx]
+        nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
+        if nom_elig_idxs:
+            idx = np.argmax(qvals_dense[nom_elig_idxs])
+            ch = chs[nom_elig_idxs[idx]]
         else:
             ch = np.random.choice(chs)
     else:
@@ -61,10 +62,10 @@ def policy_nom_eps_greedy2(epsilon, chs, qvals_dense, cell):
 def policy_nom_greedy(epsilon, chs, qvals_dense, cell):
     """Channel is greedily selected from the cells nominal channels, if one is available,
     else greedily from those that are available"""
-    nom_elig = _nominal_eligible_chs(chs, cell)
-    if nom_elig:
-        idx = np.argmax(nom_elig)
-        ch = nom_elig[idx]
+    nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
+    if nom_elig_idxs:
+        idx = np.argmax(qvals_dense[nom_elig_idxs])
+        ch = chs[nom_elig_idxs[idx]]
     else:
         idx = np.argmax(qvals_dense)
         ch = chs[idx]
@@ -79,9 +80,13 @@ def policy_boltzmann(temp, chs, qvals_dense, *args):
 
 
 def policy_nom_boltzmann(temp, chs, qvals_dense, cell):
-    nom_elig = _nominal_eligible_chs(chs, cell)
-    if nom_elig:
-        ch = policy_boltzmann(temp, nom_elig, qvals_dense)
+    nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
+    if nom_elig_idxs:
+        nom_qvals = qvals_dense[nom_elig_idxs]
+        scaled = np.exp((nom_qvals - np.max(nom_qvals)) / temp)
+        probs = scaled / np.sum(scaled)
+        idx = np.random.choice(nom_elig_idxs, p=probs)
+        ch = chs[nom_elig_idxs[idx]]
     else:
         ch = policy_boltzmann(temp, chs, qvals_dense)
     return ch
