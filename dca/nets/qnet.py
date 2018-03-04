@@ -178,7 +178,7 @@ class QNet(Net):
         assert q_vals.shape == (self.n_channels, ), f"{q_vals.shape}\n{q_vals}"
         return q_vals
 
-    def _backward(self, data) -> (float, float):
+    def _backward(self, data) -> (float, float, float):
         _, loss, lr, td_err = self.sess.run(
             [self.do_train, self.loss, self.lr, self.td_err],
             feed_dict=data,
@@ -246,12 +246,29 @@ class QNet(Net):
                  freps=None,
                  next_freps=None,
                  next_chs=None,
-                 weights=None) -> (float, float):
+                 weights=None) -> (float, float, float):
         """
-        Supports n-step learning where (grids, cells) is from time t
-        and (next_grids, next_cells) is from time t+n
+        Supports n-step learning if (grids, cells) is from time t
+        and (next_grids, next_cells) is from time t+n and rewards is from time t, t+1, ..t+n
         Support greedy action selection if 'next_chs' is None
-        Feature representations (freps) of grids are optional
+
+        :param grids: Array of grids from timestep 't'
+        :param cells: Array of cells
+        :param chs: Array of channels
+        :param rewards: Array of rewards
+        :param next_grids: Array of grids from timestep 't+n'
+        :param next_cells: Array of cells
+        :param gamma: Discount factor
+        :param freps: Feature representations of 'grids'
+        :param next_freps: Feature representations of 'next_grids'
+        :param next_chs: Target channel. If None, select greedily (Q-Learning)
+        :param weights: Coefficients for the loss for each sample
+
+        Returns
+        :param float: Loss
+        :param float: Learning rate
+        :param float: Temporal difference (TD) error
+
         """
         next_qvals = self._double_q_target(next_grids, next_cells, next_freps, next_chs)
         q_targets = next_qvals
