@@ -108,6 +108,19 @@ def policy_nom_boltzmann2(temp, chs, qvals_dense, cell):
     return ch
 
 
+def policy_nom_greedy_fixed(temp, chs, qvals_dense, cell):
+    nom_elig = []
+    for ch in chs:
+        if GF.nom_chs[cell][ch]:
+            nom_elig.append(ch)
+
+    if nom_elig:
+        ch = nom_elig[-1]
+    else:
+        ch = policy_boltzmann(temp, chs, qvals_dense)
+    return ch
+
+
 exp_pol_funcs = {
     'eps_greedy': policy_eps_greedy,
     'nom_greedy': policy_nom_greedy,
@@ -115,5 +128,6 @@ exp_pol_funcs = {
     'nom_eps_greedy2': policy_nom_eps_greedy2,
     'boltzmann': policy_boltzmann,
     'nom_boltzmann': policy_nom_boltzmann,
-    'nom_boltzmann2': policy_nom_boltzmann2
+    'nom_boltzmann2': policy_nom_boltzmann2,
+    'nom_greedy_fixed': policy_nom_greedy_fixed
 }  # yapf: disable
