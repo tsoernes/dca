@@ -183,5 +183,3 @@ Average cumulative handoff block probability 0.1221 with standard deviation 0.00
 
 TODO
 - singh exploration/nom chs with importance sampling
-- redo testing for: nom boltz, nom eps greedy, nom greedy
-- What happens if a fixed nominal policy is applied to reassignment on END events?
