@@ -58,30 +58,13 @@ Average cumulative handoff block probability 0.1302 with standard deviation 0.00
 
 BOLTZMANN WITH NOMINAL CHANNEL PREFERENCE:
 
-THESE RESULTS ARE FROM AN INCORRECT IMPLEMENTATION AND MIGHT BE INVALID
-
-If none of the runs with nom can beat 1605, go back and find out why the incorrect version of
-nom_boltzmann worked so well. Did it violate reuse constr or something?
-
 p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.0001 --avg_runs 16
 Average cumulative block probability over 16 episodes: 0.1640 with standard deviation 0.00161
 Average cumulative handoff block probability 0.1272 with standard deviation 0.00227
 
-p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.001 --avg_runs 16
-
-p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.01 --avg_runs 16
-
-p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.2 --avg_runs 16
-
-p3 runner.py rs_sarsa -epol nom_boltzmann -eps 0.5 --avg_runs 16
-
 p3 runner.py rs_sarsa -epol nom_boltzmann -eps 2 --avg_runs 16
 Average cumulative block probability over 16 episodes: 0.1642 with standard deviation 0.00189
 Average cumulative handoff block probability 0.1274 with standard deviation 0.00219
-
-p3 runner.py rs_sarsa -epol nom_boltzmann -eps 5 --avg_runs 16
-
-p3 runner.py rs_sarsa -epol nom_boltzmann -eps 7 --avg_runs 16
 
 p3 runner.py rs_sarsa -epol nom_boltzmann -eps 10 --avg_runs 16
 Average cumulative block probability over 16 episodes: 0.1637 with standard deviation 0.00157
@@ -166,11 +149,6 @@ Average cumulative block probability over 16 episodes: 0.1639 with standard devi
 Average cumulative handoff block probability 0.1271 with standard deviation 0.00203
 
 
-FIXEDASSIGN (no exploration, obviously):
-
-Average cumulative block probability over 16 episodes: 0.2313 with standard deviation 0.00217
-Average cumulative handoff block probability 0.2349 with standard deviation 0.00532
-
 GREEDY FIXED NOMINAL:
 
 p3 runner.py rs_sarsa -epol nom_greedy_fixed -eps 1 --avg_runs 16
@@ -181,5 +159,8 @@ p3 runner.py rs_sarsa -epol nom_greedy_fixed -eps 1 --epsilon_decay 1 --avg_runs
 Average cumulative block probability over 16 episodes: 0.1608 with standard deviation 0.00215
 Average cumulative handoff block probability 0.1221 with standard deviation 0.00256
 
-TODO
-- singh exploration/nom chs with importance sampling
+
+FIXEDASSIGN (no exploration, obviously):
+
+Average cumulative block probability over 16 episodes: 0.2313 with standard deviation 0.00217
+Average cumulative handoff block probability 0.2349 with standard deviation 0.00532

@@ -112,16 +112,19 @@ class Runner:
 
     def hopt_dlib(self):
         import dlib
-        lo_bounds = [8e-6, 0.85]  # Lower bound constraints on each var respectively
-        up_bounds = [9e-5, 0.98]
+        lo_bounds = [1e-8, 20]
+        up_bounds = [1e-4, 3000]
+        # lo_bounds = [8e-6, 0.85]  # Lower bound constraints on each var respectively
+        # up_bounds = [9e-5, 0.98]
         # lo_bounds = [0.65]
         # up_bounds = [0.85]
-        n = 50  # The number of times find_min_global() will call holder_table()
+        n = 100  # The number of times find_min_global() will call holder_table()
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
         self.i = 0
-        space = ['net_lr', 'net_lr_decay']
-        is_integer_variable = [False, False]
+        # space = ['net_lr', 'net_lr_decay']
+        space = ['net_lr', 'beta']
+        is_integer_variable = [False, True]
         results = []
 
         def dlib_proc(*args):
@@ -160,7 +163,12 @@ class Runner:
         """
         solver_epsilon = 0.00005
         x = dlib.find_min_global(
-            dlib_proc, lo_bounds, up_bounds, is_integer_variable, n, solver_epsilon=0)
+            dlib_proc,
+            lo_bounds,
+            up_bounds,
+            is_integer_variable,
+            n,
+            solver_epsilon=solver_epsilon)
         results.sort()
         self.logger.error(f"Top 5: {results[:5]}")
         self.logger.error(f"Min x: {x}")
