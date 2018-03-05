@@ -142,17 +142,19 @@ class Runner:
                 if not temp_results:
                     temp_results = [1]
                 result = np.mean(temp_results)
+                self.logger.error(f"Iter {self.i} average: {result}")
             else:
                 strat = self.stratclass(self.pp, logger=self.logger, pid=self.i)
                 result = strat.simulate()[0]
                 if result is None:
                     result = 1
             results.append((result, args))
-            # If user quits sim, need to abort further calls to dlib_proc
-            if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
-                results.sort()
-                self.logger.error(f"Top 5: {results[:5]}")
-                sys.exit(0)
+            if not self.pp['avg_runs']:
+                # If user quits sim, need to abort further calls to dlib_proc
+                if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
+                    results.sort()
+                    self.logger.error(f"Top 10: {results[:10]}")
+                    sys.exit(0)
             self.i += 1
             return result
 
@@ -172,7 +174,7 @@ class Runner:
         On even iterations we pick the next x according to our upper bound while
         on odd iterations we pick the next x according to the trust region model
         """
-        solver_epsilon = 0.00005
+        solver_epsilon = 0.0005
         x = dlib.find_min_global(
             dlib_proc,
             lo_bounds,
@@ -181,7 +183,7 @@ class Runner:
             n,
             solver_epsilon=solver_epsilon)
         results.sort()
-        self.logger.error(f"Top 5: {results[:5]}")
+        self.logger.error(f"Top 10: {results[:10]}")
         self.logger.error(f"Min x: {x}")
 
     def hopt_random(self):
