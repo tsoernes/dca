@@ -131,19 +131,30 @@ class Runner:
             self.logger.error(f"\nIter {self.i}, testing {space}: {args}")
             for j, key in enumerate(space):
                 self.pp[key] = args[j]
-            strat = self.stratclass(self.pp, logger=self.logger, pid=self.i)
-            result = strat.simulate()
-            res = result[0]
-            if res is None:
-                res = 1
-            results.append((res, args))
+            if self.pp['avg_runs']:
+                n_runs = self.pp['avg_runs']
+                simproc = partial(self.sim_proc, self.stratclass, self.pp, reseed=True)
+                with Pool() as p:
+                    temp_results = p.map(simproc, range(n_runs))
+                temp_results = [
+                    r[0] for r in temp_results if r[0] != 1 and r[0] is not None
+                ]
+                if not temp_results:
+                    temp_results = [1]
+                result = np.mean(temp_results)
+            else:
+                strat = self.stratclass(self.pp, logger=self.logger, pid=self.i)
+                result = strat.simulate()[0]
+                if result is None:
+                    result = 1
+            results.append((result, args))
             # If user quits sim, need to abort further calls to dlib_proc
             if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
                 results.sort()
                 self.logger.error(f"Top 5: {results[:5]}")
                 sys.exit(0)
             self.i += 1
-            return res
+            return result
 
         """ the search will only attempt to find a global minimizer to at most
         solver_epsilon accuracy. Once a local minimizer is found to that
