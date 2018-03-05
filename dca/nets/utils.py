@@ -110,14 +110,19 @@ def build_default_trainer(pp, loss, var_list=None):
         global_step = None
         learning_rate = tf.constant(pp['net_lr'])
     trainer = get_optimizer_by_name(pp['optimizer'], learning_rate)
-    if pp['max_grad_norm'] is not None:
-        gradients, trainable_vars = zip(
-            *trainer.compute_gradients(loss, var_list=var_list))
-        clipped_grads, grad_norms = tf.clip_by_global_norm(gradients, pp['max_grad_norm'])
-        do_train = trainer.apply_gradients(
-            zip(clipped_grads, trainable_vars), global_step=global_step)
-    else:
-        do_train = trainer.minimize(loss, var_list=var_list, global_step=global_step)
+
+    # For batch norm:
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        if pp['max_grad_norm'] is not None:
+            gradients, trainable_vars = zip(
+                *trainer.compute_gradients(loss, var_list=var_list))
+            clipped_grads, grad_norms = tf.clip_by_global_norm(gradients,
+                                                               pp['max_grad_norm'])
+            do_train = trainer.apply_gradients(
+                zip(clipped_grads, trainable_vars), global_step=global_step)
+        else:
+            do_train = trainer.minimize(loss, var_list=var_list, global_step=global_step)
     return do_train, learning_rate
 
 
