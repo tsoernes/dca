@@ -28,7 +28,7 @@ class SinghNet(Net):
             h = tf.layers.dense(
                 inputs=tf.layers.flatten(freps),
                 units=10,
-                kernel_initializer=tf.zeros_initializer(),
+                kernel_initializer=self.kern_init_dense(),
                 kernel_regularizer=None,
                 bias_initializer=tf.zeros_initializer(),
                 use_bias=False,
@@ -38,7 +38,7 @@ class SinghNet(Net):
                 # inputs=tf.layers.flatten(freps),
                 inputs=h,
                 units=1,
-                kernel_initializer=tf.zeros_initializer(),
+                kernel_initializer=self.kern_init_dense(),
                 kernel_regularizer=None,
                 bias_initializer=tf.zeros_initializer(),
                 use_bias=False,
