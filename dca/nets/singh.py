@@ -25,8 +25,18 @@ class SinghNet(Net):
         else:
             freps = self.freps
         with tf.variable_scope('model/' + self.name) as scope:
-            self.value = tf.layers.dense(
+            h = tf.layers.dense(
                 inputs=tf.layers.flatten(freps),
+                units=10,
+                kernel_initializer=tf.zeros_initializer(),
+                kernel_regularizer=None,
+                bias_initializer=tf.zeros_initializer(),
+                use_bias=False,
+                activation=None,
+                name="h")
+            self.value = tf.layers.dense(
+                # inputs=tf.layers.flatten(freps),
+                inputs=h,
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
