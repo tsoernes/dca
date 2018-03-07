@@ -49,9 +49,7 @@ class SinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, rewards, next_freps, gamma, weight=1):
-        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
-        value_target = rewards + gamma * next_value
+    def backward_supervised(self, freps, value_target, weight=1, *args, **kwargs):
         data = {
             self.freps: freps,
             self.value_target: value_target,
@@ -63,3 +61,8 @@ class SinghNet(Net):
             options=self.options,
             run_metadata=self.run_metadata)
         return loss, lr, err
+
+    def backward(self, freps, rewards, next_freps, gamma, weight=1):
+        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
+        value_target = rewards + gamma * next_value
+        return self.backward_supervised(freps, value_target, weight)

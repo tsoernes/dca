@@ -13,12 +13,12 @@ def policy_eps_greedy(epsilon, chs, qvals_dense, *args):
     """Epsilon greedy action selection with expontential decay"""
     if np.random.random() < epsilon:
         # Choose an eligible channel at random
-        ch = np.random.choice(chs)
+        idx = np.random.randint(0, len(chs))
     else:
         # Choose greedily
         idx = np.argmax(qvals_dense)
-        ch = chs[idx]
-    return ch
+    ch = chs[idx]
+    return ch, idx
 
 
 def policy_nom_eps_greedy(epsilon, chs, qvals_dense, cell):
@@ -29,14 +29,13 @@ def policy_nom_eps_greedy(epsilon, chs, qvals_dense, cell):
         nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
         if nom_elig_idxs:
             idx = np.random.choice(nom_elig_idxs)
-            ch = chs[idx]
         else:
-            ch = np.random.choice(chs)
+            idx = np.random.randint(0, len(chs))
     else:
         # Choose greedily
         idx = np.argmax(qvals_dense)
-        ch = chs[idx]
-    return ch
+    ch = chs[idx]
+    return ch, idx
 
 
 def policy_nom_eps_greedy2(epsilon, chs, qvals_dense, cell):
@@ -46,15 +45,15 @@ def policy_nom_eps_greedy2(epsilon, chs, qvals_dense, cell):
         # Choose at greedily from nominal channels, else at random
         nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
         if nom_elig_idxs:
-            idx = np.argmax(qvals_dense[nom_elig_idxs])
-            ch = chs[nom_elig_idxs[idx]]
+            nidx = np.argmax(qvals_dense[nom_elig_idxs])
+            idx = nom_elig_idxs[nidx]
         else:
-            ch = np.random.choice(chs)
+            idx = np.random.randint(0, len(chs))
     else:
         # Choose greedily
         idx = np.argmax(qvals_dense)
-        ch = chs[idx]
-    return ch
+    ch = chs[idx]
+    return ch, idx
 
 
 def policy_nom_greedy(epsilon, chs, qvals_dense, cell):
@@ -63,31 +62,32 @@ def policy_nom_greedy(epsilon, chs, qvals_dense, cell):
     """
     nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
     if nom_elig_idxs:
-        idx = np.argmax(qvals_dense[nom_elig_idxs])
-        ch = chs[nom_elig_idxs[idx]]
+        nidx = np.argmax(qvals_dense[nom_elig_idxs])
+        idx = nom_elig_idxs[nidx]
     else:
         idx = np.argmax(qvals_dense)
-        ch = chs[idx]
-    return ch
+    ch = chs[idx]
+    return ch, idx
 
 
 def policy_nom_greedy_fixed(temp, chs, qvals_dense, cell):
     """The lowest numbered nominal channel is selected, if any, else greedy selection"""
-    nom_elig = [ch for ch in chs if GF.nom_chs[cell][ch]]
-    if nom_elig:
-        ch = nom_elig[0]
+    nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
+    if nom_elig_idxs:
+        idx = nom_elig_idxs[0]
     else:
         idx = np.argmax(qvals_dense)
-        ch = chs[idx]
-    return ch
+    ch = chs[idx]
+    return ch, idx
 
 
 def policy_boltzmann(temp, chs, qvals_dense, *args):
     """Boltzmann selection"""
     scaled = np.exp((qvals_dense - np.max(qvals_dense)) / temp)
     probs = scaled / np.sum(scaled)
-    ch = np.random.choice(chs, p=probs)
-    return ch
+    idx = np.random.choice(range(chs), p=probs)
+    ch = chs[idx]
+    return ch, idx
 
 
 def policy_nom_boltzmann(temp, chs, qvals_dense, cell):
@@ -97,10 +97,10 @@ def policy_nom_boltzmann(temp, chs, qvals_dense, cell):
     if nom_elig_idxs:
         nom_qvals = qvals_dense[nom_elig_idxs]
         idx = policy_boltzmann(temp, nom_elig_idxs, nom_qvals)
-        ch = chs[idx]
     else:
-        ch = policy_boltzmann(temp, chs, qvals_dense)
-    return ch
+        _, idx = policy_boltzmann(temp, chs, qvals_dense)
+    ch = chs[idx]
+    return ch, idx
 
 
 exp_pol_funcs = {

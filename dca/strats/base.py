@@ -61,7 +61,7 @@ class Strat:
             grid = np.copy(self.grid)  # Copy before state is modified
             reward, beta_disc, next_cevent = self.env.step(ch)
             if self.pp['dt_rewards']:
-                self.gamma = beta_disc
+                self.gamma = beta_disc  # Semi-markov bootstrap discount
             next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type)
             # NOTE Could do per-strat saving here, as they save different stuff
             if (self.save or self.batch_size > 1) \
