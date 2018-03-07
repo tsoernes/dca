@@ -57,3 +57,9 @@ Three explanations:
      may improve network convergence, ref paper with cyclic /triangular LR
   c) For a given Q, reward and next Q, the weight of reward vs next Q will vary, thus
      so emulates noisy gamma.
+
+----
+
+soft start training:
+gradually increase call rate, to prevent the system to being forced into an awkward corner
+before it has learned.

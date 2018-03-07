@@ -67,7 +67,14 @@ def get_pparams(defaults=False):
         "\n 5 erlangs = 100cr, 3cd",
         default=10)
     parser.add_argument(
-        '--call_rates', type=int, help="in calls per minute", default=None)
+        '--traffic_preset',
+        type=str,
+        help="""Choose between
+    traffic patterns. linear24: increase linearly from half the given call
+    rate to the given callrate over 24h""",
+        choices=['uniform', 'nonuniform', 'linear24'],
+        default='uniform')
+    parser.add_argument('--call_rate', type=int, help="in calls per minute", default=None)
     parser.add_argument('--call_duration', type=int, help="in minutes", default=3)
     parser.add_argument(
         '-phoff',
@@ -472,6 +479,8 @@ def get_pparams(defaults=False):
         # Approximate iters from hours. Only used for calculating
         # log_iter percentages and param decay schedules if log iter is not given
         pp['n_events'] = 7821 * pp['n_hours'] - 2015
+    if not pp['call_rate']:
+        pp['call_rate'] = pp['erlangs'] / pp['call_duration']
     pp['dt_rewards'] = pp['beta'] is not None
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
     if "net" in pp['strat'].lower():
@@ -483,8 +492,6 @@ def get_pparams(defaults=False):
             pp['log_iter'] = 50000
         pp['batch_size'] = 1
         pp['net'] = False
-    if not pp['call_rates']:
-        pp['call_rates'] = pp['erlangs'] / pp['call_duration']
     if pp['avg_runs']:
         pp['gui'] = False
         pp['use_gpu'] = False

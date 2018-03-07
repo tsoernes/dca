@@ -217,7 +217,7 @@ class RLStrat(Strat):
             amin_idx = np.argmin(qvals_dense)
             ch = max_ch = chs[amin_idx]
         else:
-            ch = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            ch, idx = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             self.epsilon *= self.epsilon_decay
             amax_idx = np.argmax(qvals_dense)
             max_ch = chs[amax_idx]
