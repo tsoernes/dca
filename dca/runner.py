@@ -112,18 +112,18 @@ class Runner:
 
     def hopt_dlib(self):
         import dlib
-        lo_bounds = [1e-8, 20]
-        up_bounds = [1e-4, 3000]
+        lo_bounds = [1e-4, 1400]
+        up_bounds = [8e-3, 3100]
         # lo_bounds = [8e-6, 0.85]  # Lower bound constraints on each var respectively
         # up_bounds = [9e-5, 0.98]
         # lo_bounds = [0.65]
         # up_bounds = [0.85]
-        n = 100  # The number of times find_min_global() will call holder_table()
+        n = 250  # The number of times find_min_global() will call holder_table()
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
         self.i = 0
         # space = ['net_lr', 'net_lr_decay']
-        space = ['net_lr', 'beta']
+        space = ['alpha', 'beta']
         is_integer_variable = [False, True]
         results = []
 
@@ -153,7 +153,7 @@ class Runner:
                 # If user quits sim, need to abort further calls to dlib_proc
                 if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
                     results.sort()
-                    self.logger.error(f"Top 10: {results[:10]}")
+                    self.logger.error(f"Results: {results}")
                     sys.exit(0)
             self.i += 1
             return result
@@ -183,7 +183,7 @@ class Runner:
             n,
             solver_epsilon=solver_epsilon)
         results.sort()
-        self.logger.error(f"Top 10: {results[:10]}")
+        self.logger.error(f"{results}")
         self.logger.error(f"Min x: {x}")
 
     def hopt_random(self):
