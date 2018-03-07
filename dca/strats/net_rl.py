@@ -398,6 +398,8 @@ class VNetStrat(NetStrat):
         if ch is not None:
             self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell,
                              self.next_val)
+        # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
+        # its execution.
         next_ch, self.next_val = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 
@@ -450,21 +452,38 @@ class PSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
+        self.net.backward = self.net.backward_supervised
+        assert not self.pp['dt_rewards']
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, _ = self.optimal_ch(next_ce_type, next_cell)
         if ch is not None:
-            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell)
-
+            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cevent,
+                             next_ch)
         return next_ch
 
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, **kwargs):
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cevent,
+                    next_ch, **kwargs):
         """If dt rewards is not used, the next reward is
         deterministic given next_cevent and state"""
-        freps, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
-        self.backward(
-            freps=[freps], rewards=[reward], next_freps=next_freps, gamma=self.gamma)
+        frep = NGF.feature_rep(grid)
+        if next_ch is not None:
+            next_ce_type, next_cell = next_cevent[1:3]
+            reward2 = reward
+            if next_cevent == CEvent.END:
+                reward2 -= 1
+            else:
+                reward2 += 1
+            bfreps = NGF.afterstate_freps(next_grid, next_cell, next_ce_type,
+                                          np.array([next_ch]))
+            bootstrap_val = self.net.forward(bfreps)[0]
+            value_target = reward + self.gamma * reward2 + (self.gamma**2) * bootstrap_val
+        else:
+            next_freps = NGF.incremental_freps(grid, frep, cell, ce_type, np.array([ch]))
+            bootstrap_val = self.net.forward(next_freps)[0]
+            value_target = reward + self.gamma * bootstrap_val
+        self.backward(freps=[frep], value_target=[[value_target]])
 
     def get_qvals(self, grid, cell, ce_type, chs):
         freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)

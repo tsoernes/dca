@@ -46,7 +46,7 @@ def get_pparams(defaults=False):
             stratnames.append(s2)
         stratclasses[i] = (s2, stratclasses[i][1])
 
-    policy_func_names = exp_pol_funcs.keys()
+    policy_func_names = list(exp_pol_funcs.keys()) + ['greedy']
     weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
     hopt_opts = [
         'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
@@ -524,6 +524,9 @@ def get_pparams(defaults=False):
         pp['n_events'] = 470000
     if pp['breakout_thresh'] is None:
         pp['breakout_thresh'] = 0.23
+    if pp['exp_policy'] == "greedy":
+        pp['exp_policy'] = "eps_greedy"
+        pp['epsilon'] = 0
 
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])
