@@ -8,6 +8,7 @@ from gridfuncs import GF
 from nets.acnet import ACNet
 from nets.afterstate import AfterstateNet
 from nets.dqnet import DistQNet
+from nets.lstd import LSTDNet
 from nets.qnet import QNet
 from nets.singh import SinghNet
 # from nets.singhf import SinghNet
@@ -439,6 +440,25 @@ class SinghNetStrat(VNetStrat):
         #     freps=[frep], rewards=[reward], next_freps=next_freps, gamma=self.gamma)
         value_target = reward + self.gamma * next_val
         self.backward(freps=[frep], value_target=[[value_target]])
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
+        # Just contains qvals for 'chs'
+        qvals_dense = self.net.forward(freps)
+        assert qvals_dense.shape == (len(chs), )
+        return qvals_dense
+
+
+class LSTDSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = LSTDNet(self.pp, self.logger)
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+                    **kwargs):
+        frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+        self.net.backward(
+            frep=frep, reward=reward, next_frep=next_freps[0], gamma=self.gamma)
 
     def get_qvals(self, grid, cell, ce_type, chs):
         freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
