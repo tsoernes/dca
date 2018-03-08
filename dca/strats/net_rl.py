@@ -11,6 +11,8 @@ from nets.dqnet import DistQNet
 from nets.lstd import LSTDNet
 from nets.qnet import QNet
 from nets.singh import SinghNet
+from nets.singh_man import ManSinghNet
+from nets.singh_tdc import TDCSinghNet
 # from nets.singhf import SinghNet
 from nets.singhq import SinghQNet
 from nets.utils import softmax
@@ -425,6 +427,13 @@ class VNetStrat(NetStrat):
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, qvals_dense[idx]
 
+    def get_qvals(self, grid, cell, ce_type, chs):
+        freps = NGF.afterstate_freps(grid, cell, ce_type, chs)
+        # Just contains qvals for 'chs'
+        qvals_dense = self.net.forward(freps)
+        assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
+        return qvals_dense
+
 
 class SinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
@@ -441,12 +450,47 @@ class SinghNetStrat(VNetStrat):
         value_target = reward + self.gamma * next_val
         self.backward(freps=[frep], value_target=[[value_target]])
 
-    def get_qvals(self, grid, cell, ce_type, chs):
-        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
-        # Just contains qvals for 'chs'
-        qvals_dense = self.net.forward(freps)
-        assert qvals_dense.shape == (len(chs), )
-        return qvals_dense
+
+class ManSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = ManSinghNet(self.pp, self.logger)
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+                    **kwargs):
+        frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+        self.backward(
+            freps=[frep], rewards=reward, next_freps=next_freps, gamma=self.gamma)
+
+
+class TDCSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = TDCSinghNet(self.pp, self.logger)
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+                    **kwargs):
+        frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+        self.backward(frep=frep, reward=reward, next_frep=next_freps[0], gamma=self.gamma)
+
+
+class AvgSinghNetStrat(VNetStrat):
+    """Average reward formulation
+    Without dt_rewards,
+        lr=1e-7, weight_beta=1e-2
+        lr=1e-6, weight_beta=1e-2
+        lr=1e-5, weight_beta=1e-2
+    seems like good strating points
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(self.pp, self.logger)
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+                    **kwargs):
+        frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+        self.backward(freps=[frep], rewards=reward, next_freps=next_freps, gamma=None)
 
 
 class LSTDSinghNetStrat(VNetStrat):
@@ -459,13 +503,6 @@ class LSTDSinghNetStrat(VNetStrat):
         frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
         self.net.backward(
             frep=frep, reward=reward, next_frep=next_freps[0], gamma=self.gamma)
-
-    def get_qvals(self, grid, cell, ce_type, chs):
-        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
-        # Just contains qvals for 'chs'
-        qvals_dense = self.net.forward(freps)
-        assert qvals_dense.shape == (len(chs), )
-        return qvals_dense
 
 
 class PSinghNetStrat(VNetStrat):
@@ -504,13 +541,6 @@ class PSinghNetStrat(VNetStrat):
             bootstrap_val = self.net.forward(next_freps)[0]
             value_target = reward + self.gamma * bootstrap_val
         self.backward(freps=[frep], value_target=[[value_target]])
-
-    def get_qvals(self, grid, cell, ce_type, chs):
-        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
-        # Just contains qvals for 'chs'
-        qvals_dense = self.net.forward(freps)
-        assert qvals_dense.shape == (len(chs), )
-        return qvals_dense
 
 
 class WSinghNetStrat(VNetStrat):
@@ -568,13 +598,6 @@ class WSinghNetStrat(VNetStrat):
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, weight, max_ch
 
-    def get_qvals(self, grid, cell, ce_type, chs):
-        freps = NGF.afterstate_freps(self.grid, cell, ce_type, chs)
-        # Just contains qvals for 'chs'
-        qvals_dense = self.net.forward(freps)
-        assert qvals_dense.shape == (len(chs), )
-        return qvals_dense
-
 
 class SinghQNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
@@ -595,13 +618,6 @@ class SinghQNetStrat(VNetStrat):
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
-
-    def get_qvals(self, grid, cell, ce_type, chs):
-        frep = NGF.feature_rep(self.grid)
-        # Just contains qvals for 'chs'
-        qvals_dense = self.net.forward([frep], cell)
-        assert qvals_dense.shape == (self.n_channels, )
-        return qvals_dense[chs]
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
@@ -643,6 +659,9 @@ class VConvNetStrat(SinghNetStrat):
 
 
 class RSMART(SinghNetStrat):
+    """-lr 1e-7 --weight_beta 1e-5 --beta 2500"""
+
+    # TODO Try beta gamma
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
@@ -650,6 +669,7 @@ class RSMART(SinghNetStrat):
         self.tot_reward = 0
         self.tot_time = 0
         self.t0 = 0
+        self.weight_beta = self.pp['weight_beta']
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
         # value_target = reward + self.gamma * np.array([[self.val]])
@@ -661,12 +681,13 @@ class RSMART(SinghNetStrat):
 
             dt = next_cevent[0] - self.t0
             treward = reward - self.avg_reward * dt
-            self.backward(freps=freps, rewards=treward, next_freps=next_freps, gamma=0.9)
-            self.tot_reward += reward
+            self.backward(
+                freps=freps, rewards=treward, next_freps=next_freps, gamma=self.gamma)
+            self.tot_reward += float(reward)
             self.tot_time += dt
-            self.avg_reward = (1 - self.alpha) * self.avg_reward + self.alpha * (
-                self.tot_reward / self.tot_time)
-            self.alpha *= self.alpha_decay
+            self.avg_reward = (1 - self.weight_beta) * self.avg_reward \
+                + self.weight_beta * (self.tot_reward / self.tot_time)
+            # self.weight_beta *= self.alpha_decay
 
         self.t0 = next_cevent[0]
         next_ce_type, next_cell = next_cevent[1:3]

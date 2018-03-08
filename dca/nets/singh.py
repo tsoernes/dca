@@ -12,6 +12,8 @@ class SinghNet(Net):
         """
         self.name = "SinghNet"
         super().__init__(name=self.name, *args, **kwargs)
+        self.weight_beta = self.pp['weight_beta']
+        self.avg_reward = 0
 
     def build(self):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
@@ -60,9 +62,14 @@ class SinghNet(Net):
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
+        if self.pp['avg_reward']:
+            self.avg_reward += self.weight_beta * err
         return loss, lr, err
 
-    def backward(self, freps, rewards, next_freps, gamma, weight=1):
+    def backward(self, freps, rewards, next_freps, gamma=None, weight=1):
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
-        value_target = rewards + gamma * next_value
+        if self.pp['avg_reward']:
+            value_target = rewards - self.avg_reward + next_value
+        else:
+            value_target = rewards + gamma * next_value
         return self.backward_supervised(freps, value_target, weight)

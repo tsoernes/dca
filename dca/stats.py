@@ -98,12 +98,18 @@ class Stats:
             avg_loss = f"Tot:{avg_losses[0]:.2E}, PG:{avg_losses[1]:.2E}" \
                        f" Val:{avg_losses[2]:.2E}, Ent:{avg_losses[3]:.2E}"
         else:
+            # print(losses)
+            # print(niter)
             avg_loss = f"{sum(losses[-niter:]) / niter :.2E}"
 
         if qval_means:
             avg_qval = f"{sum(qval_means[-niter:]) / niter :.2E}"
         else:
             avg_qval = ""
+        # print(epsilon)
+        # print(alpha)
+        # print(avg_loss)
+        # print(avg_qval)
         self.logger.info(f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
                          f" Avg. loss last {niter} events: {avg_loss}, qvals: {avg_qval}")
 

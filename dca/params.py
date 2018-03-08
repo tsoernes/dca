@@ -156,6 +156,8 @@ def get_pparams(defaults=False):
         const=15,
         default=None)
     parser.add_argument(
+        '--avg_reward', action='store_true', help="(RL/Singh)", default=False)
+    parser.add_argument(
         '--reward_scale',
         type=float,
         help="(RL) Factor by which rewards are scaled",
@@ -497,7 +499,7 @@ def get_pparams(defaults=False):
         pp['use_gpu'] = False
         if pp['n_events'] is None:
             pp['n_events'] = 470000
-        pp['log_iter'] = pp['n_events'] // 8
+        pp['log_iter'] = int(pp['n_events'] // 8)
     if pp['dlib_hopt'] is not None or pp['hopt'] is not None:
         if pp['net']:
             if pp['n_events'] is None:
