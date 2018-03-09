@@ -429,7 +429,7 @@ class VNetStrat(NetStrat):
 
     def get_qvals(self, grid, cell, ce_type, chs):
         freps = NGF.afterstate_freps(grid, cell, ce_type, chs)
-        # Just contains qvals for 'chs'
+        # Q-value for each ch in 'chs'
         qvals_dense = self.net.forward(freps)
         assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
         return qvals_dense
@@ -486,6 +486,7 @@ class AvgSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
+        assert self.pp['avg_reward']
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     **kwargs):

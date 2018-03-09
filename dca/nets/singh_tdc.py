@@ -67,15 +67,13 @@ class TDCSinghNet(Net):
 
         frep_colvec = np.reshape(frep, [-1, 1])
         next_frep_colvec = np.reshape(next_frep, [-1, 1])
+        # dot is inner product and therefore a scalar
         dot = np.dot(frep_colvec.T, self.weights)
-        # dot should be a inner product and therfore result in a scalar
-        s = np.reshape(dot, [-1]).shape
-        assert s == (1, ), s
         grad = td_err * frep_colvec - gamma * np.dot(next_frep_colvec, dot)
         data = {
             self.freps: [frep],
             self.grads[0][0]: -2 * grad
-        }  # yapf:disable
+        }  # yapf: disable
         lr, _ = self.sess.run(
             [self.lr, self.do_train2],
             feed_dict=data,

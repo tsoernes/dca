@@ -9,7 +9,7 @@ from eventgen import CEvent
 # a distance of 4 or less should include the cell itself in the count.
 countself = False
 rows, cols, n_channels = 7, 7, 70
-# Neighs at dist less than
+# Neighs at dist less than or equal to
 _neighs1 = np.zeros((rows, cols, 7, 2), dtype=np.int32)
 _neighs2 = np.zeros((rows, cols, 19, 2), dtype=np.int32)
 _neighs3 = np.zeros((rows, cols, 37, 2), dtype=np.int32)
@@ -90,7 +90,7 @@ def neighbors_np(dist, row, col, include_self=False):
 @njit(List(UniTuple(int32, 2))
       (int32, int32, int32, optional(boolean)), cache=True)  # yapf: disable
 def neighbors_tups(dist, row, col, include_self=False):
-    """list of tuples"""
+    """List of cells as tuples"""
     start = 0 if include_self else 1
     if dist == 1:
         neighs = _neighs1
@@ -109,7 +109,7 @@ def neighbors_tups(dist, row, col, include_self=False):
 @njit(UniTuple(Array(int32, 1, 'A', readonly=True), 2)
       (int32, int32, int32, optional(boolean)), cache=True)  # yapf: disable
 def neighbors_sep(dist, row, col, include_self=False):
-    """2-Tuple of np arrays"""
+    """2-Tuple ([row1, row2,..], [col1, col2, ..]) of np arrays"""
     start = 0 if include_self else 1
     if dist == 1:
         neighs = _neighs1
@@ -134,7 +134,7 @@ def neighbors(dist, row, col, separate=False, include_self=False):
 
 @njit(cache=True)
 def _inuse_neighs(grid, r, c):
-    """Channels in use at cell neighbors within distance of 2"""
+    """Channels in use at cell neighbors with distance of 2 or less"""
     neighs = neighbors_np(2, r, c, False)
     alloc_map = grid[neighs[0, 0], neighs[0, 1]]
     for i in range(1, len(neighs)):
@@ -144,7 +144,7 @@ def _inuse_neighs(grid, r, c):
 
 @njit(cache=True)
 def _eligible_map(grid, r, c):
-    """Channels in use at cell or its neighbors within distance of 2"""
+    """Channels in use at cell or its neighbors with distance of 2 or less"""
     inuse = _inuse_neighs(grid, r, c)
     inuse = np.bitwise_or(inuse, grid[(r, c)])
     eligible_map = np.invert(inuse)

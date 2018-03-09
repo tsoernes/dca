@@ -2,8 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import (get_optimizer_by_name, get_trainable_vars,
-                        scale_freps_big)
+from nets.utils import get_optimizer_by_name, get_trainable_vars
 
 
 class ManSinghNet(Net):
