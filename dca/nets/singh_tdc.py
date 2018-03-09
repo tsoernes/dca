@@ -60,25 +60,18 @@ class TDCSinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, rewards, next_freps, gamma):
+    def backward(self, freps, rewards, next_freps, discount):
         assert len(freps) == 1  # Hard coded for one-step
         value = self.sess.run(self.value, feed_dict={self.freps: freps})[0, 0]
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})[0, 0]
-        td_err = rewards[0] + gamma * next_value - value
+        td_err = rewards[0] + discount * next_value - value
 
         frep_colvec = np.reshape(freps[0], [-1, 1])
         next_frep_colvec = np.reshape(next_freps[0], [-1, 1])
         # dot is inner product and therefore a scalar
         dot = np.dot(frep_colvec.T, self.weights)
-        # NOTE TODO are signs optimal? Perhaps try and compare:
-        # grad = -2 * (td_err * frep_colvec + gamma * np.dot(next_frep_colvec, dot))
-        # Also, probably just the first term should be multiplied by 2, ie:
-        # grad = - * (2 * td_err * frep_colvec - gamma * np.dot(next_frep_colvec, dot))
-        grad = -2 * (td_err * frep_colvec - gamma * np.dot(next_frep_colvec, dot))
-        data = {
-            self.freps: freps,
-            self.grads[0][0]: grad
-        }  # yapf: disable
+        grad = -2 * (td_err * frep_colvec - discount * next_frep_colvec * dot)
+        data = {self.grads[0][0]: grad}
         lr, _ = self.sess.run(
             [self.lr, self.do_train2],
             feed_dict=data,
