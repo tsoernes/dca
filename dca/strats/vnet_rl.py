@@ -4,8 +4,8 @@ import gridfuncs_numba as NGF
 from eventgen import CEvent
 from gridfuncs import GF
 from nets.afterstate import AfterstateNet
-from nets.lstd import LSTDNet
 from nets.singh import SinghNet
+from nets.singh_lstd import LSTDSinghNet
 from nets.singh_man import ManSinghNet
 from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
@@ -132,7 +132,7 @@ class AvgSinghNetStrat(VNetStrat):
 class LSTDSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = LSTDNet(self.pp, self.logger)
+        self.net = LSTDSinghNet(self.pp, self.logger)
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount):

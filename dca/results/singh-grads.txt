@@ -1,0 +1,2 @@
+Comparing gradient methods for Singh:
+Regular, Residual, Gradient-Correction, Least-Squares
