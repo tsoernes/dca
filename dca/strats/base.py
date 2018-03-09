@@ -224,3 +224,36 @@ class RLStrat(Strat):
             raise Exception
         self.logger.debug(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
         return (ch, max_ch)
+
+
+class NetStrat(RLStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net_copy_iter = self.pp['net_copy_iter']
+        self.last_lr = 1
+        self.qval_means = []
+
+    def fn_report(self):
+        self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses, self.qval_means)
+
+    def fn_after(self):
+        self.logger.info(
+            f"TF Rand: {self.net.rand_uniform()}, NP seed: {np.random.get_state()[1][0]}")
+        if self.pp['save_net']:
+            inp = ""
+            if self.quit_sim:
+                while inp not in ["Y", "N"]:
+                    inp = input("Premature exit. Save model? Y/N: ").upper()
+            if inp in ["", "Y"]:
+                self.net.save_model()
+        self.net.save_timeline()
+        self.net.sess.close()
+
+    def backward(self, *args, **kwargs):
+        loss, self.last_lr, td_errs = self.net.backward(*args, **kwargs)
+        if np.isinf(loss) or np.isnan(loss):
+            self.logger.error(f"Invalid loss: {loss}")
+            self.invalid_loss, self.quit_sim = True, True
+        else:
+            self.losses.append(loss)
+        return td_errs

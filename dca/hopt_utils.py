@@ -9,8 +9,6 @@ from matplotlib import pyplot as plt
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
-from strats.net_rl import QNetStrat
-
 
 mongo_fail_msg = "Failed to connect to MongoDB. \
         Have you started mongod server in 'db' dir? \n \
@@ -28,7 +26,7 @@ def hopt_bounds(stratclass, params):
         'n_step': [2, 40],
     }
     specific = {
-        QNetStrat: {
+        'QNetStrat': {
             'net_lr': [1e-5, 9e-5],
             'net_lr_decay': [0.9, 0.96],
             'net_creep_tau': [0.001, 0.2]  # Assuming copy iter of 5

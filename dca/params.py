@@ -10,8 +10,9 @@ import argcomplete
 import numpy as np
 
 import strats.fixedstrats  # noqa
-import strats.net_rl  # noqa
+import strats.qnet_rl  # noqa
 import strats.table_rl  # noqa
+import strats.vnet_rl  # noqa
 from strats.exp_policies import exp_pol_funcs
 
 
@@ -36,8 +37,9 @@ def get_pparams(defaults=False):
         description='DCA', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # Get available strategies and format their names real nice
-    stratclasses = get_classes("strats.net_rl") + get_classes(
-        "strats.fixedstrats") + get_classes("strats.table_rl")
+    stratclasses = get_classes("strats.vnet_rl") + get_classes(
+        "strats.qnet_rl") + get_classes("strats.fixedstrats") + get_classes(
+            "strats.table_rl")
     stratnames = ['show']
     for i, s in enumerate(stratclasses):
         s1 = s[0].lower()
