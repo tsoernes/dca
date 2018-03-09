@@ -36,7 +36,8 @@ class TDCSinghNet(Net):
                 use_bias=False,
                 activation=None,
                 name="vals")
-            self.online_vars = tuple(get_trainable_vars(scope).values())
+            online_vars = tuple(get_trainable_vars(scope).values())
+        self.grads = [(tf.placeholder(tf.float32, [3479, 1]), online_vars[0])]
 
         if self.pp['net_lr_decay'] < 1:
             global_step = tf.Variable(0, trainable=False)
@@ -46,9 +47,9 @@ class TDCSinghNet(Net):
             global_step = None
             learning_rate = tf.constant(self.pp['net_lr'])
         self.lr = learning_rate
+
         trainer = get_optimizer_by_name(self.pp['optimizer'], learning_rate)
-        self.do_train2 = trainer.apply_gradients(
-            zip(self.grads, online_vars), global_step=global_step)
+        self.do_train2 = trainer.apply_gradients(self.grads, global_step=global_step)
 
     def forward(self, freps):
         values = self.sess.run(
@@ -60,9 +61,8 @@ class TDCSinghNet(Net):
         return vals
 
     def backward(self, frep, reward, next_frep, gamma):
-        value = self.sess.run(self.value, feed_dict={self.freps: [frep]})
-        next_value = self.sess.run(self.value, feed_dict={self.freps: [next_frep]})
-        print(value.shape)
+        value = self.sess.run(self.value, feed_dict={self.freps: [frep]})[0, 0]
+        next_value = self.sess.run(self.value, feed_dict={self.freps: [next_frep]})[0, 0]
         td_err = reward + gamma * next_value - value
 
         frep_colvec = np.reshape(frep, [-1, 1])
@@ -71,15 +71,15 @@ class TDCSinghNet(Net):
         # dot should be a inner product and therfore result in a scalar
         s = np.reshape(dot, [-1]).shape
         assert s == (1, ), s
-        grads = td_err * frep_colvec - gamma * np.dot(next_frep_colvec, dot)
+        grad = td_err * frep_colvec - gamma * np.dot(next_frep_colvec, dot)
         data = {
             self.freps: [frep],
-            self.grads: grads
+            self.grads[0][0]: -2 * grad
         }  # yapf:disable
-        _, loss, lr, err, val = self.sess.run(
-            [self.do_train2, self.loss, self.lr, self.err, self.value],
+        lr, _ = self.sess.run(
+            [self.lr, self.do_train2],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
         self.weights += self.weight_beta * (td_err - dot) * frep_colvec
-        return loss, lr, err
+        return td_err**2, lr, td_err
