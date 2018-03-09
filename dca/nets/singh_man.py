@@ -48,7 +48,7 @@ class ManSinghNet(Net):
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})[0][0]
         td_err = rewards + gamma * next_value - value
         frep_colvec = np.reshape(freps[0], [-1, 1])
-        grad = -2 * td_err * frep_colvec
+        grad = -2 * td_err * frep_colvec  # Gradient for MSE
         data = {self.freps: freps, self.grads[0][0]: grad}
         lr, _ = self.sess.run([self.lr, self.do_train], data)
         assert not np.isnan(td_err) or not np.isinf(td_err)

@@ -63,7 +63,7 @@ class VNetStrat(NetStrat):
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount):
         frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
-        self.backward(freps=[frep], rewards=reward, next_freps=next_freps, gamma=discount)
+        self.backward(freps=[frep], rewards=[reward], next_freps=next_freps, discount=discount)
 
 
 class SinghNetStrat(VNetStrat):
