@@ -1,4 +1,4 @@
-Using residual gradient, (singf.py)
+Using residual gradient, (singh_resid.py)
 
 p3 runner.py singhnet -opt sgd -phoff 0 -eps 0 --no_gpu -lr 2e-5 --avg_runs 16
 16x470000 events finished with speed 6827 events/second

@@ -7,8 +7,8 @@ from nets.afterstate import AfterstateNet
 from nets.lstd import LSTDNet
 from nets.singh import SinghNet
 from nets.singh_man import ManSinghNet
+from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
-# from nets.singhf import SinghNet
 from nets.singhq import SinghQNet
 from strats.base import NetStrat
 
@@ -63,7 +63,8 @@ class VNetStrat(NetStrat):
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount):
         frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
-        self.backward(freps=[frep], rewards=[reward], next_freps=next_freps, discount=discount)
+        self.backward(
+            freps=[frep], rewards=[reward], next_freps=next_freps, discount=discount)
 
 
 class SinghNetStrat(VNetStrat):
@@ -85,6 +86,14 @@ class ManSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ManSinghNet(self.pp, self.logger)
+
+
+class ResidSinghNetStrat(VNetStrat):
+    """Manual gradient calculation, just for example"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = ResidSinghNet(self.pp, self.logger)
 
 
 class TDCSinghNetStrat(VNetStrat):

@@ -93,7 +93,7 @@ def get_act_fn_by_name(name):
     return act_fns[name]
 
 
-def build_default_trainer(net_lr, net_lr_decay, optimizer):
+def build_default_trainer(net_lr, net_lr_decay, optimizer, **kwargs):
     if net_lr_decay < 1:
         global_step = tf.Variable(0, trainable=False)
         learning_rate = tf.train.exponential_decay(net_lr, global_step, 10000,
@@ -110,7 +110,8 @@ def build_default_minimizer(net_lr,
                             optimizer,
                             max_grad_norm,
                             loss,
-                            var_list=None):
+                            var_list=None,
+                            **kwargs):
     """
     Build a trainer to minimize loss through adjusting vars in var_list.
     Optionally decay learning rate and clip gradients. Return training op
