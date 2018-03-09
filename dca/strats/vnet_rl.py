@@ -88,7 +88,12 @@ class ManSinghNetStrat(VNetStrat):
 
 
 class TDCSinghNetStrat(VNetStrat):
-    """TD(0) with Gradient Correction"""
+    """TD(0) with Gradient Correction
+    Without dt_rewards,
+        lr=1e-6, weight_beta=1e-6
+    seems like good strating points
+
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

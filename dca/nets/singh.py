@@ -40,7 +40,7 @@ class SinghNet(Net):
         self.err = self.value_target - self.value
         self.loss = tf.losses.mean_squared_error(
             labels=self.value_target, predictions=self.value, weights=self.weights)
-        return online_vars
+        return self.loss, online_vars
 
     def forward(self, freps):
         values = self.sess.run(

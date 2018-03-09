@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import get_optimizer_by_name, get_trainable_vars
+from nets.utils import build_default_trainer, get_trainable_vars
 
 
 class ManSinghNet(Net):
@@ -30,17 +30,9 @@ class ManSinghNet(Net):
             online_vars = tuple(get_trainable_vars(scope).values())
         self.grads = [(tf.placeholder(tf.float32, [3479, 1]), online_vars[0])]
 
-        if self.pp['net_lr_decay'] < 1:
-            global_step = tf.Variable(0, trainable=False)
-            learning_rate = tf.train.exponential_decay(self.pp['net_lr'], global_step,
-                                                       10000, self.pp['net_lr_decay'])
-        else:
-            global_step = None
-            learning_rate = tf.constant(self.pp['net_lr'])
-        self.lr = learning_rate
-
-        trainer = get_optimizer_by_name(self.pp['optimizer'], learning_rate)
+        trainer, self.lr, global_step = build_default_trainer(**self.pp)
         self.do_train = trainer.apply_gradients(self.grads, global_step=global_step)
+        return None, None
 
     def forward(self, freps):
         values = self.sess.run(

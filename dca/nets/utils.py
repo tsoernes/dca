@@ -93,7 +93,24 @@ def get_act_fn_by_name(name):
     return act_fns[name]
 
 
-def build_default_trainer(pp, loss, var_list=None):
+def build_default_trainer(net_lr, net_lr_decay, optimizer):
+    if net_lr_decay < 1:
+        global_step = tf.Variable(0, trainable=False)
+        learning_rate = tf.train.exponential_decay(net_lr, global_step, 10000,
+                                                   net_lr_decay)
+    else:
+        global_step = None
+        learning_rate = tf.constant(net_lr)
+    trainer = get_optimizer_by_name(optimizer, learning_rate)
+    return trainer, learning_rate, global_step
+
+
+def build_default_minimizer(net_lr,
+                            net_lr_decay,
+                            optimizer,
+                            max_grad_norm,
+                            loss,
+                            var_list=None):
     """
     Build a trainer to minimize loss through adjusting vars in var_list.
     Optionally decay learning rate and clip gradients. Return training op
@@ -102,23 +119,14 @@ def build_default_trainer(pp, loss, var_list=None):
     If var_list is not specified, defaults to GraphKeys.TRAINABLE_VARIABLES,
     i.e. all trainable variables
     """
-    if pp['net_lr_decay'] < 1:
-        global_step = tf.Variable(0, trainable=False)
-        learning_rate = tf.train.exponential_decay(pp['net_lr'], global_step, 10000,
-                                                   pp['net_lr_decay'])
-    else:
-        global_step = None
-        learning_rate = tf.constant(pp['net_lr'])
-    trainer = get_optimizer_by_name(pp['optimizer'], learning_rate)
-
+    trainer, learning_rate, global_step = build_default_trainer()
     # For batch norm:
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        if pp['max_grad_norm'] is not None:
+        if max_grad_norm is not None:
             gradients, trainable_vars = zip(
                 *trainer.compute_gradients(loss, var_list=var_list))
-            clipped_grads, grad_norms = tf.clip_by_global_norm(gradients,
-                                                               pp['max_grad_norm'])
+            clipped_grads, grad_norms = tf.clip_by_global_norm(gradients, max_grad_norm)
             do_train = trainer.apply_gradients(
                 zip(clipped_grads, trainable_vars), global_step=global_step)
         else:

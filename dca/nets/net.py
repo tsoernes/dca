@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from tensorflow.python.client import timeline
 
 import datahandler
-from nets.utils import (build_default_trainer, get_act_fn_by_name,
+from nets.utils import (build_default_minimizer, get_act_fn_by_name,
                         get_init_by_name)
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  # warn
@@ -61,7 +61,7 @@ class Net:
         tf.set_random_seed(pp['rng_seed'])
         self.sess = tf.Session(config=config)
 
-        trainable_vars = self.build()
+        loss, trainable_vars = self.build()
         glob_vars = set(tf.global_variables())
         if self.save or restore:
             self.saver = tf.train.Saver(
@@ -72,7 +72,8 @@ class Net:
             self.logger.error(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
         if trainable_vars is not None:
-            self.do_train, self.lr = build_default_trainer(pp, self.loss, trainable_vars)
+            self.do_train, self.lr = build_default_minimizer(
+                **pp, loss=loss, var_list=trainable_vars)
         self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
 
         if pp['train_net']:
@@ -147,7 +148,6 @@ class Net:
 
     def train(self):
         self.load_data()
-        gamma = self.pp['gamma']
         losses = []
         self.logger.warn(f"Training {self.n_train_steps} minibatches of size"
                          f" {self.batch_size} for a total of"
