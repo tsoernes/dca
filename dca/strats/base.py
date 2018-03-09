@@ -59,10 +59,9 @@ class Strat:
         while self.continue_sim(self.i, t):
             t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
-            reward, beta_disc, next_cevent = self.env.step(ch)
-            if self.pp['dt_rewards']:
-                self.gamma = beta_disc  # Semi-markov bootstrap discount
-            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type)
+            reward, discount, next_cevent = self.env.step(ch)
+            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type,
+                                      discount)
             # NOTE Could do per-strat saving here, as they save different stuff
             if (self.save or self.batch_size > 1) \
                     and ch is not None \
@@ -126,7 +125,7 @@ class Strat:
         """Return a channel to be (re)assigned in response to 'next_cevent'."""
         raise NotImplementedError
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         """Return a channel to be (re)assigned in response to 'next_cevent'.
 
         'cell' and 'ch' specify the action that was previously executed on
@@ -154,10 +153,6 @@ class RLStrat(Strat):
         self.exploration_policy = exp_pol_funcs[pp['exp_policy']]
         self.epsilon = pp['epsilon']
         self.epsilon_decay = pp['epsilon_decay']
-        self.alpha = pp['alpha']
-        self.alpha_decay = pp['alpha_decay']
-        if self.pp['dt_rewards'] is False:
-            self.gamma = pp['gamma']
         self.logger.info(f"NP seed: {np.random.get_state()[1][0]}")
         self.losses = [0]
 
@@ -168,7 +163,7 @@ class RLStrat(Strat):
         ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
@@ -177,8 +172,9 @@ class RLStrat(Strat):
         if ce_type != CEvent.END and  \
            ch is not None and next_ch is not None:
             # Observe reward from previous action, and
-            # update q-values with one-step lookahead
-            self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch)
+            # update q-values with one-step look-ahead
+            self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
+                             discount)
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float, int]:

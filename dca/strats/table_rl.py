@@ -6,6 +6,8 @@ from strats.base import RLStrat
 class QTable(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.alpha = self.pp['alpha']
+        self.alpha_decay = self.pp['alpha_decay']
         self.lmbda = self.pp['lambda']
         if self.lmbda is not None:
             self.logger.error("Using lambda returns")
@@ -31,14 +33,15 @@ class QTable(RLStrat):
         else:
             return self.qvals[rep][chs]
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
+                    discount):
         assert type(ch) == np.int64
         assert ch is not None
         if self.pp['verify_grid']:
             assert np.sum(grid != self.grid) == 1
         next_n_used = np.count_nonzero(self.grid[next_cell])
         next_qval = self.get_qvals(next_cell, next_n_used, next_ch)
-        target_q = reward + self.gamma * next_qval
+        target_q = reward + discount * next_qval
         # Counting n_used of self.grid instead of grid yields significantly lower
         # blockprob on (TT-)SARSA for unknown reasons.
         n_used = np.count_nonzero(grid[cell])
@@ -51,7 +54,7 @@ class QTable(RLStrat):
         else:
             self.el_traces[frep][ch] += 1
             self.qvals += self.alpha * td_err * self.el_traces
-            self.el_traces *= self.gamma * self.lmbda
+            self.el_traces *= discount * self.lmbda
         if self.alpha > self.pp['min_alpha']:
             self.alpha *= self.alpha_decay
         next_frep = self.feature_rep(next_cell, next_n_used)
@@ -135,7 +138,8 @@ class E_RS_SARSA(QTable):
     def feature_rep(self, cell, n_used):
         return cell
 
-    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch):
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
+                    discount):
         assert type(ch) == np.int64
         assert ch is not None
         next_n_used = np.count_nonzero(self.grid[next_cell])
@@ -143,7 +147,7 @@ class E_RS_SARSA(QTable):
         scaled = np.exp((next_qvals - np.max(next_qvals)) / self.epsilon)
         probs = scaled / np.sum(scaled)
         expected_next_q = np.sum(probs * next_qvals)
-        target_q = reward + self.gamma * expected_next_q
+        target_q = reward + discount * expected_next_q
 
         n_used = np.count_nonzero(grid[cell])
         q = self.get_qvals(cell, n_used, ch)

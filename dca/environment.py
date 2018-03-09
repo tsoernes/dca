@@ -13,6 +13,7 @@ class Env:
         self.save = pp['save_exp_data']
         self.log_iter = pp['log_iter']
         self.reward_scale = pp['reward_scale']
+        self.gamma = pp['gamma']
         self.dt_rewards = pp['dt_rewards']
         self.beta = pp['beta']
         self.grid = grid
@@ -105,10 +106,8 @@ class Env:
             self.gui.step()
 
         self.cevent = self.eventgen.pop()
-        """
-        Immediate reward, which is the total number of calls
-        currently in progress system-wide
-        """
+        # Immediate reward, which is the total number of calls
+        # currently in progress system-wide
         count = np.count_nonzero(self.grid)
         if self.dt_rewards:
             dt = self.cevent[0] - t
@@ -116,7 +115,7 @@ class Env:
             reward = count * (1 - beta_disc) / self.beta
             # reward = (1 - beta_disc) / self.beta
             return reward, beta_disc, self.cevent
-        return count * self.reward_scale, None, self.cevent
+        return count * self.reward_scale, self.gamma, self.cevent
 
     def execute_action(self, cevent, ch: int):
         """
