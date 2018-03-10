@@ -120,7 +120,7 @@ def build_default_minimizer(net_lr,
     If var_list is not specified, defaults to GraphKeys.TRAINABLE_VARIABLES,
     i.e. all trainable variables
     """
-    trainer, learning_rate, global_step = build_default_trainer()
+    trainer, learning_rate, global_step = build_default_trainer(net_lr, net_lr_decay, optimizer)
     # For batch norm:
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):

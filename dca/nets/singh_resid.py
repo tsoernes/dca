@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 
 from nets.singh_man import ManSinghNet
 

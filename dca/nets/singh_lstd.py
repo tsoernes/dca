@@ -4,7 +4,7 @@ import tensorflow as tf
 from nets.net import Net
 
 
-class LSTDNet(Net):
+class LSTDSinghNet(Net):
     def __init__(self, *args, **kwargs):
         """
         Least Squares Temporal Difference
