@@ -1,2 +1,76 @@
 Comparing gradient methods for Singh:
 Regular, Residual, Gradient-Correction, Least-Squares
+
+-----------------------------------------------------------------------------------
+First, find good values with/without beta for regular Singh.
+
+results-dlib-singhnet-net_lr-beta.log
+Best from an incomplete DLIB hopt session
+p3 runner.py singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --beta 1700 --net_lr 1.55e-6
+Average cumulative block probability over 4 episodes: 0.1524 with standard deviation 0.00070
+
+hopt-mongo:singhnet-net_lr-beta2
+Best from many hopt runs, with possibly too lower upper bound on beta
+p3 runner.py singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --beta 25.569630119649283 --net_lr 2.2072432429125095e-05
+Average cumulative block probability over 4 episodes: 0.1464 with standard deviation 0.00114
+
+hopt-homngo:singhnet-net_lr-nodt
+p3 runner.py singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06
+Average cumulative block probability over 4 episodes: 0.1425 with standard deviation 0.00186
+
+Find out if lr decay matters (above was default 0.96)
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06 --net_lr_decay 1
+Average cumulative block probability over 4 episodes: 0.1416 with standard deviation 0.00050
+
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.9
+Average cumulative block probability over 4 episodes: 0.1338 with standard deviation 0.00113
+
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.8
+Average cumulative block probability over 4 episodes: 0.1316 with standard deviation 0.00112
+
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.7
+Average cumulative block probability over 4 episodes: 0.1306 with standard deviation 0.00167
+
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.6
+Average cumulative block probability over 4 episodes: 0.1326 with standard deviation 0.00112
+
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.5
+Average cumulative block probability over 4 episodes: 0.1333 with standard deviation 0.00093
+
+-----------------------------------------------------------------------------------
+Compare regular vs residual gradient
+
+NOTE PS: Residual gradients may require higher learning rate
+residsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.7
+Average cumulative block probability over 16 episodes: 0.1353 with standard deviation 0.00184
+
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.7
+Average cumulative block probability over 16 episodes: 0.1329 with standard deviation 0.00218
+
+-----------------------------------------------------------------------------------
+Then find good weight-beta for grad-corr, lstd
+
+tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-5
+Average cumulative block probability over 4 episodes: 0.1359 with standard deviation 0.00113
+
+tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-6
+Average cumulative block probability over 4 episodes: 0.1340 with standard deviation 0.00096
+
+tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-7
+Average cumulative block probability over 4 episodes: 0.1336 with standard deviation 0.00099
+
+tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-8
+Average cumulative block probability over 4 episodes: 0.1322 with standard deviation 0.00166
+
+tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-9
+Average cumulative block probability over 4 episodes: 0.1314 with standard deviation 0.00104
+
+tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-10
+Average cumulative block probability over 4 episodes: 0.1314 with standard deviation 0.00203
+
+tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-9
+Average cumulative block probability over 16 episodes: 0.1311 with standard deviation 0.00227
+
+TODO: dlib hopt tdc no-dt
+-----------------------------------------------------------------------------------
+Then do avg. 16 for each above
