@@ -16,6 +16,7 @@ class Env:
         self.gamma = pp['gamma']
         self.dt_rewards = pp['dt_rewards']
         self.beta = pp['beta']
+        self.bdisc = pp['beta_disc']
         self.grid = grid
         self.logger = logger
         self.gui = gui
@@ -113,8 +114,8 @@ class Env:
             dt = self.cevent[0] - t
             beta_disc = np.exp(-self.beta * dt)
             reward = count * (1 - beta_disc) / self.beta
-            # reward = (1 - beta_disc) / self.beta
-            return reward, beta_disc, self.cevent
+            discount = beta_disc if self.bdisc else self.gamma
+            return reward, discount, self.cevent
         return count * self.reward_scale, self.gamma, self.cevent
 
     def execute_action(self, cevent, ch: int):

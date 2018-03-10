@@ -153,10 +153,15 @@ def get_pparams(defaults=False):
         '--beta',
         nargs='?',
         type=float,
-        help="(RL) Instead of using a constant discount factor gamma;"
-        "integrate rewards over dt between events (see Singh96)",
+        help="(RL) integrate rewards over dt between events (see Singh96)",
         const=15,
         default=None)
+    parser.add_argument(
+        '-bdisc',
+        '--beta_disc',
+        action='store_true',
+        help="(RL) Semi-MDP Bootstrap discount",
+        default=False)
     parser.add_argument(
         '--avg_reward', action='store_true', help="(RL/Singh)", default=False)
     parser.add_argument(
@@ -471,6 +476,8 @@ def get_pparams(defaults=False):
     pp['conv_bias'] = not pp['no_conv_bias']
     del pp['no_conv_bias']
 
+    if pp['beta'] and not pp['beta_disc']:
+        print("Using beta but not beta_disc!")
     assert len(pp['conv_kernel_sizes']) == len(pp['conv_nfilters'])
 
     pp['freps'] = pp['qnet_freps'] or pp['qnet_freps_only']
