@@ -48,6 +48,8 @@ class TFTDCSinghNet(Net):
 
         self.td_err = self.rewards + self.discount * next_value - self.value
         dot = tf.matmul(freps_rowvec, self.weights)
+        # Multiply by 2 to get equivalent magnitude to MSE
+        # Multiply by -1 because SGD-variants invert grads
         grads = -2 * (
             self.td_err * freps_colvec - self.discount * next_freps_colvec * dot)
         grads_and_vars = [(grads, online_vars[0])]
@@ -78,9 +80,8 @@ class TFTDCSinghNet(Net):
             self.discount: [discount]
         }
         lr, td_err, _, _ = self.sess.run(
-            [self.lr, self.td_err, self.do_train, self.update_weights],
+            [self.lr, self.td_err[0, 0], self.do_train, self.update_weights],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
-        td_err = td_err[0, 0]
         return td_err**2, lr, td_err
