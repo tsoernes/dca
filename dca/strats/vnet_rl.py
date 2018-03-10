@@ -130,15 +130,14 @@ class AvgSinghNetStrat(VNetStrat):
 
 
 class LSTDSinghNetStrat(VNetStrat):
+    """Least Squares
+    Good starting point
+    --alpha 0.00000001 -epol greedy --beta 2600
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = LSTDSinghNet(self.pp, self.logger)
-
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
-                    discount):
-        frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
-        self.net.backward(
-            frep=frep, reward=reward, next_frep=next_freps[0], gamma=discount)
 
 
 class PSinghNetStrat(VNetStrat):

@@ -178,10 +178,8 @@ def expectedEmphaticTD(theta, emphasis, alpha):
         nextState = LOWER_STATE
         delta = REWARD + DISCOUNT * np.dot(FEATURES[nextState, :], theta) - np.dot(
             FEATURES[state, :], theta)
-        expectedUpdate += 1.0 / len(
-            STATES
-        ) * BEHAVIOR_SOLID_PROBABILITY * nextEmphasis * 1 / BEHAVIOR_SOLID_PROBABILITY * delta * FEATURES[
-            state, :]
+        expectedUpdate += 1.0 / len(STATES) * BEHAVIOR_SOLID_PROBABILITY \
+            * nextEmphasis * 1 / BEHAVIOR_SOLID_PROBABILITY * delta * FEATURES[state, :]
     theta += alpha * expectedUpdate
     return expectedNextEmphasis / len(STATES)
 

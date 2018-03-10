@@ -153,10 +153,15 @@ def get_pparams(defaults=False):
         '--beta',
         nargs='?',
         type=float,
-        help="(RL) Instead of using a constant discount factor gamma;"
-        "integrate rewards over dt between events (see Singh96)",
+        help="(RL) integrate rewards over dt between events (see Singh96)",
         const=15,
         default=None)
+    parser.add_argument(
+        '-bdisc',
+        '--beta_disc',
+        action='store_true',
+        help="(RL) Semi-MDP Bootstrap discount",
+        default=False)
     parser.add_argument(
         '--avg_reward', action='store_true', help="(RL/Singh)", default=False)
     parser.add_argument(
