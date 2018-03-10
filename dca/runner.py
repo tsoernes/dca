@@ -122,7 +122,6 @@ class Runner:
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {up_bounds}")
         self.i = 0
-        # space = ['net_lr', 'net_lr_decay']
         space = ['alpha', 'beta']
         is_integer_variable = [False, True]
         results = []

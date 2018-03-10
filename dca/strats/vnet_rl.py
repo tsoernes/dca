@@ -9,6 +9,7 @@ from nets.singh_lstd import LSTDSinghNet
 from nets.singh_man import ManSinghNet
 from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
+from nets.singh_tdc_tf import TFTDCSinghNet
 from nets.singhq import SinghQNet
 from strats.base import NetStrat
 
@@ -107,6 +108,12 @@ class TDCSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TDCSinghNet(self.pp, self.logger)
+
+
+class TFTDCSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = TFTDCSinghNet(self.pp, self.logger)
 
 
 class AvgSinghNetStrat(VNetStrat):

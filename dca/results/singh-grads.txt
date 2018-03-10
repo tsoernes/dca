@@ -1,6 +1,8 @@
 Comparing gradient methods for Singh:
 Regular, Residual, Gradient-Correction, Least-Squares
 
+Least-Squares found to be unsuited for control
+
 -----------------------------------------------------------------------------------
 First, find good values with/without beta for regular Singh.
 
@@ -48,7 +50,6 @@ singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.450794
 Average cumulative block probability over 16 episodes: 0.1329 with standard deviation 0.00218
 
 -----------------------------------------------------------------------------------
-Then find good weight-beta for grad-corr, lstd
 
 tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-5
 Average cumulative block probability over 4 episodes: 0.1359 with standard deviation 0.00113
@@ -71,6 +72,3 @@ Average cumulative block probability over 4 episodes: 0.1314 with standard devia
 tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --weight_beta 1e-9
 Average cumulative block probability over 16 episodes: 0.1311 with standard deviation 0.00227
 
-TODO: dlib hopt tdc no-dt
------------------------------------------------------------------------------------
-Then do avg. 16 for each above
