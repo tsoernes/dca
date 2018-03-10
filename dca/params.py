@@ -476,6 +476,8 @@ def get_pparams(defaults=False):
     pp['conv_bias'] = not pp['no_conv_bias']
     del pp['no_conv_bias']
 
+    if pp['beta'] and not pp['beta_disc']:
+        print("Using beta but not beta_disc!")
     assert len(pp['conv_kernel_sizes']) == len(pp['conv_nfilters'])
 
     pp['freps'] = pp['qnet_freps'] or pp['qnet_freps_only']

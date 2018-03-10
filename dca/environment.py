@@ -16,7 +16,7 @@ class Env:
         self.gamma = pp['gamma']
         self.dt_rewards = pp['dt_rewards']
         self.beta = pp['beta']
-        self.beta_disc = pp['beta_disc']
+        self.bdisc = pp['beta_disc']
         self.grid = grid
         self.logger = logger
         self.gui = gui
