@@ -53,7 +53,7 @@ def get_pparams(defaults=False):
     hopt_opts = [
         'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
         'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff', 'beta',
-        'net_lr_decay', 'n_step'
+        'net_lr_decay', 'n_step', 'weight_beta'
     ]
 
     parser.add_argument('strat', type=str, choices=stratnames, default="rs_sarsa")
