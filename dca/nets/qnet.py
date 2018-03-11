@@ -121,7 +121,7 @@ class QNet(Net):
         # Create online and target networks
         self.online_q_vals, online_vars = self._build_net(
             *net_inputs, name="q_networks/online")
-        # Keep searate weights for target Q network
+        # Keep separate weights for target Q network
         target_q_vals, target_vars = self._build_net(
             *net_inputs, name="q_networks/target")
         # copy_online_to_target should be called periodically to creep

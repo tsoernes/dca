@@ -82,7 +82,6 @@ class SinghQNet(Net):
             },
             options=self.options,
             run_metadata=self.run_metadata)
-        # print(values.shape)
         vals = np.reshape(values, [-1])
         return vals
 
