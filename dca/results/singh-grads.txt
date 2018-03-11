@@ -90,3 +90,4 @@ Average cumulative block probability over 4 episodes: 0.1315 with standard devia
 Should possible have used lower learning rate here, since returns are two-step
 
 p3 runner.py psinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.7
+Average cumulative block probability over 16 episodes: 0.1317 with standard deviation 0.00180

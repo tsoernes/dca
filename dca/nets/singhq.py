@@ -71,7 +71,7 @@ class SinghQNet(Net):
         # Sum of squares difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
             labels=self.q_targets, predictions=online_q_selected)
-        return online_vars
+        return self.loss, online_vars
 
     def forward(self, freps, cells):
         values = self.sess.run(
@@ -82,6 +82,7 @@ class SinghQNet(Net):
             },
             options=self.options,
             run_metadata=self.run_metadata)
+        # print(values.shape)
         vals = np.reshape(values, [-1])
         return vals
 

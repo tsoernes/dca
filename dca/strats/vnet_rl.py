@@ -245,7 +245,7 @@ class SinghQNetStrat(VNetStrat):
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell,
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount):
         frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
         self.backward(
@@ -256,6 +256,14 @@ class SinghQNetStrat(VNetStrat):
             next_freps=next_freps,
             next_cells=next_cell,
             discount=discount)
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        frep = NGF.feature_rep(grid)
+        # Q-value for each ch in 'chs'
+        qvals_sparse = self.net.forward([frep], [cell])
+        qvals_dense = qvals_sparse[chs]
+        assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
+        return qvals_dense
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
@@ -271,7 +279,8 @@ class SinghQNetStrat(VNetStrat):
             amax_idx = np.argmin(qvals_dense)
             ch = chs[amax_idx]
         else:
-            ch, idx = self.policy_part_eps_greedy(chs, qvals_dense, cell)
+            ch, idx = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            self.epsilon *= self.epsilon_decay
 
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
