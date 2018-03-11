@@ -118,13 +118,13 @@ class Runner:
             'net_lr_decay': [False, 0.65, 1.0],
             'weight_beta': [False, 1e-10, 1e-5]
         }
-        params, is_int, lo_bounds, hi_bounds = []
+        params, is_int, lo_bounds, hi_bounds = [], [], [], []
         for p, li in bounds.items():
             params.append(p)
             is_int.append(li[0])
             lo_bounds.append(li[1])
             hi_bounds.append(li[2])
-        n = 250  # The number of times find_min_global() will sample and test params
+        n = 40  # The number of times find_min_global() will sample and test params
 
         self.logger.error(
             f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {hi_bounds}")
