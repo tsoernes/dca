@@ -224,7 +224,7 @@ class WSinghNetStrat(VNetStrat):
             ch = max_ch
             weight = 1
         else:
-            ch = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            ch, idx = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             scaled = np.exp((qvals_dense - np.max(qvals_dense)) / self.epsilon)
             probs = scaled / np.sum(scaled)
             for i, ch2 in enumerate(chs):
@@ -242,6 +242,9 @@ class SinghQNetStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghQNet(self.pp, self.logger)
 
+    def update_target_net(self):
+        self.net.sess.run(self.net.copy_online_to_target)
+
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell,
                     discount):
         frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
@@ -252,10 +255,7 @@ class SinghQNetStrat(VNetStrat):
             rewards=[reward],
             next_freps=next_freps,
             next_cells=next_cell,
-            gamma=discount)
-
-    def update_target_net(self):
-        self.net.sess.run(self.net.copy_online_to_target)
+            discount=discount)
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
@@ -271,7 +271,7 @@ class SinghQNetStrat(VNetStrat):
             amax_idx = np.argmin(qvals_dense)
             ch = chs[amax_idx]
         else:
-            ch = self.policy_part_eps_greedy(chs, qvals_dense, cell)
+            ch, idx = self.policy_part_eps_greedy(chs, qvals_dense, cell)
 
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
