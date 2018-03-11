@@ -86,14 +86,20 @@ class SinghQNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def _double_q_target(self, freps, cells) -> [float]:
+    def _double_q_target(self, freps, cells, chs=None) -> [float]:
         data = {self.oh_cells: prep_data_cells(cells), self.freps: freps}
-        qvals = self.sess.run(self.target_q_max, data)
+        if chs is None:
+            target = self.target_q_max
+        else:
+            target = self.target_q_selected
+            data[self.chs] = chs
+        qvals = self.sess.run(target, data)
         return qvals
 
-    def backward(self, freps, cells, chs, rewards, next_freps, next_cells, next_val, discount):
-        # next_value = self._double_q_target(next_freps, next_cells)[0]
-        value_target = rewards + discount * next_val
+    def backward(self, freps, cells, chs, rewards, next_freps, next_cells, discount,
+                 next_chs):
+        next_value = self._double_q_target(next_freps, next_cells, next_chs)[0]
+        value_target = rewards + discount * next_value
         data = {
             self.freps: freps,
             self.oh_cells: prep_data_cells(cells),

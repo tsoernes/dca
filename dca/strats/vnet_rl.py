@@ -245,7 +245,17 @@ class SinghQNetStrat(VNetStrat):
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
+        if ch is not None and next_ch is not None:
+            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell,
+                             next_ch, discount)
+        # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
+        # its execution.
+        return next_ch
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_ch,
                     discount):
         frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
         self.backward(
@@ -255,7 +265,7 @@ class SinghQNetStrat(VNetStrat):
             rewards=reward,
             next_freps=next_freps,
             next_cells=next_cell,
-            next_val=next_val,
+            next_chs=[next_ch],
             discount=discount)
 
     def get_qvals(self, grid, cell, ce_type, chs):
