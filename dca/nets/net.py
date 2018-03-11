@@ -51,7 +51,7 @@ class Net:
         # tf.logging.set_verbosity(tf.logging.WARN)
 
         if not pp['use_gpu']:
-            self.logger.error("Not using GPU")
+            # self.logger.error("Not using GPU")
             config = tf.ConfigProto(device_count={'GPU': 0})
         else:
             config = tf.ConfigProto()

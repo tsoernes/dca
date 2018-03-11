@@ -82,7 +82,7 @@ class SinghNetStrat(VNetStrat):
 
 
 class ManSinghNetStrat(VNetStrat):
-    """Manual gradient calculation, just for example"""
+    """Manual gradient calculation, just for illustration"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -90,7 +90,7 @@ class ManSinghNetStrat(VNetStrat):
 
 
 class ResidSinghNetStrat(VNetStrat):
-    """Manual gradient calculation, just for example"""
+    """Residual gradients"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -102,7 +102,6 @@ class TDCSinghNetStrat(VNetStrat):
     Without dt_rewards,
         lr=1e-6, weight_beta=1e-6
     seems like good strating points
-
     """
 
     def __init__(self, *args, **kwargs):
@@ -111,6 +110,8 @@ class TDCSinghNetStrat(VNetStrat):
 
 
 class TFTDCSinghNetStrat(VNetStrat):
+    """TensorFlow impl. of TDC"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TFTDCSinghNet(self.pp, self.logger)
@@ -129,11 +130,6 @@ class AvgSinghNetStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
         assert self.pp['avg_reward']
-
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
-                    discount):
-        frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
-        self.backward(freps=[frep], rewards=reward, next_freps=next_freps, gamma=None)
 
 
 class LSTDSinghNetStrat(VNetStrat):
@@ -177,8 +173,7 @@ class PSinghNetStrat(VNetStrat):
             bfreps = NGF.afterstate_freps(next_grid, next_cell, next_ce_type,
                                           np.array([next_ch]))
             bootstrap_val = self.net.forward(bfreps)[0]
-            value_target = reward + self.discount * reward2 + (
-                self.discount**2) * bootstrap_val
+            value_target = reward + discount * reward2 + (discount**2) * bootstrap_val
         else:
             next_freps = NGF.incremental_freps(grid, frep, cell, ce_type, np.array([ch]))
             bootstrap_val = self.net.forward(next_freps)[0]
