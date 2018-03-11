@@ -91,14 +91,14 @@ class SinghQNet(Net):
         qvals = self.sess.run(self.target_q_max, data)
         return qvals
 
-    def backward(self, freps, cells, chs, rewards, next_freps, next_cells, discount):
-        next_value = self._double_q_target(next_freps, next_cells)[0]
-        value_target = rewards + discount * next_value
+    def backward(self, freps, cells, chs, rewards, next_freps, next_cells, next_val, discount):
+        # next_value = self._double_q_target(next_freps, next_cells)[0]
+        value_target = rewards + discount * next_val
         data = {
             self.freps: freps,
             self.oh_cells: prep_data_cells(cells),
             self.chs: chs,
-            self.q_targets: value_target
+            self.q_targets: [value_target]
         }
         _, loss, lr, err = self.sess.run(
             [self.do_train, self.loss, self.lr, self.err],

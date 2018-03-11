@@ -252,9 +252,10 @@ class SinghQNetStrat(VNetStrat):
             freps=[frep],
             cells=cell,
             chs=[ch],
-            rewards=[reward],
+            rewards=reward,
             next_freps=next_freps,
             next_cells=next_cell,
+            next_val=next_val,
             discount=discount)
 
     def get_qvals(self, grid, cell, ce_type, chs):
@@ -276,15 +277,15 @@ class SinghQNetStrat(VNetStrat):
         qvals_dense = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
         if ce_type == CEvent.END:
-            amax_idx = np.argmin(qvals_dense)
-            ch = chs[amax_idx]
+            idx = np.argmin(qvals_dense)
+            ch = chs[idx]
         else:
             ch, idx = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             self.epsilon *= self.epsilon_decay
 
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
-        return ch, None
+        return ch, qvals_dense[idx]
 
 
 class VConvNetStrat(SinghNetStrat):
