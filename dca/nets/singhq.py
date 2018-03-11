@@ -22,7 +22,7 @@ class SinghQNet(Net):
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
                 bias_initializer=tf.zeros_initializer(),
-                use_bias=True,
+                use_bias=False,
                 activation=None,
                 name="vals")
             trainable_vars = get_trainable_vars(scope)
