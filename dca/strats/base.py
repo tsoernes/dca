@@ -151,12 +151,8 @@ class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
         super().__init__(pp, *args, **kwargs)
         self.epsilon = pp['epsilon']
-        epol = pp['exp_policy']
-        if epol == "bgumbel":
-            inst = exp_pol_funcs[epol](C=self.epsilon)
-            self.exploration_policy = inst.select_action
-        else:
-            self.exploration_policy = exp_pol_funcs[epol]
+        epol = exp_pol_funcs[pp['exp_policy']](c=pp['exp_policy_param'])
+        self.exploration_policy = epol.select_action
 
         self.epsilon_decay = pp['epsilon_decay']
         self.logger.info(f"NP seed: {np.random.get_state()[1][0]}")

@@ -30,7 +30,8 @@ class GridFuncs(metaclass=Singleton):
 
         self.labels = np.zeros((self.rows, self.cols), dtype=int)
         self._partition_cells()
-        self.nom_chs = np.zeros((self.rows, self.cols, self.n_channels), dtype=bool)
+        self.nom_chs_mask = np.zeros((self.rows, self.cols, self.n_channels), dtype=bool)
+        self.nom_chs = np.zeros((self.rows, self.cols, 10), dtype=int)
         self._assign_chs()
 
     def validate_reuse_constr(self, grid):
@@ -199,7 +200,8 @@ class GridFuncs(metaclass=Singleton):
                 label = self.labels[r][c]
                 lo = channels_per_subgrid_cell_accu[label]
                 hi = channels_per_subgrid_cell_accu[label + 1]
-                self.nom_chs[r][c][lo:hi] = 1
+                self.nom_chs_mask[r][c][lo:hi] = 1
+                self.nom_chs[r][c] = np.arange(lo, hi)
 
     @staticmethod
     def afterstates(grid, cell, ce_type, chs):

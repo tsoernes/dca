@@ -327,12 +327,12 @@ class TestFixedGrid():
     def test_assign_chs(self):
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
-                self.assertGreater(np.sum(self.grid.nom_chs[r][c]), 0)
+                self.assertGreater(np.sum(self.grid.nom_chs_mask[r][c]), 0)
                 neighs = self.grid.neighbors2(r, c)
-                for ch, isNom in enumerate(self.grid.nom_chs[r][c]):
+                for ch, isNom in enumerate(self.grid.nom_chs_mask[r][c]):
                     if isNom:
                         for neigh in neighs:
-                            self.assertFalse(self.grid.nom_chs[neigh][ch])
+                            self.assertFalse(self.grid.nom_chs_mask[neigh][ch])
 
     def _test_max_utilization(self):
         """
@@ -345,7 +345,7 @@ class TestFixedGrid():
         """
         for r in range(self.grid.rows):
             for c in range(self.grid.cols):
-                for ch, isNom in enumerate(self.grid.nom_chs[r][c]):
+                for ch, isNom in enumerate(self.grid.nom_chs_mask[r][c]):
                     if isNom:
                         self.grid.state[r][c][ch] = 1
         self.assertTrue(self.grid.validate_reuse_constr())

@@ -129,7 +129,13 @@ def get_pparams(defaults=False):
         type=str,
         help="Exploration policy (only used for NEW/HOFF events)",
         choices=policy_func_names,
-        default="nom_greedy_fixed")
+        default="nom_fixed_greedy")
+    parser.add_argument(
+        '-epolc',
+        '--exp_policy_param',
+        type=float,
+        help="Exploration policy parameter",
+        default=None)
     parser.add_argument(
         '--epsilon',
         '-eps',

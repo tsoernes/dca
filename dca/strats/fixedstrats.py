@@ -48,7 +48,7 @@ class FixedAssign(Strat):
             # When a call arrives in a cell,
             # if any pre-assigned channel is unused;
             # it is assigned, else the call is blocked.
-            for ch, isNom in enumerate(GF.nom_chs[next_cell]):
+            for ch, isNom in enumerate(GF.nom_chs_mask[next_cell]):
                 if isNom and self.grid[next_cell][ch] == 0:
                     return ch
             return None
