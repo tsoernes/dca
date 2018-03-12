@@ -150,14 +150,21 @@ class Strat:
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
         super().__init__(pp, *args, **kwargs)
-        self.exploration_policy = exp_pol_funcs[pp['exp_policy']]
         self.epsilon = pp['epsilon']
+        epol = pp['exp_policy']
+        if epol == "bgumbel":
+            inst = exp_pol_funcs[epol](C=self.epsilon)
+            self.exploration_policy = inst.select_action
+        else:
+            self.exploration_policy = exp_pol_funcs[epol]
+
         self.epsilon_decay = pp['epsilon_decay']
         self.logger.info(f"NP seed: {np.random.get_state()[1][0]}")
         self.losses = [0]
+        self.qval_means = []
 
     def fn_report(self):
-        self.env.stats.report_rl(self.epsilon, self.alpha, self.losses)
+        self.env.stats.report_rl(self.epsilon, self.alpha, self.losses, self.qval_means)
 
     def get_init_action(self, cevent):
         ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
@@ -231,7 +238,6 @@ class NetStrat(RLStrat):
         super().__init__(*args, **kwargs)
         self.net_copy_iter = self.pp['net_copy_iter']
         self.last_lr = 1
-        self.qval_means = []
 
     def fn_report(self):
         self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses, self.qval_means)

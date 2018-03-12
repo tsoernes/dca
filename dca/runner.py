@@ -114,9 +114,10 @@ class Runner:
         import dlib
         bounds = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
-            'net_lr': [False, 7e-7, 5e-6],
-            'net_lr_decay': [False, 0.65, 1.0],
-            'weight_beta': [False, 1e-10, 1e-5]
+            # 'net_lr': [False, 7e-7, 5e-6],
+            # 'net_lr_decay': [False, 0.65, 1.0],
+            # 'weight_beta': [False, 1e-10, 1e-5]
+            'epsilon': [True, 10, 2000]
         }
         params, is_int, lo_bounds, hi_bounds = [], [], [], []
         for p, li in bounds.items():

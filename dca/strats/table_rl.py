@@ -46,6 +46,7 @@ class QTable(RLStrat):
         # blockprob on (TT-)SARSA for unknown reasons.
         n_used = np.count_nonzero(grid[cell])
         q = self.get_qvals(cell, n_used, ch)
+        self.qval_means.append(np.mean(self.get_qvals(cell, n_used)))
         td_err = target_q - q
         self.losses.append(td_err**2)
         frep = self.feature_rep(cell, n_used)
