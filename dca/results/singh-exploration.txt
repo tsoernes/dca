@@ -1,0 +1,56 @@
+Singhnet with Boltzmann-Gumbel Exploration and SGD-M (which seems the best opt for BG)
+Remember: BG has no epolc-decay
+
+Testing LR
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 5e-9 -epolc 5 --no_gpu --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1341 with standard deviation 0.00241
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 8e-9 -epolc 5 --no_gpu --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1324 with standard deviation 0.00262
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5 --no_gpu --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1317 with standard deviation 0.00057
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 3e-8 -epolc 5 --no_gpu --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1326 with standard deviation 0.00149
+
+
+Testing LR Decay
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5 --no_gpu --avg_runs 4 --net_lr_decay 0.7
+Average cumulative block probability over 4 episodes: 0.1328 with standard deviation 0.00104
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5 --no_gpu --avg_runs 4 --net_lr_decay 0.8
+Average cumulative block probability over 4 episodes: 0.1331 with standard deviation 0.00113
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5 --no_gpu --avg_runs 4 --net_lr_decay 0.9
+Average cumulative block probability over 4 episodes: 0.1313 with standard deviation 0.00075
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5 --no_gpu --avg_runs 4 --net_lr_decay 0.93
+Average cumulative block probability over 4 episodes: 0.1322 with standard deviation 0.00235
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5 --no_gpu --avg_runs 4 --net_lr_decay 0.98
+Average cumulative block probability over 4 episodes: 0.1324 with standard deviation 0.00175
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5 --no_gpu --avg_runs 4 --net_lr_decay 1
+Average cumulative block probability over 4 episodes: 0.1316 with standard deviation 0.00183
+
+Testing Epolc
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 4 --no_gpu --avg_runs 4 --net_lr_decay 1
+Average cumulative block probability over 4 episodes: 0.1340 with standard deviation 0.00198
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 4.5 --no_gpu --avg_runs 4 --net_lr_decay 1
+Average cumulative block probability over 4 episodes: 0.1344 with standard deviation 0.00186
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 4.8 --no_gpu --avg_runs 4 --net_lr_decay 1
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5.2 --no_gpu --avg_runs 4 --net_lr_decay 1
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 5.5 --no_gpu --avg_runs 4 --net_lr_decay 1
+Average cumulative block probability over 4 episodes: 0.1349 with standard deviation 0.00393
+
+singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 6 --no_gpu --avg_runs 4 --net_lr_decay 1
+Average cumulative block probability over 4 episodes: 0.1358 with standard deviation 0.00315
+
+
+

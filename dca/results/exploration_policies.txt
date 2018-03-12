@@ -151,16 +151,43 @@ Average cumulative handoff block probability 0.1271 with standard deviation 0.00
 
 GREEDY FIXED NOMINAL:
 
-p3 runner.py rs_sarsa -epol nom_greedy_fixed -eps 1 --avg_runs 16
+p3 runner.py rs_sarsa -epol nom_greedy_fixed --avg_runs 16
 Average cumulative block probability over 16 episodes: 0.1602 with standard deviation 0.00119
 Average cumulative handoff block probability 0.1218 with standard deviation 0.00245
-
-p3 runner.py rs_sarsa -epol nom_greedy_fixed -eps 1 --epsilon_decay 1 --avg_runs 16
-Average cumulative block probability over 16 episodes: 0.1608 with standard deviation 0.00215
-Average cumulative handoff block probability 0.1221 with standard deviation 0.00256
 
 
 FIXEDASSIGN (no exploration, obviously):
 
 Average cumulative block probability over 16 episodes: 0.2313 with standard deviation 0.00217
 Average cumulative handoff block probability 0.2349 with standard deviation 0.00532
+
+------------------------------------------------------------------------------------
+Boltzmann 2
+
+self.nom_qval_consts = np.arange(10, 1, -0.1)
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 1 -epolc 1.5 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1632 with standard deviation 0.00191
+
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 2 -epolc 1.5 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1636 with standard deviation 0.00360
+
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 3 -epolc 1.5 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1633 with standard deviation 0.00111
+
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 5 -epolc 1.5 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1646 with standard deviation 0.00301
+
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 1 -epolc 2 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1647 with standard deviation 0.00120
+
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 2 -epolc 2 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1635 with standard deviation 0.00133
+
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 3 -epolc 2 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1635 with standard deviation 0.00197
+
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 5 -epolc 2 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1650 with standard deviation 0.00122
+
+p3 runner.py rs_sarsa -epol nom_boltzmann2 -eps 3 -epolc 5 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1609 with standard deviation 0.00073
