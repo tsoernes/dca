@@ -143,6 +143,45 @@ class LSTDSinghNetStrat(VNetStrat):
         self.net = LSTDSinghNet(self.pp, self.logger)
 
 
+class AlfySinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(self.pp, self.logger)
+        assert not self.pp['dt_rewards']
+        self.net.backward = self.net.backward_supervised
+        # assert not self.pp['dt_rewards']
+        self.sojourn_times = np.zeros(self.dims, np.float64)
+        self.rewards = np.zeros(self.dims, np.float64)
+        self.act_count = np.zeros(self.dims, np.int64)
+        self.tot_rewards = 0
+        self.tot_sotimes = 0
+        self.t0 = 0
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        t1, next_ce_type, next_cell = next_cevent[:3]
+        if ch is not None:
+            dt = t1 - self.t0
+            self.act_count[cell][ch] += 1
+            immediate_reward = reward * dt
+            self.rewards[cell][ch] += (immediate_reward - self.rewards[cell][ch]) \
+                / self.act_count[cell][ch]
+            immediate_avg_reward = self.rewards[cell][ch]
+            self.sojourn_times[cell][ch] += (dt - self.sojourn_times[cell][ch]) \
+                / self.act_count[cell][ch]
+            avg_sojourn_time = self.sojourn_times[cell][ch]
+            self.tot_rewards += immediate_reward
+            self.tot_sotimes += dt
+            frep = NGF.feature_rep(grid)
+            value_target = immediate_avg_reward - self.tot_rewards / self.tot_sotimes \
+                * avg_sojourn_time + self.next_val
+            self.backward(freps=[frep], value_target=[[value_target]])
+        # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
+        # its execution.
+        next_ch, self.next_val = self.optimal_ch(next_ce_type, next_cell)
+        self.t0 = t1
+        return next_ch
+
+
 class PSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
