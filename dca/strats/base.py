@@ -163,13 +163,13 @@ class RLStrat(Strat):
         self.env.stats.report_rl(self.epsilon, self.alpha, self.losses, self.qval_means)
 
     def get_init_action(self, cevent):
-        ch, _, = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, _, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
-        next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_max_ch, p = self.optimal_ch(next_ce_type, next_cell)
         # If there's no action to take, or no action was taken,
         # don't update q-value at all
         if ce_type != CEvent.END and  \
@@ -215,8 +215,9 @@ class RLStrat(Strat):
         if ce_type == CEvent.END:
             amin_idx = np.argmin(qvals_dense)
             ch = max_ch = chs[amin_idx]
+            p = 1
         else:
-            ch, idx = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             self.epsilon *= self.epsilon_decay
             amax_idx = np.argmax(qvals_dense)
             max_ch = chs[amax_idx]
@@ -226,7 +227,7 @@ class RLStrat(Strat):
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
             raise Exception
         self.logger.debug(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
-        return (ch, max_ch)
+        return (ch, max_ch, p)
 
 
 class NetStrat(RLStrat):

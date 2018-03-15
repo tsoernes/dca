@@ -21,7 +21,8 @@ class Policy:
         :param qvals_dense: Corresponding q-values for each ch in chs
         :param cell: Cell in which action is to be executed
 
-        Returns (ch, idx) for selected channel where ch=chs[idx]
+        Returns (ch, idx, prob) for selected channel where ch=chs[idx]
+        and prob is probability of picking action
         """
         pass
 
@@ -36,11 +37,13 @@ class EpsGreedy(Policy):
         if np.random.random() < epsilon:
             # Choose an eligible channel at random
             idx = np.random.randint(0, len(chs))
+            p = epsilon / len(chs)
         else:
             # Choose greedily
             idx = np.argmax(qvals_dense)
+            p = 1 - epsilon
         ch = chs[idx]
-        return ch, idx
+        return ch, idx, p
 
 
 class NomGreedyEpsGreedy(Policy):
@@ -57,13 +60,16 @@ class NomGreedyEpsGreedy(Policy):
             if nom_elig_idxs:
                 nidx = np.argmax(qvals_dense[nom_elig_idxs])
                 idx = nom_elig_idxs[nidx]
+                p = epsilon
             else:
                 idx = np.random.randint(0, len(chs))
+                p = epsilon / len(chs)
         else:
             # Choose greedily
             idx = np.argmax(qvals_dense)
+            p = 1 - epsilon
         ch = chs[idx]
-        return ch, idx
+        return ch, idx, p
 
 
 class NomGreedyGreedy(Policy):
@@ -82,7 +88,7 @@ class NomGreedyGreedy(Policy):
         else:
             idx = np.argmax(qvals_dense)
         ch = chs[idx]
-        return ch, idx
+        return ch, idx, 1
 
 
 class NomFixedGreedy(Policy):
@@ -98,7 +104,7 @@ class NomFixedGreedy(Policy):
         else:
             idx = np.argmax(qvals_dense)
         ch = chs[idx]
-        return ch, idx
+        return ch, idx, 1
 
 
 class Boltzmann(Policy):
@@ -112,7 +118,7 @@ class Boltzmann(Policy):
         probs = scaled / np.sum(scaled)
         idx = np.random.choice(range(len(chs)), p=probs)
         ch = chs[idx]
-        return ch, idx
+        return ch, idx, probs[idx]
 
 
 class NomBoltzmann(Policy):
@@ -128,13 +134,16 @@ class NomBoltzmann(Policy):
             nom_qvals = qvals_dense[nom_elig_idxs]
             scaled = np.exp((nom_qvals - np.max(nom_qvals)) / temp)
             probs = scaled / np.sum(scaled)
-            idx = np.random.choice(nom_elig_idxs, p=probs)
+            nom_elig_idx = np.random.choice(range(len(nom_elig_idxs)), p=probs)
+            idx = nom_elig_idxs[nom_elig_idx]
+            p = probs[nom_elig_idx]
         else:
             scaled = np.exp((qvals_dense - np.max(qvals_dense)) / temp)
             probs = scaled / np.sum(scaled)
             idx = np.random.choice(range(len(chs)), p=probs)
+            p = probs[idx]
         ch = chs[idx]
-        return ch, idx
+        return ch, idx, p
 
 
 class NomBoltzmann2(Policy):
@@ -163,7 +172,7 @@ class NomBoltzmann2(Policy):
         idx = np.random.choice(range(len(chs)), p=probs)
         ch = chs[idx]
         # print(nom_elig_idxs, temps, qvals_dense, probs, "\n")
-        return ch, idx
+        return ch, idx, 1
 
 
 class BoltzmannGumbel(Policy):
@@ -189,15 +198,17 @@ class BoltzmannGumbel(Policy):
         assert qvals_dense.ndim == 1, qvals_dense.ndim
 
         beta = self.c / np.sqrt(self.action_counts[chs])
-        Z = np.random.gumbel(size=qvals_dense.shape)
+        z = np.random.gumbel(size=qvals_dense.shape)
 
-        perturbation = beta * Z
+        perturbation = beta * z
         perturbed_q_values = qvals_dense + perturbation
         idx = np.argmax(perturbed_q_values)
         ch = chs[idx]
 
         self.action_counts[ch] += 1
-        return ch, idx
+        # Calculating the probs. is difficult according to paper;
+        # pretend greedy selection
+        return ch, idx, 1
 
 
 exp_pol_funcs = {
