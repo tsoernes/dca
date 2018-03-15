@@ -8,16 +8,16 @@ First, find good values with/without beta for regular Singh.
 
 results-dlib-singhnet-net_lr-beta.log
 Best from an incomplete DLIB hopt session
-p3 runner.py singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --beta 1700 --net_lr 1.55e-6
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --beta 1700 --net_lr 1.55e-6
 Average cumulative block probability over 4 episodes: 0.1524 with standard deviation 0.00070
 
 hopt-mongo:singhnet-net_lr-beta2
 Best from many hopt runs, with possibly too lower upper bound on beta
-p3 runner.py singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --beta 25.569630119649283 --net_lr 2.2072432429125095e-05
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --beta 25.569630119649283 --net_lr 2.2072432429125095e-05
 Average cumulative block probability over 4 episodes: 0.1464 with standard deviation 0.00114
 
 hopt-mongo:singhnet-net_lr-nodt
-p3 runner.py singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06
+singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06
 Average cumulative block probability over 4 episodes: 0.1425 with standard deviation 0.00186
 
 Find out if lr decay matters (above was default 0.96)
@@ -89,7 +89,7 @@ Average cumulative block probability over 4 episodes: 0.1315 with standard devia
 --------------------
 Should possible have used lower learning rate here, since returns are two-step
 
-p3 runner.py psinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.7
+psinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.7
 Average cumulative block probability over 16 episodes: 0.1317 with standard deviation 0.00180
 
 ---
@@ -97,9 +97,40 @@ NOTE
 for standard singh with epol nom_greedy_fixed, -opt sgd-m -lr 1e-8
 seems good, even better than sgd
 
-p3 runner.py singhnet -phoff 0 -lr 1e-8 -epol nom_greedy
+singhnet -phoff 0 -lr 1e-8 -epol nom_greedy
 Blocking probability: 0.1236 for new calls, 0.0000 for handoffs
 
-p3 runner.py singhnet -phoff 0 -lr 1e-8
+singhnet -phoff 0 -lr 1e-8
 Blocking probability: 0.1291 for new calls, 0.0000 for handoffs
 
+--------------------------------------------------------
+
+Importance sampling or not?
+First find usable epsilon for Average-singh with standard Boltzmann explore
+
+singhnet -phoff 0 -epol boltzmann -eps 1 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4
+Average cumulative block probability over 4 episodes: 0.1308 with standard deviation 0.00069
+
+singhnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4
+Average cumulative block probability over 4 episodes: 0.1301 with standard deviation 0.00235
+
+singhnet -phoff 0 -epol boltzmann -eps 3 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4
+Average cumulative block probability over 4 episodes: 0.1309 with standard deviation 0.00121
+
+singhnet -phoff 0 -epol boltzmann -eps 4 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4
+Average cumulative block probability over 4 episodes: 0.1328 with standard deviation 0.00114
+
+Now compare with imp sampling:
+singhnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4 --importance_sampling
+Average cumulative block probability over 4 episodes: 0.1302 with standard deviation 0.00123
+
+singhnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4 --importance_sampling
+Average cumulative block probability over 16 episodes: 0.1329 with standard deviation 0.00198
+
+SWITCHING TO GREEDY, OFF POLICY SINGH
+singhnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4 --importance_sampling
+Average cumulative block probability over 16 episodes: 0.1317 with standard deviation 0.00123
+
+
+singhnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4
+Average cumulative block probability over 16 episodes: 0.1307 with standard deviation 0.00171

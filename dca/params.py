@@ -169,6 +169,12 @@ def get_pparams(defaults=False):
         help="(RL) Semi-MDP Bootstrap discount",
         default=False)
     parser.add_argument(
+        '-imp_sampl',
+        '--importance_sampling',
+        action='store_true',
+        help="(RL)",
+        default=False)
+    parser.add_argument(
         '--avg_reward', action='store_true', help="(RL/Singh)", default=False)
     parser.add_argument(
         '--reward_scale',
