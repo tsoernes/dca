@@ -144,6 +144,11 @@ class LSTDSinghNetStrat(VNetStrat):
 
 
 class AlfySinghNetStrat(VNetStrat):
+    """
+    Ballpark
+    -opt sgd -lr 1e-7
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)

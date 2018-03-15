@@ -125,6 +125,34 @@ class RS_SARSA(QTable):
         return cell
 
 
+class NT_RS_SARSA(QTable):
+    """
+    No-target Reduced-state SARSA.
+    State consists of cell coordinates only.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.qvals = np.zeros(self.dims)
+        self.load_qvals()
+        if self.lmbda is not None:
+            # Eligibility traces
+            self.el_traces = np.zeros(self.dims)
+
+    def feature_rep(self, cell, n_used):
+        return cell
+
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
+                    discount):
+        assert type(ch) == np.int64
+        assert ch is not None
+        self.qval_means.append(np.mean(self.qvals[cell]))
+        td_err = (reward - self.qvals[cell][ch])
+        self.losses.append(td_err**2)
+        self.qvals[cell][ch] += self.alpha * td_err
+        self.alpha *= self.alpha_decay
+
+
 class E_RS_SARSA(QTable):
     """
     Expected Reduced-state SARSA.
