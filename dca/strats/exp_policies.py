@@ -28,7 +28,7 @@ class Policy:
 
 
 class EpsGreedy(Policy):
-    """Epsilon greedy action selection with expontential decay"""
+    """Epsilon greedy action selection"""
 
     def __init__(self, *args, **kwargs):
         pass
