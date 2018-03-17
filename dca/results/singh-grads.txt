@@ -134,3 +134,6 @@ Average cumulative block probability over 16 episodes: 0.1317 with standard devi
 
 singhnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4
 Average cumulative block probability over 16 episodes: 0.1307 with standard deviation 0.00171
+
+TESTING WOLF LEARNING RATE
+wolfsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4 --wolf 1.3

@@ -122,7 +122,11 @@ def get_pparams(defaults=False):
         type=float,
         help="(RL/Table) factor by which alpha is multiplied each iteration",
         default=0.9999999)
-
+    parser.add_argument(
+        '--wolf',
+        type=float,
+        help="(RL) Win-or-Learn-Fast learning rate multiplier for lose",
+        default=1)
     parser.add_argument(
         '-epol',
         '--exp_policy',

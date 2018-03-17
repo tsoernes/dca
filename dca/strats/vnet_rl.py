@@ -104,6 +104,31 @@ class SinghNetStrat(VNetStrat):
         self.backward(freps=[frep], value_target=[[value_target]], weight=weight)
 
 
+class WolfSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(self.pp, self.logger)
+        self.net.backward = self.net.backward_supervised
+        self.val = 0
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_val, next_max_ch, next_max_val, next_p = res
+        if ch is not None:
+            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell,
+                             self.val, discount, next_ch)
+        self.val = next_val
+        return next_ch
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+                    discount, next_ch):
+        weight = self.pp['wolf'] if next_ch is None else 1
+        frep = NGF.feature_rep(grid)
+        value_target = reward + discount * next_val
+        self.backward(freps=[frep], value_target=[[value_target]], weight=weight)
+
+
 class ManSinghNetStrat(VNetStrat):
     """Manual gradient calculation, just for illustration"""
 
