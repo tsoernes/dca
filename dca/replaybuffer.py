@@ -64,7 +64,7 @@ class ReplayBuffer():
         include_nc = len(self._storage['next_cells']) > 0
         data = {
             'grids':
-            np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8),
+            np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.bool),
             'cells': [],
             'chs': np.zeros(n_samples, dtype=np.int32),
             'rewards': np.zeros(n_samples, dtype=np.float32)
@@ -114,9 +114,10 @@ class ReplayBuffer():
         return self._encode_sample(idxs)
 
     def save_experience_to_disk(self):
-        raise NotImplementedError  # Untested
-        data = self._encode_sample(range(len(self)))
-        h5py_save_append("data-experience", *data)
+        idxs = np.arange((len(self)))
+        np.random.shuffle(idxs)
+        data = self._encode_sample(idxs)
+        h5py_save_append("data-experience", **data)
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):

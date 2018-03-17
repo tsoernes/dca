@@ -137,6 +137,7 @@ def h5py_save_append(fname,
         for ds_key in f.keys():
             dset = f[ds_key]
             dset.resize(dset.shape[0] + n, axis=0)
+        print(grids.dtype)
         f['grids'][-n:] = grids
         f['cells'][-n:] = cells
         f['chs'][-n:] = chs
@@ -166,7 +167,7 @@ def get_data_h5py(batch_size, fname="data-experience.0", split_perc=0.9, n_prefe
     split = int(entries * split_perc) // batch_size
     end = entries // batch_size
     has_next_grid = 'next_grids' in h5f
-    has_next_cell = 'next_cell' in h5f
+    has_next_cell = 'next_cells' in h5f
 
     def data_gen(start, stop):
         for i in range(start, stop):

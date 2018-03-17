@@ -460,6 +460,11 @@ def get_pparams(defaults=False):
         help="(Net) performance profiling for TensorFlow."
         " Specify ouput file name",
         default="")
+    parser.add_argument(
+        '--print_weights',
+        help="Print min/max/avg of weights every log iter",
+        action='store_true',
+        default=False)
     parser.add_argument('--gui', action='store_true', default=False)
     parser.add_argument('--plot', action='store_true', dest='do_plot', default=False)
     parser.add_argument(

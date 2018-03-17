@@ -56,13 +56,15 @@ class QNet(Net):
             elif self.pp['bighead']:
                 q_vals = inp
             else:
-                q_vals = tf.layers.dense(
-                    inputs=inp,
+                q_valsd = tf.layers.Dense(
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
                     kernel_regularizer=self.regularizer,
                     use_bias=False,
                     name="q_vals")
+                q_vals = q_valsd.apply(inp)
+                self.weight_vars.append(q_valsd.kernel)
+                self.weight_names.append(q_valsd.name)
             # Also includes vars from base net
             trainable_vars_by_name = get_trainable_vars(scope)
         return q_vals, trainable_vars_by_name

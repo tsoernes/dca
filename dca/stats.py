@@ -113,6 +113,12 @@ class Stats:
         self.logger.info(f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
                          f" Avg. loss last {niter} events: {avg_loss}, qvals: {avg_qval}")
 
+    def report_weights(self, weights, names):
+        for i, w in enumerate(weights):
+            wmin, wmax, wavg = np.min(w), np.max(w), np.mean(w)
+            name = names[i].replace("model/", "")
+            self.logger.info(f"{name}:\t{wmin:.4f}, {wmax:.4f}, {wavg:.4f}")
+
     def end_episode(self, n_inprogress):
         delta = self.n_incoming + self.n_handoffs \
             - self.n_rejected - self.n_handoffs_rejected - self.n_ended

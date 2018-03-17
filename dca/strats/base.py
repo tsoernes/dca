@@ -238,6 +238,8 @@ class NetStrat(RLStrat):
 
     def fn_report(self):
         self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses, self.qval_means)
+        if self.pp['print_weights']:
+            self.env.stats.report_weights(*self.net.get_weights())
 
     def fn_after(self):
         self.logger.info(

@@ -33,6 +33,8 @@ class Net:
         self.model_path = main_path + "/model.cpkt"
         self.log_path = main_path + "/logs"
         self.quit_sim = False
+        self.weight_vars = []  # Store all weight variables
+        self.weight_names = []  # Store all weight names
 
         # self.neighs_mask = tf.constant(Grid.neighbors_all_oh(), dtype=tf.bool)
         self.act_fn = get_act_fn_by_name(pp['act_fn'])
@@ -72,6 +74,7 @@ class Net:
             self.logger.error(f"Restoring model from {self.model_path}")
             self.saver.restore(self.sess, self.model_path)
         if trainable_vars is not None:
+            print(trainable_vars)
             self.do_train, self.lr = build_default_minimizer(
                 **pp, loss=loss, var_list=trainable_vars)
         self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
@@ -96,11 +99,20 @@ class Net:
         """A series of convolutional layers with 'grid' and 'frep' as inputs,
         and 'cell' stacked with the outputs"""
         # TODO Try one conv after cell stack
+        # TODO use Conv2D class instead of functional interface; add optional summary for kernels
         with tf.variable_scope('model/' + name):
             inp = top_inp
             for i in range(len(self.pp['conv_nfilters'])):
-                inp = tf.layers.conv2d(
-                    inputs=inp,
+                # inp = tf.layers.conv2d(
+                # inputs=inp,
+                # filters=self.pp['conv_nfilters'][i],
+                # kernel_size=self.pp['conv_kernel_sizes'][i],
+                # padding="same",
+                # kernel_initializer=self.kern_init_conv(),
+                # kernel_regularizer=self.regularizer,
+                # use_bias=self.pp['conv_bias'],
+                # activation=self.act_fn)
+                conv = tf.layers.Conv2D(
                     filters=self.pp['conv_nfilters'][i],
                     kernel_size=self.pp['conv_kernel_sizes'][i],
                     padding="same",
@@ -108,6 +120,12 @@ class Net:
                     kernel_regularizer=self.regularizer,
                     use_bias=self.pp['conv_bias'],
                     activation=self.act_fn)
+                inp = conv.apply(inp)
+                self.weight_vars.append(conv.kernel)
+                self.weight_names.append(conv.kernel.name)
+                if self.pp['conv_bias']:
+                    self.weight_vars.append(conv.bias)
+                    self.weight_names.append(conv.bias.name)
             stacked = tf.concat([inp, cell], axis=3)
             out = tf.layers.flatten(stacked)
             return out
@@ -156,22 +174,30 @@ class Net:
             data = next(self.train_gen)
             grids = data['grids']
             cells = data['cells']
-            q_targets = np.zeros(len(cells), dtype=np.float32)
+            # q_targets = np.zeros(len(cells), dtype=np.float32)
             chs = data['chs']
-            for j, ch in enumerate(chs):
-                q_targets[j] = self.qvals[cells[j]][ch]
+            # for j, ch in enumerate(chs):
+            #     q_targets[j] = self.qvals[cells[j]][ch]
             if False:
                 self.logger.error(f"grid: {data['grids'][0]} \n"
                                   f"cell: {data['cells'][0]} \n"
                                   f"action: {data['chs'][0]} \n"
-                                  f"reward: {data['rewards'][0]} \n"
-                                  f"target: {q_targets[0]} \n")
+                                  f"reward: {data['rewards'][0]} \n")
+                # f"target: {q_targets[0]} \n")
                 sys.exit(0)
             # NOTE TODO NOTE
             # qnet backward has changed. it now takes target_q instead of next_g
             # so target_q = reward + gamma * next_q has to be calculated here.
-            loss, lr, td_err = self.backward_supervised(
-                grids=grids, cells=cells, chs=chs, q_targets=q_targets)
+            # loss, lr, td_err = self.backward_supervised(
+            #     grids=grids, cells=cells, chs=chs, q_targets=q_targets)
+            loss, lr, td_err = self.backward(
+                grids=grids,
+                cells=cells,
+                chs=chs,
+                rewards=data['rewards'],
+                next_grids=data['next_grids'],
+                next_cells=data['next_cells'],
+                gamma=self.pp['gamma'])
             if i % 50 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 # run_metadata = tf.RunMetadata()
@@ -204,6 +230,10 @@ class Net:
         r = tf.random_uniform([1])
         ra = self.sess.run(r)
         return ra
+
+    def get_weights(self):
+        w = self.sess.run(self.weight_vars)
+        return w, self.weight_names
 
     def inuse_qvals(self, grids, cells, qvals):
         """
