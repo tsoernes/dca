@@ -34,7 +34,7 @@ class BigHeadQNet(QNet):
                 filters=70,
                 kernel_size=1,
                 padding="valid",
-                kernel_initializer=NominalInitializer(0.1, 1.1),
+                kernel_initializer=self.kern_init_dense(),
                 use_bias=False,
                 activation=None)(conv2)
             q_vals = tf.gather_nd(conv3, ncells)

@@ -49,7 +49,7 @@ def get_pparams(defaults=False):
         stratclasses[i] = (s2, stratclasses[i][1])
 
     policy_func_names = list(exp_pol_funcs.keys()) + ['greedy']
-    weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols']
+    weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols', 'nominal']
     hopt_opts = [
         'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
         'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff', 'beta',
@@ -273,6 +273,8 @@ def get_pparams(defaults=False):
         const=100000)
     parser.add_argument(
         '--weight_init_conv', choices=weight_initializers, default='glorot_unif')
+    parser.add_argument('--qnom_lo', type=float, default=0.5)
+    parser.add_argument('--qnom_hi', type=float, default=1.5)
     parser.add_argument(
         '--weight_init_dense', choices=weight_initializers, default='norm_cols')
     parser.add_argument(

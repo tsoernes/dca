@@ -4,8 +4,8 @@ from tensorflow import bool as boolean
 from tensorflow import float32, int32
 
 from nets.net import Net
-from nets.utils import (copy_net_op, discount, get_trainable_vars,
-                        prep_data_cells, prep_data_grids,
+from nets.utils import (NominalInitializer, copy_net_op, discount,
+                        get_trainable_vars, prep_data_cells, prep_data_grids,
                         scale_and_centre_freps)
 
 
@@ -82,13 +82,11 @@ class QNet(Net):
         self.freps = tf.placeholder(int32, frepshape, "frep")
         self.chs = tf.placeholder(int32, [None], "ch")
         self.q_targets = tf.placeholder(float32, [None], "qtarget")
-        if self.pp['qnet_freps_only']:
-            # [0, 1, 2, 3, ..., n] where n is batch size
-            nrange = tf.range(tf.shape(self.freps)[0])
-        else:
-            nrange = tf.range(tf.shape(self.grids)[0])
+        inp = self.freps if self.pp['qnet_freps_only'] else self.grids
+        # [0, 1, 2, 3, ..., n] where n is batch size
+        nrange = tf.range(tf.shape(inp)[0])
         if self.pp['bighead']:
-            # Numbered representation, eg [[0,3,2], [1,3,3], [2,2,2], ..]
+            # Numbered representation, eg [[0,3,2], [1,3,3], [2,2,2], .. [n, r_n, c_n]]
             self.cells = tf.placeholder(int32, [None, 2], "cell")
             cells = tf.concat([tf.expand_dims(nrange, axis=1), self.cells], axis=1)
         else:

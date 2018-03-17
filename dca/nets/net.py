@@ -36,8 +36,8 @@ class Net:
 
         # self.neighs_mask = tf.constant(Grid.neighbors_all_oh(), dtype=tf.bool)
         self.act_fn = get_act_fn_by_name(pp['act_fn'])
-        self.kern_init_conv = get_init_by_name(pp['weight_init_conv'])
-        self.kern_init_dense = get_init_by_name(pp['weight_init_dense'])
+        self.kern_init_conv = get_init_by_name(pp['weight_init_conv'], pp)
+        self.kern_init_dense = get_init_by_name(pp['weight_init_dense'], pp)
         self.regularizer = None
         if pp['layer_norm']:
             self.regularizer = tf.contrib.layers.layer_norm

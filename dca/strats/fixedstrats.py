@@ -55,3 +55,35 @@ class FixedAssign(Strat):
         elif ce_type == CEvent.END:
             # No rearrangement is done when a call terminates.
             return next_cevent[3]
+
+
+class FixedRandomAssign(Strat):
+    """
+    Prefer nominal channels, pick at random if none are available
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.get_init_action = self.get_action
+
+    def get_action(self, next_cevent, *args):
+        ce_type, next_cell = next_cevent[1:3]
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            # When a call arrives in a cell,
+            # if any pre-assigned channel is unused;
+            # it is assigned, else the call is blocked.
+            eligible_chs = NGF.get_eligible_chs(self.grid, next_cell)
+            for ch in eligible_chs:
+                if GF.nom_chs_mask[next_cell][ch]:
+                    return ch
+            if len(eligible_chs) == 0:
+                return None
+            else:
+                return np.random.choice(eligible_chs)
+        elif ce_type == CEvent.END:
+            inuse_chs = np.nonzero(self.grid[next_cell])[0]
+            for ch in inuse_chs:
+                if GF.nom_chs_mask[next_cell][ch]:
+                    return ch
+            else:
+                return next_cevent[3]

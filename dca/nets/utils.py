@@ -1,4 +1,5 @@
 import random
+from functools import partial
 
 import numpy as np
 import tensorflow as tf
@@ -77,7 +78,7 @@ def normalized_columns_initializer(std=1.0):
     return _initializer
 
 
-def get_init_by_name(name):
+def get_init_by_name(name, pp):
     inits = {
         "zeros": tf.zeros_initializer,
         "glorot_unif":  # The default for dense, perhaps for conv2d also. AKA Xavier.
@@ -85,7 +86,8 @@ def get_init_by_name(name):
         "glorot_norm": tf.glorot_normal_initializer,
         "norm_cols": normalized_columns_initializer,
         "norm_pos": tf.random_normal_initializer(0., 0.2),  # Try for dense kernel
-        "const_pos": tf.constant_initializer(0.1)  # Try for dense bias
+        "const_pos": tf.constant_initializer(0.1),  # Try for dense bias
+        "nominal": partial(NominalInitializer, pp['qnom_lo'], pp['qnom_hi'])
     }  # yapf: disable
     return inits[name]
 
@@ -226,16 +228,25 @@ class NominalInitializer(tf.keras.initializers.Initializer):
         # shape: [w_out, h_out, depth_in, nfilters]
         # conv out shape: [w_out, h_out, nfilters]
         # assert shape == [7, 7, 70, 70], shape
-        assert shape == [49, 70, 70], shape
-
-        initvals = np.zeros((7, 7, 70, 70), np.float32)
-        # np.zeros((7, 7, 70, 70)[r][c][:][GF.nom_chs[r, c]].shape = [10, 70]
-        for r in range(7):
-            for c in range(7):
-                for k in range(70):
-                    initvals[r][c][k][GF.nom_chs[r, c]] = self.qrange
-        initvals = np.reshape(initvals, [49, 70, 70])
-        # initvals = np.expand_dims(initvals, 1)
+        if shape == [49, 70, 70]:
+            initvals = np.zeros((7, 7, 70, 70), np.float32)
+            # np.zeros((7, 7, 70, 70)[r][c][:][GF.nom_chs[r, c]].shape = [10, 70]
+            for r in range(7):
+                for c in range(7):
+                    for k in range(70):
+                        initvals[r][c][k][GF.nom_chs[r, c]] = self.qrange
+            initvals = np.reshape(initvals, [49, 70, 70])
+        elif shape == [3479, 70]:
+            initvals = np.zeros((7, 7, 71, 70), np.float32)
+            for r in range(7):
+                for c in range(7):
+                    for k in range(71):
+                        initvals[r][c][k][GF.nom_chs[r, c]] = self.qrange
+            initvals = np.reshape(initvals, [3479, 70])
+            # out = np.random.randn(*shape).astype(np.float32)
+            # out *= 1.0 / np.sqrt(np.square(out).sum(axis=0, keepdims=True))
+        else:
+            raise NotImplementedError(shape)
         return tf.constant(initvals)
 
     def get_config(self):
