@@ -18,6 +18,10 @@ class VNetStrat(NetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = self.pp['beta']
+        self.importance_sampl = self.pp['importance_sampling']
+        self.next_p = 1
+        self.next_max_ch = 0
+        self.next_max_val = 0
         self.next_val = 0
 
     def update_target_net(self):
@@ -27,33 +31,37 @@ class VNetStrat(NetStrat):
         next_ce_type, next_cell = next_cevent[1:3]
         if ch is not None:
             self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell,
-                             self.next_val, discount)
+                             self.next_val, discount, self.next_max_ch, self.next_max_val,
+                             self.next_p)
         # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
         # its execution.
-        next_ch, self.next_val, p = self.optimal_ch(next_ce_type, next_cell)
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, self.next_val, self.next_max_ch, self.next_max_val, self.next_p = res
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
-                return None, 0
+                return None, 0, None, 0, 1
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
         qvals_dense = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
         if ce_type == CEvent.END:
-            idx = np.argmax(qvals_dense)
-            ch = chs[idx]
+            idx = max_idx = np.argmax(qvals_dense)
+            ch = max_ch = chs[idx]
             p = 1
         else:
             ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            max_idx = np.argmax(qvals_dense)
+            max_ch = chs[max_idx]
             self.epsilon *= self.epsilon_decay
 
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
-        return ch, qvals_dense[idx], p
+        return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p
 
     def get_qvals(self, grid, cell, ce_type, chs):
         freps = NGF.afterstate_freps(grid, cell, ce_type, chs)
@@ -63,10 +71,19 @@ class VNetStrat(NetStrat):
         return qvals_dense
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
-                    discount):
+                    discount, next_max_ch, next_max_val, next_p):
+        if self.importance_sampl:
+            weight = next_p
+            ch = next_max_ch
+        else:
+            weight = 1
         frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
         self.backward(
-            freps=[frep], rewards=[reward], next_freps=next_freps, discount=discount)
+            freps=[frep],
+            rewards=[reward],
+            next_freps=next_freps,
+            weight=weight,
+            discount=discount)
 
 
 class SinghNetStrat(VNetStrat):
@@ -76,10 +93,40 @@ class SinghNetStrat(VNetStrat):
         self.net.backward = self.net.backward_supervised
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
-                    discount):
+                    discount, next_max_ch, next_max_val, next_p):
+        if self.importance_sampl:
+            weight = next_p
+            next_val = next_max_val
+        else:
+            weight = 1
         frep = NGF.feature_rep(grid)
         value_target = reward + discount * next_val
-        self.backward(freps=[frep], value_target=[[value_target]])
+        self.backward(freps=[frep], value_target=[[value_target]], weight=weight)
+
+
+class WolfSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(self.pp, self.logger)
+        self.net.backward = self.net.backward_supervised
+        self.val = 0
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_val, next_max_ch, next_max_val, next_p = res
+        if ch is not None:
+            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell,
+                             self.val, discount, next_ch)
+        self.val = next_val
+        return next_ch
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+                    discount, next_ch):
+        weight = self.pp['wolf'] if next_ch is None else 1
+        frep = NGF.feature_rep(grid)
+        value_target = reward + discount * next_val
+        self.backward(freps=[frep], value_target=[[value_target]], weight=weight)
 
 
 class ManSinghNetStrat(VNetStrat):

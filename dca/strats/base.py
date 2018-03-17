@@ -163,7 +163,7 @@ class RLStrat(Strat):
         self.env.stats.report_rl(self.epsilon, self.alpha, self.losses, self.qval_means)
 
     def get_init_action(self, cevent):
-        ch, _, _ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, *_ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
@@ -177,7 +177,7 @@ class RLStrat(Strat):
             # Observe reward from previous action, and
             # update q-values with one-step look-ahead
             self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
-                             discount)
+                             discount, p)
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> Tuple[int, float, int]:

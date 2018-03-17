@@ -53,6 +53,22 @@ class NonUniformCallSchedule(CallSchedule):
         return self.call_intertimes[cell]
 
 
+class EquipmentFailureCallSchedule(CallSchedule):
+    """Constant inter-arrival time which may differ between cells.
+    At given time 't', make cell 'cell' unable to receive new calls or handoffs"""
+
+    def __init__(self, *args, **kwargs):
+        """
+        :param call_intertimes: Array of same size as grid, where each element contains
+            the call_rate for the corresponding times
+        """
+        super().__init__(*args, **kwargs)
+        raise NotImplementedError
+
+    def call_intertime(self, t, cell):
+        return self.call_intertimes[cell]
+
+
 class LinearCallSchedule(CallSchedule):
     """
     Create a piece-wise linear call schedule which is uniform over all cells
