@@ -1,5 +1,6 @@
 import random
-from functools import partial
+from functools import partial, reduce
+from operator import mul
 
 import numpy as np
 import tensorflow as tf
@@ -215,6 +216,13 @@ def prep_data(grids, cells, actions, rewards, next_grids=None, next_cells=None):
     return grids, oh_cells, actions, rewards
 
 
+def xavier(n_in, n_out):
+    if type(n_in) == list or type(n_in) == tuple:
+        return np.random.randn(*n_in, n_out) / np.sqrt(reduce(mul, n_in))
+    else:
+        return np.random.randn(n_in, n_out) / np.sqrt(n_in)
+
+
 class NominalInitializer(tf.keras.initializers.Initializer):
     """Initializer that prefers nominal channels"""
 
@@ -229,7 +237,8 @@ class NominalInitializer(tf.keras.initializers.Initializer):
         # conv out shape: [w_out, h_out, nfilters]
         # assert shape == [7, 7, 70, 70], shape
         if shape == [49, 70, 70]:
-            initvals = np.zeros((7, 7, 70, 70), np.float32)
+            initvals = xavier((7, 7, 70), 70)
+            # initvals = tf.glorot_uniform_initializer()((7, 7, 70, 70))
             # np.zeros((7, 7, 70, 70)[r][c][:][GF.nom_chs[r, c]].shape = [10, 70]
             for r in range(7):
                 for c in range(7):
@@ -237,7 +246,9 @@ class NominalInitializer(tf.keras.initializers.Initializer):
                         initvals[r][c][k][GF.nom_chs[r, c]] = self.qrange
             initvals = np.reshape(initvals, [49, 70, 70])
         elif shape == [3479, 70]:
-            initvals = np.zeros((7, 7, 71, 70), np.float32)
+            # initvals = tf.glorot_uniform_initializer()((7, 7, 71, 70))
+            initvals = xavier((7, 7, 71), 70)
+            # initvals = np.zeros((7, 7, 71, 70), np.float32)
             for r in range(7):
                 for c in range(7):
                     for k in range(71):
@@ -247,7 +258,7 @@ class NominalInitializer(tf.keras.initializers.Initializer):
             # out *= 1.0 / np.sqrt(np.square(out).sum(axis=0, keepdims=True))
         else:
             raise NotImplementedError(shape)
-        return tf.constant(initvals)
+        return tf.constant(initvals.astype(np.float32))
 
     def get_config(self):
         return {"dtype": self.dtype.name}
