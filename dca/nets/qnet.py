@@ -53,6 +53,8 @@ class QNet(Net):
                     self.online_advantages = advantages
                 if "target" in name:
                     self.target_value = value
+            elif self.pp['bighead']:
+                q_vals = inp
             else:
                 q_vals = tf.layers.dense(
                     inputs=inp,
@@ -61,6 +63,7 @@ class QNet(Net):
                     kernel_regularizer=self.regularizer,
                     use_bias=False,
                     name="q_vals")
+            # Also includes vars from base net
             trainable_vars_by_name = get_trainable_vars(scope)
         return q_vals, trainable_vars_by_name
 
