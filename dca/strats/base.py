@@ -23,8 +23,9 @@ class Strat:
         self.grid = np.zeros(pp['dims'], np.bool)
         self.env = Env(pp, self.grid, logger, pid)
         if (self.save or self.batch_size > 1):
+            size = self.n_events if self.save else pp['buffer_size']
             self.exp_buffer = PrioritizedReplayBuffer(
-                size=pp['buffer_size'],
+                size=size,
                 rows=self.rows,
                 cols=self.cols,
                 n_channels=self.n_channels,
