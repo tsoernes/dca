@@ -3,6 +3,8 @@ import random
 import numpy as np
 import tensorflow as tf
 
+from gridfuncs import GF
+
 
 def scale_and_centre_freps(freps):
     """Scale feature reps to range [-1, 1]"""
@@ -120,7 +122,8 @@ def build_default_minimizer(net_lr,
     If var_list is not specified, defaults to GraphKeys.TRAINABLE_VARIABLES,
     i.e. all trainable variables
     """
-    trainer, learning_rate, global_step = build_default_trainer(net_lr, net_lr_decay, optimizer)
+    trainer, learning_rate, global_step = build_default_trainer(
+        net_lr, net_lr_decay, optimizer)
     # For batch norm:
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
@@ -208,3 +211,32 @@ def prep_data(grids, cells, actions, rewards, next_grids=None, next_cells=None):
         next_oh_cells = prep_data_cells(next_cells)
         return grids, oh_cells, actions, rewards, next_grids, next_oh_cells
     return grids, oh_cells, actions, rewards
+
+
+class NominalInitializer(tf.keras.initializers.Initializer):
+    """Initializer that prefers nominal channels"""
+
+    def __init__(self, low, high, dtype=tf.float32):
+        # self.low, self.high = low, high
+        self.qrange = np.arange(high, low, (low - high) / 10)
+        # qrange = np.expand_dims(qrange, 0)
+        # self.qrange = np.repeat(qrange, 70, axis=0)
+
+    def __call__(self, shape, dtype=None, partition_info=None):
+        # shape: [w_out, h_out, depth_in, nfilters]
+        # conv out shape: [w_out, h_out, nfilters]
+        # assert shape == [7, 7, 70, 70], shape
+        assert shape == [49, 70, 70], shape
+
+        initvals = np.zeros((7, 7, 70, 70), np.float32)
+        # np.zeros((7, 7, 70, 70)[r][c][:][GF.nom_chs[r, c]].shape = [10, 70]
+        for r in range(7):
+            for c in range(7):
+                for k in range(70):
+                    initvals[r][c][k][GF.nom_chs[r, c]] = self.qrange
+        initvals = np.reshape(initvals, [49, 70, 70])
+        # initvals = np.expand_dims(initvals, 1)
+        return tf.constant(initvals)
+
+    def get_config(self):
+        return {"dtype": self.dtype.name}

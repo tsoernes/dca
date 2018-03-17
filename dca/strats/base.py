@@ -197,7 +197,7 @@ class RLStrat(Strat):
             chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 # No channels available for assignment,
-                return (None, None)
+                return (None, None, 0)
         else:
             # Channels in use at cell, including channel scheduled
             # for termination. The latter is included because it might
