@@ -10,7 +10,7 @@ class BigHeadQNet(QNet):
 
     def _build_base_net(self, top_inp, ncells, name):
         with tf.variable_scope('model/' + name) as scope:
-            print(top_inp.shape)
+            # print(top_inp.shape)
             conv1 = tf.layers.conv2d(
                 inputs=top_inp,
                 filters=70,
@@ -30,39 +30,12 @@ class BigHeadQNet(QNet):
                 kernel_regularizer=self.regularizer,
                 use_bias=False,
                 activation=self.act_fn)
-            # conv2 = tf.layers.conv2d(
-            #     inputs=conv1,
-            #     filters=70,
-            #     kernel_size=3,
-            #     padding="same",
-            #     kernel_initializer=self.kern_init_conv(),
-            #     kernel_regularizer=self.regularizer,
-            #     use_bias=False,
-            #     activation=self.act_fn)
-            conv3 = tf.layers.conv2d(
-                inputs=conv1,
+            conv3 = tf.keras.layers.LocallyConnected2D(
                 filters=70,
                 kernel_size=1,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                # kernel_initializer=NominalInitializer(10, 100),
-                kernel_regularizer=self.regularizer,
+                padding="valid",
+                kernel_initializer=NominalInitializer(0.1, 1.1),
                 use_bias=False,
-                activation=self.act_fn)
-            # print(conv3.shape)
-            conv4 = tf.layers.conv2d(
-                inputs=conv3,
-                filters=70,
-                kernel_size=1,
-                padding="same",
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.regularizer,
-                use_bias=True,
-                bias_initializer=NominalInitializer(10, 100),
-                activation=self.act_fn)
-            # NOTE TODO WHY is conv3 shape = (1,1,70,70) where
-            # first 70 is conv1 filters, second is conv3 filters?
-            # Should it not be (1, 7, 7, 70)
-            # Need to read up on/write down conv weight shapes vs output shapes
-            q_vals = tf.gather_nd(conv4, ncells)
+                activation=None)(conv2)
+            q_vals = tf.gather_nd(conv3, ncells)
         return q_vals

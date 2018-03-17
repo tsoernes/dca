@@ -219,17 +219,23 @@ class NominalInitializer(tf.keras.initializers.Initializer):
     def __init__(self, low, high, dtype=tf.float32):
         # self.low, self.high = low, high
         self.qrange = np.arange(high, low, (low - high) / 10)
+        # qrange = np.expand_dims(qrange, 0)
+        # self.qrange = np.repeat(qrange, 70, axis=0)
 
     def __call__(self, shape, dtype=None, partition_info=None):
-        if shape == [7, 7, 70, 1]:
-            self.qrange = np.expand_dims(self.qrange, 1)
-        else:
-            assert shape == [7, 7, 70], shape
+        # shape: [w_out, h_out, depth_in, nfilters]
+        # conv out shape: [w_out, h_out, nfilters]
+        # assert shape == [7, 7, 70, 70], shape
+        assert shape == [49, 70, 70], shape
 
-        initvals = np.zeros(shape, np.float32)
+        initvals = np.zeros((7, 7, 70, 70), np.float32)
+        # np.zeros((7, 7, 70, 70)[r][c][:][GF.nom_chs[r, c]].shape = [10, 70]
         for r in range(7):
             for c in range(7):
-                initvals[r][c][GF.nom_chs[r, c]] = self.qrange
+                for k in range(70):
+                    initvals[r][c][k][GF.nom_chs[r, c]] = self.qrange
+        initvals = np.reshape(initvals, [49, 70, 70])
+        # initvals = np.expand_dims(initvals, 1)
         return tf.constant(initvals)
 
     def get_config(self):

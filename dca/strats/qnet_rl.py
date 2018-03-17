@@ -65,7 +65,7 @@ class QNetStrat(NetStrat):
         # NOTE For greedy q-learning, strictly speaking, the correct thing to do
         # is to update_q-val before finding optimal_ch
         next_ce_type, next_cell = next_cevent[1:3]
-        next_ch, next_max_ch = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_max_ch, p = self.optimal_ch(next_ce_type, next_cell)
         self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell, next_ch,
                          next_max_ch, discount)
         return next_ch
