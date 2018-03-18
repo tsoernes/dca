@@ -34,7 +34,7 @@ class QTable(RLStrat):
             return self.qvals[rep][chs]
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
-                    discount):
+                    discount, p):
         assert type(ch) == np.int64
         assert ch is not None
         if self.pp['verify_grid']:
