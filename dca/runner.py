@@ -110,7 +110,7 @@ class Runner:
         result = strat.simulate()
         return result
 
-    def hopt_dlib(self):
+    def hopt_dlib_single(self):
         import dlib
         bounds = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
@@ -186,6 +186,49 @@ class Runner:
         self.logger.error(f"{results}")
         self.logger.error(f"Min x: {x}")
 
+    def hopt_dlib(self):
+        import dlib
+        space = {
+            # parameter: [IsInteger, Low-Bound, High-Bound]
+            # 'net_lr': [False, 7e-7, 5e-6],
+            # 'net_lr_decay': [False, 0.65, 1.0],
+            # 'weight_beta': [False, 1e-10, 1e-5]
+            'epsilon': [True, 10, 2000],
+            'alpha': [False, 0.00001, 0.3]
+        }
+        params, is_int, lo_bounds, hi_bounds = [], [], [], []
+        for p, li in space.items():
+            params.append(p)
+            is_int.append(li[0])
+            lo_bounds.append(li[1])
+            hi_bounds.append(li[2])
+        spec = dlib.function_spec(bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
+        n = 3  # The number of times to sample and test params
+        n_concurrent = 2  # Number of concurrent procs
+        solver_epsilon = 0.0005
+        optimizer = dlib.global_function_search(spec)
+        results = []
+        self.logger.error(f"Dlib hopt for {n} iterations with {n_concurrent} procs for"
+                          f" a total of {n*n_concurrent} simulations,"
+                          f" on params {params} with bounds {lo_bounds}, {hi_bounds}")
+        simproc = partial(dlib_proc, self.stratclass, self.pp, params)
+        for i in range(n):
+            evals = []
+            space_vals = []
+            for _ in range(n_concurrent):
+                n = optimizer.get_next_x()
+                evals.append(n)
+                space_vals.append(list(n.x))
+            # self.logger.error(f"\nIter {i}, testing {params}: {space_vals}")
+            with Pool(n_concurrent) as p:
+                temp_results = p.map(simproc, space_vals)
+            for i, s_eval in enumerate(evals):
+                s_eval.set(temp_results[i])
+            results.extend([(r, v) for r, v in zip(temp_results, space_vals)])
+
+        results.sort()
+        self.logger.error(f"[Result, {params}]\n{results}")
+
     def hopt_random(self):
         """
         Hyper-parameter optimization with hyperopt.
@@ -200,7 +243,7 @@ class Runner:
         simproc = partial(self.hopt_random, self.stratclass, self.pp, space)
 
         with Pool() as p:
-            results = p.map(simproc, range(10000))
+            p.map(simproc, range(10000))
 
     def hopt(self):
         """
@@ -383,6 +426,18 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
         # User quit, e.g. ctrl-c
         return {"status": "suspended"}
     return {'status': "ok", "loss": res, "hoff_loss": result[1]}
+
+
+def dlib_proc(stratclass, pp, space_params, space_vals):
+    logger = logging.getLogger('')
+    logger.error(f"Testing {space_params}: {space_vals}")
+    for j, key in enumerate(space_params):
+        pp[key] = space_vals[j]
+    strat = stratclass(pp=pp, logger=logger)
+    result = strat.simulate()[0]
+    if result is None:
+        result = 1
+    return result
 
 
 if __name__ == '__main__':
