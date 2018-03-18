@@ -13,6 +13,7 @@ class SinghNet(Net):
         self.name = "SinghNet"
         super().__init__(name=self.name, *args, **kwargs)
         self.weight_beta = self.pp['weight_beta']
+        self.weight_beta_decay = self.pp['weight_beta_decay']
         self.avg_reward = 0
 
     def build(self):
@@ -27,14 +28,16 @@ class SinghNet(Net):
         else:
             freps = self.freps
         with tf.variable_scope('model/' + self.name) as scope:
-            self.value = tf.layers.dense(
-                inputs=tf.layers.flatten(freps),
+            value_layer = tf.layers.Dense(
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
                 use_bias=False,
                 activation=None,
                 name="vals")
+            self.value = value_layer.apply(tf.layers.flatten(freps))
+            self.weight_vars.append(value_layer.kernel)
+            self.weight_names.append(value_layer.name)
             online_vars = get_trainable_vars(scope)
 
         self.err = self.value_target - self.value
@@ -64,6 +67,7 @@ class SinghNet(Net):
             run_metadata=self.run_metadata)
         if self.pp['avg_reward']:
             self.avg_reward += self.weight_beta * err
+            self.weight_beta *= self.weight_beta_decay
         return loss, lr, err
 
     def backward(self, freps, rewards, next_freps, gamma=None, weight=1):

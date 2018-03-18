@@ -51,11 +51,11 @@ class QNetStrat(NetStrat):
             if self.pp['freps']:
                 freps = GF.feature_reps(data['grids'])
                 next_freps = GF.feature_reps(data['next_grids'])
-            data.update({
-                'freps': freps,
-                'next_freps': next_freps,
-                'next_chs': None,
-            })
+                data.update({
+                    'freps': freps,
+                    'next_freps': next_freps,
+                    'next_chs': None,
+                })
             data['weights'] = weights
             td_errs = self.backward(**data, gamma=self.gamma)
             new_priorities = np.abs(td_errs) + self.prioritized_replay_eps

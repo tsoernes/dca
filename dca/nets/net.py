@@ -67,16 +67,18 @@ class Net:
         glob_vars = set(tf.global_variables())
         if self.save or restore:
             self.saver = tf.train.Saver(
-                var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'))
+                # var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='model'))
+                var_list=trainable_vars)
         self.sess.run(tf.global_variables_initializer())
         if restore:
             # Could do a try/except and build if loading fails
-            self.logger.error(f"Restoring model from {self.model_path}")
+            # self.logger.error(f"Restoring model from {self.model_path}")
+            self.logger.error(f"Restoring parameters {trainable_vars}")
             self.saver.restore(self.sess, self.model_path)
         if trainable_vars is not None:
-            print(trainable_vars)
             self.do_train, self.lr = build_default_minimizer(
                 **pp, loss=loss, var_list=trainable_vars)
+        # Initialize trainer variables
         self.sess.run(tf.variables_initializer(set(tf.global_variables()) - glob_vars))
 
         if pp['train_net']:
@@ -101,7 +103,7 @@ class Net:
         # TODO Try one conv after cell stack
         # TODO use Conv2D class instead of functional interface; add optional summary for kernels
         with tf.variable_scope('model/' + name):
-            inp = top_inp
+            inp = tf.concat([top_inp, cell], axis=3) if self.pp['top_stack'] else top_inp
             for i in range(len(self.pp['conv_nfilters'])):
                 # inp = tf.layers.conv2d(
                 # inputs=inp,
@@ -126,8 +128,8 @@ class Net:
                 if self.pp['conv_bias']:
                     self.weight_vars.append(conv.bias)
                     self.weight_names.append(conv.bias.name)
-            stacked = tf.concat([inp, cell], axis=3)
-            out = tf.layers.flatten(stacked)
+            conv_out = inp if self.pp['top_stack'] else tf.concat([inp, cell], axis=3)
+            out = tf.layers.flatten(conv_out)
             return out
 
     def load_data(self):
@@ -167,10 +169,13 @@ class Net:
     def train(self):
         self.load_data()
         losses = []
-        self.logger.warn(f"Training {self.n_train_steps} minibatches of size"
+        n_train_steps = min(
+            self.n_train_steps,
+            self.pp['train_net']) if self.pp['train_net'] > 1 else self.n_train_steps
+        self.logger.warn(f"Training {n_train_steps} minibatches of size"
                          f" {self.batch_size} for a total of"
                          f" {self.n_train_steps * self.batch_size} examples")
-        for i in range(self.n_train_steps):
+        for i in range(n_train_steps):
             data = next(self.train_gen)
             grids = data['grids']
             cells = data['cells']
@@ -198,7 +203,8 @@ class Net:
                 next_grids=data['next_grids'],
                 next_cells=data['next_cells'],
                 gamma=self.pp['gamma'])
-            if i % 50 == 0:
+            self.sess.run(self.copy_online_to_target)
+            if (i * self.batch_size) % 100 == 0:
                 # tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 # run_metadata = tf.RunMetadata()
                 # self.train_writer.add_run_metadata(
@@ -210,7 +216,15 @@ class Net:
                 sys.exit(0)
                 break
             if self.quit_sim:
-                sys.exit(0)
+                if self.save:
+                    inp = ""
+                    while inp not in ["Y", "N"]:
+                        inp = input("Premature exit. Save? Y/N").upper()
+                    if inp == "Y":
+                        self.save_model()
+                    sys.exit(0)
+                else:
+                    sys.exit(0)
         if self.save:
             self.save_model()
         # plt.plot(losses)

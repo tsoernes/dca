@@ -153,12 +153,8 @@ def get_pparams(defaults=False):
         help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.99999)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
-    parser.add_argument(
-        '-wbeta',
-        '--weight_beta',
-        type=float,
-        help="(RL) Singh weight correction",
-        default=1e-6)
+    parser.add_argument('-wbeta', '--weight_beta', type=float, help="(RL)", default=1e-6)
+    parser.add_argument('--weight_beta_decay', type=float, help="(RL)", default=0.999_999)
     parser.add_argument(
         '--beta',
         nargs='?',
@@ -292,9 +288,9 @@ def get_pparams(defaults=False):
         help='(Net) Convolutional kernel sizes',
         default=[4, 3])
     parser.add_argument(
-        '--no_conv_bias',
+        '--conv_bias',
         action='store_true',
-        help="(Net) Disable bias for convolutional layers",
+        help="(Net) Bias for convolutional layers",
         default=False)
     parser.add_argument('--n_step', type=int, help="(Net) N step returns", default=1)
     parser.add_argument(
@@ -318,6 +314,11 @@ def get_pparams(defaults=False):
         '--layer_norm',
         action='store_true',
         help="(Net) Use layer normalization",
+        default=False)
+    parser.add_argument(
+        '--top_stack',
+        action='store_true',
+        help="(Net) Stack cell before conv instead of after",
         default=False)
     parser.add_argument(
         '--no_grid_split',
@@ -496,8 +497,8 @@ def get_pparams(defaults=False):
     del pp['no_grid_split']
     pp['use_gpu'] = not pp['no_gpu']
     del pp['no_gpu']
-    pp['conv_bias'] = not pp['no_conv_bias']
-    del pp['no_conv_bias']
+    # pp['conv_bias'] = not pp['no_conv_bias']
+    # del pp['no_conv_bias']
 
     if pp['beta'] and not pp['beta_disc']:
         print("Using beta but not beta_disc!")
