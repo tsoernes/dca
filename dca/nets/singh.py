@@ -2,20 +2,40 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import get_trainable_vars, scale_freps_big
+from nets.utils import copy_net_op, get_trainable_vars, scale_freps_big
 
 
 class SinghNet(Net):
-    def __init__(self, pre_conv=False, *args, **kwargs):
+    def __init__(self, pre_conv=False, double_net=False, *args, **kwargs):
         """
         Afterstate value net
         """
         self.name = "SinghNet"
         self.pre_conv = pre_conv
+        self.double_net = double_net
         super().__init__(name=self.name, *args, **kwargs)
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
         self.avg_reward = 0
+
+    def _build_net(self, freps, name):
+        with tf.variable_scope('model/' + name) as scope:
+            if self.pre_conv:
+                dense_inp = self.add_conv_layer(freps, self.pp['conv_nfilters'][0],
+                                                self.pp['conv_kernel_sizes'][0])
+            else:
+                dense_inp = freps
+            value_layer = tf.layers.Dense(
+                units=1,
+                kernel_initializer=tf.zeros_initializer(),
+                kernel_regularizer=self.dense_regularizer,
+                use_bias=False,
+                activation=None)
+            value = value_layer.apply(tf.layers.flatten(dense_inp))
+            self.weight_vars.append(value_layer.kernel)
+            self.weight_names.append(value_layer.name)
+            trainable_vars = get_trainable_vars(scope)
+        return value, trainable_vars
 
     def build(self):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
@@ -28,22 +48,11 @@ class SinghNet(Net):
             freps = scale_freps_big(self.freps)
         else:
             freps = self.freps
-        with tf.variable_scope('model/' + self.name) as scope:
-            if self.pre_conv:
-                dense_inp = self.add_conv_layer(freps, self.pp['conv_nfilters'][0],
-                                                self.pp['conv_kernel_sizes'][0])
-            else:
-                dense_inp = freps
-            value_layer = tf.layers.Dense(
-                units=1,
-                kernel_initializer=tf.zeros_initializer(),
-                kernel_regularizer=self.dense_regularizer,
-                use_bias=False,
-                activation=None)
-            self.value = value_layer.apply(tf.layers.flatten(dense_inp))
-            self.weight_vars.append(value_layer.kernel)
-            self.weight_names.append(value_layer.name)
-            online_vars = get_trainable_vars(scope)
+        self.value, online_vars = self._build_net(freps, "online")
+        if self.double_net:
+            self.target_value, target_vars = self._build_net(freps, "target")
+            self.copy_online_to_target = copy_net_op(online_vars, target_vars,
+                                                     self.pp['net_creep_tau'])
 
         self.err = self.value_target - self.value
         self.loss = tf.losses.mean_squared_error(
@@ -75,10 +84,14 @@ class SinghNet(Net):
             self.weight_beta *= self.weight_beta_decay
         return loss, lr, err
 
-    def backward(self, freps, rewards, next_freps, gamma=None, weight=1):
-        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
+    def backward(self, freps, rewards, next_freps, discount=None, weight=1):
+        if self.double_net:
+            target_val = self.target_value
+        else:
+            target_val = self.value
+        next_value = self.sess.run(target_val, feed_dict={self.freps: next_freps})
         if self.pp['avg_reward']:
             value_target = rewards - self.avg_reward + next_value
         else:
-            value_target = rewards + gamma * next_value
+            value_target = rewards + discount * next_value
         return self.backward_supervised(freps, value_target, weight)

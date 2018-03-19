@@ -130,16 +130,17 @@ def build_default_minimizer(net_lr,
     # For batch norm:
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     # For L2 reg:
-    loss += tf.losses.get_regularization_loss()
+    tot_loss = loss + tf.losses.get_regularization_loss()
     with tf.control_dependencies(update_ops):
         if max_grad_norm is not None:
             gradients, trainable_vars = zip(
-                *trainer.compute_gradients(loss, var_list=var_list))
+                *trainer.compute_gradients(tot_loss, var_list=var_list))
             clipped_grads, grad_norms = tf.clip_by_global_norm(gradients, max_grad_norm)
             do_train = trainer.apply_gradients(
                 zip(clipped_grads, trainable_vars), global_step=global_step)
         else:
-            do_train = trainer.minimize(loss, var_list=var_list, global_step=global_step)
+            do_train = trainer.minimize(
+                tot_loss, var_list=var_list, global_step=global_step)
     return do_train, learning_rate
 
 

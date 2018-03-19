@@ -104,6 +104,17 @@ class SinghNetStrat(VNetStrat):
         self.backward(freps=[frep], value_target=[[value_target]], weight=weight)
 
 
+class DoubleSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(
+            pre_conv=False, double_net=True, pp=self.pp, logger=self.logger)
+        self.backward_fn = self.net.backward
+
+    def update_target_net(self):
+        self.net.sess.run(self.net.copy_online_to_target)
+
+
 class WolfSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
