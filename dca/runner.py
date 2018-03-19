@@ -18,8 +18,9 @@ from hyperopt.pyll.base import scope  # noqa
 from icecream import ic
 
 from gui import Gui  # noqa
-from hopt_utils import (MongoConn, add_pp_pickle, hopt_best,
-                        mongo_decide_gpu_usage, mongo_decrease_gpu_procs)
+from hopt_utils import (MongoConn, add_pp_pickle, dlib_load, dlib_save,
+                        hopt_best, mongo_decide_gpu_usage,
+                        mongo_decrease_gpu_procs)
 from params import get_pparams
 
 
@@ -188,6 +189,10 @@ class Runner:
 
     def hopt_dlib(self):
         import dlib
+        n_sims = 3  # The number of times to sample and test params
+        n_concurrent = cpu_count() / 2 - 1  # Number of concurrent procs
+        solver_epsilon = 0.0005
+        relative_noise_magnitude = 0.001
         space = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
             # 'net_lr': [False, 7e-7, 5e-6],
@@ -202,13 +207,20 @@ class Runner:
             is_int.append(li[0])
             lo_bounds.append(li[1])
             hi_bounds.append(li[2])
-        n_sims = 3  # The number of times to sample and test params
-        n_concurrent = cpu_count() / 2 - 1  # Number of concurrent procs
-        solver_epsilon = 0.0005
-
-        spec = dlib.function_spec(bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
-        optimizer = dlib.global_function_search(spec)
+        fname = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
+        try:
+            spec, evals = dlib_load(fname)
+            optimizer = dlib.global_function_search(
+                [spec],
+                initial_function_evals=[evals],
+                relative_noise_magnitude=relative_noise_magnitude)
+        except FileNotFoundError:
+            spec = dlib.function_spec(
+                bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
+            optimizer = dlib.global_function_search(spec)
+            optimizer.set_relative_noise_magnitude(relative_noise_magnitude)
         optimizer.set_solver_epsilon(solver_epsilon)
+
         result_queue = Queue()
         simproc = partial(dlib_proc, self.stratclass, self.pp, params, result_queue)
         results = np.zeros((n_sims, len(params) + 1))
@@ -242,6 +254,9 @@ class Runner:
 
         results.sort(axis=0)
         self.logger.error(f"[Result, {params}]\n{results}")
+
+        all_evals = optimizer.get_function_evaluations()[1][0]
+        dlib_save(spec, all_evals, fname)
 
     def hopt_random(self):
         """
