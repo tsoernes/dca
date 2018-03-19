@@ -101,36 +101,31 @@ class Net:
         """A series of convolutional layers with 'grid' and 'frep' as inputs,
         and 'cell' stacked with the outputs"""
         # TODO Try one conv after cell stack
-        # TODO use Conv2D class instead of functional interface; add optional summary for kernels
         with tf.variable_scope('model/' + name):
             inp = tf.concat([top_inp, cell], axis=3) if self.pp['top_stack'] else top_inp
             for i in range(len(self.pp['conv_nfilters'])):
-                # inp = tf.layers.conv2d(
-                # inputs=inp,
-                # filters=self.pp['conv_nfilters'][i],
-                # kernel_size=self.pp['conv_kernel_sizes'][i],
-                # padding="same",
-                # kernel_initializer=self.kern_init_conv(),
-                # kernel_regularizer=self.regularizer,
-                # use_bias=self.pp['conv_bias'],
-                # activation=self.act_fn)
-                conv = tf.layers.Conv2D(
-                    filters=self.pp['conv_nfilters'][i],
-                    kernel_size=self.pp['conv_kernel_sizes'][i],
-                    padding="same",
-                    kernel_initializer=self.kern_init_conv(),
-                    kernel_regularizer=self.regularizer,
-                    use_bias=self.pp['conv_bias'],
-                    activation=self.act_fn)
-                inp = conv.apply(inp)
-                self.weight_vars.append(conv.kernel)
-                self.weight_names.append(conv.kernel.name)
-                if self.pp['conv_bias']:
-                    self.weight_vars.append(conv.bias)
-                    self.weight_names.append(conv.bias.name)
+                inp = self.add_conv_layer(inp, self.pp['conv_nfilters'][i],
+                                          self.pp['conv_kernel_sizes'][i])
             conv_out = inp if self.pp['top_stack'] else tf.concat([inp, cell], axis=3)
             out = tf.layers.flatten(conv_out)
             return out
+
+    def add_conv_layer(self, inp, nfilters, kernel_size):
+        conv = tf.layers.Conv2D(
+            filters=nfilters,
+            kernel_size=kernel_size,
+            padding="same",
+            kernel_initializer=self.kern_init_conv(),
+            kernel_regularizer=self.regularizer,
+            use_bias=self.pp['conv_bias'],
+            activation=self.act_fn)
+        out = conv.apply(inp)
+        self.weight_vars.append(conv.kernel)
+        self.weight_names.append(conv.kernel.name)
+        if self.pp['conv_bias']:
+            self.weight_vars.append(conv.bias)
+            self.weight_names.append(conv.bias.name)
+        return out
 
     def load_data(self):
         if self.data_is_loaded:

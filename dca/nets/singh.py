@@ -6,11 +6,12 @@ from nets.utils import get_trainable_vars, scale_freps_big
 
 
 class SinghNet(Net):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, pre_conv=False, *args, **kwargs):
         """
         Afterstate value net
         """
         self.name = "SinghNet"
+        self.pre_conv = pre_conv
         super().__init__(name=self.name, *args, **kwargs)
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
@@ -28,6 +29,11 @@ class SinghNet(Net):
         else:
             freps = self.freps
         with tf.variable_scope('model/' + self.name) as scope:
+            if self.pre_conv:
+                dense_inp = self.add_conv_layer(freps, self.pp['conv_nfilters'][0],
+                                                self.pp['conv_kernel_sizes'][0])
+            else:
+                dense_inp = freps
             value_layer = tf.layers.Dense(
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
@@ -35,7 +41,7 @@ class SinghNet(Net):
                 use_bias=False,
                 activation=None,
                 name="vals")
-            self.value = value_layer.apply(tf.layers.flatten(freps))
+            self.value = value_layer.apply(tf.layers.flatten(dense_inp))
             self.weight_vars.append(value_layer.kernel)
             self.weight_names.append(value_layer.name)
             online_vars = get_trainable_vars(scope)

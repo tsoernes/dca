@@ -89,8 +89,8 @@ class VNetStrat(NetStrat):
 class SinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = SinghNet(self.pp, self.logger)
-        self.net.backward = self.net.backward_supervised
+        self.net = SinghNet(pre_conv=False, pp=self.pp, logger=self.logger)
+        self.backward_fn = self.net.backward_supervised
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount, next_max_ch, next_max_val, next_p):
@@ -108,7 +108,7 @@ class WolfSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
-        self.net.backward = self.net.backward_supervised
+        self.backward_fn = self.net.backward_supervised
         self.val = 0
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
@@ -135,6 +135,7 @@ class ManSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ManSinghNet(self.pp, self.logger)
+        self.backward_fn = self.net.backward
 
 
 class ResidSinghNetStrat(VNetStrat):
@@ -143,6 +144,7 @@ class ResidSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ResidSinghNet(self.pp, self.logger)
+        self.backward_fn = self.net.backward
 
 
 class TDCSinghNetStrat(VNetStrat):
@@ -155,6 +157,7 @@ class TDCSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TDCSinghNet(self.pp, self.logger)
+        self.backward_fn = self.net.backward
 
 
 class TFTDCSinghNetStrat(VNetStrat):
@@ -163,6 +166,7 @@ class TFTDCSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TFTDCSinghNet(self.pp, self.logger)
+        self.backward_fn = self.net.backward
 
 
 class AvgSinghNetStrat(VNetStrat):
@@ -177,6 +181,7 @@ class AvgSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
+        self.backward_fn = self.net.backward
         assert self.pp['avg_reward']
 
 
@@ -189,6 +194,7 @@ class LSTDSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = LSTDSinghNet(self.pp, self.logger)
+        self.backward_fn = self.net.backward
 
 
 class AlfySinghNetStrat(VNetStrat):
@@ -202,7 +208,7 @@ class AlfySinghNetStrat(VNetStrat):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
         assert not self.pp['dt_rewards']
-        self.net.backward = self.net.backward_supervised
+        self.backward_fn = self.net.backward_supervised
         # assert not self.pp['dt_rewards']
         self.sojourn_times = np.zeros(self.dims, np.float64)
         self.rewards = np.zeros(self.dims, np.float64)
@@ -240,7 +246,7 @@ class PSinghNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
-        self.net.backward = self.net.backward_supervised
+        self.backward_fn = self.net.backward_supervised
         assert not self.pp['dt_rewards']
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
@@ -278,6 +284,7 @@ class SinghQNetStrat(VNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghQNet(self.pp, self.logger)
+        self.backward_fn = self.net.backward
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
@@ -338,19 +345,8 @@ class SinghQNetStrat(VNetStrat):
 class VConvNetStrat(SinghNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = AfterstateNet(self.pp, self.logger)
-
-    def get_qvals(self, grid, cell, ce_type, chs):
-        # Just contains qvals for 'chs'
-        qvals_dense = self.net.forward(NGF.afterstates(self.grid, cell, ce_type, chs))
-        assert qvals_dense.shape == (len(chs), )
-        return qvals_dense
-
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, discount):
-        # self.logger.error(
-        #     f"{gamma}, {reward}, {gamma/(gamma+(1-gamma)/self.pp['beta'])}")
-        self.backward(
-            freps=[grid], rewards=reward, next_freps=[self.grid], gamma=discount)
+        self.net = SinghNet(pre_conv=True, pp=self.pp, logger=self.logger)
+        self.backward_fn = self.net.backward_supervised
 
 
 class RSMART(SinghNetStrat):
@@ -360,6 +356,7 @@ class RSMART(SinghNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
+        self.backward_fn = self.net.backward
         self.avg_reward = 0
         self.tot_reward = 0
         self.tot_time = 0

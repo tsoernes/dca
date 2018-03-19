@@ -77,6 +77,7 @@ class QLearnNetStrat(QNetStrat):
 
     def __init__(self, *args, **kwargs):
         super().__init__("QLearnNet", *args, **kwargs)
+        self.backward_fn = self.net.backward
         self.exps = []
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_ch,
@@ -140,7 +141,7 @@ class MNQLearnNetStrat(QNetStrat):
 
     def __init__(self, *args, **kwargs):
         super().__init__("MNQLearnNet", *args, **kwargs)
-        self.net.backward = self.net.backward_multi_nstep
+        self.backward_fn = self.net.backward_multi_nstep
         self.empty()
 
     def empty(self):
@@ -167,8 +168,7 @@ class MNQLearnNetStrat(QNetStrat):
 class GAEQLearnNetStrat(MNQLearnNetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # DIRTY HACK
-        self.net.backward = self.net.backward_gae
+        self.backward_fn = self.net.backward_gae
 
 
 class QLearnEligibleNetStrat(QNetStrat):

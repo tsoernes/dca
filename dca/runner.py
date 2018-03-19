@@ -8,7 +8,7 @@ import pickle
 import sys
 import time
 from functools import partial
-from multiprocessing import Pool
+from multiprocessing import Pool, Process, Queue, cpu_count
 
 #  import argcomplete
 import numpy as np
@@ -202,31 +202,45 @@ class Runner:
             is_int.append(li[0])
             lo_bounds.append(li[1])
             hi_bounds.append(li[2])
-        spec = dlib.function_spec(bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
-        n = 3  # The number of times to sample and test params
-        n_concurrent = 2  # Number of concurrent procs
+        n_sims = 3  # The number of times to sample and test params
+        n_concurrent = cpu_count() / 2 - 1  # Number of concurrent procs
         solver_epsilon = 0.0005
-        optimizer = dlib.global_function_search(spec)
-        results = []
-        self.logger.error(f"Dlib hopt for {n} iterations with {n_concurrent} procs for"
-                          f" a total of {n*n_concurrent} simulations,"
-                          f" on params {params} with bounds {lo_bounds}, {hi_bounds}")
-        simproc = partial(dlib_proc, self.stratclass, self.pp, params)
-        for i in range(n):
-            evals = []
-            space_vals = []
-            for _ in range(n_concurrent):
-                n = optimizer.get_next_x()
-                evals.append(n)
-                space_vals.append(list(n.x))
-            # self.logger.error(f"\nIter {i}, testing {params}: {space_vals}")
-            with Pool(n_concurrent) as p:
-                temp_results = p.map(simproc, space_vals)
-            for i, s_eval in enumerate(evals):
-                s_eval.set(temp_results[i])
-            results.extend([(r, v) for r, v in zip(temp_results, space_vals)])
 
-        results.sort()
+        spec = dlib.function_spec(bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
+        optimizer = dlib.global_function_search(spec)
+        optimizer.set_solver_epsilon(solver_epsilon)
+        result_queue = Queue()
+        simproc = partial(dlib_proc, self.stratclass, self.pp, params, result_queue)
+        results = np.zeros((n_sims, len(params) + 1))
+        evals = [None] * n_sims
+
+        def spawn(i):
+            eeval = optimizer.get_next_x()
+            next_x = list(eeval.x)
+            evals[i] = eeval
+            results[i][1:] = next_x
+            Process(target=simproc, args=(i, next_x)).start()
+
+        def store_result():
+            j, result = result_queue.get()
+            evals[j].set(result)
+            results[j][0] = result
+
+        self.logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs for"
+                          f" on params {params} with bounds {lo_bounds}, {hi_bounds}")
+        # Spawn initial processes
+        for i in range(n_concurrent):
+            spawn(i)
+        for i in range(n_concurrent, n_sims):
+            # Block until a result is ready, then spawn new sim
+            store_result()
+            spawn(i)
+
+        # Get remaining results
+        for _ in range(n_concurrent):
+            store_result()
+
+        results.sort(axis=0)
         self.logger.error(f"[Result, {params}]\n{results}")
 
     def hopt_random(self):
@@ -428,16 +442,17 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     return {'status': "ok", "loss": res, "hoff_loss": result[1]}
 
 
-def dlib_proc(stratclass, pp, space_params, space_vals):
+def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     logger = logging.getLogger('')
     logger.error(f"Testing {space_params}: {space_vals}")
+    # Add/overwrite problem params with params given from dlib
     for j, key in enumerate(space_params):
         pp[key] = space_vals[j]
-    strat = stratclass(pp=pp, logger=logger)
-    result = strat.simulate()[0]
-    if result is None:
-        result = 1
-    return result
+    strat = stratclass(**pp)
+    res = strat.run()[0]
+    if res is None:
+        res = 1
+    result_queue.put((i, res))
 
 
 if __name__ == '__main__':
