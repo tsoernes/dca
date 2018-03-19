@@ -64,3 +64,5 @@ soft start training:
 gradually increase call rate, to prevent the system to being forced into an awkward corner
 before it has learned.
 
+-------
+could should sate act state space explicitly for dca, see eg usaha

@@ -1,0 +1,23 @@
+Promising, but diverges(?) over time
+
+p3 runner.py vconvnet -phoff 0 --no_gpu -epol nom_greedy -opt sgd -lr 1e-6 --print_weights --conv_nfilters 80 --conv_kernel_sizes 5
+
+TODO:
+Fix/analyze divergence for net above
+
+bgumbel maybe a little tiny bit more stable. worse performing initially. 
+why is it a bit more stable?
+   Because selecting actions greedily causes divergence?
+   Can L2 reg fix it? L2 on conv or dense or both?
+how to combine bgumbel with nominal preference?
+   modify bgumbel perturbations for nom chs?
+   nominal init in conv layer?
+can approach be improved with:
+  - avg rewards
+  - beta discount
+  - off policy (with/wo imp sampling)
+  - grad correction
+  - separable conv
+  - non-shared conv
+  - fine tuning filter/kernel size
+Why lucky runs? Save net inits from lucky runs and retest them.
