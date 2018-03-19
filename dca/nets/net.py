@@ -40,9 +40,14 @@ class Net:
         self.act_fn = get_act_fn_by_name(pp['act_fn'])
         self.kern_init_conv = get_init_by_name(pp['weight_init_conv'], pp)
         self.kern_init_dense = get_init_by_name(pp['weight_init_dense'], pp)
-        self.regularizer = None
+        self.conv_regularizer, self.dense_regularizer = None, None
         if pp['layer_norm']:
-            self.regularizer = tf.contrib.layers.layer_norm
+            self.conv_regularizer = tf.contrib.layers.layer_norm
+            self.dense_regularizer = tf.contrib.layers.layer_norm
+        if pp['l2_conv']:
+            self.conv_regularizer = tf.contrib.layers.l2_regularizer(pp['l2_scale'])
+        if pp['l2_dense']:
+            self.dense_regularizer = tf.contrib.layers.l2_regularizer(pp['l2_scale'])
 
         tf.reset_default_graph()
         self.options = None
@@ -116,7 +121,7 @@ class Net:
             kernel_size=kernel_size,
             padding="same",
             kernel_initializer=self.kern_init_conv(),
-            kernel_regularizer=self.regularizer,
+            kernel_regularizer=self.conv_regularizer,
             use_bias=self.pp['conv_bias'],
             activation=self.act_fn)
         out = conv.apply(inp)

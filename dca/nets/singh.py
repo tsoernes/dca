@@ -37,10 +37,9 @@ class SinghNet(Net):
             value_layer = tf.layers.Dense(
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
-                kernel_regularizer=None,
+                kernel_regularizer=self.dense_regularizer,
                 use_bias=False,
-                activation=None,
-                name="vals")
+                activation=None)
             self.value = value_layer.apply(tf.layers.flatten(dense_inp))
             self.weight_vars.append(value_layer.kernel)
             self.weight_names.append(value_layer.name)

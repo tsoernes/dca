@@ -316,6 +316,18 @@ def get_pparams(defaults=False):
         help="(Net) Use layer normalization",
         default=False)
     parser.add_argument(
+        '--l2_conv',
+        action='store_true',
+        help="(Net) Use L2 regularization for conv layers",
+        default=False)
+    parser.add_argument(
+        '--l2_scale', type=float, help="(Net) Scale L2 loss", default=1e-5)
+    parser.add_argument(
+        '--l2_dense',
+        action='store_true',
+        help="(Net) Use L2 regularization for dense layers",
+        default=False)
+    parser.add_argument(
         '--top_stack',
         action='store_true',
         help="(Net) Stack cell before conv instead of after",
