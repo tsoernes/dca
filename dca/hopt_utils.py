@@ -3,6 +3,8 @@ import pickle
 import sys
 from operator import itemgetter
 
+import dlib
+import numpy as np
 from bson import SON
 from hyperopt.mongoexp import MongoTrials
 from matplotlib import pyplot as plt
@@ -259,6 +261,46 @@ def hopt_plot(trials):
         pl1.plot(values, losses, 'ro')
         plt.xlabel(param)
     plt.show()
+
+
+def dlib_save(spec, evals, fname):
+    raw_spec = (list(spec.is_integer_variable), list(spec.lower), list(spec.upper))
+    results = np.zeros((len(evals), len(evals[0].x) + 1))
+    for i, eeval in enumerate(evals):
+        results[i][0] = eeval.y
+        results[i][1:] = list(eeval.x)
+    with open(fname, "wb") as f:
+        pickle.dump((raw_spec, results), f)
+
+
+def dlib_load(fname):
+    """
+    Load a pickle file containing
+    (spec, results) where
+        results: np.array of shape [N, M+1] where
+            N is number of trials
+            M is number of hyperparameters and results[:, 0] is result/loss
+        spec: (is_integer, lower, upper) where each element is list of length M
+
+    Assumes only 1 function is optimized over
+
+    Return
+    ([dlib.function_spec], [[dlib.function_eval]])
+
+    TODO
+    Save/load relative_noise_magnitude, solver_eps
+    Save/load param names
+    """
+    with open(fname, "rb") as f:
+        raw_spec, raw_results = pickle.load(f)
+    is_integer, lo_bounds, hi_bounds = raw_spec
+    spec = dlib.function_spec(bound1=lo_bounds, bound2=hi_bounds, is_integer=is_integer)
+    evals = []
+    for raw_result in raw_results:
+        x = list(raw_result[1:])
+        result = dlib.function_evaluation(x=x, y=raw_result[0])
+        evals.append(result)
+    return spec, evals
 
 
 def runner(inp=None):
