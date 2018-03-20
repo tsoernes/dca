@@ -44,10 +44,7 @@ class SinghNet(Net):
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
         self.weights = tf.placeholder(tf.float32, [None, 1], "weight")
 
-        if self.pp['scale_freps']:
-            freps = scale_freps_big(self.freps)
-        else:
-            freps = self.freps
+        freps = scale_freps_big(self.freps) if self.pp['scale_freps'] else self.freps
         self.value, online_vars = self._build_net(freps, "online")
         if self.double_net:
             self.target_value, target_vars = self._build_net(freps, "target")

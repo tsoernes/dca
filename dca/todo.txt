@@ -8,6 +8,7 @@ Fix/analyze divergence for net above
 bgumbel maybe a little tiny bit more stable. worse performing initially. 
 why is it a bit more stable?
    Because selecting actions greedily causes divergence?
+
 how to combine bgumbel with nominal preference?
    modify bgumbel perturbations for nom chs?
    nominal init in conv layer?
