@@ -135,8 +135,8 @@ class Runner:
         relative_noise_magnitude = 0.001  # Default
         space = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
-            'gamma': [False, 0.70, 0.9999],
-            'net_lr': [False, 1e-7, 5e-6],
+            'gamma': [False, 0.60, 0.99],
+            'net_lr': [False, 1e-8, 1e-6],
             # 'net_lr_decay': [False, 0.65, 1.0],
             # 'weight_beta': [False, 1e-10, 1e-5]
             # 'epsilon': [True, 10, 2000],
@@ -158,6 +158,10 @@ class Runner:
                 )
                 # TODO could check if bounds match as well
                 params = saved_params
+            # Override saved spec ..
+            spec = dlib.function_spec(
+                bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
+            lo_bounds, hi_bounds = list(spec.lower), list(spec.upper)  # for printing
             optimizer = dlib.global_function_search(
                 [spec],
                 initial_function_evals=[evals],
@@ -197,15 +201,16 @@ class Runner:
             except KeyboardInterrupt:
                 inp = ""
                 while inp not in ["Y", "N"]:
-                    inp = input("Premature exit. Save? Y/N").upper()
+                    inp = input("Premature exit. Save? Y/N: ").upper()
                 if inp == "Y":
                     quit_opt()
                 sys.exit(0)
             else:
                 evals[i].set(result)
 
-        self.logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
-                          f" on params with bounds {space}")
+        self.logger.error(
+            f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
+            f" on params {params} with low bounds {lo_bounds}, high {hi_bounds}")
         # Spawn initial processes
         for i in range(n_concurrent):
             spawn_eval(i)
