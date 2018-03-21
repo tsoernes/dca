@@ -129,7 +129,7 @@ class Runner:
         on odd iterations we pick the next x according to the trust region model
         """
         import dlib
-        n_sims = 7  # The number of times to sample and test params
+        n_sims = 70  # The number of times to sample and test params
         n_concurrent = int(cpu_count() / 2) - 1  # Number of concurrent procs
         solver_epsilon = 0.0005
         relative_noise_magnitude = 0.001  # Default

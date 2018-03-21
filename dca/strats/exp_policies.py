@@ -210,6 +210,18 @@ class BoltzmannGumbel(Policy):
         # pretend greedy selection
         return ch, idx, 1
 
+    def action_prob(self, beta, qvals, idx):
+        # TODO
+        # mult by beta somewhere
+        # handle pos/neg signs of k differently
+        k = qvals - qvals[idx]  # abs?
+
+        ek = (1 - np.exp(-k))
+        p = np.exp(ek) / ek
+
+        np.multiply.reduce(p[:idx]) * np.multiply.reduce(p[idx:])
+        pass
+
 
 exp_pol_funcs = {
     'eps_greedy': EpsGreedy,

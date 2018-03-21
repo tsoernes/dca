@@ -153,6 +153,8 @@ def get_pparams(defaults=False):
         help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.99999)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
+    parser.add_argument(
+        '--gamma_end', type=float, help="(RL) discount factor at sim end", default=None)
     parser.add_argument('-wbeta', '--weight_beta', type=float, help="(RL)", default=1e-6)
     parser.add_argument('--weight_beta_decay', type=float, help="(RL)", default=0.999_999)
     parser.add_argument(
@@ -574,6 +576,8 @@ def get_pparams(defaults=False):
         pp['log_level'] = logging.INFO
     if pp['p_handoff'] is None:
         pp['p_handoff'] = 0.15
+    if pp['gamma_end'] is None:
+        pp['gamma_end'] = pp['gamma']
     if pp['n_events'] is None:
         pp['n_events'] = 470000
     if pp['breakout_thresh'] is None:
