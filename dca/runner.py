@@ -173,29 +173,27 @@ class Runner:
 
         result_queue = Queue()
         simproc = partial(dlib_proc, self.stratclass, self.pp, params, result_queue)
-        # [[loss1, param1, param2, ..]]
-        results = np.zeros((n_sims, len(params) + 1))
         evals = [None] * n_sims
 
         def quit_opt():
-            results.sort(axis=0)
-            self.logger.error(f"[Result, {params}]\n{results}")
-            all_evals = optimizer.get_function_evaluations()[1][0]
-            dlib_save(params, spec, solver_epsilon, relative_noise_magnitude, all_evals,
-                      fname)
+            # Store results of finished evals to file; print best eval
+            finished_evals = optimizer.get_function_evaluations()[1][0]
+            dlib_save(params, spec, solver_epsilon, relative_noise_magnitude,
+                      finished_evals, fname)
+            best_eval = optimizer.get_best_function_eval()
+            self.logger.error(f"Finished {len(finished_evals)} trials."
+                              f"Best eval: {best_eval.y}, {best_eval.x}")
 
-        def spawn(i):
+        def spawn_eval(i):
             # Spawn a new sim process
             eeval = optimizer.get_next_x()
-            next_x = list(eeval.x)
-            evals[i] = eeval  # Store eval object to be set with result later.
-            results[i][1:] = next_x  # Store the paramaters that was used
-            Process(target=simproc, args=(i, next_x)).start()
+            evals[i] = eeval  # Store eval object to be set with result later
+            Process(target=simproc, args=(i, list(eeval.x))).start()
 
         def store_result():
             try:
                 # Blocks until a result is ready
-                j, result = result_queue.get()
+                i, result = result_queue.get()
             except KeyboardInterrupt:
                 inp = ""
                 while inp not in ["Y", "N"]:
@@ -204,18 +202,17 @@ class Runner:
                     quit_opt()
                 sys.exit(0)
             else:
-                evals[j].set(result)
-                results[j][0] = result
+                evals[i].set(result)
 
         self.logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
                           f" on params with bounds {space}")
         # Spawn initial processes
         for i in range(n_concurrent):
-            spawn(i)
+            spawn_eval(i)
         # When a thread returns a result, start a new sim
         for i in range(n_concurrent, n_sims):
             store_result()
-            spawn(i)
+            spawn_eval(i)
         # Get remaining results
         for _ in range(n_concurrent):
             store_result()
