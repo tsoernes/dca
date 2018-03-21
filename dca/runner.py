@@ -15,7 +15,7 @@ import numpy as np
 from datadiff import diff
 from hyperopt import Trials, fmin, hp, tpe  # noqa
 from hyperopt.pyll.base import scope  # noqa
-from icecream import ic
+from icecream import ic  # noqa
 
 from gui import Gui  # noqa
 from hopt_utils import (MongoConn, add_pp_pickle, dlib_load, dlib_save,
@@ -111,59 +111,7 @@ class Runner:
         result = strat.simulate()
         return result
 
-    def hopt_dlib_single(self):
-        import dlib
-        bounds = {
-            # parameter: [IsInteger, Low-Bound, High-Bound]
-            # 'net_lr': [False, 7e-7, 5e-6],
-            # 'net_lr_decay': [False, 0.65, 1.0],
-            # 'weight_beta': [False, 1e-10, 1e-5]
-            'epsilon': [True, 10, 2000]
-        }
-        params, is_int, lo_bounds, hi_bounds = [], [], [], []
-        for p, li in bounds.items():
-            params.append(p)
-            is_int.append(li[0])
-            lo_bounds.append(li[1])
-            hi_bounds.append(li[2])
-        n = 40  # The number of times find_min_global() will sample and test params
-
-        self.logger.error(
-            f"Dlib hopt for {n} iterations, bounds {lo_bounds}, {hi_bounds}")
-        self.i = 0
-        results = []
-
-        def dlib_proc(*args):
-            self.logger.error(f"\nIter {self.i}, testing {params}: {args}")
-            for j, key in enumerate(params):
-                self.pp[key] = args[j]
-            if self.pp['avg_runs']:
-                n_runs = self.pp['avg_runs']
-                simproc = partial(self.sim_proc, self.stratclass, self.pp, reseed=True)
-                with Pool() as p:
-                    temp_results = p.map(simproc, range(n_runs))
-                temp_results = [
-                    r[0] for r in temp_results if r[0] != 1 and r[0] is not None
-                ]
-                if not temp_results:
-                    temp_results = [1]
-                result = np.mean(temp_results)
-                self.logger.error(f"Iter {self.i} average: {result}")
-            else:
-                strat = self.stratclass(self.pp, logger=self.logger, pid=self.i)
-                result = strat.simulate()[0]
-                if result is None:
-                    result = 1
-            results.append((result, args))
-            if not self.pp['avg_runs']:
-                # If user quits sim, need to abort further calls to dlib_proc
-                if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
-                    results.sort()
-                    self.logger.error(f"Results: {results}")
-                    sys.exit(0)
-            self.i += 1
-            return result
-
+    def hopt_dlib(self):
         """ the search will only attempt to find a global minimizer to at most
         solver_epsilon accuracy. Once a local minimizer is found to that
         accuracy the search will focus entirely on finding other minima
@@ -180,26 +128,19 @@ class Runner:
         On even iterations we pick the next x according to our upper bound while
         on odd iterations we pick the next x according to the trust region model
         """
-        solver_epsilon = 0.0005
-        x = dlib.find_min_global(
-            dlib_proc, lo_bounds, hi_bounds, is_int, n, solver_epsilon=solver_epsilon)
-        results.sort()
-        self.logger.error(f"{results}")
-        self.logger.error(f"Min x: {x}")
-
-    def hopt_dlib(self):
         import dlib
-        n_sims = 3  # The number of times to sample and test params
-        n_concurrent = cpu_count() / 2 - 1  # Number of concurrent procs
+        n_sims = 7  # The number of times to sample and test params
+        n_concurrent = int(cpu_count() / 2) - 1  # Number of concurrent procs
         solver_epsilon = 0.0005
-        relative_noise_magnitude = 0.001
+        relative_noise_magnitude = 0.001  # Default
         space = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
-            # 'net_lr': [False, 7e-7, 5e-6],
+            'gamma': [False, 0.70, 0.9999],
+            'net_lr': [False, 1e-7, 5e-6],
             # 'net_lr_decay': [False, 0.65, 1.0],
             # 'weight_beta': [False, 1e-10, 1e-5]
-            'epsilon': [True, 10, 2000],
-            'alpha': [False, 0.00001, 0.3]
+            # 'epsilon': [True, 10, 2000],
+            # 'alpha': [False, 0.00001, 0.3]
         }
         params, is_int, lo_bounds, hi_bounds = [], [], [], []
         for p, li in space.items():
@@ -209,11 +150,20 @@ class Runner:
             hi_bounds.append(li[2])
         fname = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         try:
-            spec, evals = dlib_load(fname)
+            spec, evals, info, prev_best = dlib_load(fname)
+            saved_params = info['params']
+            if saved_params != params:
+                self.logger.error(
+                    f"Saved params {saved_params} differ from specified ones {params}; using saved"
+                )
+                # TODO could check if bounds match as well
+                params = saved_params
             optimizer = dlib.global_function_search(
                 [spec],
                 initial_function_evals=[evals],
                 relative_noise_magnitude=relative_noise_magnitude)
+            self.logger.error(
+                f"Restored {len(evals)} trials, prev best {saved_params} {prev_best}")
         except FileNotFoundError:
             spec = dlib.function_spec(
                 bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
@@ -223,40 +173,53 @@ class Runner:
 
         result_queue = Queue()
         simproc = partial(dlib_proc, self.stratclass, self.pp, params, result_queue)
+        # [[loss1, param1, param2, ..]]
         results = np.zeros((n_sims, len(params) + 1))
         evals = [None] * n_sims
 
+        def quit_opt():
+            results.sort(axis=0)
+            self.logger.error(f"[Result, {params}]\n{results}")
+            all_evals = optimizer.get_function_evaluations()[1][0]
+            dlib_save(params, spec, solver_epsilon, relative_noise_magnitude, all_evals,
+                      fname)
+
         def spawn(i):
+            # Spawn a new sim process
             eeval = optimizer.get_next_x()
             next_x = list(eeval.x)
-            evals[i] = eeval
-            results[i][1:] = next_x
+            evals[i] = eeval  # Store eval object to be set with result later.
+            results[i][1:] = next_x  # Store the paramaters that was used
             Process(target=simproc, args=(i, next_x)).start()
 
         def store_result():
-            j, result = result_queue.get()
-            evals[j].set(result)
-            results[j][0] = result
+            try:
+                # Blocks until a result is ready
+                j, result = result_queue.get()
+            except KeyboardInterrupt:
+                inp = ""
+                while inp not in ["Y", "N"]:
+                    inp = input("Premature exit. Save? Y/N").upper()
+                if inp == "Y":
+                    quit_opt()
+                sys.exit(0)
+            else:
+                evals[j].set(result)
+                results[j][0] = result
 
-        self.logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs for"
-                          f" on params {params} with bounds {lo_bounds}, {hi_bounds}")
+        self.logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
+                          f" on params with bounds {space}")
         # Spawn initial processes
         for i in range(n_concurrent):
             spawn(i)
+        # When a thread returns a result, start a new sim
         for i in range(n_concurrent, n_sims):
-            # Block until a result is ready, then spawn new sim
             store_result()
             spawn(i)
-
         # Get remaining results
         for _ in range(n_concurrent):
             store_result()
-
-        results.sort(axis=0)
-        self.logger.error(f"[Result, {params}]\n{results}")
-
-        all_evals = optimizer.get_function_evaluations()[1][0]
-        dlib_save(spec, all_evals, fname)
+        quit_opt()
 
     def hopt_random(self):
         """
@@ -463,10 +426,14 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     # Add/overwrite problem params with params given from dlib
     for j, key in enumerate(space_params):
         pp[key] = space_vals[j]
-    strat = stratclass(**pp)
-    res = strat.run()[0]
+    strat = stratclass(pp=pp, logger=logger)
+    res = strat.simulate()[0]
     if res is None:
         res = 1
+    # if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
+    # # If user quits sim, need to abort further calls to dlib_proc
+    # result_queue.put(None)
+    # else:
     result_queue.put((i, res))
 
 

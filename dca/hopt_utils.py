@@ -263,44 +263,53 @@ def hopt_plot(trials):
     plt.show()
 
 
-def dlib_save(spec, evals, fname):
+def dlib_save(params, spec, solver_epsilon, relative_noise_magnitude, evals, fname):
     raw_spec = (list(spec.is_integer_variable), list(spec.lower), list(spec.upper))
-    results = np.zeros((len(evals), len(evals[0].x) + 1))
+    raw_results = np.zeros((len(evals), len(evals[0].x) + 1))
+    info = {
+        'params': params,
+        'solver_epsilon': solver_epsilon,
+        'relative_noise_magnitude': relative_noise_magnitude
+    }
     for i, eeval in enumerate(evals):
-        results[i][0] = eeval.y
-        results[i][1:] = list(eeval.x)
+        raw_results[i][0] = eeval.y
+        raw_results[i][1:] = list(eeval.x)
     with open(fname, "wb") as f:
-        pickle.dump((raw_spec, results), f)
+        pickle.dump((raw_spec, raw_results, info), f)
 
 
 def dlib_load(fname):
     """
     Load a pickle file containing
-    (spec, results) where
+    (spec, results, info) where
         results: np.array of shape [N, M+1] where
             N is number of trials
             M is number of hyperparameters and results[:, 0] is result/loss
-        spec: (is_integer, lower, upper) where each element is list of length M
+        spec: (is_integer, lower, upper)
+            where each element is list of length M
+        info: dictionary with
+            params, solver_epsilon, relative_noise_magnitude
 
     Assumes only 1 function is optimized over
 
     Return
-    ([dlib.function_spec], [[dlib.function_eval]])
+    ([dlib.function_spec], [[dlib.function_eval]], dict)
 
     TODO
     Save/load relative_noise_magnitude, solver_eps
     Save/load param names
     """
     with open(fname, "rb") as f:
-        raw_spec, raw_results = pickle.load(f)
+        raw_spec, raw_results, info = pickle.load(f)
     is_integer, lo_bounds, hi_bounds = raw_spec
     spec = dlib.function_spec(bound1=lo_bounds, bound2=hi_bounds, is_integer=is_integer)
     evals = []
+    prev_best = np.min(raw_results, axis=0)
     for raw_result in raw_results:
         x = list(raw_result[1:])
         result = dlib.function_evaluation(x=x, y=raw_result[0])
         evals.append(result)
-    return spec, evals
+    return spec, evals, info, prev_best
 
 
 def runner(inp=None):
