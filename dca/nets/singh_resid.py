@@ -10,7 +10,7 @@ class ResidSinghNet(ManSinghNet):
         """
         super().__init__(*args, **kwargs)
 
-    def backward(self, freps, rewards, next_freps, discount=None):
+    def backward(self, freps, rewards, next_freps, discount=None, weight=None):
         value = self.sess.run(self.value, feed_dict={self.freps: freps})[0][0]
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})[0][0]
         td_err = rewards[0] + discount * next_value - value

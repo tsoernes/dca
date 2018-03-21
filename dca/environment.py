@@ -27,6 +27,8 @@ class Env:
         # Current call event for which an action must be taken
         self.cevent = None
         # self.init_calls = self.init_marker_calls
+        self.avg_dt = 0
+        self.avg_dt_n = 0
 
     def init_marker_calls(self):
         """
@@ -112,6 +114,9 @@ class Env:
         count = np.count_nonzero(self.grid)
         if self.dt_rewards:
             dt = self.cevent[0] - t
+            # self.avg_dt += dt
+            # self.avg_dt_n += 1
+            # print(self.avg_dt / self.avg_dt_n)
             beta_disc = np.exp(-self.beta * dt)
             reward = count * (1 - beta_disc) / self.beta
             discount = beta_disc if self.bdisc else self.gamma

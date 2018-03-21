@@ -16,7 +16,7 @@ class SinghNet(Net):
         super().__init__(name=self.name, *args, **kwargs)
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
-        self.avg_reward = 0
+        self.avg_reward = [0]
 
     def _build_net(self, freps, name):
         with tf.variable_scope('model/' + name) as scope:
@@ -46,10 +46,6 @@ class SinghNet(Net):
 
         freps = scale_freps_big(self.freps) if self.pp['scale_freps'] else self.freps
         self.value, online_vars = self._build_net(freps, "online")
-        if self.double_net:
-            self.target_value, target_vars = self._build_net(freps, "target")
-            self.copy_online_to_target = copy_net_op(online_vars, target_vars,
-                                                     self.pp['net_creep_tau'])
 
         self.err = self.value_target - self.value
         self.loss = tf.losses.mean_squared_error(
@@ -77,18 +73,15 @@ class SinghNet(Net):
             options=self.options,
             run_metadata=self.run_metadata)
         if self.pp['avg_reward']:
-            self.avg_reward += self.weight_beta * err
-            self.weight_beta *= self.weight_beta_decay
+            self.avg_reward += self.weight_beta * err[0][0]
+            # self.weight_beta *= self.weight_beta_decay
+            # print(self.avg_reward)
         return loss, lr, err
 
     def backward(self, freps, rewards, next_freps, discount=None, weight=1):
-        if self.double_net:
-            target_val = self.target_value
-        else:
-            target_val = self.value
-        next_value = self.sess.run(target_val, feed_dict={self.freps: next_freps})
+        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
         if self.pp['avg_reward']:
-            value_target = rewards - self.avg_reward + next_value
+            value_target = rewards + next_value - self.avg_reward
         else:
             value_target = rewards + discount * next_value
         return self.backward_supervised(freps, value_target, weight)

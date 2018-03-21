@@ -238,7 +238,9 @@ class NetStrat(RLStrat):
         self.last_lr = 1
 
     def fn_report(self):
-        self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses, self.qval_means)
+        avg_reward = self.net.avg_reward[0] if self.pp['avg_reward'] else None
+        self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses, self.qval_means,
+                                 avg_reward)
         if self.pp['print_weights']:
             self.env.stats.report_weights(*self.net.get_weights())
 

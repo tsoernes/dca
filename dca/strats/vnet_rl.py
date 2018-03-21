@@ -208,6 +208,13 @@ class LSTDSinghNetStrat(VNetStrat):
         self.backward_fn = self.net.backward
 
 
+class VConvNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(pre_conv=True, pp=self.pp, logger=self.logger)
+        self.backward_fn = self.net.backward
+
+
 class AlfySinghNetStrat(VNetStrat):
     """
     El-Alfy average semi-markov
@@ -351,13 +358,6 @@ class SinghQNetStrat(VNetStrat):
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, qvals_dense[idx]
-
-
-class VConvNetStrat(SinghNetStrat):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.net = SinghNet(pre_conv=True, pp=self.pp, logger=self.logger)
-        self.backward_fn = self.net.backward_supervised
 
 
 class RSMART(SinghNetStrat):

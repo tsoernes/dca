@@ -82,7 +82,7 @@ class Stats:
             self.n_curr_rejected = 0
             self.n_curr_incoming = 0
 
-    def report_rl(self, epsilon, alpha, losses, qval_means=None):
+    def report_rl(self, epsilon, alpha, losses, qval_means=None, avg_reward=None):
         self.alphas.append(alpha)
         self.epsilons.append(epsilon)
 
@@ -98,20 +98,19 @@ class Stats:
             avg_loss = f"Tot:{avg_losses[0]:.2E}, PG:{avg_losses[1]:.2E}" \
                        f" Val:{avg_losses[2]:.2E}, Ent:{avg_losses[3]:.2E}"
         else:
-            # print(losses)
-            # print(niter)
             avg_loss = f"{sum(losses[-niter:]) / niter :.2E}"
 
         if qval_means:
-            avg_qval = f"{sum(qval_means[-niter:]) / niter :.2E}"
+            avg_qval = f", qvals: {sum(qval_means[-niter:]) / niter :.2E}"
         else:
             avg_qval = ""
-        # print(epsilon)
-        # print(alpha)
-        # print(avg_loss)
-        # print(avg_qval)
-        self.logger.info(f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
-                         f" Avg. loss last {niter} events: {avg_loss}, qvals: {avg_qval}")
+        if avg_reward:
+            avg_reward_s = f", reward: {avg_reward:.2f}"
+        else:
+            avg_reward_s = ""
+        self.logger.info(
+            f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
+            f" Avg. loss last {niter} events: {avg_loss}{avg_qval}{avg_reward_s}")
 
     def report_weights(self, weights, names):
         for i, w in enumerate(weights):

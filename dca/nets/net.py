@@ -156,6 +156,8 @@ class Net:
                     n_path = path + str(i)
                     i += 1
         if inp not in ["N"]:
+            if not os.path.exists(n_path):
+                os.mkdir(n_path)
             self.logger.error(f"Saving model to path {n_path}")
             self.saver.save(self.sess, n_path)
 
