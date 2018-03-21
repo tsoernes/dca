@@ -419,7 +419,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
 
 def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     logger = logging.getLogger('')
-    logger.error(f"Testing {space_params}: {space_vals}")
+    logger.error(f"Eval #{i}, testing {space_params}: {space_vals}")
     # Add/overwrite problem params with params given from dlib
     for j, key in enumerate(space_params):
         pp[key] = space_vals[j]
