@@ -426,11 +426,11 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
 
 def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     logger = logging.getLogger('')
-    logger.error(f"Eval #{i}, testing {space_params}: {space_vals}")
+    logger.error(f"T{i} Testing {space_params}: {space_vals}")
     # Add/overwrite problem params with params given from dlib
     for j, key in enumerate(space_params):
         pp[key] = space_vals[j]
-    strat = stratclass(pp=pp, logger=logger)
+    strat = stratclass(pp=pp, logger=logger, pid=i)
     res = strat.simulate()[0]
     if res is None:
         res = 1
@@ -438,7 +438,8 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     # # If user quits sim, need to abort further calls to dlib_proc
     # result_queue.put(None)
     # else:
-    result_queue.put((i, res))
+    # Must negate result as dlib performs maximization by default
+    result_queue.put((i, -res))
 
 
 if __name__ == '__main__':

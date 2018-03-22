@@ -332,8 +332,9 @@ def compare_pps(old_pp, new_pp):
     new_pp['dims'] = dims
     old_pp['dims'] = dims
     if old_pp != new_pp:
-        print(f"Found old problem params in MongoDB added "
-              f"at {dt}. Diff(a:old, from db. b: from args):\n{pp_diff}")
+        if 'dt' in old_pp:
+            print(f"Found old problem params in MongoDB added at {dt}")
+        print(f"Diff(a:old, from db. b: from args):\n{pp_diff}")
         ans = ''
         while ans not in ['y', 'n']:
             ans = input("Use old pp instead? Y/N:").lower()

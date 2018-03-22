@@ -3,14 +3,16 @@ import numpy as np
 import gridfuncs_numba as NGF
 from eventgen import CEvent
 from gridfuncs import GF
-from nets.afterstate import AfterstateNet
+from nets.afterstate import AfterstateNet  # noqa
 from nets.singh import SinghNet
+from nets.singh_ac import ACSinghNet
 from nets.singh_lstd import LSTDSinghNet
 from nets.singh_man import ManSinghNet
 from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
 from nets.singh_tdc_tf import TFTDCSinghNet
 from nets.singhq import SinghQNet
+from nets.utils import softmax
 from strats.base import NetStrat
 
 
@@ -22,7 +24,8 @@ class VNetStrat(NetStrat):
         self.next_p = 1
         self.next_max_ch = 0
         self.next_max_val = 0
-        self.next_val = 0
+        self.next_val = np.float32(0)
+        self.next_ch = None
 
     def update_target_net(self):
         pass
@@ -53,6 +56,25 @@ class VNetStrat(NetStrat):
             idx = max_idx = np.argmax(qvals_dense)
             ch = max_ch = chs[idx]
             p = 1
+            # print(qvals_dense, idx, np.max(qvals_dense))
+            if self.pp['debug']:
+                val = qvals_dense[idx]
+                freps1 = NGF.afterstate_freps(self.grid, cell, ce_type, np.array([ch]))
+                v1 = self.net.forward(freps1)[0]
+                # print("\n", qvals_dense, idx)
+                frep2 = GF.afterstate_freps_naive(self.grid, cell, ce_type, chs)[idx]
+                v2 = self.net.forward([frep2])[0]
+                v3 = self.net.forward([freps1[0], freps1[0]])[0]
+                v4 = self.net.forward([frep2, frep2])[0]
+                # val: multi freps, multi tf
+                # v1: single frep, single tf
+                # v2: multi freps, single tf
+                # v3: single freps, multi tf
+                # v4: multi freps, multi tf
+                # (val == v3 == v4) != (v1 == v2)
+                # CONCLUSION: Running multiple samples at once through TF
+                # yields different (higher accuracy) results
+                print(val, v1, v2, v3, v4, "\n")
         else:
             ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             max_idx = np.argmax(qvals_dense)
@@ -61,6 +83,7 @@ class VNetStrat(NetStrat):
 
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
+
         return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p
 
     def get_qvals(self, grid, cell, ce_type, chs):
@@ -78,12 +101,19 @@ class VNetStrat(NetStrat):
         else:
             weight = 1
         frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+        if self.pp['debug']:
+            frep2 = GF.feature_reps(grid)[0]
+            assert (frep == frep2).all()
+            astates = GF.afterstates(grid, cell, ce_type, np.array([ch]))
+            next_freps2 = GF.feature_reps(astates)
+            assert (next_freps == next_freps2).all()
         self.backward(
             freps=[frep],
             rewards=[reward],
             next_freps=next_freps,
             weight=weight,
-            discount=discount)
+            discount=discount,
+            next_val=next_val)
 
 
 class SinghNetStrat(VNetStrat):
@@ -380,6 +410,7 @@ class RSMART(VNetStrat):
         if ch is not None:
             frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
             dt = next_cevent[0] - self.t0
+            # treward = reward * dt - self.avg_reward * dt
             treward = reward - self.avg_reward * dt
             self.backward(
                 freps=[frep], rewards=treward, next_freps=next_freps, discount=discount)
@@ -391,6 +422,100 @@ class RSMART(VNetStrat):
 
         self.t0 = next_cevent[0]
         next_ce_type, next_cell = next_cevent[1:3]
-        # next_ch, next_val, p = self.optimal_ch(next_ce_type, next_cell)
         next_ch, qval, next_max_ch, qval_max, p = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
+
+
+class ACNSinghStrat(NetStrat):
+    """Actor Critic"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = ACSinghNet(pp=self.pp, logger=self.logger)
+        self.logger.info(
+            "Loss legend (scaled): [ total, policy_grad, value_fn, entropy ]")
+
+    def forward(self, cell):
+        a, v = self.net.forward(self.grid, cell)
+        return a, v
+
+    def update_target_net(self):
+        pass
+
+    def get_init_action(self, cevent):
+        ch, self.val = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        return ch
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        # Choose A' from S'
+        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
+        # If there's no action to take, or no action was taken,
+        # don't update q-value at all
+        # TODO perhaps for n-step returns, everything should be included, or
+        # next_ce_type == END should be excluded.
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+            # Observe reward from previous action, and
+            # update q-values with one-step lookahead
+            self.update_qval(grid, cell, ch, reward, self.grid, next_cell, next_ch)
+            self.val = next_val
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell):
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            # Calls eligible for assignment
+            chs = GF.get_eligible_chs(self.grid, cell)
+        else:
+            # Calls in progress
+            chs = np.nonzero(self.grid[cell])[0]
+        if len(chs) == 0:
+            assert ce_type != CEvent.END
+            return (None, None)
+
+        a_dist, val = self.forward(cell=cell, ce_type=ce_type)
+        greedy = True
+        if ce_type == CEvent.END:
+            if greedy:
+                idx = np.argmin(a_dist[chs])
+            else:
+                valid_a_dist = softmax(1 - a_dist[chs])
+                idx = np.random.choice(np.range(len(valid_a_dist)), p=valid_a_dist)
+        else:
+            if greedy:
+                idx = np.argmax(a_dist[chs])
+            else:
+                valid_a_dist = softmax(a_dist[chs])
+                idx = np.random.choice(np.range(len(valid_a_dist)), p=valid_a_dist)
+        ch = chs[idx]
+        # print(ce_type, a_dist, ch, a_dist[ch], chs)
+        # TODO NOTE verify the above
+
+        # If vals blow up ('NaN's and 'inf's), ch becomes none.
+        if np.isinf(val) or np.isnan(val):
+            self.logger.error(f"{ce_type}\n{chs}\n{val}\n\n")
+            raise Exception
+
+        self.logger.debug(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        return (ch, val)
+
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, *args):
+        """ Update qval for one experience tuple"""
+        self.backward(grid, cell, ch, reward, self.grid, next_cell)
+
+    def update_qval_n_step(self, grid, cell, ch, reward, next_grid, next_cell, next_ch,
+                           *args):
+        """
+        Update qval for pp['batch_size'] experience tuple.
+        """
+        if len(self.exp_buffer) < self.pp['buffer_size']:
+            # Can't backprop before exp store has enough experiences
+            return
+        loss, lr = self.net.backward_gae(
+            **self.exp_buffer.pop(), next_grid=next_grid, next_cell=next_cell)
+        if np.isinf(loss[0]) or np.isnan(loss[0]):
+            self.logger.error(f"Invalid loss: {loss}")
+            self.quit_sim = True
+            self.invalid_loss = True
+        else:
+            self.losses.append(loss)
+            self.learning_rates.append(lr)

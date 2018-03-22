@@ -6,7 +6,7 @@ from nets.utils import (copy_net_op, get_trainable_vars,
                         normalized_columns_initializer, scale_freps_big)
 
 
-class SinghNet(Net):
+class ACSinghNet(Net):
     def __init__(self, pre_conv=False, double_net=False, *args, **kwargs):
         """
         Afterstate value net
