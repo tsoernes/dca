@@ -6,6 +6,7 @@ from operator import itemgetter
 import dlib
 import numpy as np
 from bson import SON
+from datadiff import diff
 from hyperopt.mongoexp import MongoTrials
 from matplotlib import pyplot as plt
 from pymongo import MongoClient
@@ -263,13 +264,14 @@ def hopt_plot(trials):
     plt.show()
 
 
-def dlib_save(params, spec, solver_epsilon, relative_noise_magnitude, evals, fname):
+def dlib_save(spec, evals, params, solver_epsilon, relative_noise_magnitude, pp, fname):
     raw_spec = (list(spec.is_integer_variable), list(spec.lower), list(spec.upper))
     raw_results = np.zeros((len(evals), len(evals[0].x) + 1))
     info = {
         'params': params,
         'solver_epsilon': solver_epsilon,
-        'relative_noise_magnitude': relative_noise_magnitude
+        'relative_noise_magnitude': relative_noise_magnitude,
+        'pp': pp
     }
     for i, eeval in enumerate(evals):
         raw_results[i][0] = eeval.y
@@ -282,22 +284,21 @@ def dlib_load(fname):
     """
     Load a pickle file containing
     (spec, results, info) where
-        results: np.array of shape [N, M+1] where
-            N is number of trials
-            M is number of hyperparameters and results[:, 0] is result/loss
-        spec: (is_integer, lower, upper)
-            where each element is list of length M
-        info: dictionary with
-            params, solver_epsilon, relative_noise_magnitude
+      results: np.array of shape [N, M+1] where
+        N is number of trials
+        M is number of hyperparameters
+        results[:, 0] is result/loss
+        results[:, 1:] is [param1, param2, ...]
+      spec: (is_integer, lower, upper)
+        where each element is list of length M
+      info: dict with keys
+        params, solver_epsilon, relative_noise_magnitude, pp
 
     Assumes only 1 function is optimized over
 
     Return
-    ([dlib.function_spec], [[dlib.function_eval]], dict)
-
-    TODO
-    Save/load relative_noise_magnitude, solver_eps
-    Save/load param names
+    (dlib.function_spec, [dlib.function_eval], dict, prev_best)
+      where prev_best: np.array[result, param1, param2, ...]
     """
     with open(fname, "rb") as f:
         raw_spec, raw_results, info = pickle.load(f)
@@ -310,6 +311,39 @@ def dlib_load(fname):
         result = dlib.function_evaluation(x=x, y=raw_result[0])
         evals.append(result)
     return spec, evals, info, prev_best
+
+
+def compare_pps(old_pp, new_pp):
+    """Given two sets of problem params; old_pp from a stored file/db and new_pp
+    as current arguments, compare them and if they differ, ask which one to use
+    and return it
+    (use_old_pp, pp)
+    """
+    if 'dt' in old_pp:
+        dt = old_pp['dt']
+        del old_pp['dt']
+    if '_id' in old_pp:
+        del old_pp['_id']
+    # Dims are converted from list to tuple in DB, so don't diff
+    dims = new_pp['dims']
+    del new_pp['dims']
+    del old_pp['dims']
+    pp_diff = diff(old_pp, new_pp)
+    new_pp['dims'] = dims
+    old_pp['dims'] = dims
+    if old_pp != new_pp:
+        print(f"Found old problem params in MongoDB added "
+              f"at {dt}. Diff(a:old, from db. b: from args):\n{pp_diff}")
+        ans = ''
+        while ans not in ['y', 'n']:
+            ans = input("Use old pp instead? Y/N:").lower()
+        if ans == 'y':
+            use_old_pp = True
+            pp = old_pp
+        else:
+            use_old_pp = False
+            pp = new_pp
+    return (use_old_pp, pp)
 
 
 def runner(inp=None):

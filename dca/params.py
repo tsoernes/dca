@@ -436,6 +436,11 @@ def get_pparams(defaults=False):
         default=0,
         const=1)
     parser.add_argument(
+        '--analyze_net',
+        action='store_true',
+        help="(Net) Run empty grid through net, print vals",
+        default=False)
+    parser.add_argument(
         '--no_gpu',
         action='store_true',
         help="(Net) Disable TensorFlow GPU usage",
