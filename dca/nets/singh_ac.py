@@ -2,7 +2,8 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import copy_net_op, get_trainable_vars, scale_freps_big
+from nets.utils import (copy_net_op, get_trainable_vars,
+                        normalized_columns_initializer, scale_freps_big)
 
 
 class SinghNet(Net):
@@ -25,17 +26,13 @@ class SinghNet(Net):
                                                 self.pp['conv_kernel_sizes'][0])
             else:
                 dense_inp = freps
-            value_layer = tf.layers.Dense(
-                units=1,
-                kernel_initializer=tf.zeros_initializer(),
-                kernel_regularizer=self.dense_regularizer,
-                use_bias=False,
-                activation=None)
-            value = value_layer.apply(tf.layers.flatten(dense_inp))
-            self.weight_vars.append(value_layer.kernel)
-            self.weight_names.append(value_layer.name)
+            h = self.add_dense_layer(dense_inp, 70, normalized_columns_initializer(0.01))
+            value = self.add_dense_layer(h, 1, normalized_columns_initializer(0.01))
+            policy = self.add_dense_layer(h, 70, normalized_columns_initializer(0.01),
+                                          tf.nn.softmax)
             trainable_vars = get_trainable_vars(scope)
-        return value, trainable_vars
+            # Output layers for policy and value estimations
+        return value, policy, trainable_vars
 
     def build(self):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
@@ -45,7 +42,7 @@ class SinghNet(Net):
         self.weights = tf.placeholder(tf.float32, [None, 1], "weight")
 
         freps = scale_freps_big(self.freps) if self.pp['scale_freps'] else self.freps
-        self.value, online_vars = self._build_net(freps, "online")
+        self.value, self.policy, online_vars = self._build_net(freps, "online")
 
         self.err = self.value_target - self.value
         if self.pp['huber_loss'] is not None:

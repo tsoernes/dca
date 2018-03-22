@@ -132,6 +132,17 @@ class Net:
             self.weight_names.append(conv.bias.name)
         return out
 
+    def add_dense_layer(self, inp, nunits, kern_init, act_fn=None):
+        dense = tf.layers.Dense(
+            units=nunits,
+            kernel_initializer=kern_init,
+            kernel_regularizer=self.dense_regularizer,
+            use_bias=False,
+            activation=act_fn)
+        out = dense.apply(tf.layers.flatten(inp))
+        self.weight_vars.append(dense.kernel)
+        return out
+
     def load_data(self):
         if self.data_is_loaded:
             return

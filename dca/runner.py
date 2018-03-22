@@ -186,7 +186,7 @@ class Runner:
                       finished_evals, fname)
             best_eval = optimizer.get_best_function_eval()
             self.logger.error(f"Finished {len(finished_evals)} trials."
-                              f"Best eval: {best_eval.y}, {best_eval.x}")
+                              f"Best eval: {best_eval}")
 
         def spawn_eval(i):
             # Spawn a new sim process

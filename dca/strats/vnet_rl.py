@@ -227,7 +227,6 @@ class AlfySinghNetStrat(VNetStrat):
         self.net = SinghNet(self.pp, self.logger)
         assert not self.pp['dt_rewards']
         self.backward_fn = self.net.backward_supervised
-        # assert not self.pp['dt_rewards']
         self.sojourn_times = np.zeros(self.dims, np.float64)
         self.rewards = np.zeros(self.dims, np.float64)
         self.act_count = np.zeros(self.dims, np.int64)
@@ -360,39 +359,38 @@ class SinghQNetStrat(VNetStrat):
         return ch, qvals_dense[idx]
 
 
-class RSMART(SinghNetStrat):
+class RSMART(VNetStrat):
     """-lr 1e-7 --weight_beta 1e-5 --beta 2500"""
 
     # TODO Try beta gamma
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = SinghNet(self.pp, self.logger)
+        self.net = SinghNet(pp=self.pp, logger=self.logger)
         self.backward_fn = self.net.backward
         self.avg_reward = 0
         self.tot_reward = 0
         self.tot_time = 0
         self.t0 = 0
         self.weight_beta = self.pp['weight_beta']
+        self.weight_beta_decay = self.pp['weight_beta_decay']
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         # value_target = reward + self.gamma * np.array([[self.val]])
 
         if ch is not None:
-            freps = np.expand_dims(NGF.feature_rep(grid), axis=0)
-            next_freps = NGF.incremental_freps(grid, freps[0], cell, ce_type,
-                                               np.array([ch]))
-
+            frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
             dt = next_cevent[0] - self.t0
             treward = reward - self.avg_reward * dt
             self.backward(
-                freps=freps, rewards=treward, next_freps=next_freps, gamma=discount)
+                freps=[frep], rewards=treward, next_freps=next_freps, discount=discount)
             self.tot_reward += float(reward)
             self.tot_time += dt
             self.avg_reward = (1 - self.weight_beta) * self.avg_reward \
                 + self.weight_beta * (self.tot_reward / self.tot_time)
-            # self.weight_beta *= self.alpha_decay
+            self.weight_beta *= self.weight_beta_decay
 
         self.t0 = next_cevent[0]
         next_ce_type, next_cell = next_cevent[1:3]
-        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
+        # next_ch, next_val, p = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, qval, next_max_ch, qval_max, p = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
