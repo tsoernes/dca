@@ -134,7 +134,7 @@ class GridFuncs(metaclass=Singleton):
     def neighbors_all_oh(self, dist=2, include_self=True):
         """
         Returns an array where each and every cell has a onehot representation of
-        their neigbors
+        their neighbors
         """
         idxs = np.zeros((self.rows, self.cols, self.rows, self.cols), dtype=np.bool)
         for r1 in range(self.rows):
@@ -205,8 +205,7 @@ class GridFuncs(metaclass=Singleton):
 
     @staticmethod
     def afterstates(grid, cell, ce_type, chs):
-        """Make an afterstate (resulting grid) for each possible,
-        # eligible action in 'chs'"""
+        """Make an afterstate (resulting grid) for each action in 'chs'"""
         if ce_type == CEvent.END:
             targ_val = 0
         else:
@@ -267,8 +266,6 @@ class GridFuncs(metaclass=Singleton):
 
         For each cell-channel pair, the number of times that channel is
         used by neighbors with a distance of 4 or less.
-        NOTE The latter does include whether or not the channel is
-        in use by the cell itself. excluding may be better.
 
         For each cell, the number of ELIGIBLE channels in that cell.
         """

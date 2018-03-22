@@ -12,14 +12,13 @@ from multiprocessing import Pool, Process, Queue, cpu_count
 
 #  import argcomplete
 import numpy as np
-from datadiff import diff
 from hyperopt import Trials, fmin, hp, tpe  # noqa
 from hyperopt.pyll.base import scope  # noqa
 from icecream import ic  # noqa
 
 from gui import Gui  # noqa
-from hopt_utils import (MongoConn, add_pp_pickle, dlib_load, dlib_save,
-                        hopt_best, mongo_decide_gpu_usage,
+from hopt_utils import (MongoConn, add_pp_pickle, compare_pps, dlib_load,
+                        dlib_save, hopt_best, mongo_decide_gpu_usage,
                         mongo_decrease_gpu_procs)
 from params import get_pparams
 
@@ -51,6 +50,8 @@ class Runner:
             self.train_net()
         elif self.pp['bench_batch_size']:
             self.bench_batch_size()
+        elif self.pp['analyze_net']:
+            self.analyze_net()
         else:
             self.run()
 
@@ -65,6 +66,19 @@ class Runner:
             cProfile.runctx('strat.simulate()', globals(), locals(), sort='tottime')
         else:
             strat.simulate()
+
+    def analyze_net(self):
+        from gridfuncs import GF
+        from eventgen import CEvent
+        strat = self.stratclass(self.pp, logger=self.logger)
+        as_freps = GF.afterstate_freps(strat.grid, (3, 4), CEvent.NEW, range(70))
+        as_freps_vals = strat.net.forward(as_freps)
+        self.logger.error(as_freps_vals)
+        self.logger.error(GF.nom_chs[3, 4])
+        as_freps = GF.afterstate_freps(strat.grid, (4, 4), CEvent.NEW, range(70))
+        as_freps_vals = strat.net.forward(as_freps)
+        self.logger.error(as_freps_vals)
+        self.logger.error(GF.nom_chs[4, 4])
 
     def avg_run(self):
         t = time.time()
@@ -151,6 +165,7 @@ class Runner:
         fname = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         try:
             spec, evals, info, prev_best = dlib_load(fname)
+            # Restore saved params and settings if they differ from current/specified
             saved_params = info['params']
             if saved_params != params:
                 self.logger.error(
@@ -158,14 +173,17 @@ class Runner:
                 )
                 # TODO could check if bounds match as well
                 params = saved_params
-            # Override saved spec ..
-            spec = dlib.function_spec(
-                bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
-            lo_bounds, hi_bounds = list(spec.lower), list(spec.upper)  # for printing
+            saved_solver_epsilon = info['solver_epsilon']
+            if saved_solver_epsilon != solver_epsilon:
+                self.logger.error(
+                    f"Saved solver_epsilon {saved_solver_epsilon} differ from"
+                    "specified one {solver_epsilon}; using saved")
+                solver_epsilon = saved_solver_epsilon
+            _, self.pp = compare_pps(info['pp'], self.pp)
             optimizer = dlib.global_function_search(
                 [spec],
                 initial_function_evals=[evals],
-                relative_noise_magnitude=relative_noise_magnitude)
+                relative_noise_magnitude=info['relative_noise_magnitude'])
             self.logger.error(
                 f"Restored {len(evals)} trials, prev best {saved_params} {prev_best}")
         except FileNotFoundError:
@@ -182,8 +200,8 @@ class Runner:
         def quit_opt():
             # Store results of finished evals to file; print best eval
             finished_evals = optimizer.get_function_evaluations()[1][0]
-            dlib_save(params, spec, solver_epsilon, relative_noise_magnitude,
-                      finished_evals, fname)
+            dlib_save(spec, finished_evals, params, solver_epsilon,
+                      relative_noise_magnitude, self.pp, fname)
             best_eval = optimizer.get_best_function_eval()
             self.logger.error(f"Finished {len(finished_evals)} trials."
                               f"Best eval: {best_eval}")
@@ -293,27 +311,11 @@ class Runner:
             # and if not, store given pp in DB.
             if prev_pps:
                 mongo_pp = prev_pps[-1]
-                dt = mongo_pp['dt']
-                del mongo_pp['dt']
-                del mongo_pp['_id']
-                # Dims are converted from list to tuple in DB, so don't diff
-                dims = self.pp['dims']
-                del self.pp['dims']
-                del mongo_pp['dims']
-                pp_diff = diff(mongo_pp, self.pp)
-                self.pp['dims'] = dims
-                mongo_pp['dims'] = dims
-                if mongo_pp != self.pp:
-                    self.logger.error(
-                        f"Found old problem params in MongoDB added "
-                        f"at {dt}. Diff(a:old, from db. b: from args):\n{pp_diff}")
-                    ans = ''
-                    while ans not in ['y', 'n']:
-                        ans = input("Use old pp instead? Y/N:").lower()
-                    if ans == 'y':
-                        self.pp = mongo_pp
-                    else:
-                        trials.add_pp(self.pp)
+                use_mongo_pp, new_pp = compare_pps(mongo_pp, self.pp)
+                if use_mongo_pp:
+                    self.pp = new_pp
+                else:
+                    trials.add_pp(self.pp)
             else:
                 trials.add_pp(self.pp)
         except ValueError:
