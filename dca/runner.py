@@ -144,8 +144,8 @@ class Runner:
         """
         import dlib
         n_sims = 70  # The number of times to sample and test params
-        n_concurrent = int(cpu_count() / 2) - 1  # Number of concurrent procs
-        solver_epsilon = 0.0005
+        n_concurrent = 4  # int(cpu_count() / 2) - 1  # Number of concurrent procs
+        solver_epsilon = 0.0001
         relative_noise_magnitude = 0.001  # Default
         space = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
@@ -177,8 +177,8 @@ class Runner:
             if saved_solver_epsilon != solver_epsilon:
                 self.logger.error(
                     f"Saved solver_epsilon {saved_solver_epsilon} differ from"
-                    "specified one {solver_epsilon}; using saved")
-                solver_epsilon = saved_solver_epsilon
+                    " specified one {solver_epsilon}, using specified")
+                # solver_epsilon = saved_solver_epsilon
             _, self.pp = compare_pps(info['pp'], self.pp)
             optimizer = dlib.global_function_search(
                 [spec],
@@ -204,7 +204,7 @@ class Runner:
                       relative_noise_magnitude, self.pp, fname)
             best_eval = optimizer.get_best_function_eval()
             self.logger.error(f"Finished {len(finished_evals)} trials."
-                              f"Best eval: {best_eval}")
+                              f" Best eval this session: {best_eval}")
 
         def spawn_eval(i):
             # Spawn a new sim process
@@ -434,8 +434,9 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     res = strat.simulate()[0]
     if res is None:
         res = 1
-    # if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
-    # # If user quits sim, need to abort further calls to dlib_proc
+    if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
+        # If user quits sim, don't want to return result
+        return
     # result_queue.put(None)
     # else:
     # Must negate result as dlib performs maximization by default

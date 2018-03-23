@@ -305,7 +305,7 @@ def dlib_load(fname):
     is_integer, lo_bounds, hi_bounds = raw_spec
     spec = dlib.function_spec(bound1=lo_bounds, bound2=hi_bounds, is_integer=is_integer)
     evals = []
-    prev_best = np.min(raw_results, axis=0)
+    prev_best = raw_results[np.argmax(raw_results, axis=0)[0]]
     for raw_result in raw_results:
         x = list(raw_result[1:])
         result = dlib.function_evaluation(x=x, y=raw_result[0])
@@ -331,6 +331,8 @@ def compare_pps(old_pp, new_pp):
     pp_diff = diff(old_pp, new_pp)
     new_pp['dims'] = dims
     old_pp['dims'] = dims
+    pp = new_pp
+    use_old_pp = False
     if old_pp != new_pp:
         if 'dt' in old_pp:
             print(f"Found old problem params in MongoDB added at {dt}")
@@ -341,9 +343,6 @@ def compare_pps(old_pp, new_pp):
         if ans == 'y':
             use_old_pp = True
             pp = old_pp
-        else:
-            use_old_pp = False
-            pp = new_pp
     return (use_old_pp, pp)
 
 

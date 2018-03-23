@@ -8,10 +8,10 @@ from nets.singh import SinghNet
 from nets.singh_ac import ACSinghNet
 from nets.singh_lstd import LSTDSinghNet
 from nets.singh_man import ManSinghNet
+from nets.singh_q import SinghQNet
 from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
 from nets.singh_tdc_tf import TFTDCSinghNet
-from nets.singhq import SinghQNet
 from nets.utils import softmax
 from strats.base import NetStrat
 
@@ -71,7 +71,9 @@ class VNetStrat(NetStrat):
                 # v2: multi freps, single tf
                 # v3: single freps, multi tf
                 # v4: multi freps, multi tf
+                # ON CPU:
                 # (val == v3 == v4) != (v1 == v2)
+                # ON GPU: All the same...
                 # CONCLUSION: Running multiple samples at once through TF
                 # yields different (higher accuracy) results
                 print(val, v1, v2, v3, v4, "\n")
@@ -112,8 +114,7 @@ class VNetStrat(NetStrat):
             rewards=[reward],
             next_freps=next_freps,
             weight=weight,
-            discount=discount,
-            next_val=next_val)
+            discount=discount)
 
 
 class SinghNetStrat(VNetStrat):
@@ -132,6 +133,31 @@ class SinghNetStrat(VNetStrat):
         frep = NGF.feature_rep(grid)
         value_target = reward + discount * next_val
         self.backward(freps=[frep], value_target=[[value_target]], weight=weight)
+
+
+class ASinghNetStrat(VNetStrat):
+    """Update on none"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(pre_conv=False, pp=self.pp, logger=self.logger)
+        self.backward_fn = self.net.backward
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        # if ce_type != CEvent.END:
+        frep = NGF.feature_rep(grid)
+        next_frep = NGF.feature_rep(self.grid)
+        self.backward(
+            freps=[frep],
+            rewards=[reward],
+            next_freps=[next_frep],
+            discount=discount,
+            weight=1)
+        # 'next_ch' will be 'ch' next iteration, thus "self.next_val" the value
+        # of 'self.grid' after its execution.
+        next_ce_type, next_cell = next_cevent[1:3]
+        next_ch, self.next_val, *_ = self.optimal_ch(next_ce_type, next_cell)
+        return next_ch
 
 
 class DoubleSinghNetStrat(VNetStrat):
@@ -333,31 +359,23 @@ class SinghQNetStrat(VNetStrat):
         self.net = SinghQNet(self.pp, self.logger)
         self.backward_fn = self.net.backward
 
-    def update_target_net(self):
-        self.net.sess.run(self.net.copy_online_to_target)
-
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
         if ch is not None and next_ch is not None:
-            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell,
-                             next_ch, discount)
+            frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+            self.backward(
+                freps=[frep],
+                cells=[cell],
+                chs=[ch],
+                rewards=reward,
+                next_freps=next_freps,
+                next_cells=next_cell,
+                next_chs=[next_ch],
+                discount=discount)
         # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
         # its execution.
         return next_ch
-
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_ch,
-                    discount):
-        frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
-        self.backward(
-            freps=[frep],
-            cells=cell,
-            chs=[ch],
-            rewards=reward,
-            next_freps=next_freps,
-            next_cells=next_cell,
-            next_chs=[next_ch],
-            discount=discount)
 
     def get_qvals(self, grid, cell, ce_type, chs):
         frep = NGF.feature_rep(grid)
@@ -381,7 +399,7 @@ class SinghQNetStrat(VNetStrat):
             idx = np.argmin(qvals_dense)
             ch = chs[idx]
         else:
-            ch, idx = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             self.epsilon *= self.epsilon_decay
 
         if ch is None:
