@@ -22,20 +22,31 @@ class ReplayBuffer():
 
         self._storage = {
             'grids': [],
+            'freps': [],
             'cells': [],
             'chs': [],
             'rewards': [],
             'values': [],
             'next_grids': [],
+            'next_freps': [],
             'next_cells': []
         }
         self._maxsize = size
         self._next_idx = 0
 
     def __len__(self):
-        return len(self._storage['grids'])
+        return len(self._storage['rewards'])
 
-    def add(self, grid, cell, ch, reward, value=None, next_grid=None, next_cell=None):
+    def add(self,
+            grid=None,
+            frep=None,
+            cell=None,
+            ch=None,
+            reward=None,
+            value=None,
+            next_grid=None,
+            next_frep=None,
+            next_cell=None):
         lenn = len(self)
 
         def _add(name, item):
@@ -44,14 +55,22 @@ class ReplayBuffer():
             else:
                 self._storage[name][self._next_idx] = item
 
-        _add('grids', grid)
-        _add('cells', cell)
-        _add('chs', ch)
-        _add('rewards', reward)
+        if grid is not None:
+            _add('grids', grid)
+        if frep is not None:
+            _add('freps', frep)
+        if cell is not None:
+            _add('cells', cell)
+        if ch is not None:
+            _add('chs', ch)
+        if reward is not None:
+            _add('rewards', reward)
         if value is not None:
             _add('values', value)
         if next_grid is not None:
             _add('next_grids', next_grid)
+        if next_frep is not None:
+            _add('next_freps', next_frep)
         if next_cell is not None:
             _add('next_cells', next_cell)
 
@@ -59,28 +78,51 @@ class ReplayBuffer():
 
     def _encode_sample(self, idxes):
         n_samples = len(idxes)
+        include_g = len(self._storage['grids']) > 0
+        include_f = len(self._storage['freps']) > 0
+        include_ch = len(self._storage['chs']) > 0
+        include_ce = len(self._storage['cells']) > 0
+        include_re = len(self._storage['rewards']) > 0
+        include_nf = len(self._storage['next_freps']) > 0
         include_val = len(self._storage['values']) > 0
         include_ng = len(self._storage['next_grids']) > 0
         include_nc = len(self._storage['next_cells']) > 0
-        data = {
-            'grids':
-            np.zeros((n_samples, self.rows, self.cols, self.n_channels), dtype=np.bool),
-            'cells': [],
-            'chs': np.zeros(n_samples, dtype=np.int32),
-            'rewards': np.zeros(n_samples, dtype=np.float32)
-        }  # yapf: disable
+        data = {}
+        if include_g:
+            data['grids'] = np.zeros(
+                (n_samples, self.rows, self.cols, self.n_channels), dtype=np.bool)
+        if include_f:
+            data['freps'] = np.zeros(
+                (n_samples, self.rows, self.cols, self.n_channels + 1), dtype=np.bool)
+        if include_ce:
+            data['cells'] = []
+        if include_ch:
+            data['chs'] = np.zeros(n_samples, dtype=np.int32),
+        if include_re:
+            data['rewards'] = np.zeros(n_samples, dtype=np.float32)
         if include_val:
             data['values'] = np.zeros(n_samples, dtype=np.float32)
         if include_ng:
             data['next_grids'] = np.zeros(
                 (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
+        if include_nf:
+            data['next_freps'] = np.zeros(
+                (n_samples, self.rows, self.cols, self.n_channels + 1), dtype=np.bool)
         if include_nc:
             data['next_cells'] = []
         for i, j in enumerate(idxes):
-            data['grids'][i][:] = self._storage['grids'][j]
-            data['cells'].append(self._storage['cells'][j])
-            data['chs'][i] = self._storage['chs'][j]
-            data['rewards'][i] = self._storage['rewards'][j]
+            if include_g:
+                data['grids'][i][:] = self._storage['grids'][j]
+            if include_f:
+                data['freps'][i][:] = self._storage['freps'][j]
+            if include_ce:
+                data['cells'].append(self._storage['cells'][j])
+            if include_ch:
+                data['chs'][i] = self._storage['chs'][j]
+            if include_re:
+                data['rewards'][i] = self._storage['rewards'][j]
+            if include_nf:
+                data['next_freps'][i][:] = self._storage['next_freps'][j]
             if include_val:
                 data['values'][i] = self._storage['values'][j]
             if include_ng:
@@ -134,15 +176,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             (0: no prioritization, 1: full prioritization)
 
         --------
-        new_obs, rew, done, _ = env.step(env_action)
-        # Store transition in the replay buffer.
-        replay_buffer.add(obs, action, rew, new_obs, float(done))
-
-        experience = replay_buffer.sample(batch_size, beta=beta_schedule.value(t))
-        (obses_t, actions, rewards, obses_tp1, dones, weights, batch_idxes) = experience
-        td_errors = train(obses_t, actions, rewards, obses_tp1, dones, weights)
-        new_priorities = np.abs(td_errors) + prioritized_replay_eps
-        replay_buffer.update_priorities(batch_idxes, new_priorities)
         """
         super().__init__(size, rows, cols, n_channels)
         assert alpha > 0
@@ -167,6 +200,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         super().add(*args, **kwargs)
         self._it_sum[idx] = self._max_priority**self._alpha
         self._it_min[idx] = self._max_priority**self._alpha
+
+    def add_with_pri(self, priority, *args, **kwargs):
+        idx = self._next_idx
+        super().add(*args, **kwargs)
+        self.update_priorities([idx], priority)
 
     def _sample_proportional(self, batch_size):
         res = []

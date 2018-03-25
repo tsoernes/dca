@@ -2,18 +2,17 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import copy_net_op, get_trainable_vars, scale_freps_big
+from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big
 
 
 class SinghNet(Net):
-    def __init__(self, pre_conv=False, double_net=False, *args, **kwargs):
+    def __init__(self, pp, *args, **kwargs):
         """
         Afterstate value net
         """
         self.name = "SinghNet"
-        self.pre_conv = pre_conv
-        self.double_net = double_net
-        super().__init__(name=self.name, *args, **kwargs)
+        self.pre_conv = pp['pre_conv']
+        super().__init__(name=self.name, pp=pp, *args, **kwargs)
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
         self.avg_reward = [0]
@@ -21,13 +20,21 @@ class SinghNet(Net):
     def _build_net(self, freps, name):
         with tf.variable_scope('model/' + name) as scope:
             if self.pre_conv:
-                dense_inp = self.add_conv_layer(freps, self.pp['conv_nfilters'][0],
-                                                self.pp['conv_kernel_sizes'][0])
+                pad = tf.keras.layers.ZeroPadding2D((1, 1))
+                out = pad(freps)
+                dense_inp = tf.keras.layers.LocallyConnected2D(
+                    filters=70,
+                    kernel_size=3,
+                    padding="valid",
+                    kernel_initializer=self.kern_init_conv(),
+                    use_bias=self.pp['conv_bias'],
+                    activation=None)(out)
             else:
                 dense_inp = freps
             value_layer = tf.layers.Dense(
                 units=1,
-                kernel_initializer=tf.zeros_initializer(),
+                # kernel_initializer=tf.zeros_initializer(),
+                kernel_initializer=self.kern_init_dense(),
                 kernel_regularizer=self.dense_regularizer,
                 use_bias=False,
                 activation=None)
@@ -41,11 +48,14 @@ class SinghNet(Net):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
         frepshape = [None, self.rows, self.cols, self.n_channels + 1]
         self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
+        self.grids = tf.placeholder(
+            tf.bool, [None, self.rows, self.cols, 2 * self.n_channels], "grid")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
         self.weights = tf.placeholder(tf.float32, [None, 1], "weight")
 
         freps = scale_freps_big(self.freps) if self.pp['scale_freps'] else self.freps
-        self.value, online_vars = self._build_net(freps, "online")
+        net_inp = tf.concat([tf.cast(self.grids, tf.float32), freps], axis=3)
+        self.value, online_vars = self._build_net(net_inp, "online")
 
         self.err = self.value_target - self.value
         if self.pp['huber_loss'] is not None:
@@ -59,20 +69,31 @@ class SinghNet(Net):
                 labels=self.value_target, predictions=self.value, weights=self.weights)
         return self.loss, online_vars
 
-    def forward(self, freps):
+    def forward(self, grids, freps):
         values = self.sess.run(
             self.value,
-            feed_dict={self.freps: freps},
+            feed_dict={
+                self.freps: freps,
+                self.grids: prep_data_grids(grids, self.grid_split)
+            },
             options=self.options,
             run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward_supervised(self, freps, value_target, weight=1, *args, **kwargs):
+    def backward_supervised(self,
+                            grids,
+                            freps,
+                            value_target,
+                            weights=[1],
+                            *args,
+                            **kwargs):
+        weights = np.expand_dims(weights, axis=1)
         data = {
             self.freps: freps,
+            self.grids: prep_data_grids(grids, self.grid_split),
             self.value_target: value_target,
-            self.weights: [[weight]]
+            self.weights: weights
         }
         _, loss, lr, err = self.sess.run(
             [self.do_train, self.loss, self.lr, self.err],
@@ -85,10 +106,25 @@ class SinghNet(Net):
             # print(self.avg_reward)
         return loss, lr, err
 
-    def backward(self, freps, rewards, next_freps, discount=None, weight=1):
-        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})
+    def backward(self,
+                 grids,
+                 freps,
+                 rewards,
+                 next_grids,
+                 next_freps,
+                 discount=None,
+                 weights=[1]):
+        next_value = self.sess.run(
+            self.value,
+            feed_dict={
+                self.freps: next_freps,
+                self.grids: prep_data_grids(next_grids, self.grid_split),
+            })
+        # print(next_value, next_value.shape)
         if self.pp['avg_reward']:
             value_target = rewards + next_value - self.avg_reward
         else:
+            rewards = np.expand_dims(rewards, axis=1)
             value_target = rewards + discount * next_value
-        return self.backward_supervised(freps, value_target, weight)
+        # print(value_target, value_target.shape, rewards)
+        return self.backward_supervised(grids, freps, value_target, weights)
