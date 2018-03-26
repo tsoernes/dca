@@ -175,3 +175,26 @@ Average cumulative block probability over 4 episodes: 0.1268 with standard devia
 
 p3 runner.py avgsinghnet -phoff 0 -epol nom_fixed_greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
 Average cumulative block probability over 4 episodes: 0.1346 with standard deviation 0.00291
+
+avgsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
+Average cumulative block probability over 16 episodes: 0.1267 with standard deviation 0.00172
+
+------------------------------------------------------------
+RSMART MDP Robbins-Monro
+Testing weight-beta, with weight_beta decay at default 0.999_999
+
+p3 runner.py rsmartmdpnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 5e-3 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1311 with standard deviation 0.00120
+
+p3 runner.py rsmartmdpnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1297 with standard deviation 0.00108
+
+p3 runner.py rsmartmdpnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 5e-2 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1292 with standard deviation 0.00214
+
+Testing weight-beta decay; weight_beta fixed at 5e-2
+p3 runner.py rsmartmdpnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 5e-2 --avg_runs 4 --weight_beta_decay 1
+Average cumulative block probability over 4 episodes: 0.1287 with standard deviation 0.00124
+
+p3 runner.py rsmartmdpnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 5e-2 --avg_runs 4 --weight_beta_decay 0.9_999
+Average cumulative block probability over 4 episodes: 0.1332 with standard deviation 0.00154

@@ -94,7 +94,7 @@ def get_pparams(defaults=False):
         '-i',
         dest='n_events',
         type=int,
-        help="number of events to simulate (Default: 470 000)",
+        help="number of events to simulate (Default: 470_000)",
         default=None)
     parser.add_argument(
         '--n_hours',
@@ -121,7 +121,7 @@ def get_pparams(defaults=False):
         '--alpha_decay',
         type=float,
         help="(RL/Table) factor by which alpha is multiplied each iteration",
-        default=0.9999999)
+        default=0.999_999_9)
     parser.add_argument(
         '--wolf',
         type=float,
@@ -151,7 +151,7 @@ def get_pparams(defaults=False):
         '--epsilon_decay',
         type=float,
         help="(RL) factor by which epsilon is multiplied each iteration",
-        default=0.99999)
+        default=0.999_99)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
         '--gamma_end', type=float, help="(RL) discount factor at sim end", default=None)
@@ -258,7 +258,7 @@ def get_pparams(defaults=False):
         type=float,
         help="(Net) Enable huble loss with given delta",
         default=None,
-        const=100000)
+        const=100_000)
     parser.add_argument(
         '--max_grad_norm',
         '-norm',
@@ -268,7 +268,7 @@ def get_pparams(defaults=False):
         nargs='?',
         help="(Net) Clip gradient to N",
         default=None,
-        const=100000)
+        const=100_000)
     parser.add_argument(
         '--weight_init_conv', choices=weight_initializers, default='glorot_unif')
     parser.add_argument('--qnom_lo', type=float, default=0.5)
