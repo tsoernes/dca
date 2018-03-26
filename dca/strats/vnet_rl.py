@@ -8,6 +8,7 @@ from nets.singh import SinghNet
 from nets.singh_ac import ACSinghNet
 from nets.singh_lstd import LSTDSinghNet
 from nets.singh_man import ManSinghNet
+from nets.singh_ppo import PPOSinghNet
 from nets.singh_q import SinghQNet
 from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
@@ -537,3 +538,37 @@ class ACNSinghStrat(NetStrat):
         else:
             self.losses.append(loss)
             self.learning_rates.append(lr)
+
+
+class PPOSinghNetStrat(VNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = PPOSinghNet(pp=self.pp, logger=self.logger)
+        self.backward_fn = self.net.backward
+        assert self.pp['avg_reward']
+        self.neglogpac = None
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        if ch is not None and self.neglogpac is not None:
+            frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
+            self.backward(
+                freps=[frep],
+                chs=[ch],
+                rewards=[reward],
+                next_freps=next_freps,
+                neglogpac=self.neglogpac)
+        next_ch, self.neglogpac, self.val = self.optimal_ch(next_ce_type, next_cell)
+        print(next_ch, type(next_ch))
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> int:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return None, 0, 0
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+
+        val, ch, neglogpac = self.net.forward(self.grid, ce_type, cell)
+        return ch, neglogpac, val
