@@ -29,14 +29,17 @@ class Strat:
                 rows=self.rows,
                 cols=self.cols,
                 n_channels=self.n_channels,
-                alpha=0.6)
+                alpha=0.6)  # original: 0.6
             self.pri_beta_schedule = LinearSchedule(
                 self.n_events,
                 initial_p=0.4,  # pp['prioritized_replay_beta'],
-                final_p=1.0)
+                final_p=1.0)  # original: 1.0
             self.prioritized_replay_eps = float(1e-6)
 
+        self.gamma_schedule = LinearSchedule(
+            self.n_events, initial_p=self.pp['gamma'], final_p=self.pp['gamma_end'])
         self.quit_sim, self.invalid_loss, self.exceeded_bthresh = False, False, False
+        self.i = 0
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -64,7 +67,7 @@ class Strat:
             next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type,
                                       discount)
             # NOTE Could do per-strat saving here, as they save different stuff
-            if (self.save or self.batch_size > 1) \
+            if self.save \
                     and ch is not None \
                     and ce_type != CEvent.END:
                 # Only add (s, a, r, s', a') tuples for which the events in

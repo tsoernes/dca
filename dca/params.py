@@ -294,6 +294,11 @@ def get_pparams(defaults=False):
         action='store_true',
         help="(Net) Bias for convolutional layers",
         default=False)
+    parser.add_argument(
+        '--pre_conv',
+        action='store_true',
+        help="(Singh) Conv layer(s) before dense",
+        default=False)
     parser.add_argument('--n_step', type=int, help="(Net) N step returns", default=1)
     parser.add_argument(
         '--bighead',

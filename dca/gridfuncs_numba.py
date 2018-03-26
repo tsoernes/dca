@@ -8,7 +8,7 @@ from eventgen import CEvent
 # count the number of channels in use at neighbors with
 # a distance of 4 or less should include the cell itself in the count.
 countself = False
-rows, cols, n_channels = 7, 7, 70
+rows, cols, n_channels = np.intp(7), np.intp(7), np.intp(70)
 # Neighs at dist less than or equal to
 _neighs1 = np.zeros((rows, cols, 7, 2), dtype=np.int32)
 _neighs2 = np.zeros((rows, cols, 19, 2), dtype=np.int32)
@@ -144,11 +144,25 @@ def _inuse_neighs(grid, r, c):
 
 @njit(cache=True)
 def _eligible_map(grid, r, c):
-    """Channels in use at cell or its neighbors with distance of 2 or less"""
+    """Channels that are not in use at cell or its neighbors with distance of 2 or less"""
     inuse = _inuse_neighs(grid, r, c)
     inuse = np.bitwise_or(inuse, grid[(r, c)])
     eligible_map = np.invert(inuse)
     return eligible_map
+
+
+@njit(cache=True)
+def eligible_map_all(grid):
+    """For each cell"""
+    alloc_map_all = np.zeros((rows, cols, n_channels), dtype=boolean)
+    for r in range(rows):
+        for c in range(cols):
+            neighs = neighbors_np(2, r, c, False)
+            alloc_map = grid[neighs[0, 0], neighs[0, 1]]
+            for i in range(1, len(neighs)):
+                alloc_map = np.bitwise_or(alloc_map, grid[neighs[i, 0], neighs[i, 1]])
+            alloc_map_all[r, c] = alloc_map
+    return np.invert(alloc_map_all)
 
 
 @njit(cache=True)
