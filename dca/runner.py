@@ -143,14 +143,15 @@ class Runner:
         on odd iterations we pick the next x according to the trust region model
         """
         import dlib
-        n_sims = 70  # The number of times to sample and test params
-        n_concurrent = 4  # int(cpu_count() / 2) - 1  # Number of concurrent procs
-        solver_epsilon = 0.0001
+        n_sims = 4000  # The number of times to sample and test params
+        n_concurrent = 14  # int(cpu_count() / 2) - 1  # Number of concurrent procs
+        solver_epsilon = 0.0005
         relative_noise_magnitude = 0.001  # Default
         space = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
-            'gamma': [False, 0.60, 0.99],
-            'net_lr': [False, 1e-8, 1e-6],
+            # 'gamma': [False, 0.60, 0.99],
+            'net_lr': [False, 8e-8, 1e-5],
+            'beta': [True, 10, 3000],
             # 'net_lr_decay': [False, 0.65, 1.0],
             # 'weight_beta': [False, 1e-10, 1e-5]
             # 'epsilon': [True, 10, 2000],
@@ -164,7 +165,7 @@ class Runner:
             hi_bounds.append(li[2])
         fname = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         try:
-            spec, evals, info, prev_best = dlib_load(fname)
+            old_spec, evals, info, prev_best = dlib_load(fname)
             # Restore saved params and settings if they differ from current/specified
             saved_params = info['params']
             if saved_params != params:
@@ -180,6 +181,8 @@ class Runner:
                     " specified one {solver_epsilon}, using specified")
                 # solver_epsilon = saved_solver_epsilon
             _, self.pp = compare_pps(info['pp'], self.pp)
+            spec = dlib.function_spec(
+                bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
             optimizer = dlib.global_function_search(
                 [spec],
                 initial_function_evals=[evals],

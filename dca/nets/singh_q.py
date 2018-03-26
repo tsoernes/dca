@@ -21,12 +21,27 @@ class SinghQNet(Net):
                 filters=70,
                 kernel_size=3,
                 padding="valid",
-                kernel_initializer=self.kern_init_dense(),
+                kernel_initializer=self.kern_init_conv(),
                 use_bias=self.pp['conv_bias'],
                 activation=None)(out)
+            value = tf.layers.dense(
+                inputs=conv2,
+                units=1,
+                kernel_initializer=self.kern_init_dense(),
+                use_bias=False,
+                name="value")
+            assert (value.shape[-1] == 1)
+            advantages = tf.layers.dense(
+                inputs=conv2,
+                units=self.n_channels,
+                use_bias=False,
+                kernel_initializer=self.kern_init_dense(),
+                name="advantages")
+            q_vals = value + (
+                advantages - tf.reduce_mean(advantages, axis=1, keepdims=True))
             trainable_vars = get_trainable_vars(scope)
-            print(conv2.shape)
-            return conv2, trainable_vars
+            print(q_vals.shape)
+            return q_vals, trainable_vars
 
     def build(self):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
@@ -48,7 +63,8 @@ class SinghQNet(Net):
         ncells = tf.concat([tf.expand_dims(nrange, axis=1), self.cells], axis=1)
         numbered_chs = tf.stack([nrange, self.chs], axis=1, name="cellstack")
 
-        net_inputs = tf.concat([self.freps, oh_cells, grids], axis=3, name="frep_cell_inp")
+        net_inputs = tf.concat(
+            [self.freps, oh_cells, grids], axis=3, name="frep_cell_inp")
         conv, online_vars = self._build_net(net_inputs, name="q_networks/online")
         self.online_q_vals = tf.gather_nd(conv, ncells)
 
@@ -56,10 +72,9 @@ class SinghQNet(Net):
         self.online_q_selected = tf.gather_nd(self.online_q_vals, numbered_chs)
         self.online_q_max = tf.reduce_max(self.online_q_vals, axis=0)
 
-        # NOTE Does not work with batch size > 1
         free_conv = elig * conv
-        self.q_target_out = tf.expand_dims(
-            tf.reduce_mean(tf.reduce_max(free_conv, axis=3)), axis=0)
+        # For each batch, the mean of the maximum eligible q-values of each cell.
+        self.q_target_out = tf.reduce_mean(tf.reduce_max(free_conv, axis=3), axis=[1, 2])
         self.err = self.q_targets - self.online_q_selected
         # Sum of squares difference between the target and prediction Q values.
         self.loss = tf.losses.mean_squared_error(
@@ -80,8 +95,8 @@ class SinghQNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, grids, freps, cells, chs, rewards, next_grids,
-                 next_elig, next_freps, next_cells, discount):
+    def backward(self, grids, freps, cells, chs, rewards, next_grids, next_elig,
+                 next_freps, next_cells, discount):
         # next_value = self.sess.run(
         #     self.online_q_selected, {
         #         self.freps: next_freps,
@@ -97,7 +112,7 @@ class SinghQNet(Net):
                 # self.cells: [next_cells],
                 self.oh_cells: prep_data_cells(next_cells),
             })
-        assert next_value.shape == (1,)
+        assert next_value.shape == (1, )
         value_target = rewards + discount * next_value[0]
         data = {
             self.grids: grids,

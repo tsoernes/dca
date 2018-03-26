@@ -22,11 +22,3 @@ can approach be improved with:
   - fine tuning filter/kernel size
 Why lucky runs? Save net inits from lucky runs and retest them.
 
----
-Blocking probability events 465000-470000: 0.1455, cumulative 0.1225
-
-Simulation duration: 25.68 sim hours, 35m56s real, 470000 events at 218 events/second
-
-Blocking probability: 0.1225 for new calls, 0.0000 for handoffs
-p3 runner.py expsinghnet -phoff 0 -opt sgd -lr 2e-7 --batch_size 5 --buffer_size 1000 --weight_init_dense zeros -epol nom_fixed_greedy --no_gpu --gamma 0.78 --gamma_end 0.85
-

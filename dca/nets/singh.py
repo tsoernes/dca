@@ -12,25 +12,24 @@ class SinghNet(Net):
         """
         self.name = "SinghNet"
         self.pre_conv = pp['pre_conv']
+        self.grid_inp = pp['singh_grid']
         super().__init__(name=self.name, pp=pp, *args, **kwargs)
-        self.weight_beta = self.pp['weight_beta']
-        self.weight_beta_decay = self.pp['weight_beta_decay']
-        self.avg_reward = [0]
 
-    def _build_net(self, freps, name):
+    def _build_net(self, inp, name):
         with tf.variable_scope('model/' + name) as scope:
             if self.pre_conv:
                 pad = tf.keras.layers.ZeroPadding2D((1, 1))
-                out = pad(freps)
+                out = pad(inp)
                 dense_inp = tf.keras.layers.LocallyConnected2D(
-                    filters=70,
+                    filters=80,
                     kernel_size=3,
                     padding="valid",
                     kernel_initializer=self.kern_init_conv(),
                     use_bias=self.pp['conv_bias'],
                     activation=None)(out)
+                # dense_inp = self.add_conv_layer(inp, 80, 5)
             else:
-                dense_inp = freps
+                dense_inp = inp
             value_layer = tf.layers.Dense(
                 units=1,
                 # kernel_initializer=tf.zeros_initializer(),
@@ -54,7 +53,10 @@ class SinghNet(Net):
         self.weights = tf.placeholder(tf.float32, [None, 1], "weight")
 
         freps = scale_freps_big(self.freps) if self.pp['scale_freps'] else self.freps
-        net_inp = tf.concat([tf.cast(self.grids, tf.float32), freps], axis=3)
+        if self.grid_inp:
+            net_inp = tf.concat([tf.cast(self.grids, tf.float32), freps], axis=3)
+        else:
+            net_inp = freps
         self.value, online_vars = self._build_net(net_inp, "online")
 
         self.err = self.value_target - self.value
@@ -89,42 +91,30 @@ class SinghNet(Net):
                             *args,
                             **kwargs):
         weights = np.expand_dims(weights, axis=1)
-        data = {
-            self.freps: freps,
-            self.grids: prep_data_grids(grids, self.grid_split),
-            self.value_target: value_target,
-            self.weights: weights
-        }
+        data = {self.freps: freps, self.value_target: value_target, self.weights: weights}
+        if self.grid_inp:
+            data[self.grids] = prep_data_grids(grids, self.grid_split)
         _, loss, lr, err = self.sess.run(
             [self.do_train, self.loss, self.lr, self.err],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
-        if self.pp['avg_reward']:
-            self.avg_reward += self.weight_beta * err[0][0]
-            # self.weight_beta *= self.weight_beta_decay
-            # print(self.avg_reward)
         return loss, lr, err
 
     def backward(self,
-                 grids,
                  freps,
                  rewards,
-                 next_grids,
                  next_freps,
+                 grids=None,
+                 next_grids=None,
                  discount=None,
                  weights=[1]):
-        next_value = self.sess.run(
-            self.value,
-            feed_dict={
-                self.freps: next_freps,
-                self.grids: prep_data_grids(next_grids, self.grid_split),
-            })
+        data = {self.freps: next_freps}
+        if self.grid_inp:
+            data[self.grids] = prep_data_grids(next_grids, self.grid_split)
+        next_value = self.sess.run(self.value, data)
         # print(next_value, next_value.shape)
-        if self.pp['avg_reward']:
-            value_target = rewards + next_value - self.avg_reward
-        else:
-            rewards = np.expand_dims(rewards, axis=1)
-            value_target = rewards + discount * next_value
+        rewards = np.expand_dims(rewards, axis=1)
+        value_target = rewards + discount * next_value
         # print(value_target, value_target.shape, rewards)
         return self.backward_supervised(grids, freps, value_target, weights)

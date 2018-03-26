@@ -2,7 +2,6 @@ Comparing gradient methods for Singh:
 Regular, Residual, Gradient-Correction, Least-Squares
 
 Least-Squares found to be unsuited for control
-
 -----------------------------------------------------------------------------------
 First, find good values with/without beta for regular Singh.
 
@@ -73,7 +72,9 @@ tdcsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e
 Average cumulative block probability over 16 episodes: 0.1311 with standard deviation 0.00227
 
 ----------------
-
+WARNING: Even though (some) results below uses avg-reward, it is unknown if the code for
+avg-rewrd triggered or if discount was actually used.
+--------------------------------------------------------
 singhnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.4507946347120976e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-1
 Average cumulative block probability over 4 episodes: 0.1315 with standard deviation 0.00144
 
@@ -137,3 +138,40 @@ Average cumulative block probability over 16 episodes: 0.1307 with standard devi
 
 TESTING WOLF LEARNING RATE
 wolfsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4 --wolf 1.3
+
+-------------------------------------
+Avg reward vs regular (average reward IS ACTUALLY active here)
+p3 runner.py singhnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7
+Average cumulative block probability over 4 episodes: 0.1307 with standard deviation 0.00266
+
+
+avgsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-1
+Average cumulative block probability over 4 episodes: 0.1309 with standard deviation 0.00120
+
+avgsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
+Average cumulative block probability over 4 episodes: 0.1302 with standard deviation 0.00131
+
+avgsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-3
+Average cumulative block probability over 4 episodes: 0.1389 with standard deviation 0.00189
+
+avgsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-4
+Average cumulative block probability over 4 episodes: 0.1479 with standard deviation 0.00248
+
+avgsinghnet -phoff 0 -epol greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
+Average cumulative block probability over 4 episodes: 0.1316 with standard deviation 0.00137
+
+NOTE
+average reward was updated even on exploratory actions above. this is not correct
+Fixing so that avg.reward is only updated on greedy:
+
+avgsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
+Average cumulative block probability over 4 episodes: 0.1268 with standard deviation 0.00118
+
+avgsinghnet -phoff 0 -epol bgumbel -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
+Average cumulative block probability over 4 episodes: 0.1299 with standard deviation 0.00076
+
+p3 runner.py avgsinghnet -phoff 0 -epol nom_greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
+Average cumulative block probability over 4 episodes: 0.1268 with standard deviation 0.00118
+
+p3 runner.py avgsinghnet -phoff 0 -epol nom_fixed_greedy -opt sgd --no_gpu --avg_runs 4 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
+Average cumulative block probability over 4 episodes: 0.1346 with standard deviation 0.00291
