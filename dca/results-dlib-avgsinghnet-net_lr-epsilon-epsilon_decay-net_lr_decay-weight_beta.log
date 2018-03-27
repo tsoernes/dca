@@ -1,0 +1,1655 @@
+Starting simulation at 2018-03-27 14:46:27.704058 with params:
+{'strat': 'avgsinghnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'traffic_preset': 'uniform', 'call_rate': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.0, 'hoff_call_duration': 1, 'n_events': 400000, 'n_hours': None, 'breakout_thresh': 0.14, 'avg_runs': None, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'wolf': 1, 'exp_policy': 'boltzmann', 'exp_policy_param': None, 'epsilon': 2.0, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'gamma_end': 0.85, 'weight_beta': 0.01, 'weight_beta_decay': 0.999999, 'beta': None, 'beta_disc': False, 'importance_sampling': False, 'avg_reward': True, 'reward_scale': 1, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'random_hopt': None, 'dlib_hopt': ['net_lr', 'epsilon', 'epsilon_decay', 'net_lr_decay', 'weight_beta'], 'hopt': None, 'hopt_fname': 'avgsinghnet-lr-lr_dec-eps-eps_decay-wbeta', 'net_lr': 2.95e-05, 'net_lr_decay': 0.96, 'optimizer': 'sgd', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'glorot_unif', 'qnom_lo': 0.5, 'qnom_hi': 1.5, 'weight_init_dense': 'norm_cols', 'conv_nfilters': [70, 70], 'conv_kernel_sizes': [4, 3], 'conv_bias': False, 'pre_conv': False, 'n_step': 1, 'bighead': False, 'dueling_qnet': False, 'rnn': False, 'layer_norm': False, 'l2_conv': False, 'l2_scale': 1e-05, 'l2_dense': False, 'top_stack': False, 'singh_grid': False, 'qnet_freps': False, 'qnet_freps_only': False, 'scale_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_copy_iter_decr': None, 'net_creep_tau': 0.12, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'analyze_net': False, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'debug': False, 'profiling': False, 'tfprofiling': '', 'print_weights': False, 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': 'results-dlib-avgsinghnet-net_lr-epsilon-epsilon_decay-net_lr_decay-weight_beta', 'log_iter': 5000, 'grid_split': True, 'use_gpu': False, 'freps': False, 'dt_rewards': False, 'dims': (7, 7, 70), 'net': True}
+Dlib hopt for 4000 sims with 14 procs on params ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay'] with low bounds [4e-07, 0.65, 0.001, 1, 0.999], high [4e-06, 1.0, 0.1, 3, 0.999999]
+T0 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.2e-06, 0.825, 0.0505, 2.0, 0.9994995]
+T1 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2397816146529777e-06, 0.9169276097653173, 0.01549290822938721, 1.5636037798090232, 0.99944299589752]
+T2 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.861341826981248e-07, 0.8489752945406397, 0.060625321637956184, 2.0765970077505536, 0.9997846572113462]
+T3 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.7631085252989263e-06, 0.8919372403991607, 0.034429155165642995, 2.360506421963348, 0.9990448808215285]
+T4 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3879455839787088e-06, 0.8571056685983981, 0.02543845060255593, 1.3283077226596387, 0.9997881549560269]
+T5 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.5772570309105575e-06, 0.8265573778584205, 0.09237273510239571, 1.8386062722445358, 0.9994812697678177]
+T6 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4559307032470454e-06, 0.7459126369989254, 0.0179806664464882, 2.0967522462360044, 0.9993841254456947]
+T7 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.382419930879262e-07, 0.7444085126140165, 0.006372069340497447, 1.2736944829655465, 0.999516423797043]
+T8 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4625837798980507e-06, 0.6941482351865369, 0.08079390119074045, 1.2232821549068695, 0.9993912639706674]
+T9 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.191302510893603e-06, 0.968822639112981, 0.060953126750597136, 1.9899578200648482, 0.9998891338489327]
+T10 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6223138879003723e-06, 0.7288981337566564, 0.04134663253905223, 2.885440893140511, 0.999286186499494]
+T11 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1563609731193817e-06, 0.9712829829419984, 0.09628728866702005, 1.916328029098341, 0.9997319056635072]
+T12 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.117723401785241e-07, 0.9578939966664813, 0.0965332478923833, 1.394321514175766, 0.9996515512778521]
+T13 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.952706221737491e-06, 0.986545712883983, 0.05925741805110193, 2.127663815173083, 0.9999957254719072]
+Block prob threshold exceeded; breaking out early
+
+T13 Blocking probability: 0.1555 for new calls, 0.0000 for handoffs
+T14 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.211072009332421e-06, 0.9085559110007644, 0.009598071303274214, 2.332819851469094, 0.9995566212617635]
+Block prob threshold exceeded; breaking out early
+
+T9 Blocking probability: 0.1529 for new calls, 0.0000 for handoffs
+T15 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.988499324818885e-07, 0.9030301341010147, 0.08983683768470428, 2.391628174429532, 0.999587540415788]
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+T8 Blocking probability: 0.1227 for new calls, 0.0000 for handoffs
+
+T7 Blocking probability: 0.1293 for new calls, 0.0000 for handoffs
+
+T4 Blocking probability: 0.1245 for new calls, 0.0000 for handoffs
+
+T1 Blocking probability: 0.1279 for new calls, 0.0000 for handoffs
+
+T6 Blocking probability: 0.1242 for new calls, 0.0000 for handoffs
+
+Premature exit
+
+T12 Blocking probability: 0.1264 for new calls, 0.0000 for handoffs
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+T10 Blocking probability: 0.1238 for new calls, 0.0000 for handoffs
+
+T15 Blocking probability: 0.1269 for new calls, 0.0000 for handoffs
+
+T14 Blocking probability: 0.1228 for new calls, 0.0000 for handoffs
+
+T0 Blocking probability: 0.1270 for new calls, 0.0000 for handoffs
+
+T2 Blocking probability: 0.1234 for new calls, 0.0000 for handoffs
+
+T3 Blocking probability: 0.1312 for new calls, 0.0000 for handoffs
+
+T11 Blocking probability: 0.1243 for new calls, 0.0000 for handoffs
+
+T5 Blocking probability: 0.1266 for new calls, 0.0000 for handoffs
+Starting simulation at 2018-03-27 15:12:58.972674 with params:
+{'strat': 'avgsinghnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'traffic_preset': 'uniform', 'call_rate': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.0, 'hoff_call_duration': 1, 'n_events': 400000, 'n_hours': None, 'breakout_thresh': 0.14, 'avg_runs': None, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'wolf': 1, 'exp_policy': 'boltzmann', 'exp_policy_param': None, 'epsilon': 2.0, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'gamma_end': 0.85, 'weight_beta': 0.01, 'weight_beta_decay': 0.999999, 'beta': None, 'beta_disc': False, 'importance_sampling': False, 'avg_reward': True, 'reward_scale': 1, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'random_hopt': None, 'dlib_hopt': ['net_lr', 'epsilon', 'epsilon_decay', 'net_lr_decay', 'weight_beta'], 'hopt': None, 'hopt_fname': 'avgsinghnet-lr-lr_dec-eps-eps_decay-wbeta', 'net_lr': 2.95e-05, 'net_lr_decay': 0.96, 'optimizer': 'sgd', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'glorot_unif', 'qnom_lo': 0.5, 'qnom_hi': 1.5, 'weight_init_dense': 'norm_cols', 'conv_nfilters': [70, 70], 'conv_kernel_sizes': [4, 3], 'conv_bias': False, 'pre_conv': False, 'n_step': 1, 'bighead': False, 'dueling_qnet': False, 'rnn': False, 'layer_norm': False, 'l2_conv': False, 'l2_scale': 1e-05, 'l2_dense': False, 'top_stack': False, 'singh_grid': False, 'qnet_freps': False, 'qnet_freps_only': False, 'scale_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_copy_iter_decr': None, 'net_creep_tau': 0.12, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'analyze_net': False, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'debug': False, 'profiling': False, 'tfprofiling': '', 'print_weights': False, 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': 'results-dlib-avgsinghnet-net_lr-epsilon-epsilon_decay-net_lr_decay-weight_beta', 'log_iter': 5000, 'grid_split': True, 'use_gpu': False, 'freps': False, 'dt_rewards': False, 'dims': (7, 7, 70), 'net': True}
+Dlib hopt for 4000 sims with 14 procs on params ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay'] with low bounds [4e-07, 0.65, 0.001, 1, 0.9999], high [4e-06, 1.0, 0.1, 5, 0.99999999]
+T0 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.2e-06, 0.825, 0.0505, 3.0, 0.9999499949999999]
+T1 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2397816146529777e-06, 0.9169276097653173, 0.01549290822938721, 2.1272075596180464, 0.9999443394992923]
+T2 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.861341826981248e-07, 0.8489752945406397, 0.060625321637956184, 3.153194015501107, 0.9999785364109735]
+T3 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.7631085252989263e-06, 0.8919372403991607, 0.034429155165642995, 3.7210128439266956, 0.9999044921254702]
+T4 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3879455839787088e-06, 0.8571056685983981, 0.02543845060255593, 1.6566154453192774, 0.9999788865005537]
+T5 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.5772570309105575e-06, 0.8265573778584205, 0.09237273510239571, 2.6772125444890715, 0.9999481703344185]
+T6 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4559307032470454e-06, 0.7459126369989254, 0.0179806664464882, 3.193504492472009, 0.9999384471504654]
+T7 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.382419930879262e-07, 0.7444085126140165, 0.006372069340497447, 1.547388965931093, 0.9999516889043707]
+T8 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4625837798980507e-06, 0.6941482351865369, 0.08079390119074045, 1.4465643098137393, 0.9999391616460731]
+T9 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.191302510893603e-06, 0.968822639112981, 0.060953126750597136, 2.9799156401296965, 0.9999889934870418]
+T10 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6223138879003723e-06, 0.7288981337566564, 0.04134663253905223, 4.770881786281022, 0.9999286444325169]
+T11 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1563609731193817e-06, 0.9712829829419984, 0.09628728866702005, 2.832656058196682, 0.9999732565037979]
+T12 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.117723401785241e-07, 0.9578939966664813, 0.0965332478923833, 1.7886430283515322, 0.9999652138260985]
+T13 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.952706221737491e-06, 0.986545712883983, 0.05925741805110193, 3.2553276303461662, 0.9999996622521882]
+Block prob threshold exceeded; breaking out early
+
+T9 Blocking probability: 0.1425 for new calls, 0.0000 for handoffs
+T14 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.211072009332421e-06, 0.9085559110007644, 0.009598071303274214, 3.665639702938188, 0.9999557122722359]
+Block prob threshold exceeded; breaking out early
+
+T13 Blocking probability: 0.1702 for new calls, 0.0000 for handoffs
+T15 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.988499324818885e-07, 0.9030301341010147, 0.08983683768470428, 3.7832563488590645, 0.9999588069731478]
+Block prob threshold exceeded; breaking out early
+
+T5 Blocking probability: 0.1527 for new calls, 0.0000 for handoffs
+T16 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.58265535406483e-06, 0.9320495544369077, 0.0356131375437129, 1.1374851632495937, 0.9999010613738816]
+Block prob threshold exceeded; breaking out early
+
+T3 Blocking probability: 0.1547 for new calls, 0.0000 for handoffs
+T17 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0394324043456953e-06, 0.8952297474202898, 0.006045934247788913, 2.2114590206389875, 0.9999434706670701]
+Block prob threshold exceeded; breaking out early
+
+T11 Blocking probability: 0.1461 for new calls, 0.0000 for handoffs
+T18 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.355249263158506e-07, 0.6890641856756591, 0.0998936023576325, 1.1391529196218078, 0.9999092319131726]
+Block prob threshold exceeded; breaking out early
+
+T0 Blocking probability: 0.1508 for new calls, 0.0000 for handoffs
+T19 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.116172928634592e-06, 0.7015552205375798, 0.09889212234791617, 4.877376873350697, 0.9999986245744191]
+Block prob threshold exceeded; breaking out early
+
+T17 Blocking probability: 0.1531 for new calls, 0.0000 for handoffs
+T20 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4e-06, 1.0, 0.0010000000000000009, 2.773365825978109, 0.9999]
+Block prob threshold exceeded; breaking out early
+
+T19 Blocking probability: 0.1466 for new calls, 0.0000 for handoffs
+T21 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.428893426866355e-06, 0.9923791239567857, 0.07149049007734543, 4.945699668865713, 0.9999026555496932]
+Block prob threshold exceeded; breaking out early
+
+T2 Blocking probability: 0.1428 for new calls, 0.0000 for handoffs
+T22 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.617270866901356e-07, 0.6626569447167118, 0.05065858202617502, 4.669869684437428, 0.999901310791546]
+Block prob threshold exceeded; breaking out early
+
+T12 Blocking probability: 0.1462 for new calls, 0.0000 for handoffs
+T23 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.1162992586234552e-06, 0.9179744299207708, 0.02862185537723825, 1.0971179665689592, 0.9999013182507329]
+Block prob threshold exceeded; breaking out early
+
+T21 Blocking probability: 0.1411 for new calls, 0.0000 for handoffs
+T24 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.171213016034122e-06, 0.6547748430457327, 0.08848057338327929, 1.0801808507499973, 0.9999885678323106]
+Block prob threshold exceeded; breaking out early
+
+T14 Blocking probability: 0.1449 for new calls, 0.0000 for handoffs
+T25 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6975552673129984e-06, 0.6770573884435671, 0.09764451117503246, 4.726240587340781, 0.9999007451472048]
+Block prob threshold exceeded; breaking out early
+
+T10 Blocking probability: 0.1416 for new calls, 0.0000 for handoffs
+T26 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.622494857283736e-06, 0.9967472088795271, 0.04384331666589754, 4.783663821623376, 0.9999050249646931]
+Block prob threshold exceeded; breaking out early
+
+T15 Blocking probability: 0.1410 for new calls, 0.0000 for handoffs
+T27 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.507557774443926e-07, 0.9695358430341349, 0.09291357617044109, 4.930910580522108, 0.9999993879765565]
+Block prob threshold exceeded; breaking out early
+
+T25 Blocking probability: 0.1496 for new calls, 0.0000 for handoffs
+T28 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.035852933171217e-07, 0.6847103684669665, 0.04581583576560515, 4.982597436986835, 0.9999816918089417]
+Block prob threshold exceeded; breaking out early
+
+T27 Blocking probability: 0.1439 for new calls, 0.0000 for handoffs
+T29 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.424374113761554e-06, 0.9633644032711934, 0.029579947499446327, 1.7013894055432552, 0.9999701691176127]
+Block prob threshold exceeded; breaking out early
+
+T28 Blocking probability: 0.1437 for new calls, 0.0000 for handoffs
+T30 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2850586320231956e-06, 0.650267581157129, 0.03604791292865104, 4.813681984607184, 0.9999968412617103]
+Block prob threshold exceeded; breaking out early
+
+T16 Blocking probability: 0.1427 for new calls, 0.0000 for handoffs
+T31 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.744837705758428e-06, 0.6685072923960621, 0.09652543963090776, 1.7467902382791773, 0.9999019771906926]
+Block prob threshold exceeded; breaking out early
+
+T26 Blocking probability: 0.1443 for new calls, 0.0000 for handoffs
+T32 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.062671560237362e-07, 0.6880827818509117, 0.005147455270305475, 1.0883457974066604, 0.9999992271634227]
+Block prob threshold exceeded; breaking out early
+
+T29 Blocking probability: 0.1494 for new calls, 0.0000 for handoffs
+T33 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.2589571219776567e-06, 0.651978645891225, 0.057172112007276635, 1.1252667454499066, 0.9999345543680279]
+Block prob threshold exceeded; breaking out early
+
+T4 Blocking probability: 0.1406 for new calls, 0.0000 for handoffs
+T34 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6176752300382117e-06, 0.9467096544909176, 0.06274839223957279, 4.970066414872973, 0.9999914086827925]
+Block prob threshold exceeded; breaking out early
+
+T34 Blocking probability: 0.1606 for new calls, 0.0000 for handoffs
+T35 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.929439001936228e-06, 0.9074750671273875, 0.001197997851048506, 1.0007726295518182, 0.9999011346413818]
+Block prob threshold exceeded; breaking out early
+
+T30 Blocking probability: 0.1403 for new calls, 0.0000 for handoffs
+T36 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.167018942155835e-07, 0.9568634546550456, 0.06550699361146724, 2.3481639483764996, 0.999907697499103]
+Block prob threshold exceeded; breaking out early
+
+T20 Blocking probability: 0.1406 for new calls, 0.0000 for handoffs
+T37 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4303774841910794e-06, 0.7747986679865918, 0.0010000000000000009, 5.0, 0.99999999]
+Block prob threshold exceeded; breaking out early
+
+T35 Blocking probability: 0.1404 for new calls, 0.0000 for handoffs
+T38 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.839709120251174e-06, 0.6654522911268087, 0.0017834223188959823, 4.26093767995587, 0.9999903356250563]
+Block prob threshold exceeded; breaking out early
+
+T36 Blocking probability: 0.1418 for new calls, 0.0000 for handoffs
+T39 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0820884025084945e-06, 0.7191557606502197, 0.09720801984452536, 1.054750150734279, 0.9999990716382092]
+Block prob threshold exceeded; breaking out early
+
+T38 Blocking probability: 0.1418 for new calls, 0.0000 for handoffs
+T40 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.544258340159233e-07, 0.7817320404393333, 0.09319791307036263, 2.4022630899801714, 0.9999981668894503]
+Block prob threshold exceeded; breaking out early
+
+T37 Blocking probability: 0.1404 for new calls, 0.0000 for handoffs
+T41 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4e-07, 0.7210021571602537, 0.1, 5.0, 0.99999999]
+
+T8 Blocking probability: 0.1291 for new calls, 0.0000 for handoffs
+T42 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.078398893706865e-07, 0.989688417799023, 0.09441852571718182, 4.7157631787555925, 0.9999066106823206]
+
+T7 Blocking probability: 0.1307 for new calls, 0.0000 for handoffs
+T43 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.5991344605174301e-06, 0.6722409495808799, 0.01747810128800208, 2.256900170837757, 0.9999964731586647]
+
+T1 Blocking probability: 0.1254 for new calls, 0.0000 for handoffs
+T44 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.976348496146214e-06, 0.6971359858395718, 0.027237546057098803, 1.4287584078160065, 0.999962849797809]
+
+T6 Blocking probability: 0.1258 for new calls, 0.0000 for handoffs
+T45 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.366332251784351e-06, 0.9900043302668057, 0.09874009794498737, 4.933207992333207, 0.9999137339318043]
+Block prob threshold exceeded; breaking out early
+
+T45 Blocking probability: 0.1618 for new calls, 0.0000 for handoffs
+T46 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.843390474060813e-06, 0.754941129893464, 0.07319251136801376, 4.9769415846462115, 0.9999531176920232]
+Block prob threshold exceeded; breaking out early
+
+T41 Blocking probability: 0.1401 for new calls, 0.0000 for handoffs
+T47 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4e-07, 1.0, 0.0010000000000000009, 1.0, 0.9999]
+Block prob threshold exceeded; breaking out early
+
+T42 Blocking probability: 0.1411 for new calls, 0.0000 for handoffs
+T48 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.1500360488990825e-06, 0.6947477806089328, 0.03199590870768719, 4.8999947947333435, 0.9999079834499703]
+Block prob threshold exceeded; breaking out early
+
+T46 Blocking probability: 0.1531 for new calls, 0.0000 for handoffs
+T49 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.91203631303969e-06, 0.7702455379314072, 0.006250250118623356, 2.0940208881148017, 0.9999241523555111]
+
+T18 Blocking probability: 0.1276 for new calls, 0.0000 for handoffs
+T50 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.404289358060258e-07, 0.9689271952506896, 0.03308868187694559, 1.0162989759090806, 0.9999180595992349]
+Block prob threshold exceeded; breaking out early
+
+T49 Blocking probability: 0.1439 for new calls, 0.0000 for handoffs
+T51 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2515766652594593e-06, 0.7098916780569753, 0.07189773499960585, 1.3526954039944326, 0.9999723915859641]
+
+T23 Blocking probability: 0.1287 for new calls, 0.0000 for handoffs
+T52 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.3691086932060107e-06, 0.6722502735895783, 0.0641185801572401, 4.3540422210753285, 0.9999062011020384]
+
+T22 Blocking probability: 0.1246 for new calls, 0.0000 for handoffs
+T53 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.1471854094108526e-07, 0.6540563778875166, 0.07588628177404788, 3.9072015304676837, 0.9999314881437442]
+
+T24 Blocking probability: 0.1304 for new calls, 0.0000 for handoffs
+T54 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.1143687729071985e-07, 0.7944424163835346, 0.026022943243689662, 4.867334688549105, 0.9999608027554168]
+Block prob threshold exceeded; breaking out early
+
+T48 Blocking probability: 0.1422 for new calls, 0.0000 for handoffs
+T55 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.074826490932044e-06, 0.9861474434182276, 0.0019573178018842544, 3.849910781453128, 0.9999686522671171]
+Block prob threshold exceeded; breaking out early
+
+T52 Blocking probability: 0.1505 for new calls, 0.0000 for handoffs
+T56 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.932217365947872e-06, 0.654191047176277, 0.09650568463417449, 1.296894186191822, 0.9999965325992952]
+
+T31 Blocking probability: 0.1247 for new calls, 0.0000 for handoffs
+T57 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.551951496373418e-07, 0.9854124641824393, 0.019356156503095023, 4.93078426990594, 0.9999724051021558]
+
+T32 Blocking probability: 0.1311 for new calls, 0.0000 for handoffs
+T58 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.86061039679537e-06, 0.7271314848756985, 0.04545310724732949, 1.7290375467915335, 0.9999267215794057]
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+T47 Blocking probability: 0.1367 for new calls, 0.0000 for handoffs
+
+T54 Blocking probability: 0.1370 for new calls, 0.0000 for handoffs
+
+T39 Blocking probability: 0.1311 for new calls, 0.0000 for handoffs
+
+Premature exit
+
+T51 Blocking probability: 0.1307 for new calls, 0.0000 for handoffs
+
+T44 Blocking probability: 0.1219 for new calls, 0.0000 for handoffs
+
+T55 Blocking probability: 0.1258 for new calls, 0.0000 for handoffs
+
+T58 Blocking probability: 0.0000 for new calls, 0.0000 for handoffs
+
+T43 Blocking probability: 0.1327 for new calls, 0.0000 for handoffs
+
+T40 Blocking probability: 0.1364 for new calls, 0.0000 for handoffs
+
+T50 Blocking probability: 0.1269 for new calls, 0.0000 for handoffs
+
+T57 Blocking probability: 0.1400 for new calls, 0.0000 for handoffs
+
+T56 Blocking probability: 0.0975 for new calls, 0.0000 for handoffs
+
+T33 Blocking probability: 0.1229 for new calls, 0.0000 for handoffs
+
+T53 Blocking probability: 0.1281 for new calls, 0.0000 for handoffs
+Finished 45 trials. Best eval this session: (dlib.vector([5.61727e-07, 0.662657, 0.0506586, 4.66987, 0.999901]), -0.12456796021018911, 0)
+Starting simulation at 2018-03-27 15:32:51.832430 with params:
+{'strat': 'avgsinghnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'traffic_preset': 'uniform', 'call_rate': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.0, 'hoff_call_duration': 1, 'n_events': 400000, 'n_hours': None, 'breakout_thresh': 0.14, 'avg_runs': None, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'wolf': 1, 'exp_policy': 'boltzmann', 'exp_policy_param': None, 'epsilon': 2.0, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'gamma_end': 0.85, 'weight_beta': 0.01, 'weight_beta_decay': 0.999999, 'beta': None, 'beta_disc': False, 'importance_sampling': False, 'avg_reward': True, 'reward_scale': 1, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'random_hopt': None, 'dlib_hopt': ['net_lr', 'epsilon', 'epsilon_decay', 'net_lr_decay', 'weight_beta'], 'hopt': None, 'hopt_fname': 'avgsinghnet-lr-lr_dec-eps-eps_decay-wbeta', 'net_lr': 2.95e-05, 'net_lr_decay': 0.96, 'optimizer': 'sgd', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'glorot_unif', 'qnom_lo': 0.5, 'qnom_hi': 1.5, 'weight_init_dense': 'norm_cols', 'conv_nfilters': [70, 70], 'conv_kernel_sizes': [4, 3], 'conv_bias': False, 'pre_conv': False, 'n_step': 1, 'bighead': False, 'dueling_qnet': False, 'rnn': False, 'layer_norm': False, 'l2_conv': False, 'l2_scale': 1e-05, 'l2_dense': False, 'top_stack': False, 'singh_grid': False, 'qnet_freps': False, 'qnet_freps_only': False, 'scale_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_copy_iter_decr': None, 'net_creep_tau': 0.12, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'analyze_net': False, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'debug': False, 'profiling': False, 'tfprofiling': '', 'print_weights': False, 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': 'results-dlib-avgsinghnet-net_lr-epsilon-epsilon_decay-net_lr_decay-weight_beta', 'log_iter': 5000, 'grid_split': True, 'use_gpu': False, 'freps': False, 'dt_rewards': False, 'dims': (7, 7, 70), 'net': True}
+Restored 45 trials, prev best ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay'] [-1.24567960e-01  5.61727087e-07  6.62656945e-01  5.06585820e-02
+  4.66986968e+00  9.99901311e-01]
+Dlib hopt for 4000 sims with 14 procs on params ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay'] with low bounds [4e-07, 0.7, 0.001, 1, 0.9999], high [4e-06, 1.0, 0.1, 5, 0.999999]
+T0 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.000065371089667e-07, 0.9999863643848617, 0.001002007230628349, 3.74792241056497, 0.999900000052983]
+T1 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.407200330037644e-07, 0.711010322705944, 0.07433748836549714, 1.2347776478602421, 0.9999525169675166]
+T2 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.1172141936351636e-07, 0.780629622011446, 0.020611088795074645, 4.9411680382514325, 0.9999580349325017]
+T3 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.0942000839274186e-07, 0.9571556457775672, 0.03237823042362611, 2.4249644122786593, 0.9999663828027656]
+T4 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.926201977874125e-06, 0.7219887650363135, 0.042863548266408084, 1.3947473667011692, 0.9999974565415707]
+T5 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0575108232010628e-06, 0.7310287302113978, 0.07585794911830705, 4.905675619660284, 0.9999989566467654]
+T6 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.0005266651463104e-07, 0.7769192568813081, 0.038848942376212545, 1.506205356922779, 0.9999034928460571]
+T7 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.896820266617241e-07, 0.7917973253948115, 0.09014387376013869, 1.1080597681903588, 0.9999817329192511]
+T8 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1281727555032286e-06, 0.7111219740726444, 0.023835716547325622, 1.36038499331609, 0.9999913431233799]
+T9 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.0662610970336355e-06, 0.9839322440063581, 0.004314588845854041, 4.285414708498418, 0.9999274801723456]
+T10 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.2620232771448547e-06, 0.7988110208938707, 0.007098505128490014, 1.1620236871746958, 0.9999972367619745]
+T11 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.8198446816778746e-06, 0.7237222734915655, 0.09795628514016966, 1.7451255196970432, 0.9999772094650848]
+T12 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.2410140431624758e-06, 0.7246298461757743, 0.030338383586797565, 1.093633446381901, 0.9999838742612894]
+T13 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0485298070994281e-06, 0.732183288757835, 0.05579929504495215, 1.045180337181819, 0.9999689934415793]
+Block prob threshold exceeded; breaking out early
+
+T11 Blocking probability: 0.1609 for new calls, 0.0000 for handoffs
+T14 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.2546844062742025e-06, 0.8204983436530189, 0.015555332849692231, 4.747943320903657, 0.9999451834464441]
+Block prob threshold exceeded; breaking out early
+
+T5 Blocking probability: 0.1448 for new calls, 0.0000 for handoffs
+T15 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6475971733686788e-06, 0.7028533097631076, 0.0018371953563134965, 1.493322184586022, 0.9999373098179374]
+Block prob threshold exceeded; breaking out early
+
+T4 Blocking probability: 0.1483 for new calls, 0.0000 for handoffs
+T16 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.501467679472755e-07, 0.8513373711679149, 0.0401166925577771, 4.950178008687074, 0.9999127182639026]
+Block prob threshold exceeded; breaking out early
+
+T14 Blocking probability: 0.1407 for new calls, 0.0000 for handoffs
+T17 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1289114529457332e-06, 0.8062830545330697, 0.09738485359580613, 4.600286523223174, 0.9999123424350994]
+Block prob threshold exceeded; breaking out early
+
+T17 Blocking probability: 0.1465 for new calls, 0.0000 for handoffs
+T18 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.8734641683152798e-06, 0.8028571049226148, 0.025081859268709754, 1.2864202181364428, 0.9999911827899508]
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+Premature exit
+
+T18 Blocking probability: 0.0957 for new calls, 0.0000 for handoffs
+
+T15 Blocking probability: 0.1351 for new calls, 0.0000 for handoffs
+
+Premature exit
+
+T2 Blocking probability: 0.1334 for new calls, 0.0000 for handoffs
+
+T13 Blocking probability: 0.1233 for new calls, 0.0000 for handoffs
+
+T9 Blocking probability: 0.1286 for new calls, 0.0000 for handoffs
+
+T8 Blocking probability: 0.1212 for new calls, 0.0000 for handoffs
+
+Premature exit
+
+T3 Blocking probability: 0.1342 for new calls, 0.0000 for handoffs
+
+T12 Blocking probability: 0.1247 for new calls, 0.0000 for handoffs
+
+T1 Blocking probability: 0.1279 for new calls, 0.0000 for handoffs
+
+T16 Blocking probability: 0.1293 for new calls, 0.0000 for handoffs
+
+T6 Blocking probability: 0.1232 for new calls, 0.0000 for handoffs
+
+T0 Blocking probability: 0.1299 for new calls, 0.0000 for handoffs
+
+T10 Blocking probability: 0.1256 for new calls, 0.0000 for handoffs
+
+T7 Blocking probability: 0.1254 for new calls, 0.0000 for handoffs
+Finished 50 trials. Best eval this session: (dlib.vector([2.25468e-06, 0.820498, 0.0155553, 4.74794, 0.999945]), -0.14072937096728347, 0)
+Starting simulation at 2018-03-27 15:39:14.985702 with params:
+{'strat': 'avgsinghnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'traffic_preset': 'uniform', 'call_rate': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.0, 'hoff_call_duration': 1, 'n_events': 400000, 'n_hours': None, 'breakout_thresh': 0.135, 'avg_runs': None, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'wolf': 1, 'exp_policy': 'boltzmann', 'exp_policy_param': None, 'epsilon': 2.0, 'epsilon_decay': 0.99999, 'gamma': 0.85, 'gamma_end': 0.85, 'weight_beta': 0.01, 'weight_beta_decay': 0.999999, 'beta': None, 'beta_disc': False, 'importance_sampling': False, 'avg_reward': True, 'reward_scale': 1, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'random_hopt': None, 'dlib_hopt': ['net_lr', 'epsilon', 'epsilon_decay', 'net_lr_decay', 'weight_beta'], 'hopt': None, 'hopt_fname': 'avgsinghnet-lr-lr_dec-eps-eps_decay-wbeta', 'net_lr': 2.95e-05, 'net_lr_decay': 0.96, 'optimizer': 'sgd', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'glorot_unif', 'qnom_lo': 0.5, 'qnom_hi': 1.5, 'weight_init_dense': 'norm_cols', 'conv_nfilters': [70, 70], 'conv_kernel_sizes': [4, 3], 'conv_bias': False, 'pre_conv': False, 'n_step': 1, 'bighead': False, 'dueling_qnet': False, 'rnn': False, 'layer_norm': False, 'l2_conv': False, 'l2_scale': 1e-05, 'l2_dense': False, 'top_stack': False, 'singh_grid': False, 'qnet_freps': False, 'qnet_freps_only': False, 'scale_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 5000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_copy_iter_decr': None, 'net_creep_tau': 0.12, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'analyze_net': False, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'debug': False, 'profiling': False, 'tfprofiling': '', 'print_weights': False, 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': 'results-dlib-avgsinghnet-net_lr-epsilon-epsilon_decay-net_lr_decay-weight_beta', 'log_iter': 5000, 'grid_split': True, 'use_gpu': False, 'freps': False, 'dt_rewards': False, 'dims': (7, 7, 70), 'net': True}
+Restored 50 trials, prev best ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay'] [-1.24567960e-01  5.61727087e-07  6.62656945e-01  5.06585820e-02
+  4.66986968e+00  9.99901311e-01]
+Dlib hopt for 4000 sims with 14 procs on params ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay'] with low bounds [4e-07, 0.7, 0.005, 1, 0.9999], high [4e-06, 1.0, 0.1, 5, 0.999999]
+T0 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4e-07, 0.7, 0.1, 4.688420502682459, 0.9999]
+T1 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.236738931898913e-07, 0.9948622963176457, 0.026610304927007604, 2.5476465669610118, 0.9999448234952872]
+T2 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.1172141936351636e-07, 0.780629622011446, 0.023818721571031223, 4.9411680382514325, 0.9999580349325017]
+T3 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.392077528729592e-07, 0.7801478838526515, 0.04042411113478802, 1.2369842673848845, 0.9999763657996878]
+T4 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4101010512765446e-06, 0.7110024548826732, 0.021379496475317127, 1.1062169272091187, 0.9999248577282253]
+T5 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.0668931938194676e-07, 0.9921675465199877, 0.005999212936449595, 4.86460297246215, 0.9999044228191404]
+T6 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.880239941675699e-06, 0.9860539342074477, 0.005176784199856215, 4.32591425158952, 0.9999743932245293]
+T7 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.35525763470075e-07, 0.8900149269646322, 0.04155633669200767, 1.02585623752816, 0.999954457320818]
+T8 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.066343318182764e-07, 0.7438810254982067, 0.06323945011815724, 1.1158957107090406, 0.9999155866067719]
+T9 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.366199758544861e-06, 0.7028661916470064, 0.032493852529582645, 1.1565043830031532, 0.9999601983323748]
+T10 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.8003377054660676e-06, 0.7036781833555871, 0.018812616157327086, 4.764188013138947, 0.9999852939993636]
+T11 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.8945118277862547e-06, 0.7869862594372538, 0.03071744878377261, 1.1109399557322068, 0.9999191089754561]
+T12 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.1564582182059697e-07, 0.7797581754028722, 0.07914215516371485, 1.2713089016490935, 0.9999203403071077]
+T13 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.889661572336584e-06, 0.870157762844539, 0.08430141216512571, 1.1507667413592206, 0.9999698669016879]
+Block prob threshold exceeded; breaking out early
+
+T2 Blocking probability: 0.1362 for new calls, 0.0000 for handoffs
+T14 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.349730288791649e-07, 0.7012486072627453, 0.011148469296221307, 4.875346804523359, 0.9999801273170933]
+Block prob threshold exceeded; breaking out early
+
+T0 Blocking probability: 0.1366 for new calls, 0.0000 for handoffs
+T15 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.000550658967354e-07, 0.9805053633439444, 0.00501554613277462, 4.4436582049280915, 0.999998966738139]
+Block prob threshold exceeded; breaking out early
+
+T9 Blocking probability: 0.1395 for new calls, 0.0000 for handoffs
+T16 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.7912028826764074e-06, 0.765821699550103, 0.06950772729898613, 1.0735770014659212, 0.9999806719440938]
+Block prob threshold exceeded; breaking out early
+
+T6 Blocking probability: 0.1419 for new calls, 0.0000 for handoffs
+T17 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.8968819056481273e-06, 0.7286959287551419, 0.005308207266600907, 1.0686449235611095, 0.9999113333404321]
+Block prob threshold exceeded; breaking out early
+
+T13 Blocking probability: 0.1494 for new calls, 0.0000 for handoffs
+T18 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.057986588193387e-07, 0.8873661657771094, 0.026987731807451714, 4.692858559973827, 0.999941999945679]
+Block prob threshold exceeded; breaking out early
+
+T15 Blocking probability: 0.1350 for new calls, 0.0000 for handoffs
+T19 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.0013115271069634e-07, 0.7, 0.005037026863723565, 4.48252757093185, 0.9999000010629875]
+Block prob threshold exceeded; breaking out early
+
+T14 Blocking probability: 0.1357 for new calls, 0.0000 for handoffs
+T20 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.7591267136049293e-06, 0.8319439963644317, 0.055646678105319605, 1.1536075497230205, 0.9999075053335325]
+Block prob threshold exceeded; breaking out early
+
+T18 Blocking probability: 0.1370 for new calls, 0.0000 for handoffs
+T21 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.279130000919574e-06, 0.9560671080220122, 0.08245811012962231, 1.0913720842715977, 0.9999273102936657]
+Block prob threshold exceeded; breaking out early
+
+T20 Blocking probability: 0.1408 for new calls, 0.0000 for handoffs
+T22 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.9660458710348045e-06, 0.752390672052712, 0.023463996787928966, 4.982920988520163, 0.9999967459779212]
+Block prob threshold exceeded; breaking out early
+
+T10 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T23 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.2065762561477987e-07, 0.705671942358617, 0.02753569692269796, 1.991608923088197, 0.9999517675100699]
+Block prob threshold exceeded; breaking out early
+
+T22 Blocking probability: 0.1514 for new calls, 0.0000 for handoffs
+T24 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.7162296980670167e-06, 0.8827056705738473, 0.06996876218582963, 1.3373606224076593, 0.9999088487959311]
+Block prob threshold exceeded; breaking out early
+
+T21 Blocking probability: 0.1418 for new calls, 0.0000 for handoffs
+T25 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3530667013385854e-06, 0.7161434556163815, 0.08845012163120092, 1.1982712040116332, 0.9999111351484912]
+Block prob threshold exceeded; breaking out early
+
+T25 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T26 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.1286985072521808e-06, 0.7447468795131358, 0.0506610144137115, 4.934281790312496, 0.9999001451757211]
+Block prob threshold exceeded; breaking out early
+
+T16 Blocking probability: 0.1358 for new calls, 0.0000 for handoffs
+T27 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3174395632137917e-06, 0.8349650354815645, 0.0796204839567287, 2.2370739207402055, 0.9999754804976111]
+Block prob threshold exceeded; breaking out early
+
+T24 Blocking probability: 0.1401 for new calls, 0.0000 for handoffs
+T28 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.363569904433562e-07, 0.8047318263087898, 0.015050099040653391, 1.2984458265479057, 0.999953939958694]
+Block prob threshold exceeded; breaking out early
+
+T26 Blocking probability: 0.1480 for new calls, 0.0000 for handoffs
+T29 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.6267123876456645e-06, 0.9914837994764727, 0.02049116083874752, 4.959284669880758, 0.9999489160593794]
+Block prob threshold exceeded; breaking out early
+
+T27 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T30 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.5578869505586326e-06, 0.7758837024225058, 0.006411359482949473, 1.3805991462028557, 0.9999904705125949]
+Block prob threshold exceeded; breaking out early
+
+T29 Blocking probability: 0.1531 for new calls, 0.0000 for handoffs
+T31 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.78046240587621e-07, 0.9887517063869906, 0.04612830822259441, 1.6538002191873198, 0.99994414406028]
+Block prob threshold exceeded; breaking out early
+
+T19 Blocking probability: 0.1351 for new calls, 0.0000 for handoffs
+T32 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.765784847960304e-07, 0.7, 0.1, 4.593640743740865, 0.9999429488509267]
+Block prob threshold exceeded; breaking out early
+
+T1 Blocking probability: 0.1360 for new calls, 0.0000 for handoffs
+T33 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3607752463022639e-06, 0.9764320837358726, 0.024556276752292407, 4.827776587711723, 0.9999220540820621]
+Block prob threshold exceeded; breaking out early
+
+T33 Blocking probability: 0.1383 for new calls, 0.0000 for handoffs
+T34 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6394015078903875e-06, 0.8974291528818952, 0.03471389462463871, 4.988139560232908, 0.9999220428051119]
+Block prob threshold exceeded; breaking out early
+
+T34 Blocking probability: 0.1466 for new calls, 0.0000 for handoffs
+T35 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.246724105677717e-06, 0.9756662185932763, 0.01765232080689501, 1.2912231362940227, 0.9999961762567741]
+Block prob threshold exceeded; breaking out early
+
+T35 Blocking probability: 0.1384 for new calls, 0.0000 for handoffs
+T36 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.003574630387865e-06, 0.8157626780575132, 0.07242674375850024, 4.18945058096531, 0.9999222099657363]
+
+T7 Blocking probability: 0.1277 for new calls, 0.0000 for handoffs
+T37 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.630291085797934e-06, 0.7701586028928132, 0.031250670685779414, 1.2295729862862865, 0.9999459181284807]
+
+T8 Blocking probability: 0.1257 for new calls, 0.0000 for handoffs
+T38 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2084166018934763e-06, 0.7421865058004262, 0.05560034164800633, 1.101437691359664, 0.9999290568129002]
+
+T12 Blocking probability: 0.1247 for new calls, 0.0000 for handoffs
+T39 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.889843174287149e-07, 0.811502556156426, 0.04253669365038391, 3.9746872907909916, 0.9999780353763807]
+
+T5 Blocking probability: 0.1278 for new calls, 0.0000 for handoffs
+T40 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.476277589781598e-06, 0.8399194104440455, 0.028558586047449142, 1.5440073004491968, 0.9999330476684838]
+
+T11 Blocking probability: 0.1252 for new calls, 0.0000 for handoffs
+T41 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.947403001529339e-06, 0.7684722651206923, 0.07339192079849494, 4.960299121218028, 0.9999265465283931]
+
+T3 Blocking probability: 0.1275 for new calls, 0.0000 for handoffs
+T42 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.930949736366658e-07, 0.7843130080739192, 0.06160511705917066, 1.6650486102053628, 0.9999458321249934]
+
+T4 Blocking probability: 0.1244 for new calls, 0.0000 for handoffs
+T43 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6960177856451186e-06, 0.7758889604835271, 0.030494453026114064, 4.251740487847112, 0.9999831747869622]
+Block prob threshold exceeded; breaking out early
+
+T36 Blocking probability: 0.1471 for new calls, 0.0000 for handoffs
+T44 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.171492979370527e-07, 0.7904676795407716, 0.005789049772888009, 4.6724041009391595, 0.9999084965860964]
+Block prob threshold exceeded; breaking out early
+
+T43 Blocking probability: 0.1396 for new calls, 0.0000 for handoffs
+T45 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.308608406366443e-06, 0.7861591980736068, 0.01218281587541347, 1.1948767598774885, 0.9999989553972922]
+
+T17 Blocking probability: 0.1313 for new calls, 0.0000 for handoffs
+T46 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.429943400737959e-07, 0.7502679571134903, 0.08881298810985144, 1.2719237894499438, 0.9999936654156367]
+Block prob threshold exceeded; breaking out early
+
+T44 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T47 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1645391291696537e-06, 0.746651167397024, 0.015343189984674606, 3.7124542933990146, 0.9999165344510413]
+Block prob threshold exceeded; breaking out early
+
+T41 Blocking probability: 0.1397 for new calls, 0.0000 for handoffs
+T48 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.735667672111427e-06, 0.7509345549340624, 0.07222381903760178, 1.183762467384313, 0.999904625183076]
+Block prob threshold exceeded; breaking out early
+
+T45 Blocking probability: 0.1357 for new calls, 0.0000 for handoffs
+T49 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.084366788469012e-07, 0.8186820656328017, 0.079403011210124, 3.1427006176948353, 0.9999704501049986]
+Block prob threshold exceeded; breaking out early
+
+T46 Blocking probability: 0.1402 for new calls, 0.0000 for handoffs
+T50 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.0556442665837737e-06, 0.702420206306683, 0.01669945676458563, 1.8361100146699583, 0.9999282769224317]
+Block prob threshold exceeded; breaking out early
+
+T39 Blocking probability: 0.1372 for new calls, 0.0000 for handoffs
+T51 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.9739517378649385e-06, 0.857952851223118, 0.014284983033664864, 1.2041391342762189, 0.9999854717963003]
+Block prob threshold exceeded; breaking out early
+
+T31 Blocking probability: 0.1351 for new calls, 0.0000 for handoffs
+T52 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.0548702780853487e-06, 0.9163704532197346, 0.09978276231817804, 4.705956431850963, 0.9999933786226828]
+
+T23 Blocking probability: 0.1294 for new calls, 0.0000 for handoffs
+T53 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.119660534573274e-07, 0.9055271730610612, 0.043772789199122676, 4.811527518943647, 0.9999373806674058]
+Block prob threshold exceeded; breaking out early
+
+T52 Blocking probability: 0.1436 for new calls, 0.0000 for handoffs
+T54 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.35393715992363e-06, 0.8554087303944145, 0.06671557885073505, 4.883138994178308, 0.9999288970312925]
+Block prob threshold exceeded; breaking out early
+
+T53 Blocking probability: 0.1427 for new calls, 0.0000 for handoffs
+T55 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.8319030453305083e-06, 0.9848468432504236, 0.008418246382301445, 1.2971078950104564, 0.9999045332856793]
+Block prob threshold exceeded; breaking out early
+
+T54 Blocking probability: 0.1502 for new calls, 0.0000 for handoffs
+T56 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.27001864037821e-07, 0.9358709270571131, 0.033598716626492, 1.1357983507690368, 0.9999695955092103]
+Block prob threshold exceeded; breaking out early
+
+T55 Blocking probability: 0.1395 for new calls, 0.0000 for handoffs
+T57 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.080124761346533e-06, 0.8997585142408677, 0.01164544545183985, 3.705835547820209, 0.9999498955376136]
+
+T28 Blocking probability: 0.1260 for new calls, 0.0000 for handoffs
+T58 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0046240367831762e-06, 0.7420042728008419, 0.03666566011545184, 1.0029575982995595, 0.999986260575504]
+Block prob threshold exceeded; breaking out early
+
+T51 Blocking probability: 0.1357 for new calls, 0.0000 for handoffs
+T59 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4694662984314909e-06, 0.8737710460143843, 0.09498801318882866, 1.053221573687097, 0.9999247126302536]
+
+T30 Blocking probability: 0.1265 for new calls, 0.0000 for handoffs
+T60 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.864162913555065e-07, 0.8490354720962026, 0.032664506837519, 1.0626515525025015, 0.9999218553160947]
+
+T32 Blocking probability: 0.1274 for new calls, 0.0000 for handoffs
+T61 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.00599369991588e-07, 0.9055767307892246, 0.005009719204481788, 1.1900971641726974, 0.999900014749986]
+Block prob threshold exceeded; breaking out early
+
+T57 Blocking probability: 0.1367 for new calls, 0.0000 for handoffs
+T62 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.177415747252227e-06, 0.8182761507464509, 0.022305521854590418, 1.1961893532489405, 0.9999599874654904]
+Block prob threshold exceeded; breaking out early
+
+T61 Blocking probability: 0.1361 for new calls, 0.0000 for handoffs
+T63 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.0011566039601357e-07, 0.7000012598227545, 0.012704126354335474, 1.2115471904180415, 0.9999000028463041]
+Block prob threshold exceeded; breaking out early
+
+T56 Blocking probability: 0.1365 for new calls, 0.0000 for handoffs
+T64 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.4222483145370446e-07, 0.9407104742243579, 0.017418452416275237, 3.1534459710111165, 0.9999965746639117]
+
+T37 Blocking probability: 0.1273 for new calls, 0.0000 for handoffs
+T65 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.688622664366123e-06, 0.9017808156438132, 0.08456065984783397, 3.4285292136585293, 0.9999270852777047]
+
+T38 Blocking probability: 0.1253 for new calls, 0.0000 for handoffs
+T66 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4583091615491123e-06, 0.835163913892566, 0.008270379314571016, 1.2827020892737275, 0.9999080325530477]
+
+T40 Blocking probability: 0.1311 for new calls, 0.0000 for handoffs
+T67 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.30975325141281e-06, 0.7211370868159716, 0.050349899334168835, 1.2344748924620612, 0.9999342955725515]
+
+T42 Blocking probability: 0.1270 for new calls, 0.0000 for handoffs
+T68 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.99292052792793e-06, 0.831200416875544, 0.09882905350652063, 4.957547761054541, 0.9999418895035439]
+Block prob threshold exceeded; breaking out early
+
+T68 Blocking probability: 0.1751 for new calls, 0.0000 for handoffs
+T69 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.7335182682978443e-06, 0.9100311233672216, 0.046213082068461135, 1.0985905427051113, 0.9999274686947286]
+Block prob threshold exceeded; breaking out early
+
+T64 Blocking probability: 0.1368 for new calls, 0.0000 for handoffs
+T70 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.2572893504245863e-07, 0.7695471569483621, 0.05829042481277396, 3.5580974008628714, 0.9999089365126465]
+Block prob threshold exceeded; breaking out early
+
+T65 Blocking probability: 0.1364 for new calls, 0.0000 for handoffs
+T71 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.815965629355764e-06, 0.9000136735561912, 0.04746115751975417, 1.2239146312374494, 0.9999931566182868]
+
+T47 Blocking probability: 0.1260 for new calls, 0.0000 for handoffs
+T72 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4887483394699251e-06, 0.7787883438900866, 0.026177750058617576, 4.358981186394882, 0.9999337329118393]
+
+T48 Blocking probability: 0.1242 for new calls, 0.0000 for handoffs
+T73 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [9.409262440546872e-07, 0.7137173373733031, 0.024933942214023487, 4.772202447381273, 0.9999951026256513]
+
+T49 Blocking probability: 0.1292 for new calls, 0.0000 for handoffs
+T74 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.393587541326888e-07, 0.7023533767612313, 0.059522467392903254, 1.3775257541730226, 0.9999959995889302]
+
+T50 Blocking probability: 0.1246 for new calls, 0.0000 for handoffs
+T75 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.830952262997708e-07, 0.897823540487241, 0.07515900968544537, 1.0934474044302507, 0.9999873782160051]
+Block prob threshold exceeded; breaking out early
+
+T67 Blocking probability: 0.1356 for new calls, 0.0000 for handoffs
+T76 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.8526978838075187e-06, 0.731970008042259, 0.005548261516138846, 1.628840860800056, 0.999908556011985]
+Block prob threshold exceeded; breaking out early
+
+T71 Blocking probability: 0.1363 for new calls, 0.0000 for handoffs
+T77 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.047901220104953e-06, 0.7540141693263225, 0.015507113594603689, 1.03078313206845, 0.9999931030593545]
+Block prob threshold exceeded; breaking out early
+
+T75 Blocking probability: 0.1355 for new calls, 0.0000 for handoffs
+T78 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.1669189114708705e-06, 0.824027162126847, 0.006863393166314135, 4.35290147108665, 0.9999987522101534]
+Block prob threshold exceeded; breaking out early
+
+T78 Blocking probability: 0.1365 for new calls, 0.0000 for handoffs
+T79 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [9.167010148750438e-07, 0.9876691287869324, 0.07864102956344261, 1.0744681282506152, 0.999977388700689]
+
+T58 Blocking probability: 0.1239 for new calls, 0.0000 for handoffs
+T80 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.184761517533662e-07, 0.7322442021482947, 0.03926895813336288, 1.187392981030272, 0.9999004662061777]
+
+T59 Blocking probability: 0.1279 for new calls, 0.0000 for handoffs
+T81 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4355287905679238e-06, 0.7550047670025806, 0.05690519269968699, 4.377773990040648, 0.9999870950924539]
+Block prob threshold exceeded; breaking out early
+
+T81 Blocking probability: 0.1361 for new calls, 0.0000 for handoffs
+T82 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.789116770508053e-07, 0.8390218648008347, 0.016967164872286174, 4.8337943213229675, 0.9999113936769868]
+
+T60 Blocking probability: 0.1289 for new calls, 0.0000 for handoffs
+T83 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.7247537806997333e-06, 0.7363621755886058, 0.009590110865691556, 4.94603734704708, 0.9999254655499036]
+
+T62 Blocking probability: 0.1337 for new calls, 0.0000 for handoffs
+T84 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.91405508038743e-07, 0.7956317265625887, 0.05271480899705281, 1.226916509014402, 0.9999005924791309]
+Block prob threshold exceeded; breaking out early
+
+T79 Blocking probability: 0.1363 for new calls, 0.0000 for handoffs
+T85 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.233984635853914e-07, 0.7620766569939358, 0.028520776774000778, 1.1945459467603292, 0.9999370158011464]
+
+T63 Blocking probability: 0.1310 for new calls, 0.0000 for handoffs
+T86 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4e-06, 0.7, 0.005, 1.0, 0.999999]
+Block prob threshold exceeded; breaking out early
+
+T77 Blocking probability: 0.1351 for new calls, 0.0000 for handoffs
+T87 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.7901711033964155e-06, 0.7469590320003833, 0.07902340162619176, 1.1990594623532338, 0.9999981980093154]
+Block prob threshold exceeded; breaking out early
+
+T85 Blocking probability: 0.1364 for new calls, 0.0000 for handoffs
+T88 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6282580850303236e-06, 0.8853079302551907, 0.02408100352741147, 4.299272395753132, 0.9999867517602038]
+Block prob threshold exceeded; breaking out early
+
+T88 Blocking probability: 0.1422 for new calls, 0.0000 for handoffs
+T89 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.237579780389045e-06, 0.700586848022516, 0.011861570494222816, 2.092706983013503, 0.9999399457210777]
+Block prob threshold exceeded; breaking out early
+
+T87 Blocking probability: 0.1380 for new calls, 0.0000 for handoffs
+T90 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.884706336333397e-06, 0.917207598647083, 0.07986418848981719, 4.441915339775517, 0.9999390796929639]
+Block prob threshold exceeded; breaking out early
+
+T90 Blocking probability: 0.1468 for new calls, 0.0000 for handoffs
+T91 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.936807827635993e-06, 0.7963354741009246, 0.04139443797835141, 4.919411463118903, 0.999940891763686]
+Block prob threshold exceeded; breaking out early
+
+T91 Blocking probability: 0.1432 for new calls, 0.0000 for handoffs
+T92 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.903853640506557e-06, 0.7819073572754993, 0.06519079713522771, 1.126364585771228, 0.9999891222796344]
+Block prob threshold exceeded; breaking out early
+
+T89 Blocking probability: 0.1366 for new calls, 0.0000 for handoffs
+T93 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.9316422477525785e-06, 0.7488668563325598, 0.019582787302179282, 1.055409457870326, 0.9999767080234514]
+Block prob threshold exceeded; breaking out early
+
+T69 Blocking probability: 0.1358 for new calls, 0.0000 for handoffs
+T94 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.328746570634281e-07, 0.7815468987901705, 0.06885512457131177, 2.6009671472915894, 0.9999975786555086]
+Block prob threshold exceeded; breaking out early
+
+T94 Blocking probability: 0.1365 for new calls, 0.0000 for handoffs
+T95 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6756419840879145e-06, 0.7727287941560883, 0.08569652926825336, 1.2237082757875022, 0.9999247784743376]
+Block prob threshold exceeded; breaking out early
+
+T92 Blocking probability: 0.1401 for new calls, 0.0000 for handoffs
+T96 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.206079524267913e-07, 0.8661187871817857, 0.0767570806022766, 4.916441739695854, 0.9999783935085207]
+Block prob threshold exceeded; breaking out early
+
+T96 Blocking probability: 0.1390 for new calls, 0.0000 for handoffs
+T97 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.87321416086269e-07, 0.8413000310305813, 0.08942706497707278, 1.0210570349299815, 0.9999053013010788]
+
+T66 Blocking probability: 0.1261 for new calls, 0.0000 for handoffs
+T98 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.871557238656128e-06, 0.8252186461438822, 0.012426531599983148, 4.962523220001372, 0.9999095726078163]
+
+T70 Blocking probability: 0.1300 for new calls, 0.0000 for handoffs
+T99 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.119628112999228e-06, 0.8121417712702665, 0.03550440634298247, 1.0970966199128045, 0.9999924327898225]
+
+T72 Blocking probability: 0.1321 for new calls, 0.0000 for handoffs
+T100 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.6484625579030145e-06, 0.7008214015078085, 0.012602198640260347, 1.0185570289977903, 0.9999958867314779]
+
+T73 Blocking probability: 0.1325 for new calls, 0.0000 for handoffs
+T101 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.370697805568234e-07, 0.9663915942373289, 0.03554648652777968, 4.849835022609993, 0.9999369565325431]
+
+T74 Blocking probability: 0.1273 for new calls, 0.0000 for handoffs
+T102 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.049356135792681e-07, 0.7021532710306857, 0.07163732766311305, 1.3556054064113294, 0.999919559693225]
+
+T76 Blocking probability: 0.1283 for new calls, 0.0000 for handoffs
+T103 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.8017615460950003e-06, 0.7054326149018344, 0.011661470810064434, 1.2384283349644258, 0.9999579164693203]
+Block prob threshold exceeded; breaking out early
+
+T98 Blocking probability: 0.1378 for new calls, 0.0000 for handoffs
+T104 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.326483017810703e-07, 0.8642804042352568, 0.09904701510959324, 1.1148466134955588, 0.9999168916294383]
+Block prob threshold exceeded; breaking out early
+
+T99 Blocking probability: 0.1413 for new calls, 0.0000 for handoffs
+T105 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2569770831504229e-06, 0.7705428637882873, 0.04218474255308283, 1.0446869054317178, 0.9999025427628184]
+Block prob threshold exceeded; breaking out early
+
+T101 Blocking probability: 0.1386 for new calls, 0.0000 for handoffs
+T106 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.243963348829326e-07, 0.9865896244687398, 0.008842177115598022, 1.1995570842738494, 0.999908496736942]
+
+T80 Blocking probability: 0.1257 for new calls, 0.0000 for handoffs
+T107 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4044922947712399e-06, 0.7034065339336127, 0.06296908792917062, 1.391085936261605, 0.9999083937394935]
+
+T82 Blocking probability: 0.1256 for new calls, 0.0000 for handoffs
+T108 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.661427775204123e-07, 0.7444899184266768, 0.0503472854351084, 1.8037759493692418, 0.9999751960633377]
+
+T83 Blocking probability: 0.1259 for new calls, 0.0000 for handoffs
+T109 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1357803704859643e-06, 0.86517605079262, 0.04497295638213917, 1.7885559796936716, 0.9999389236906947]
+
+T84 Blocking probability: 0.1288 for new calls, 0.0000 for handoffs
+T110 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3401852889925552e-06, 0.7033121848852445, 0.052018672310940255, 1.7951731902108348, 0.9999572624095826]
+
+T86 Blocking probability: 0.1302 for new calls, 0.0000 for handoffs
+T111 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4e-06, 0.7, 0.1, 1.0, 0.9999]
+
+T93 Blocking probability: 0.1230 for new calls, 0.0000 for handoffs
+T112 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.392636152613881e-06, 0.8133404126374597, 0.015476886594386112, 1.4913735364716858, 0.9999004747306648]
+
+T95 Blocking probability: 0.1246 for new calls, 0.0000 for handoffs
+T113 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.585482587715498e-07, 0.8234676299908437, 0.07134488376443597, 1.216844128629362, 0.9999014140201631]
+
+T97 Blocking probability: 0.1239 for new calls, 0.0000 for handoffs
+T114 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.139435512325338e-07, 0.7008667844760559, 0.06328523088803932, 4.311784733061952, 0.9999300326190651]
+Block prob threshold exceeded; breaking out early
+
+T114 Blocking probability: 0.1369 for new calls, 0.0000 for handoffs
+T115 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [9.280522032019224e-07, 0.756251452956227, 0.07376735296833406, 2.2164547874166556, 0.9999011444208532]
+
+T100 Blocking probability: 0.1213 for new calls, 0.0000 for handoffs
+T116 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6561224386212023e-06, 0.922767792665864, 0.050753335251795706, 2.979447836721412, 0.9999072501833658]
+
+T102 Blocking probability: 0.1272 for new calls, 0.0000 for handoffs
+T117 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.911307323146497e-06, 0.7497933939505136, 0.021946932785479965, 1.3496754012495, 0.9999163340933345]
+
+T103 Blocking probability: 0.1268 for new calls, 0.0000 for handoffs
+T118 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.349730353905451e-07, 0.8179129565612676, 0.011362408562855537, 4.106153865089009, 0.9999866724874997]
+Block prob threshold exceeded; breaking out early
+
+T116 Blocking probability: 0.1474 for new calls, 0.0000 for handoffs
+T119 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.6445768174762794e-07, 0.7561590961849445, 0.038973949911597576, 4.8693246644134955, 0.9999259564908366]
+Block prob threshold exceeded; breaking out early
+
+T119 Blocking probability: 0.1410 for new calls, 0.0000 for handoffs
+T120 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.037523490498798e-06, 0.7653198115564935, 0.023312073599977348, 4.929306854441675, 0.9999014675033268]
+
+T104 Blocking probability: 0.1266 for new calls, 0.0000 for handoffs
+T121 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4561090266349033e-06, 0.9993719910064875, 0.01513133356266353, 1.120383950145055, 0.999905172958177]
+
+T105 Blocking probability: 0.1273 for new calls, 0.0000 for handoffs
+T122 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.5563866723785758e-06, 0.7808142161485281, 0.006806251627384624, 3.7518573504873083, 0.9999014838401741]
+Block prob threshold exceeded; breaking out early
+
+T120 Blocking probability: 0.1372 for new calls, 0.0000 for handoffs
+T123 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3265129734852451e-06, 0.8814850120474331, 0.06540363670396818, 1.356543853579866, 0.9999002458700196]
+
+T106 Blocking probability: 0.1261 for new calls, 0.0000 for handoffs
+T124 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.886074917438927e-07, 0.8112219899800703, 0.06913796537459993, 4.885407022318416, 0.9999051527118412]
+Block prob threshold exceeded; breaking out early
+
+T122 Blocking probability: 0.1395 for new calls, 0.0000 for handoffs
+T125 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2074879653540604e-06, 0.7058951212437986, 0.09990067115289514, 1.001568132307483, 0.9999675678513676]
+Block prob threshold exceeded; breaking out early
+
+T125 Blocking probability: 0.1407 for new calls, 0.0000 for handoffs
+T126 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.570888817256851e-06, 0.706382217323306, 0.009447351005375172, 4.565414325235109, 0.9999007763821999]
+
+T107 Blocking probability: 0.1242 for new calls, 0.0000 for handoffs
+T127 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.0010307580643863e-06, 0.7077078626446855, 0.08186895874163999, 3.95704673529617, 0.9999386132032068]
+
+T108 Blocking probability: 0.1269 for new calls, 0.0000 for handoffs
+T128 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.555278184488087e-06, 0.7117141305459593, 0.017393356337259084, 4.727825099956645, 0.999913213977525]
+Block prob threshold exceeded; breaking out early
+
+T128 Blocking probability: 0.1377 for new calls, 0.0000 for handoffs
+T129 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2703368274201423e-06, 0.7097541995987793, 0.030662462587723822, 1.3968718323939995, 0.9999926043015066]
+Block prob threshold exceeded; breaking out early
+
+T127 Blocking probability: 0.1390 for new calls, 0.0000 for handoffs
+T130 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.3507969801963382e-06, 0.7075268593206839, 0.06170822499041516, 1.2750947118855445, 0.999929326499163]
+
+T109 Blocking probability: 0.1275 for new calls, 0.0000 for handoffs
+T131 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.1163489361738485e-06, 0.764831496878954, 0.013768652225226313, 1.813152500435197, 0.9999781032326059]
+
+T110 Blocking probability: 0.1239 for new calls, 0.0000 for handoffs
+T132 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.398206809774073e-06, 0.9967036651592558, 0.04816042551943729, 2.0123218194663686, 0.999993104110151]
+
+T111 Blocking probability: 0.1276 for new calls, 0.0000 for handoffs
+T133 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.947838520865996e-06, 0.7, 0.005, 1.0, 0.999999]
+Block prob threshold exceeded; breaking out early
+
+T132 Blocking probability: 0.1437 for new calls, 0.0000 for handoffs
+T134 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.1410505436202072e-06, 0.8513295812778261, 0.011023362783824224, 1.0049731298628046, 0.9999875712722263]
+
+T112 Blocking probability: 0.1244 for new calls, 0.0000 for handoffs
+T135 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6538797504965973e-06, 0.7453049276958162, 0.005170017709866369, 4.033287257196857, 0.9999977426237772]
+Block prob threshold exceeded; breaking out early
+
+T130 Blocking probability: 0.1357 for new calls, 0.0000 for handoffs
+T136 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0173498452036732e-06, 0.8192382055315438, 0.032290118492332986, 4.768437743799749, 0.9999035761992533]
+
+T113 Blocking probability: 0.1261 for new calls, 0.0000 for handoffs
+T137 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.602785828696399e-07, 0.7465138975122071, 0.08550126883078372, 4.947052412837606, 0.9999000949848776]
+Block prob threshold exceeded; breaking out early
+
+T137 Blocking probability: 0.1418 for new calls, 0.0000 for handoffs
+T138 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.839413371107158e-06, 0.7540471993274129, 0.09026279270918473, 1.0475835246836314, 0.9999826089106791]
+Block prob threshold exceeded; breaking out early
+
+T121 Blocking probability: 0.1351 for new calls, 0.0000 for handoffs
+T139 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.456704510255332e-06, 0.7518551953159066, 0.031662582516352365, 1.4364753657143594, 0.9999027456166241]
+
+T115 Blocking probability: 0.1288 for new calls, 0.0000 for handoffs
+T140 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.090937103103731e-06, 0.9996224850448804, 0.08645220127705719, 4.4033279300533765, 0.9999957355828264]
+Block prob threshold exceeded; breaking out early
+
+T138 Blocking probability: 0.1354 for new calls, 0.0000 for handoffs
+T141 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.377447919052638e-06, 0.8504790983420287, 0.09989186773161869, 1.2789417848503186, 0.9999980415554036]
+Block prob threshold exceeded; breaking out early
+
+T140 Blocking probability: 0.1366 for new calls, 0.0000 for handoffs
+T142 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.8290006805643036e-06, 0.7067761382614083, 0.060400298527169695, 1.4681587530968743, 0.9999975866017647]
+
+T117 Blocking probability: 0.1238 for new calls, 0.0000 for handoffs
+T143 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.948573490241705e-06, 0.9596804542390762, 0.006382703898963241, 1.0129713430355167, 0.9999897882474851]
+
+T118 Blocking probability: 0.1314 for new calls, 0.0000 for handoffs
+T144 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4307278860241053e-06, 0.9493096141049144, 0.01638139700575833, 4.9754562458913645, 0.9999018213315435]
+Block prob threshold exceeded; breaking out early
+
+T141 Blocking probability: 0.1405 for new calls, 0.0000 for handoffs
+T145 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.649108610018276e-07, 0.9519139697047675, 0.01668694421963441, 1.3557686266982512, 0.9999019129505468]
+Block prob threshold exceeded; breaking out early
+
+T143 Blocking probability: 0.1383 for new calls, 0.0000 for handoffs
+T146 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.652216352054372e-07, 0.7000959200219039, 0.02288640641473676, 4.499047096361108, 0.999903013881117]
+
+T123 Blocking probability: 0.1245 for new calls, 0.0000 for handoffs
+T147 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4200649473128617e-06, 0.7730566926088708, 0.006185784236325848, 1.0536882395511074, 0.9999130194386543]
+Block prob threshold exceeded; breaking out early
+
+T144 Blocking probability: 0.1354 for new calls, 0.0000 for handoffs
+T148 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.0180813645877293e-07, 0.8737788294294754, 0.018836068456679584, 1.4043131519672314, 0.9999925138277164]
+
+T124 Blocking probability: 0.1261 for new calls, 0.0000 for handoffs
+T149 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2225437971886009e-06, 0.9952954181038207, 0.03521037071846627, 1.5026709350870409, 0.9999965277696191]
+
+T126 Blocking probability: 0.1296 for new calls, 0.0000 for handoffs
+T150 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.668665900303184e-07, 0.8141287208238943, 0.029692704911481013, 1.5023366309474415, 0.9999943038646293]
+Block prob threshold exceeded; breaking out early
+
+T142 Blocking probability: 0.1361 for new calls, 0.0000 for handoffs
+T151 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.939008313608757e-06, 0.7000034756311269, 0.016550584061358776, 1.1064914535567287, 0.9999173040589646]
+Block prob threshold exceeded; breaking out early
+
+T149 Blocking probability: 0.1367 for new calls, 0.0000 for handoffs
+T152 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.933826439144093e-06, 0.7037181386415735, 0.006098724538084358, 4.798560485906448, 0.9999846487071149]
+
+T129 Blocking probability: 0.1258 for new calls, 0.0000 for handoffs
+T153 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.2079486030052e-06, 0.7861171304165029, 0.03198722618253468, 1.4518196984841596, 0.9999052402011714]
+
+T131 Blocking probability: 0.1226 for new calls, 0.0000 for handoffs
+T154 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.5924739852798298e-06, 0.7145378798202646, 0.04079258457824799, 4.699449434649919, 0.99999832112817]
+
+T133 Blocking probability: 0.1292 for new calls, 0.0000 for handoffs
+T155 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.9998860536278705e-06, 0.700000266246808, 0.03121640639181426, 1.0335408433385138, 0.9999989989908737]
+Block prob threshold exceeded; breaking out early
+
+T154 Blocking probability: 0.1388 for new calls, 0.0000 for handoffs
+T156 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.352212895803295e-07, 0.7366470040665271, 0.05126596614892498, 1.039380506606108, 0.9999024700364921]
+
+T134 Blocking probability: 0.1258 for new calls, 0.0000 for handoffs
+T157 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1628515594188837e-06, 0.7939218944967787, 0.05855870569433526, 4.39597280178992, 0.9999058313822418]
+Block prob threshold exceeded; breaking out early
+
+T148 Blocking probability: 0.1350 for new calls, 0.0000 for handoffs
+T158 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.3796435332369454e-07, 0.8404798667762937, 0.047555026907729996, 1.2906114870555863, 0.9999298816858347]
+
+T135 Blocking probability: 0.1268 for new calls, 0.0000 for handoffs
+T159 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.9133965337230296e-06, 0.7969154126254387, 0.055953371914038846, 2.862205057923254, 0.9999975505707561]
+
+T136 Blocking probability: 0.1279 for new calls, 0.0000 for handoffs
+T160 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1228403853852494e-06, 0.8206372549717035, 0.038930533196913086, 1.1489751461480329, 0.9999083836285452]
+Block prob threshold exceeded; breaking out early
+
+T159 Blocking probability: 0.1494 for new calls, 0.0000 for handoffs
+T161 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [9.729588078909406e-07, 0.8612726930518184, 0.0834567662302792, 1.2138336120637383, 0.9999052094020553]
+Block prob threshold exceeded; breaking out early
+
+T155 Blocking probability: 0.1354 for new calls, 0.0000 for handoffs
+T162 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.999653092221028e-06, 0.7000008105838484, 0.005179695878204914, 1.0278924664417977, 0.9999499006038335]
+
+T139 Blocking probability: 0.1246 for new calls, 0.0000 for handoffs
+T163 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.640848073976843e-07, 0.8877013461862012, 0.05631667233581377, 1.0265723962411641, 0.9999006405887159]
+Block prob threshold exceeded; breaking out early
+
+T157 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T164 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.5302326956381322e-06, 0.7450337138810551, 0.05855570861964667, 4.191141546566396, 0.9999975953559737]
+Block prob threshold exceeded; breaking out early
+
+T164 Blocking probability: 0.1392 for new calls, 0.0000 for handoffs
+T165 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.5676828120643018e-06, 0.8017628672068664, 0.03318846823504617, 4.907723808721256, 0.9999988836900324]
+Block prob threshold exceeded; breaking out early
+
+T165 Blocking probability: 0.1383 for new calls, 0.0000 for handoffs
+T166 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0479273372076867e-06, 0.7041675842038128, 0.05324573709911025, 2.011219407912993, 0.9999009518412428]
+Block prob threshold exceeded; breaking out early
+
+T166 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T167 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0226731594568198e-06, 0.7932692943402521, 0.08144958151157913, 1.3896629300343064, 0.9999094123723015]
+
+T146 Blocking probability: 0.1289 for new calls, 0.0000 for handoffs
+T168 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6790948397515553e-06, 0.8633672273432791, 0.01791881814074382, 1.067248946108265, 0.9999039908562486]
+
+T145 Blocking probability: 0.1232 for new calls, 0.0000 for handoffs
+T169 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.3521532857442815e-06, 0.754029499570249, 0.06359027399843174, 1.2523123939950276, 0.9999009460940959]
+
+T147 Blocking probability: 0.1277 for new calls, 0.0000 for handoffs
+T170 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.361751766053539e-06, 0.9159940882751456, 0.09711437856267228, 1.3144826805084204, 0.9999003968961403]
+Block prob threshold exceeded; breaking out early
+
+T168 Blocking probability: 0.1378 for new calls, 0.0000 for handoffs
+T171 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.237450014315701e-07, 0.8207124784748292, 0.0921814994832178, 1.5185950400742048, 0.9999967015922598]
+
+T150 Blocking probability: 0.1282 for new calls, 0.0000 for handoffs
+T172 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0413262440989392e-06, 0.7018787791967884, 0.038340495850833246, 1.0153052409554562, 0.9999385517897897]
+
+T151 Blocking probability: 0.1226 for new calls, 0.0000 for handoffs
+T173 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.167439238333888e-07, 0.9945411234043944, 0.07590039661737429, 4.977021502084098, 0.9999547973754116]
+Block prob threshold exceeded; breaking out early
+
+T170 Blocking probability: 0.1452 for new calls, 0.0000 for handoffs
+T174 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3267606077782461e-06, 0.9259901545286795, 0.02098213829708783, 4.5549724315536775, 0.9999985609142167]
+
+T152 Blocking probability: 0.1256 for new calls, 0.0000 for handoffs
+Block prob threshold exceeded; breaking out early
+
+T171 Blocking probability: 0.1354 for new calls, 0.0000 for handoffs
+T175 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.113997139465252e-06, 0.7172048239946254, 0.006264931797993882, 4.209362004615922, 0.9999968673845704]
+T176 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.565714151688963e-07, 0.8131128099177068, 0.02149278608017019, 1.214306614294103, 0.9999021995263477]
+Block prob threshold exceeded; breaking out early
+
+T173 Blocking probability: 0.1360 for new calls, 0.0000 for handoffs
+T177 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [9.629245166073664e-07, 0.9551019972486239, 0.0795646121787362, 3.746227601547981, 0.9999045008582006]
+Block prob threshold exceeded; breaking out early
+
+T174 Blocking probability: 0.1452 for new calls, 0.0000 for handoffs
+T178 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.018476613080736e-07, 0.8691536430589724, 0.07584967369066818, 1.33821426697405, 0.99990155688842]
+
+T153 Blocking probability: 0.1239 for new calls, 0.0000 for handoffs
+T179 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0114663323521944e-06, 0.9784856072817159, 0.005157949635150825, 1.1107969184010789, 0.9999435155022711]
+Block prob threshold exceeded; breaking out early
+
+T175 Blocking probability: 0.1364 for new calls, 0.0000 for handoffs
+T180 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.667714437661549e-07, 0.9658375918885606, 0.014919821033038384, 4.0733852452673425, 0.9999115111268796]
+Block prob threshold exceeded; breaking out early
+
+T177 Blocking probability: 0.1393 for new calls, 0.0000 for handoffs
+T181 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.068525407415518e-06, 0.7686891866185862, 0.03767190824021187, 1.3894697985835065, 0.999998277912338]
+
+T156 Blocking probability: 0.1243 for new calls, 0.0000 for handoffs
+T182 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3540217447772607e-06, 0.7207629652708797, 0.02370773988077356, 4.313352727221353, 0.9999050005623228]
+Block prob threshold exceeded; breaking out early
+
+T181 Blocking probability: 0.1370 for new calls, 0.0000 for handoffs
+T183 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.880704881767975e-06, 0.9450477072508088, 0.0120886321640243, 1.0334671522132481, 0.9999071340309832]
+
+T158 Blocking probability: 0.1249 for new calls, 0.0000 for handoffs
+T184 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4492800848142064e-06, 0.7775173861381698, 0.021119971170337024, 1.5403783249659444, 0.9999088543936442]
+
+T160 Blocking probability: 0.1275 for new calls, 0.0000 for handoffs
+T185 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.852579896588439e-06, 0.8608890212259949, 0.006400378327016232, 1.5291024225589798, 0.9999081794383825]
+
+T161 Blocking probability: 0.1223 for new calls, 0.0000 for handoffs
+T186 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.925756315091071e-07, 0.7576419733935909, 0.0689287672567347, 4.680744196245625, 0.9999026723862748]
+Block prob threshold exceeded; breaking out early
+
+T186 Blocking probability: 0.1400 for new calls, 0.0000 for handoffs
+T187 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.944429690200013e-07, 0.759453563451879, 0.053157028200042096, 4.5664953357462235, 0.9999764257460648]
+Block prob threshold exceeded; breaking out early
+
+T185 Blocking probability: 0.1393 for new calls, 0.0000 for handoffs
+T188 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.201558731083847e-06, 0.792048800509196, 0.019283349471968993, 1.050072954633521, 0.9999986097757543]
+
+T162 Blocking probability: 0.1332 for new calls, 0.0000 for handoffs
+T189 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.307516937016176e-06, 0.7042350780967866, 0.011452512440101668, 1.0137877838324059, 0.999900030066551]
+Block prob threshold exceeded; breaking out early
+
+T187 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T190 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.8200976439585408e-06, 0.987433128776966, 0.08608414431541676, 4.91932725319006, 0.999900478386089]
+
+T163 Blocking probability: 0.1267 for new calls, 0.0000 for handoffs
+T191 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.986962854966775e-06, 0.7848676158706065, 0.008760944010739933, 4.791667578966182, 0.9999050898272976]
+Block prob threshold exceeded; breaking out early
+
+T190 Blocking probability: 0.1372 for new calls, 0.0000 for handoffs
+T192 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.795213370537432e-06, 0.8090761354809846, 0.021472265487336224, 1.4154111342289624, 0.9999003393581047]
+
+T167 Blocking probability: 0.1232 for new calls, 0.0000 for handoffs
+T193 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.7841740943166176e-06, 0.8193485635257801, 0.033491055938378894, 1.0456275743580365, 0.9999053801681907]
+
+T169 Blocking probability: 0.1262 for new calls, 0.0000 for handoffs
+T194 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.007437874378111e-06, 0.7523451412426192, 0.09985518496704715, 1.39187948041817, 0.9999012517964919]
+
+T172 Blocking probability: 0.1247 for new calls, 0.0000 for handoffs
+T195 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.6792007215844955e-07, 0.7688530915548037, 0.013689890846535165, 1.1052758805405039, 0.9999003940127632]
+
+T176 Blocking probability: 0.1238 for new calls, 0.0000 for handoffs
+T196 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [9.218838169105726e-07, 0.7048581172991444, 0.02191608851996316, 1.0245990511729843, 0.9999988168626969]
+
+T178 Blocking probability: 0.1245 for new calls, 0.0000 for handoffs
+T197 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.860614348020644e-06, 0.9993233211409331, 0.04007268912834299, 4.477530945689677, 0.9999035294585663]
+
+T179 Blocking probability: 0.1250 for new calls, 0.0000 for handoffs
+T198 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.8168622962991345e-06, 0.7077067466433952, 0.06708787149106914, 1.5816541442392396, 0.999997142893243]
+
+T180 Blocking probability: 0.1275 for new calls, 0.0000 for handoffs
+T199 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.1820311385511263e-06, 0.8784690918757376, 0.07768089030097083, 1.7150380609887486, 0.9999955653208827]
+Block prob threshold exceeded; breaking out early
+
+T197 Blocking probability: 0.1520 for new calls, 0.0000 for handoffs
+T200 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2206578975334464e-06, 0.7547677473859165, 0.046326803834926635, 1.2077548241572493, 0.9999779584025347]
+
+T182 Blocking probability: 0.1286 for new calls, 0.0000 for handoffs
+T201 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [9.371800995036683e-07, 0.700885622924714, 0.03230575959180276, 3.4409933634698655, 0.9999049131408253]
+Block prob threshold exceeded; breaking out early
+
+T198 Blocking probability: 0.1416 for new calls, 0.0000 for handoffs
+T202 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.871159867384322e-07, 0.8224627290967561, 0.0113681229950881, 1.107525837615953, 0.9999149143524626]
+Block prob threshold exceeded; breaking out early
+
+T199 Blocking probability: 0.1366 for new calls, 0.0000 for handoffs
+T203 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.326552947863491e-07, 0.8904501713254503, 0.06337255622243768, 4.99440649465518, 0.9999098192368783]
+
+T183 Blocking probability: 0.1262 for new calls, 0.0000 for handoffs
+T204 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.12364250952065e-07, 0.9015603658988073, 0.05246146476302254, 1.3760175869648932, 0.9999951374741206]
+
+T184 Blocking probability: 0.1269 for new calls, 0.0000 for handoffs
+T205 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.357811616299373e-07, 0.7036198255625432, 0.08261175078421451, 1.2010324495442866, 0.999927964591458]
+Block prob threshold exceeded; breaking out early
+
+T204 Blocking probability: 0.1366 for new calls, 0.0000 for handoffs
+T206 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.2023944275030934e-06, 0.8806917170177657, 0.0485425415551473, 4.986522036351146, 0.9999970855909159]
+Block prob threshold exceeded; breaking out early
+
+T206 Blocking probability: 0.1391 for new calls, 0.0000 for handoffs
+T207 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6442599823024835e-06, 0.7661323313635853, 0.01835539023074886, 4.823931096122122, 0.9999898877908017]
+Block prob threshold exceeded; breaking out early
+
+T207 Blocking probability: 0.1369 for new calls, 0.0000 for handoffs
+T208 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2231059469286447e-06, 0.8304603466753933, 0.02211766746082349, 4.7000589396669294, 0.9999115932165594]
+
+T188 Blocking probability: 0.1273 for new calls, 0.0000 for handoffs
+T209 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.556193553242551e-07, 0.9253283440961444, 0.05248021192295441, 1.3100520005966143, 0.9999041041556999]
+
+T189 Blocking probability: 0.1296 for new calls, 0.0000 for handoffs
+T210 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.000001836295686e-07, 0.7000000000464323, 0.015447344039794236, 1.018960626618606, 0.999998999999824]
+
+T191 Blocking probability: 0.1260 for new calls, 0.0000 for handoffs
+T211 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.0430464612511756e-06, 0.7045956938735422, 0.07669855065501545, 1.6841384103633197, 0.9999116652357518]
+
+T192 Blocking probability: 0.1255 for new calls, 0.0000 for handoffs
+T212 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.650593900559695e-06, 0.9774807057719747, 0.09070340059503958, 1.034684628864284, 0.999944865478402]
+Block prob threshold exceeded; breaking out early
+
+T212 Blocking probability: 0.1448 for new calls, 0.0000 for handoffs
+T213 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.210917534790041e-06, 0.9247569694831622, 0.09989275906644732, 2.080795287543541, 0.9999945420574273]
+Block prob threshold exceeded; breaking out early
+
+T211 Blocking probability: 0.1396 for new calls, 0.0000 for handoffs
+T214 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.8625895899282095e-06, 0.7139208110861663, 0.026057878923464433, 1.4938476118817068, 0.9999036237557354]
+Block prob threshold exceeded; breaking out early
+
+T213 Blocking probability: 0.1520 for new calls, 0.0000 for handoffs
+T215 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.9123835104120527e-06, 0.8055000727443473, 0.008882550721721514, 1.5171407673026227, 0.9999344924368678]
+
+T193 Blocking probability: 0.1252 for new calls, 0.0000 for handoffs
+T216 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.447762036231797e-06, 0.7421556937319029, 0.06641784003011864, 1.1410008961897096, 0.9999033666998989]
+Block prob threshold exceeded; breaking out early
+
+T214 Blocking probability: 0.1361 for new calls, 0.0000 for handoffs
+T217 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.515729754794003e-07, 0.9108160015010216, 0.02303130204508368, 1.1594701158188774, 0.9999013356269323]
+
+T194 Blocking probability: 0.1237 for new calls, 0.0000 for handoffs
+T218 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.996747706385663e-06, 0.7029340937998455, 0.056667463858448036, 4.788901884747444, 0.9999701703661148]
+Block prob threshold exceeded; breaking out early
+
+T218 Blocking probability: 0.1552 for new calls, 0.0000 for handoffs
+T219 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.5504035801426726e-06, 0.75783588544262, 0.036622256845078346, 1.4816801745916324, 0.9999022735136515]
+
+T195 Blocking probability: 0.1287 for new calls, 0.0000 for handoffs
+T220 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.896958408961245e-06, 0.733032420862595, 0.026626733660506725, 1.3300295462247516, 0.9999006228838384]
+
+T196 Blocking probability: 0.1252 for new calls, 0.0000 for handoffs
+T221 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.727373052838e-06, 0.8294146241932023, 0.02861967996322867, 4.834985771551414, 0.9999113313507606]
+Block prob threshold exceeded; breaking out early
+
+T221 Blocking probability: 0.1420 for new calls, 0.0000 for handoffs
+T222 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.857421593813274e-07, 0.877923206884678, 0.03367127142713841, 1.1374959496153854, 0.9999980802613683]
+
+T200 Blocking probability: 0.1272 for new calls, 0.0000 for handoffs
+T223 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [9.197250450653331e-07, 0.7862333801739125, 0.05240897717274617, 1.086736128176881, 0.9999786619106782]
+
+T201 Blocking probability: 0.1274 for new calls, 0.0000 for handoffs
+T224 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.0094604699991334e-06, 0.940933577546499, 0.012134266321112974, 1.043724729607874, 0.9999942786345325]
+
+T202 Blocking probability: 0.1288 for new calls, 0.0000 for handoffs
+T225 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.978639661786786e-06, 0.8030416734371911, 0.02490220966821848, 1.1473173893546265, 0.9999172704095074]
+
+T203 Blocking probability: 0.1260 for new calls, 0.0000 for handoffs
+T226 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3732664014062197e-06, 0.7133418905976907, 0.09697281519194437, 4.910718512136837, 0.9999006615749854]
+Block prob threshold exceeded; breaking out early
+
+T225 Blocking probability: 0.1374 for new calls, 0.0000 for handoffs
+T227 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.7820349173618753e-06, 0.903004841495187, 0.019695738220490245, 1.135118757501559, 0.9999083367697419]
+
+T205 Blocking probability: 0.1297 for new calls, 0.0000 for handoffs
+T228 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1818537672949415e-06, 0.7086407249250491, 0.0713455920225224, 1.8651463726425306, 0.9999066160723575]
+Block prob threshold exceeded; breaking out early
+
+T226 Blocking probability: 0.1388 for new calls, 0.0000 for handoffs
+T229 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.258863973708635e-07, 0.751060173928129, 0.016842653927684012, 1.883718302385279, 0.9999949347592099]
+Block prob threshold exceeded; breaking out early
+
+T229 Blocking probability: 0.1370 for new calls, 0.0000 for handoffs
+T230 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1720769744223898e-06, 0.9929460973274898, 0.03217823079807095, 1.0037238542962115, 0.9999032683228773]
+Block prob threshold exceeded; breaking out early
+
+T224 Blocking probability: 0.1380 for new calls, 0.0000 for handoffs
+T231 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.838966669333897e-06, 0.9212319445883764, 0.02000805741719503, 1.1719635531039507, 0.9999898922743696]
+
+T208 Blocking probability: 0.1243 for new calls, 0.0000 for handoffs
+T232 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.180033965925857e-06, 0.8166084291298411, 0.005003607274693706, 1.5367433884837869, 0.9999829297478123]
+
+T210 Blocking probability: 0.1265 for new calls, 0.0000 for handoffs
+T233 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.48202729226327e-06, 0.7, 0.011594511932532518, 1.019293232927396, 0.999999]
+
+T209 Blocking probability: 0.1253 for new calls, 0.0000 for handoffs
+T234 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.548789970010038e-06, 0.7505174797678231, 0.024705123109125482, 1.0938759764792396, 0.9999949922188828]
+Block prob threshold exceeded; breaking out early
+
+T231 Blocking probability: 0.1356 for new calls, 0.0000 for handoffs
+T235 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.711341498450978e-06, 0.7527389664370483, 0.08236143802782009, 4.322755826319305, 0.9999007263269414]
+Block prob threshold exceeded; breaking out early
+
+T235 Blocking probability: 0.1412 for new calls, 0.0000 for handoffs
+T236 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.369557221233701e-07, 0.8020311200802336, 0.08492158376078864, 4.986524767397213, 0.9999983592161563]
+Block prob threshold exceeded; breaking out early
+
+T236 Blocking probability: 0.1410 for new calls, 0.0000 for handoffs
+T237 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.091407605592508e-06, 0.7944714679726423, 0.07645854350988551, 1.1630341261095372, 0.9999022345971272]
+
+T215 Blocking probability: 0.1252 for new calls, 0.0000 for handoffs
+T238 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.421315485100853e-07, 0.740536827073645, 0.013783179521837684, 4.746704490557532, 0.9999040356279104]
+
+T216 Blocking probability: 0.1238 for new calls, 0.0000 for handoffs
+T239 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.044124498968159e-07, 0.8361300174262583, 0.08280000938860094, 2.867890167414777, 0.9999042015030006]
+
+T217 Blocking probability: 0.1231 for new calls, 0.0000 for handoffs
+T240 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1894629109048094e-06, 0.913718278674985, 0.07472396907724359, 1.3156357306890396, 0.9999006499635926]
+
+T219 Blocking probability: 0.1264 for new calls, 0.0000 for handoffs
+T241 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.4426495427796905e-06, 0.9962448603447356, 0.06667704087120348, 1.7060470752110057, 0.9999052069350115]
+Block prob threshold exceeded; breaking out early
+
+T237 Blocking probability: 0.1365 for new calls, 0.0000 for handoffs
+T242 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.402473179962041e-07, 0.7990408028388056, 0.016289857231441496, 2.8934029213429175, 0.9999129287956573]
+
+T220 Blocking probability: 0.1258 for new calls, 0.0000 for handoffs
+T243 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.965156406091786e-06, 0.9945134788408228, 0.02615323132580487, 1.0635271393880006, 0.9999108307692798]
+Block prob threshold exceeded; breaking out early
+
+T241 Blocking probability: 0.1357 for new calls, 0.0000 for handoffs
+T244 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.3326462606856517e-06, 0.7001766421313071, 0.012692652125015396, 2.623260121580861, 0.9999891656650481]
+Block prob threshold exceeded; breaking out early
+
+T230 Blocking probability: 0.1355 for new calls, 0.0000 for handoffs
+T245 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0829365871805087e-06, 0.7021863741661196, 0.07476836482810474, 1.1201035013101692, 0.9999845836735171]
+
+T222 Blocking probability: 0.1301 for new calls, 0.0000 for handoffs
+T246 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.382642167897696e-06, 0.9739432333133347, 0.049558750106826595, 1.1487484328308146, 0.9999026326905344]
+Block prob threshold exceeded; breaking out early
+
+T243 Blocking probability: 0.1414 for new calls, 0.0000 for handoffs
+T247 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.981585061920881e-06, 0.7856551340077682, 0.026648829782305053, 1.2800852633366029, 0.9999576731581834]
+
+T223 Blocking probability: 0.1254 for new calls, 0.0000 for handoffs
+T248 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.7490484099639104e-06, 0.823326106566276, 0.00566567714236266, 1.035245293043076, 0.99992884326066]
+
+T227 Blocking probability: 0.1257 for new calls, 0.0000 for handoffs
+T249 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.477129902257753e-06, 0.8374856989278379, 0.00756170971676311, 4.0445802246700815, 0.9999951007267756]
+
+T228 Blocking probability: 0.1247 for new calls, 0.0000 for handoffs
+T250 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.8406522577383418e-06, 0.8629016991427351, 0.06415564735060024, 1.201507574228615, 0.9999964375891256]
+Block prob threshold exceeded; breaking out early
+
+T248 Blocking probability: 0.1361 for new calls, 0.0000 for handoffs
+T251 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.175675770351433e-07, 0.704031282895302, 0.0398223347746, 1.5619447098759327, 0.9999660607638007]
+Block prob threshold exceeded; breaking out early
+
+T251 Blocking probability: 0.1387 for new calls, 0.0000 for handoffs
+T252 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0626321756776015e-06, 0.7762285417800387, 0.09730860906668917, 1.0630778660462854, 0.9999161454706068]
+Block prob threshold exceeded; breaking out early
+
+T250 Blocking probability: 0.1357 for new calls, 0.0000 for handoffs
+T253 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4599552533729528e-06, 0.7087927501859134, 0.040301508229996875, 1.7213358419699059, 0.9999893888095046]
+Block prob threshold exceeded; breaking out early
+
+T247 Blocking probability: 0.1356 for new calls, 0.0000 for handoffs
+T254 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.0679761572567045e-06, 0.7061866890597898, 0.018692065822075988, 2.1215127274218766, 0.9999951869709179]
+
+T232 Blocking probability: 0.1240 for new calls, 0.0000 for handoffs
+T255 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.3483264682758535e-06, 0.9992952942572266, 0.09693768741948473, 1.3665948712744593, 0.999972514619882]
+
+T233 Blocking probability: 0.1230 for new calls, 0.0000 for handoffs
+T256 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.9999997178703056e-06, 0.7008071360107767, 0.011996329753572342, 1.0189940513897697, 0.9999989999975014]
+
+T234 Blocking probability: 0.1276 for new calls, 0.0000 for handoffs
+T257 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.975850742685743e-06, 0.8395515940628304, 0.005518427495036546, 1.4416799783562781, 0.9999932020010232]
+Block prob threshold exceeded; breaking out early
+
+T249 Blocking probability: 0.1355 for new calls, 0.0000 for handoffs
+T258 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.564937696477156e-07, 0.97884523678767, 0.05770122077654093, 1.091501024444938, 0.9999987887730731]
+Block prob threshold exceeded; breaking out early
+
+T255 Blocking probability: 0.1480 for new calls, 0.0000 for handoffs
+T259 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.71591920992421e-07, 0.8325742251265148, 0.04763394081350547, 1.1466764407766736, 0.9999860914276304]
+Block prob threshold exceeded; breaking out early
+
+T246 Blocking probability: 0.1356 for new calls, 0.0000 for handoffs
+T260 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.88702921865218e-06, 0.8015362630405796, 0.03908727475119872, 1.0224803116791037, 0.999904880904794]
+Block prob threshold exceeded; breaking out early
+
+T258 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T261 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.44124018872206e-07, 0.8110215070786392, 0.08322188003805547, 2.4701497607049894, 0.9999965783229139]
+
+T238 Blocking probability: 0.1289 for new calls, 0.0000 for handoffs
+T262 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.126745783686551e-06, 0.7694537966812002, 0.05109167687926784, 1.0724316044744884, 0.9999136265444248]
+
+T239 Blocking probability: 0.1265 for new calls, 0.0000 for handoffs
+T263 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.5372770688047945e-06, 0.9722796576139172, 0.019919152571747208, 4.878562270030541, 0.9999302892129786]
+
+T240 Blocking probability: 0.1230 for new calls, 0.0000 for handoffs
+T264 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.030745991520363e-06, 0.7273368732961821, 0.06439424527600308, 2.083639529189984, 0.9999557558160018]
+Block prob threshold exceeded; breaking out early
+
+T261 Blocking probability: 0.1362 for new calls, 0.0000 for handoffs
+T265 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.5686239922324327e-06, 0.9459623715914519, 0.07097587145659677, 1.078149276832548, 0.99990382716663]
+Block prob threshold exceeded; breaking out early
+
+T263 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T266 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.833114731668967e-06, 0.7011096887011141, 0.07342056808689114, 1.0765959016024598, 0.9999034007577791]
+
+T242 Blocking probability: 0.1246 for new calls, 0.0000 for handoffs
+T267 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.1887811968529956e-06, 0.8759298053549225, 0.07621102149905871, 1.8768100121384805, 0.9999096536927553]
+
+T244 Blocking probability: 0.1246 for new calls, 0.0000 for handoffs
+T268 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.9911565107219965e-06, 0.8595775831844564, 0.00544973989831931, 4.865657610298383, 0.9999933380203083]
+Block prob threshold exceeded; breaking out early
+
+T268 Blocking probability: 0.1368 for new calls, 0.0000 for handoffs
+T269 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2030059886823408e-06, 0.8060480210353655, 0.018269060441198706, 3.110919319068195, 0.9999435404970312]
+
+T245 Blocking probability: 0.1272 for new calls, 0.0000 for handoffs
+T270 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6177120342163104e-06, 0.743005713325588, 0.06099246312795999, 4.508691669974266, 0.9999049872130417]
+Block prob threshold exceeded; breaking out early
+
+T270 Blocking probability: 0.1366 for new calls, 0.0000 for handoffs
+T271 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.139124994808391e-07, 0.8507854821342865, 0.021406203982878708, 1.0886777739633688, 0.9999157275852666]
+Block prob threshold exceeded; breaking out early
+
+T265 Blocking probability: 0.1358 for new calls, 0.0000 for handoffs
+T272 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.9917477979895993e-06, 0.8335364891241495, 0.008060514857225087, 3.566286883249697, 0.9999090200466753]
+
+T252 Blocking probability: 0.1269 for new calls, 0.0000 for handoffs
+T273 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.858191318125978e-07, 0.9901889233231631, 0.05040855765657194, 4.980553762694853, 0.9999844760804338]
+Block prob threshold exceeded; breaking out early
+
+T273 Blocking probability: 0.1371 for new calls, 0.0000 for handoffs
+T274 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.364829395542601e-07, 0.8152839463305881, 0.005166555301415184, 1.160953819668777, 0.9999796525475736]
+
+T253 Blocking probability: 0.1283 for new calls, 0.0000 for handoffs
+T275 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.758415350770492e-07, 0.8395071815801299, 0.049141641716524576, 4.9350952850147385, 0.9999028107776032]
+Block prob threshold exceeded; breaking out early
+
+T274 Blocking probability: 0.1375 for new calls, 0.0000 for handoffs
+T276 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.313338535829879e-06, 0.7339779430435744, 0.006228093794738254, 4.680331734124421, 0.9999867391127607]
+Block prob threshold exceeded; breaking out early
+
+T275 Blocking probability: 0.1386 for new calls, 0.0000 for handoffs
+T277 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.5795888435332417e-06, 0.9103538480500464, 0.03943345574209205, 4.779066499948824, 0.9999967368321997]
+
+T254 Blocking probability: 0.1243 for new calls, 0.0000 for handoffs
+T278 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.295058192412865e-06, 0.7238030169409981, 0.01681665566583803, 1.1128527014217302, 0.9999557109136488]
+Block prob threshold exceeded; breaking out early
+
+T277 Blocking probability: 0.1367 for new calls, 0.0000 for handoffs
+T279 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.1715122350680175e-06, 0.74744746693491, 0.028749632030949525, 3.8435838763917283, 0.9999131377750375]
+Block prob threshold exceeded; breaking out early
+
+T278 Blocking probability: 0.1374 for new calls, 0.0000 for handoffs
+T280 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4421147017153576e-06, 0.913477158536708, 0.09592904838800499, 4.970892003170348, 0.9999028040940241]
+
+T256 Blocking probability: 0.1231 for new calls, 0.0000 for handoffs
+T281 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.999901954029583e-06, 0.7008485441191745, 0.012962136097769764, 1.0185476059226068, 0.9999000267434035]
+
+T257 Blocking probability: 0.1279 for new calls, 0.0000 for handoffs
+T282 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.316629121266594e-07, 0.8817901950653235, 0.06618161436469289, 1.0165324294041795, 0.9999051000176097]
+Block prob threshold exceeded; breaking out early
+
+T280 Blocking probability: 0.1395 for new calls, 0.0000 for handoffs
+T283 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0926767745758193e-06, 0.9413248715683445, 0.023654763588991597, 1.477228272777056, 0.9999148286590428]
+
+T259 Blocking probability: 0.1235 for new calls, 0.0000 for handoffs
+T284 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.273494439487914e-06, 0.7329525469349438, 0.09162584446444279, 1.162299296898539, 0.9999055074173996]
+
+T260 Blocking probability: 0.1253 for new calls, 0.0000 for handoffs
+T285 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.091368107753455e-06, 0.8840597363380985, 0.03506684103493094, 1.0673776672086606, 0.9999934069323618]
+
+T262 Blocking probability: 0.1263 for new calls, 0.0000 for handoffs
+T286 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.8624345497174926e-06, 0.7064721093313011, 0.07936215104224104, 4.975244876703257, 0.9999961976099728]
+Block prob threshold exceeded; breaking out early
+
+T286 Blocking probability: 0.1374 for new calls, 0.0000 for handoffs
+T287 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.177580389512564e-06, 0.9971695473592546, 0.005813821846233459, 1.2096035006376844, 0.9999942880189554]
+Block prob threshold exceeded; breaking out early
+
+T285 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T288 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.282322629225888e-07, 0.7115496750509444, 0.022097468464532255, 1.2411566463465826, 0.9999002414229423]
+
+T264 Blocking probability: 0.1276 for new calls, 0.0000 for handoffs
+T289 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6312432103906956e-06, 0.9106690384584233, 0.0867051015263841, 1.2789808873799453, 0.9999988658001912]
+
+T266 Blocking probability: 0.1266 for new calls, 0.0000 for handoffs
+T290 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.343477895620382e-07, 0.9986656373654514, 0.013448772816197458, 4.33924200298058, 0.9999598504283779]
+Block prob threshold exceeded; breaking out early
+
+T289 Blocking probability: 0.1395 for new calls, 0.0000 for handoffs
+T291 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.1155492779447234e-06, 0.7507849107023427, 0.016332129197752218, 1.4405930732425545, 0.999900000779793]
+
+T267 Blocking probability: 0.1264 for new calls, 0.0000 for handoffs
+T292 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.253994915762945e-06, 0.8638176731395313, 0.04004911447281007, 1.1666104411571045, 0.999993662919053]
+Block prob threshold exceeded; breaking out early
+
+T290 Blocking probability: 0.1367 for new calls, 0.0000 for handoffs
+T293 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.449574906515978e-07, 0.833708372832977, 0.026257275375560437, 4.881036093217288, 0.9999939571333804]
+Block prob threshold exceeded; breaking out early
+
+T287 Blocking probability: 0.1370 for new calls, 0.0000 for handoffs
+T294 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.15378142010465e-07, 0.7602823402390806, 0.010649645845897419, 4.92609563937634, 0.9999601272172717]
+Block prob threshold exceeded; breaking out early
+
+T293 Blocking probability: 0.1368 for new calls, 0.0000 for handoffs
+T295 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4333622908896676e-06, 0.7736350653817082, 0.06142744371089509, 1.0036460382521994, 0.9999214316865944]
+Block prob threshold exceeded; breaking out early
+
+T292 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T296 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.7273066957153875e-06, 0.8984444966864529, 0.0618811767925168, 1.091950974909466, 0.9999926672405192]
+
+T269 Blocking probability: 0.1268 for new calls, 0.0000 for handoffs
+T297 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2236276917974449e-06, 0.7527634805699565, 0.09275592696186878, 4.620519385610917, 0.999992726802183]
+Block prob threshold exceeded; breaking out early
+
+T296 Blocking probability: 0.1377 for new calls, 0.0000 for handoffs
+T298 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.786454383754741e-06, 0.7492210629440561, 0.04407960622129756, 1.2726076873542675, 0.9999796927215114]
+Block prob threshold exceeded; breaking out early
+
+T298 Blocking probability: 0.1352 for new calls, 0.0000 for handoffs
+T299 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.0384467554546716e-07, 0.8406651682322918, 0.03570161277532138, 4.202046609160572, 0.9999198422922262]
+Block prob threshold exceeded; breaking out early
+
+T297 Blocking probability: 0.1412 for new calls, 0.0000 for handoffs
+T300 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.424129326761367e-06, 0.8350329168960667, 0.019274335983629504, 4.4186437928196485, 0.9999741542279869]
+Block prob threshold exceeded; breaking out early
+
+T299 Blocking probability: 0.1382 for new calls, 0.0000 for handoffs
+T301 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4475891563353888e-06, 0.8559839932839177, 0.016939694433955935, 4.439835465794599, 0.9999223224311771]
+Block prob threshold exceeded; breaking out early
+
+T300 Blocking probability: 0.1401 for new calls, 0.0000 for handoffs
+T302 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.1876685760168474e-07, 0.9220071646856749, 0.015907366037661533, 4.872321339797848, 0.9999177593033713]
+
+T271 Blocking probability: 0.1243 for new calls, 0.0000 for handoffs
+T303 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4907427687291737e-06, 0.7344577622956128, 0.006316193186146894, 1.2805943660557242, 0.999997928138857]
+Block prob threshold exceeded; breaking out early
+
+T303 Blocking probability: 0.1415 for new calls, 0.0000 for handoffs
+T304 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6140258772473544e-06, 0.7135948321594601, 0.022843692633101636, 3.867862336934702, 0.9999971718476073]
+
+T272 Blocking probability: 0.1265 for new calls, 0.0000 for handoffs
+T305 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4117737712411331e-06, 0.9435748644099481, 0.043674509794680974, 1.077385366365178, 0.9999974385482855]
+Block prob threshold exceeded; breaking out early
+
+T304 Blocking probability: 0.1373 for new calls, 0.0000 for handoffs
+T306 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4421978519768563e-06, 0.7204789649195593, 0.03068001833696966, 1.209457146044074, 0.999906397866569]
+Block prob threshold exceeded; breaking out early
+
+T305 Blocking probability: 0.1384 for new calls, 0.0000 for handoffs
+T307 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2560505732255648e-06, 0.7684461523789794, 0.08117145347205361, 1.2359234119127374, 0.999948705399775]
+
+T276 Blocking probability: 0.1281 for new calls, 0.0000 for handoffs
+T308 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.974213374770833e-06, 0.7255526607830465, 0.0385030088766802, 4.571391004245269, 0.9999042890416685]
+Block prob threshold exceeded; breaking out early
+
+T308 Blocking probability: 0.1404 for new calls, 0.0000 for handoffs
+T309 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.601782133472544e-06, 0.7760406790802241, 0.005464293076564408, 4.745807504696257, 0.9999566733445859]
+
+T279 Blocking probability: 0.1318 for new calls, 0.0000 for handoffs
+T310 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.213646175686115e-07, 0.7452137709879317, 0.09785962970139296, 1.2552805194351757, 0.999913027890602]
+Block prob threshold exceeded; breaking out early
+
+T309 Blocking probability: 0.1388 for new calls, 0.0000 for handoffs
+T311 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [7.602200211241806e-07, 0.8917759473822928, 0.03246319555494999, 1.2689325282066486, 0.9999036976232213]
+
+T282 Blocking probability: 0.1238 for new calls, 0.0000 for handoffs
+T312 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.7033788494176166e-06, 0.700480482181598, 0.05186787894124419, 4.704057963094824, 0.9999915726843328]
+
+T281 Blocking probability: 0.1246 for new calls, 0.0000 for handoffs
+T313 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4e-07, 0.7009869715703448, 0.01266959300273077, 1.0185890244423483, 0.9999528817368625]
+
+T283 Blocking probability: 0.1290 for new calls, 0.0000 for handoffs
+T314 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3965694549936932e-06, 0.8454741040586037, 0.0864885151707165, 1.5212719460435853, 0.999906605899483]
+
+T284 Blocking probability: 0.1225 for new calls, 0.0000 for handoffs
+T315 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6228966514145152e-06, 0.8217205522432895, 0.03438980858759899, 3.7293929643133428, 0.9999079559870719]
+Block prob threshold exceeded; breaking out early
+
+T312 Blocking probability: 0.1374 for new calls, 0.0000 for handoffs
+T316 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6029485450442125e-06, 0.9300234460879025, 0.016546600450100563, 1.3466416655330857, 0.9999016909261427]
+Block prob threshold exceeded; breaking out early
+
+T313 Blocking probability: 0.1374 for new calls, 0.0000 for handoffs
+T317 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.999934464490037e-06, 0.7008953184982839, 0.012629583016395217, 1.0185310630252382, 0.9999530483308933]
+
+T288 Blocking probability: 0.1250 for new calls, 0.0000 for handoffs
+T318 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.844412439781879e-06, 0.9931311078698097, 0.07968835413780836, 4.101889903718256, 0.9999811696419826]
+Block prob threshold exceeded; breaking out early
+
+T318 Blocking probability: 0.1454 for new calls, 0.0000 for handoffs
+T319 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.1174866180720094e-06, 0.820178836446814, 0.07627695788995278, 1.023226385171185, 0.9999910745117706]
+Block prob threshold exceeded; breaking out early
+
+T315 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T320 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.4827969456960083e-06, 0.9520915576132039, 0.010639172460141354, 2.8080002727588953, 0.9999114889851168]
+
+T291 Blocking probability: 0.1255 for new calls, 0.0000 for handoffs
+T321 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [6.81173214402933e-07, 0.8997220941833965, 0.07621682371486094, 2.0816306444313035, 0.9999044517434339]
+Block prob threshold exceeded; breaking out early
+
+T319 Blocking probability: 0.1429 for new calls, 0.0000 for handoffs
+T322 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [8.903338546310012e-07, 0.9465836739770468, 0.04573280548268275, 2.9513060715154245, 0.9999027534731715]
+
+T294 Blocking probability: 0.1244 for new calls, 0.0000 for handoffs
+T323 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.5094534356357534e-06, 0.9969882286973927, 0.06873007868345886, 2.3399405436423892, 0.9999677734327638]
+
+T295 Blocking probability: 0.1264 for new calls, 0.0000 for handoffs
+T324 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.3914711759246975e-06, 0.7069342345478621, 0.02777301209187521, 2.994373385208838, 0.9999964298599799]
+Block prob threshold exceeded; breaking out early
+
+T323 Blocking probability: 0.1491 for new calls, 0.0000 for handoffs
+T325 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.5293432959517018e-06, 0.79373741302254, 0.01923657825977679, 2.56545703546451, 0.9999945641510101]
+
+T301 Blocking probability: 0.1287 for new calls, 0.0000 for handoffs
+T326 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.407504500573647e-06, 0.7613081871246619, 0.033283515646367, 2.876904982614369, 0.9999265225909479]
+Block prob threshold exceeded; breaking out early
+
+T321 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T327 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.372348874112372e-06, 0.8334827926460375, 0.0678963794909918, 1.1956281278100824, 0.9999102541588233]
+Block prob threshold exceeded; breaking out early
+
+T326 Blocking probability: 0.1358 for new calls, 0.0000 for handoffs
+T328 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.1763873950075184e-06, 0.7003354444721235, 0.09897057558690449, 1.7462533688446082, 0.9999240427988012]
+
+T302 Blocking probability: 0.1279 for new calls, 0.0000 for handoffs
+T329 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.217578328660128e-07, 0.9991694046148925, 0.09144638273734278, 1.429357691195237, 0.9999093400239245]
+Block prob threshold exceeded; breaking out early
+
+T325 Blocking probability: 0.1393 for new calls, 0.0000 for handoffs
+T330 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.890033138150234e-06, 0.701683743362658, 0.015086420599501264, 4.306359395724908, 0.9999429239407766]
+Block prob threshold exceeded; breaking out early
+
+T329 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T331 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.933997906040198e-06, 0.8929611901954106, 0.04844712337783999, 1.3356990486579303, 0.9999555822749054]
+
+T306 Blocking probability: 0.1253 for new calls, 0.0000 for handoffs
+T332 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.834190005691953e-06, 0.9886012447647328, 0.05345922294843388, 1.5371035733603566, 0.9999328156831807]
+
+T307 Blocking probability: 0.1257 for new calls, 0.0000 for handoffs
+T333 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.79251331684066e-07, 0.7885897573374364, 0.09869920312097032, 2.8601366082272, 0.9999653735802108]
+Block prob threshold exceeded; breaking out early
+
+T331 Blocking probability: 0.1360 for new calls, 0.0000 for handoffs
+T334 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.955309243937633e-06, 0.996901276299685, 0.06670542536352976, 3.557694188286584, 0.9999170347758328]
+Block prob threshold exceeded; breaking out early
+
+T332 Blocking probability: 0.1440 for new calls, 0.0000 for handoffs
+T335 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.4414995496847054e-06, 0.9093588077021988, 0.0074312620761826315, 1.0133033297130964, 0.999952026091597]
+Block prob threshold exceeded; breaking out early
+
+T334 Blocking probability: 0.1516 for new calls, 0.0000 for handoffs
+T336 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.6034247183103673e-06, 0.8047123450031609, 0.07882935204022866, 4.436243957463671, 0.9999987416658118]
+Block prob threshold exceeded; breaking out early
+
+T322 Blocking probability: 0.1358 for new calls, 0.0000 for handoffs
+T337 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.0546452741368135e-06, 0.8683151258504745, 0.06857190918095203, 1.0907563170361672, 0.9999425650459113]
+Block prob threshold exceeded; breaking out early
+
+T330 Blocking probability: 0.1367 for new calls, 0.0000 for handoffs
+T338 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.028751549614239e-06, 0.7053088816692007, 0.05516334696679208, 3.3665332315918954, 0.9999530725117406]
+Block prob threshold exceeded; breaking out early
+
+T336 Blocking probability: 0.1501 for new calls, 0.0000 for handoffs
+T339 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.3998835541561204e-07, 0.8355577407844745, 0.06071593731530125, 2.929890033793206, 0.9999286798799691]
+Block prob threshold exceeded; breaking out early
+
+T328 Blocking probability: 0.1350 for new calls, 0.0000 for handoffs
+T340 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.2982246302474424e-06, 0.7073758145883868, 0.00543818325703896, 4.932035534675149, 0.9999322281178243]
+
+T310 Blocking probability: 0.1263 for new calls, 0.0000 for handoffs
+T341 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.1237658317776324e-07, 0.8750466842128626, 0.01196851110133507, 4.684782110959615, 0.9999666576944831]
+
+T311 Blocking probability: 0.1229 for new calls, 0.0000 for handoffs
+T342 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.1217051241554263e-07, 0.828034233682595, 0.040894841799780056, 1.1047221001910121, 0.9999756997667649]
+Block prob threshold exceeded; breaking out early
+
+T338 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T343 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.1657569298675944e-06, 0.8925708685909852, 0.03193931882402932, 1.079734361263306, 0.9999987903738163]
+
+T314 Blocking probability: 0.1266 for new calls, 0.0000 for handoffs
+T344 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.801666154410708e-06, 0.755285916351963, 0.07416184296230476, 1.1820281791267753, 0.9999735453421339]
+
+T316 Blocking probability: 0.1339 for new calls, 0.0000 for handoffs
+T345 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.0188806041880936e-06, 0.7437169633487419, 0.07067936479342242, 2.2449507928765415, 0.9999004565450373]
+
+T317 Blocking probability: 0.1255 for new calls, 0.0000 for handoffs
+T346 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [3.09230117668518e-06, 0.700847751435703, 0.012637920303581622, 1.0185428714696851, 0.9999989974377029]
+Block prob threshold exceeded; breaking out early
+
+T341 Blocking probability: 0.1368 for new calls, 0.0000 for handoffs
+T347 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.3136086801800394e-07, 0.7915250714465638, 0.05277201655672439, 2.43294190769996, 0.9999808333177126]
+Block prob threshold exceeded; breaking out early
+
+T344 Blocking probability: 0.1432 for new calls, 0.0000 for handoffs
+T348 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.954131428053419e-07, 0.8133730102182885, 0.07177868677282571, 3.172639460592414, 0.9999093588430374]
+Block prob threshold exceeded; breaking out early
+
+T343 Blocking probability: 0.1429 for new calls, 0.0000 for handoffs
+T349 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.453908363332365e-06, 0.8834913118302494, 0.036023123284021706, 1.76889096696583, 0.9999038868784446]
+Block prob threshold exceeded; breaking out early
+
+T340 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T350 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.505662908528864e-06, 0.7863001878105875, 0.07441559710061052, 1.3424651954395455, 0.9999007412250873]
+Block prob threshold exceeded; breaking out early
+
+T345 Blocking probability: 0.1353 for new calls, 0.0000 for handoffs
+T351 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.8480295072211537e-06, 0.8403115358868509, 0.07445315038602551, 1.0228687685712146, 0.9999001556540537]
+Block prob threshold exceeded; breaking out early
+
+T348 Blocking probability: 0.1350 for new calls, 0.0000 for handoffs
+T352 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [2.3380307557635127e-06, 0.8476228177120928, 0.006536884079354094, 2.5683837687717155, 0.9999643441482826]
+
+T320 Blocking probability: 0.1263 for new calls, 0.0000 for handoffs
+T353 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [5.096033461903349e-07, 0.9993077440280824, 0.007507425728958603, 2.1425953364867247, 0.9999697593435671]
+Block prob threshold exceeded; breaking out early
+
+T347 Blocking probability: 0.1351 for new calls, 0.0000 for handoffs
+T354 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.79262456648654e-07, 0.7740980598732199, 0.04232074215620606, 2.1346196664816866, 0.9999007820560182]
+Block prob threshold exceeded; breaking out early
+
+T349 Blocking probability: 0.1367 for new calls, 0.0000 for handoffs
+T355 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [4.492682890942093e-07, 0.7465470680653657, 0.02144430281681679, 3.077648450800446, 0.999904573326662]
+
+T324 Blocking probability: 0.1306 for new calls, 0.0000 for handoffs
+T356 Testing ['net_lr', 'net_lr_decay', 'weight_beta', 'epsilon', 'epsilon_decay']: [1.6188527371489595e-06, 0.9530613943841695, 0.038291215369650584, 4.90660855831892, 0.9999986731422271]
