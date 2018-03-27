@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import numpy as np
 
 import gridfuncs_numba as NGF
@@ -22,7 +24,7 @@ class VNetStrat(NetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = self.pp['beta']
-        self.avg_reward = [0]
+        self.avg_reward = 0
         self.importance_sampl = self.pp['importance_sampling']
         self.p = 1
         self.max_ch = 0
@@ -670,29 +672,73 @@ class PPOSinghNetStrat(VNetStrat):
         self.net = PPOSinghNet(pp=self.pp, logger=self.logger)
         self.backward_fn = self.net.backward
         assert self.pp['avg_reward']
-        self.neglogpac = None
+        self.rest = None
+        self.buf = []
+        self.n_step = self.pp['n_step']
+        self.step = namedtuple(
+            'step',
+            ('ch', 'next_val', 'frep', 'next_frep', 'neglogpac', 'reward', 'cell'))
+        self.i_pol_train = 5_000
+        self.i_pol_act = 20_000
+        self.pol_train = False
+        self.pol_act = False
+        self.optimal_ch = self.optimal_ch_val
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        if self.i == self.i_pol_train:
+            self.pol_train = True
+            print("POL TRAIN")
+        if self.i == self.i_pol_act:
+            self.pol_act = True
+            self.optimal_ch = self.optimal_ch_pol
+            print("POL ACT")
+        if ch is not None and self.rest is not None:
+            # Train policy network
+            step = self.step(ch, *self.rest, reward, cell)
+            if self.pol_train:
+                self.buf.append(step)
+            self.backward(step, self.buf, n_step=self.n_step)
+            if self.pol_train:
+                if len(self.buf) == self.n_step:
+                    self.buf = []
         next_ce_type, next_cell = next_cevent[1:3]
-        if ch is not None and self.neglogpac is not None:
-            frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
-            self.backward(
-                freps=[frep],
-                chs=[ch],
-                rewards=[reward],
-                next_freps=next_freps,
-                neglogpac=self.neglogpac)
-        next_ch, self.neglogpac, self.val = self.optimal_ch(next_ce_type, next_cell)
-        # print(next_ch, type(next_ch))
+        next_ch, *self.rest = self.optimal_ch(next_ce_type, next_cell)
         return next_ch
 
-    def optimal_ch(self, ce_type, cell) -> int:
+    def optimal_ch_pol(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
-                return None, 0, 0
+                return (None, ) * 5
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        val, ch, neglogpac = self.net.forward(self.grid, ce_type, cell, chs)
-        return ch, neglogpac, val
+        frep = NGF.feature_rep(self.grid)
+        ch, neglogpac = self.net.forward_action(frep, cell, ce_type, chs)
+        next_frep = NGF.incremental_freps(self.grid, frep, cell, ce_type, np.array([ch]))
+        val = self.net.forward_value(next_frep)
+        return ch, val, frep, next_frep, neglogpac
+
+    def optimal_ch_val(self, ce_type, cell) -> int:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return (None, ) * 5
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+        old_frep, freps = NGF.successive_freps(self.grid, cell, ce_type, chs)
+        # Q-value for each ch in 'chs'
+        qvals_dense = self.net.forward_value(freps).reshape(len(chs))
+        if ce_type == CEvent.END:
+            idx = max_idx = np.argmax(qvals_dense)
+            ch = max_ch = chs[idx]
+        else:
+            ch, idx, _ = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            max_idx = np.argmax(qvals_dense)
+            max_ch = chs[max_idx]
+            self.epsilon *= self.epsilon_decay
+
+        if ch is None:
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
+        return ch, qvals_dense[idx], old_frep, freps[idx], self.net.get_neglogpac(
+            old_frep, cell, ch)
