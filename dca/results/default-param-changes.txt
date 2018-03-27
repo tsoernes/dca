@@ -1,0 +1,28 @@
+date/time 27.03 22:32
+
+Changing default params from:
+phoff 0.15
+epol "nom_fixed_greedy"
+epsilon 0.75443
+epsilon_decay 0.999_99
+wbeta 1e-6
+net_lr 2.95e-5
+opt sgd-m
+conv_nfilters [70, 70]
+buffer_size 5000
+net_lr_decay 0.96
+avg_reward False
+
+Changing default params to:
+phoff 0
+epol "boltzmann"
+epsilon 2.10259
+epsilon_decay 0.999_9
+wbeta 1.3e-2
+net_lr 2.52e-06
+opt sgd
+conv_nfilters [80, 70]
+buffer_size 1000
+net_lr_decay 0.78
+avg_reward True
+

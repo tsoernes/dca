@@ -179,6 +179,13 @@ Average cumulative block probability over 4 episodes: 0.1346 with standard devia
 avgsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
 Average cumulative block probability over 16 episodes: 0.1267 with standard deviation 0.00172
 
+---------
+dlib tuning
+
+p3 runner.py avgsinghnet -phoff 0 -epol boltzmann -opt sgd --no_gpu --avg_reward --weight_beta 0.0129006 --net_lr 2.51769e-06 --epsilon 2.10259 --epsilon_decay 0.999901 --net_lr_decay 0.781374 --avg_runs 16
+
+----------
+
 ------------------------------------------------------------
 RSMART MDP Robbins-Monro
 Testing weight-beta, with weight_beta decay at default 0.999_999
