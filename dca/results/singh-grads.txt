@@ -179,12 +179,6 @@ Average cumulative block probability over 4 episodes: 0.1346 with standard devia
 avgsinghnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --avg_runs 16 --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 1e-2
 Average cumulative block probability over 16 episodes: 0.1267 with standard deviation 0.00172
 
----------
-dlib tuning
-
-p3 runner.py avgsinghnet -phoff 0 -epol boltzmann -opt sgd --no_gpu --avg_reward --weight_beta 0.0129006 --net_lr 2.51769e-06 --epsilon 2.10259 --epsilon_decay 0.999901 --net_lr_decay 0.781374 --avg_runs 16
-
-----------
 
 ------------------------------------------------------------
 RSMART MDP Robbins-Monro
@@ -205,3 +199,27 @@ Average cumulative block probability over 4 episodes: 0.1287 with standard devia
 
 p3 runner.py rsmartmdpnet -phoff 0 -epol boltzmann -eps 2 -opt sgd --no_gpu --net_lr 1.45e-06 --net_lr_decay 0.7 --avg_reward --weight_beta 5e-2 --avg_runs 4 --weight_beta_decay 0.9_999
 Average cumulative block probability over 4 episodes: 0.1332 with standard deviation 0.00154
+
+---------
+dlib tuning test
+
+p3 runner.py avgsinghnet -phoff 0 -epol boltzmann -opt sgd --no_gpu --avg_reward --weight_beta 0.0129006 --net_lr 2.51769e-06 --epsilon 2.10259 --epsilon_decay 0.999901 --net_lr_decay 0.781374 --avg_runs 16
+Average cumulative block probability over 16 episodes: 0.1258 with standard deviation 0.00166
+[[0.1266531  0.        ]
+ [0.12718609 0.        ]
+ [0.12659191 0.        ]
+ [0.12464918 0.        ]
+ [0.12605564 0.        ]
+ [0.12627604 0.        ]
+ [0.12357556 0.        ]
+ [0.12315377 0.        ]
+ [0.12678434 0.        ]
+ [0.12506676 0.        ]
+ [0.12492726 0.        ]
+ [0.12414571 0.        ]
+ [0.12577391 0.        ]
+ [0.12629944 0.        ]
+ [0.13050424 0.        ]
+ [0.12592374 0.        ]]
+
+----------
