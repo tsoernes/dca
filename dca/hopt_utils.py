@@ -327,7 +327,8 @@ def compare_pps(old_pp, new_pp):
     # Dims are converted from list to tuple in DB, so don't diff
     dims = new_pp['dims']
     del new_pp['dims']
-    del old_pp['dims']
+    if 'dims' in old_pp:
+        del old_pp['dims']
     pp_diff = diff(old_pp, new_pp)
     new_pp['dims'] = dims
     old_pp['dims'] = dims

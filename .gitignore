@@ -3,6 +3,7 @@ TAGS
 dca/model/
 dca/db/
 dca/logfile.txt
+*.bak
 # Numpy data sets
 *.npy
 data-experience*

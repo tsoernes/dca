@@ -8,7 +8,7 @@ import pickle
 import sys
 import time
 from functools import partial
-from multiprocessing import Pool, Process, Queue, cpu_count
+from multiprocessing import Pool, Process, Queue  # , cpu_count
 
 #  import argcomplete
 import numpy as np
@@ -150,11 +150,12 @@ class Runner:
         space = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
             # 'gamma': [False, 0.60, 0.99],
-            'net_lr': [False, 8e-8, 1e-5],
-            'beta': [True, 10, 3000],
-            # 'net_lr_decay': [False, 0.65, 1.0],
-            # 'weight_beta': [False, 1e-10, 1e-5]
-            # 'epsilon': [True, 10, 2000],
+            'net_lr': [False, 4e-7, 4e-6],
+            # 'beta': [True, 10, 3000],
+            'net_lr_decay': [False, 0.70, 1.0],
+            'weight_beta': [False, 5e-3, 1e-1],
+            'epsilon': [False, 1, 5],
+            'epsilon_decay': [False, 0.999_9, 0.999_999],
             # 'alpha': [False, 0.00001, 0.3]
         }
         params, is_int, lo_bounds, hi_bounds = [], [], [], []
