@@ -144,6 +144,7 @@ class Runner:
         """
         import dlib
         n_sims = 4000  # The number of times to sample and test params
+        save_iter = 50
         n_concurrent = 14  # int(cpu_count() / 2) - 1  # Number of concurrent procs
         solver_epsilon = 0.0005
         relative_noise_magnitude = 0.001  # Default
@@ -201,6 +202,12 @@ class Runner:
         simproc = partial(dlib_proc, self.stratclass, self.pp, params, result_queue)
         evals = [None] * n_sims
 
+        def save():
+            finished_evals = optimizer.get_function_evaluations()[1][0]
+            dlib_save(spec, finished_evals, params, solver_epsilon,
+                      relative_noise_magnitude, self.pp, fname)
+            self.logger.error("Saved progress")
+
         def quit_opt():
             # Store results of finished evals to file; print best eval
             finished_evals = optimizer.get_function_evaluations()[1][0]
@@ -208,7 +215,7 @@ class Runner:
                       relative_noise_magnitude, self.pp, fname)
             best_eval = optimizer.get_best_function_eval()
             self.logger.error(f"Finished {len(finished_evals)} trials."
-                              f" Best eval this session: {best_eval}")
+                              f" Best eval this session: {params} {best_eval}")
 
         def spawn_eval(i):
             # Spawn a new sim process
@@ -229,6 +236,8 @@ class Runner:
                 sys.exit(0)
             else:
                 evals[i].set(result)
+                if i % save_iter == 0:
+                    save()
 
         self.logger.error(
             f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
