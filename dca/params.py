@@ -82,7 +82,7 @@ def get_pparams(defaults=False):
         '-phoff',
         '--p_handoff',
         type=float,
-        help="handoff probability. Default: 0.15",
+        help="handoff probability. Default: 0.0",
         default=None)
     parser.add_argument(
         '--hoff_call_duration',
@@ -133,7 +133,7 @@ def get_pparams(defaults=False):
         type=str,
         help="Exploration policy (only used for NEW/HOFF events)",
         choices=policy_func_names,
-        default="nom_fixed_greedy")
+        default="boltzmann")
     parser.add_argument(
         '-epolc',
         '--exp_policy_param',
@@ -146,16 +146,17 @@ def get_pparams(defaults=False):
         dest='epsilon',
         type=float,
         help="(RL) (initial) probability of choosing random action",
-        default=0.75443)
+        default=2.10259)
     parser.add_argument(
         '--epsilon_decay',
         type=float,
         help="(RL) factor by which epsilon is multiplied each iteration",
-        default=0.999_99)
+        default=0.999_9)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
         '--gamma_end', type=float, help="(RL) discount factor at sim end", default=None)
-    parser.add_argument('-wbeta', '--weight_beta', type=float, help="(RL)", default=1e-6)
+    parser.add_argument(
+        '-wbeta', '--weight_beta', type=float, help="(RL)", default=1.3e-2)
     parser.add_argument('--weight_beta_decay', type=float, help="(RL)", default=0.999_999)
     parser.add_argument(
         '--beta',
@@ -177,7 +178,7 @@ def get_pparams(defaults=False):
         help="(RL)",
         default=False)
     parser.add_argument(
-        '--avg_reward', action='store_true', help="(RL/Singh)", default=False)
+        '--no_avg_reward', action='store_true', help="(RL/Singh)", default=False)
     parser.add_argument(
         '--reward_scale',
         type=float,
@@ -239,19 +240,19 @@ def get_pparams(defaults=False):
         dest='net_lr',
         type=float,
         help="(Net) Learning rate. Overrides 'alpha'.",
-        default=2.95e-5)
+        default=2.52e-06)
     parser.add_argument(
         '--net_lr_decay',
         '-lr_dec',
         type=float,
         help="(Net) Exponential Learning rate decay multiplier",
-        default=0.96)
+        default=0.78)
     parser.add_argument(
         '--optimizer',
         '-opt',
         dest='optimizer',
         choices=['sgd', 'sgd-m', 'adam', 'rmsprop'],
-        default='sgd-m')
+        default='sgd')
     parser.add_argument(
         '--huber_loss',
         nargs='?',
@@ -281,7 +282,7 @@ def get_pparams(defaults=False):
         nargs='+',
         type=int,
         help='(Net) Number of convolutional filters',
-        default=[70, 70])
+        default=[80, 70])
     parser.add_argument(
         '-kernels',
         '--conv_kernel_sizes',
@@ -311,11 +312,6 @@ def get_pparams(defaults=False):
         dest='dueling_qnet',
         action='store_true',
         help="(Net/Duel) Dueling QNet",
-        default=False)
-    parser.add_argument(
-        '--rnn',
-        action='store_true',
-        help="(Net) Add RNN after convolutional layers",
         default=False)
     parser.add_argument(
         '--layer_norm',
@@ -390,7 +386,7 @@ def get_pparams(defaults=False):
         '--buffer_size',
         type=int,
         help="(Net/Exp) Buffer size for experience replay",
-        default=5000)
+        default=1000)
     # parser.add_argument(
     #     '-pri',
     #     '--prioritized_replay',
@@ -527,6 +523,8 @@ def get_pparams(defaults=False):
     del pp['no_grid_split']
     pp['use_gpu'] = not pp['no_gpu']
     del pp['no_gpu']
+    pp['avg_reward'] = not pp['no_avg_reward']
+    del pp['no_avg_reward']
     # pp['conv_bias'] = not pp['no_conv_bias']
     # del pp['no_conv_bias']
 
@@ -591,7 +589,7 @@ def get_pparams(defaults=False):
     if pp['log_level'] is None:
         pp['log_level'] = logging.INFO
     if pp['p_handoff'] is None:
-        pp['p_handoff'] = 0.15
+        pp['p_handoff'] = 0.0
     if pp['gamma_end'] is None:
         pp['gamma_end'] = pp['gamma']
     if pp['n_events'] is None:
