@@ -22,7 +22,7 @@ class VNetStrat(NetStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = self.pp['beta']
-        self.avg_reward = [0]
+        self.avg_reward = 0
         self.importance_sampl = self.pp['importance_sampling']
         self.p = 1
         self.max_ch = 0
@@ -344,7 +344,7 @@ class AvgSinghNetStrat(VNetStrat):
         frep = NGF.feature_rep(grid)
         value_target = reward + next_val - self.avg_reward
         err = self.backward(
-            grids=grid, freps=[frep], value_target=[value_target], weight=weight)
+            grids=grid, freps=[frep], value_target=[[value_target]], weight=weight)
         if ch == max_ch:
             self.avg_reward += self.weight_beta * err[0][0]
             # self.weight_beta *= self.weight_beta_decay
@@ -542,19 +542,15 @@ class RSMARTSMDPNet(RSMARTBase):
         self.tot_reward = 0
         self.tot_time = 0
         self.t0 = 0
-        # assert self.pp['beta']
-        # TODO: Try
-        # - with beta
-        # - without beta, mult by dt
+        assert self.pp['beta']
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         if ch is not None:
             frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array([ch]))
             dt = next_cevent[0] - self.t0
             # treward = reward * dt - self.avg_reward * dt
-            treward = reward - self.avg_reward * dt
-            self.backward(
-                freps=[frep], rewards=treward, next_freps=next_freps, discount=discount)
+            value_target = reward - self.avg_reward * dt + self.next_val
+            self.backward(grids=grid, freps=[frep], value_target=[[value_target]])
             self.tot_reward = (
                 1 - self.weight_beta) * self.tot_reward + self.weight_beta * float(reward)
             self.tot_time = (
