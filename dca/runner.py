@@ -165,7 +165,7 @@ class Runner:
             is_int.append(li[0])
             lo_bounds.append(li[1])
             hi_bounds.append(li[2])
-        fname = self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
+        fname = "dlib-" + self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         try:
             old_spec, evals, info, prev_best = dlib_load(fname)
             # Restore saved params and settings if they differ from current/specified
@@ -189,9 +189,8 @@ class Runner:
                 [spec],
                 initial_function_evals=[evals],
                 relative_noise_magnitude=info['relative_noise_magnitude'])
-            self.logger.error(
-                f"Restored {len(evals)} trials, prev best: "
-                f"{prev_best[0]}@{zip(saved_params, prev_best[1:])}")
+            self.logger.error(f"Restored {len(evals)} trials, prev best: "
+                              f"{prev_best[0]}@{zip(saved_params, prev_best[1:])}")
         except FileNotFoundError:
             spec = dlib.function_spec(
                 bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
