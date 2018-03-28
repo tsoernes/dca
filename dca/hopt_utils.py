@@ -300,6 +300,8 @@ def dlib_load(fname):
     (dlib.function_spec, [dlib.function_eval], dict, prev_best)
       where prev_best: np.array[result, param1, param2, ...]
     """
+    fname = fname.replace(".pkl", '') + ".pkl"
+    fname = "dlib-" + fname.replace("dlib-", '')
     with open(fname, "rb") as f:
         raw_spec, raw_results, info = pickle.load(f)
     is_integer, lo_bounds, hi_bounds = raw_spec
@@ -311,6 +313,16 @@ def dlib_load(fname):
         result = dlib.function_evaluation(x=x, y=raw_result[0])
         evals.append(result)
     return spec, evals, info, prev_best
+
+
+def dlib_best(fname, n=1):
+    fname = fname.replace(".pkl", '') + ".pkl"
+    fname = "dlib-" + fname.replace("dlib-", '')
+    with open(fname, "rb") as f:
+        raw_spec, raw_results, info = pickle.load(f)
+    is_integer, lo_bounds, hi_bounds = raw_spec
+    rs = raw_results[raw_results[:, 0].argsort()]
+    print(raw_spec, info, rs[:n])
 
 
 def compare_pps(old_pp, new_pp):
@@ -406,7 +418,10 @@ def runner(inp=None):
     fname = args['fname']
     trials = hopt_trials(fname)
     if args['hopt_best'] > 0:
-        hopt_best(trials, args['hopt_best'], view_pp=True)
+        if fname.startswith('dlib'):
+            dlib_best(fname, args['hopt_best'])
+        else:
+            hopt_best(trials, args['hopt_best'], view_pp=True)
     elif args['plot']:
         hopt_plot(trials)
     elif args['prune_jobs']:
