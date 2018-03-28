@@ -300,6 +300,7 @@ def get_pparams(defaults=False):
         action='store_true',
         help="(Singh) Conv layer(s) before dense",
         default=False)
+    parser.add_argument('--prep_net', type=int, default=100)
     parser.add_argument('--n_step', type=int, help="(Net) N step returns", default=1)
     parser.add_argument(
         '--bighead',

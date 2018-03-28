@@ -159,7 +159,7 @@ class ExpSinghNetStrat(VNetStrat):
         self.gamma = self.pp['gamma']
         self.backward_fn = self.net.backward
         self.bgumbel = BoltzmannGumbel(c=self.pp['exp_policy_param']).select_action
-        self.prep_net()
+        self.prep_net(self.pp['prep_net'])
 
         assert self.batch_size > 1
 
@@ -337,7 +337,7 @@ class AvgSinghNetStrat(VNetStrat):
         assert self.pp['avg_reward']
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
-        self.prep_net(200)
+        self.prep_net(self.pp['prep_net'])
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount, max_ch, next_max_val, p):
@@ -371,7 +371,7 @@ class BigAvgSinghNetStrat(VNetStrat):
         assert self.pp['avg_reward']
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
-        self.prep_net(200)
+        self.prep_net(self.pp['prep_net'])
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount, max_ch, next_max_val, p):
@@ -454,8 +454,7 @@ class ExpBigAvgSinghNetStrat(BigAvgSinghNetStrat):
         # frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array(chs))
         frep = NGF.feature_rep_big2(grid)
         value_target = reward + next_val - self.avg_reward
-        td_err = self.backward(
-            freps=[frep], value_target=[[value_target]]).reshape([-1])
+        td_err = self.backward(freps=[frep], value_target=[[value_target]]).reshape([-1])
         if ch == max_ch:
             # TODO can possibly move this to optimal ch and update each iter since reward
             # and next_val is known

@@ -1,0 +1,20 @@
+p3 runner.py bigavgsinghnet -epol boltzmann --net_lr 5e-07 --pre_conv  --weight_init_dense zeros --avg_runs 4
+Starting simulation at 2018-03-28 23:13:49.187329 with params:
+{'strat': 'bigavgsinghnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'traffic_preset': 'uniform', 'call_rate': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.0, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'breakout_thresh': 0.23, 'avg_runs': 4, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'wolf': 1, 'exp_policy': 'boltzmann', 'exp_policy_param': None, 'epsilon': 2.10259, 'epsilon_decay': 0.9999, 'gamma': 0.85, 'gamma_end': 0.85, 'weight_beta': 0.013, 'weight_beta_decay': 0.999999, 'beta': None, 'beta_disc': False, 'importance_sampling': False, 'reward_scale': 1, 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'random_hopt': None, 'dlib_hopt': None, 'hopt': None, 'hopt_fname': None, 'net_lr': 5e-07, 'net_lr_decay': 0.78, 'optimizer': 'sgd', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'glorot_unif', 'qnom_lo': 0.5, 'qnom_hi': 1.5, 'weight_init_dense': 'zeros', 'conv_nfilters': [80, 70], 'conv_kernel_sizes': [4, 3], 'conv_bias': False, 'pre_conv': True, 'n_step': 1, 'bighead': False, 'dueling_qnet': False, 'layer_norm': False, 'l2_conv': False, 'l2_scale': 1e-05, 'l2_dense': False, 'top_stack': False, 'singh_grid': False, 'qnet_freps': False, 'qnet_freps_only': False, 'scale_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 1000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_copy_iter_decr': None, 'net_creep_tau': 0.12, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'analyze_net': False, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'debug': False, 'profiling': False, 'tfprofiling': '', 'print_weights': False, 'gui': False, 'do_plot': False, 'log_level': 20, 'log_file': None, 'log_iter': 58750, 'grid_split': True, 'use_gpu': False, 'avg_reward': True, 'freps': False, 'dt_rewards': False, 'dims': (7, 7, 70), 'net': True}
+
+prep_net(200) for all runs below. This is probably TOO high
+
+filters = tf.ones((3, 3, self.depth, 1)) * 0.1
+conv = tf.nn.depthwise_conv2d(
+    inp, filters, strides=[1, 3, 3, 1], padding='SAME')
+dense_inp = tf.nn.relu(conv)
+Average cumulative block probability over 4 episodes: 0.1260 with standard deviation 0.00196
+
+as above, but strides=[1, 1, 1, 1]
+Average cumulative block probability over 4 episodes: 0.1264 with standard deviation 0.00208
+
+strides=[1, 1, 1, 1], padding='VALID'
+Average cumulative block probability over 4 episodes: 0.1242 with standard deviation 0.00098
+
+strides=[1, 3, 3, 1], padding='VALID'
+Average cumulative block probability over 4 episodes: 0.1304 with standard deviation 0.00204
