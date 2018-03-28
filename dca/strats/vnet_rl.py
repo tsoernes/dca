@@ -371,7 +371,7 @@ class BigAvgSinghNetStrat(VNetStrat):
         assert self.pp['avg_reward']
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
-        self.prep_net(200)
+        self.prep_net(50)
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount, max_ch, next_max_val, p):
