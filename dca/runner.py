@@ -145,18 +145,18 @@ class Runner:
         import dlib
         n_sims = 4000  # The number of times to sample and test params
         save_iter = 50
-        n_concurrent = 14  # int(cpu_count() / 2) - 1  # Number of concurrent procs
+        n_concurrent = 6  # int(cpu_count() / 2) - 1  # Number of concurrent procs
         solver_epsilon = 0.0005
         relative_noise_magnitude = 0.001  # Default
         space = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
             # 'gamma': [False, 0.60, 0.99],
-            'net_lr': [False, 4e-7, 4e-6],
+            'net_lr': [False, 8e-7, 8e-6],
             # 'beta': [True, 10, 3000],
             'net_lr_decay': [False, 0.70, 1.0],
             'weight_beta': [False, 5e-3, 1e-1],
-            'epsilon': [False, 1, 5],
-            'epsilon_decay': [False, 0.999_9, 0.999_999],
+            'epsilon': [False, 2, 5],
+            'epsilon_decay': [False, 0.999_5, 0.999_999],
             # 'alpha': [False, 0.00001, 0.3]
         }
         params, is_int, lo_bounds, hi_bounds = [], [], [], []
@@ -190,7 +190,8 @@ class Runner:
                 initial_function_evals=[evals],
                 relative_noise_magnitude=info['relative_noise_magnitude'])
             self.logger.error(
-                f"Restored {len(evals)} trials, prev best {saved_params} {prev_best}")
+                f"Restored {len(evals)} trials, prev best: "
+                f"{prev_best[0]}@{zip(saved_params, prev_best[1:])}")
         except FileNotFoundError:
             spec = dlib.function_spec(
                 bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
@@ -214,8 +215,9 @@ class Runner:
             dlib_save(spec, finished_evals, params, solver_epsilon,
                       relative_noise_magnitude, self.pp, fname)
             best_eval = optimizer.get_best_function_eval()
+            prms = list(zip(params, list(best_eval[0])))
             self.logger.error(f"Finished {len(finished_evals)} trials."
-                              f" Best eval this session: {params} {best_eval}")
+                              f" Best eval this session: {best_eval[1]}@{prms}")
 
         def spawn_eval(i):
             # Spawn a new sim process
@@ -443,6 +445,9 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     # Add/overwrite problem params with params given from dlib
     for j, key in enumerate(space_params):
         pp[key] = space_vals[j]
+    if pp['epsilon'] < 2.1 and pp['epsilon_decay'] < 0.999_8:
+        pp['exp_policy'] = 'eps_greedy'
+        pp['epsilon'] = 0
     strat = stratclass(pp=pp, logger=logger, pid=i)
     res = strat.simulate()[0]
     if res is None:

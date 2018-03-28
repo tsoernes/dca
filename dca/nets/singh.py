@@ -6,27 +6,37 @@ from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big
 
 
 class SinghNet(Net):
-    def __init__(self, pp, *args, **kwargs):
+    def __init__(self, pp, logger, big_freps=False):
         """
         Afterstate value net
         """
         self.name = "SinghNet"
         self.pre_conv = pp['pre_conv']
         self.grid_inp = pp['singh_grid']
-        super().__init__(name=self.name, pp=pp, *args, **kwargs)
+        self.depth = 3 * 70 + 1 if big_freps else 70 + 1
+        self.frepshape = [pp['rows'], pp['cols'], self.depth]
+        super().__init__(name=self.name, pp=pp, logger=logger)
 
     def _build_net(self, inp, name):
         with tf.variable_scope('model/' + name) as scope:
             if self.pre_conv:
-                pad = tf.keras.layers.ZeroPadding2D((1, 1))
-                out = pad(inp)
-                dense_inp = tf.keras.layers.LocallyConnected2D(
-                    filters=80,
-                    kernel_size=3,
-                    padding="valid",
-                    kernel_initializer=self.kern_init_conv(),
-                    use_bias=self.pp['conv_bias'],
-                    activation=None)(out)
+                # [filter_height, filter_width, in_channels, channel_multiplier]
+                # filters = tf.Variable(
+                #     tf.random_normal((2, 2, 70 * 3 + 1, 1), mean=0.2, stddev=0.2))
+                filters = tf.ones((3, 3, self.depth, 1)) * 0.1
+                conv = tf.nn.depthwise_conv2d(
+                    inp, filters, strides=[1, 3, 3, 1], padding='SAME')
+                print(inp.shape, conv.shape)
+                dense_inp = tf.nn.relu(conv)
+                # pad = tf.keras.layers.ZeroPadding2D((1, 1))
+                # out = pad(inp)
+                # dense_inp = tf.keras.layers.LocallyConnected2D(
+                #     filters=80,
+                #     kernel_size=3,
+                #     padding="valid",
+                #     kernel_initializer=self.kern_init_conv(),
+                #     use_bias=self.pp['conv_bias'],
+                #     activation=None)(out)
                 # dense_inp = self.add_conv_layer(inp, 80, 5)
             else:
                 dense_inp = inp
@@ -44,9 +54,7 @@ class SinghNet(Net):
         return value, trainable_vars
 
     def build(self):
-        # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
-        frepshape = [None, self.rows, self.cols, self.n_channels + 1]
-        self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
+        self.freps = tf.placeholder(tf.float32, [None, *self.frepshape], "feature_reps")
         self.grids = tf.placeholder(
             tf.bool, [None, self.rows, self.cols, 2 * self.n_channels], "grid")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
@@ -71,23 +79,22 @@ class SinghNet(Net):
                 labels=self.value_target, predictions=self.value, weights=self.weights)
         return self.loss, online_vars
 
-    def forward(self, grids, freps):
+    def forward(self, freps, grids=None):
+        data = {
+            self.freps: freps,
+        }
+        if self.grid_inp:
+            data[self.grids] = prep_data_grids(grids, self.grid_split)
         values = self.sess.run(
-            self.value,
-            feed_dict={
-                self.freps: freps,
-                self.grids: prep_data_grids(grids, self.grid_split)
-            },
-            options=self.options,
-            run_metadata=self.run_metadata)
+            self.value, data, options=self.options, run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
 
     def backward_supervised(self,
-                            grids,
                             freps,
                             value_target,
                             weights=[1],
+                            grids=None,
                             *args,
                             **kwargs):
         weights = np.expand_dims(weights, axis=1)

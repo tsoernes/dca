@@ -31,11 +31,11 @@ class VNetStrat(NetStrat):
         self.next_max_val = 0
         self.next_val = np.float32(0)
 
-    def prep_net(self):
+    def prep_net(self, n=200):
         """ Pre-train net on nominal chs """
         r = np.count_nonzero(GF.nom_chs_mask)
         frep = NGF.feature_rep(GF.nom_chs_mask)
-        for _ in range(200):
+        for _ in range(n):
             self.net.backward_supervised(
                 grids=GF.nom_chs_mask, freps=[frep], value_target=[[r]])
 
@@ -105,7 +105,7 @@ class VNetStrat(NetStrat):
         freps = NGF.afterstate_freps(grid, cell, ce_type, chs)
         grids = NGF.afterstates(grid, cell, ce_type, chs)
         # Q-value for each ch in 'chs'
-        qvals_dense = self.net.forward(grids, freps)
+        qvals_dense = self.net.forward(freps, grids)
         assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
         return qvals_dense
 
@@ -160,6 +160,8 @@ class ExpSinghNetStrat(VNetStrat):
         self.backward_fn = self.net.backward
         self.bgumbel = BoltzmannGumbel(c=self.pp['exp_policy_param']).select_action
         self.prep_net()
+
+        assert self.batch_size > 1
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount, max_ch, next_max_val, p):
@@ -335,6 +337,7 @@ class AvgSinghNetStrat(VNetStrat):
         assert self.pp['avg_reward']
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
+        self.prep_net(200)
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount, max_ch, next_max_val, p):
@@ -350,6 +353,135 @@ class AvgSinghNetStrat(VNetStrat):
         if ch == max_ch:
             self.avg_reward += self.weight_beta * err[0][0]
             # self.weight_beta *= self.weight_beta_decay
+
+
+class BigAvgSinghNetStrat(VNetStrat):
+    """Average reward formulation
+    Without dt_rewards,
+        lr=1e-7, weight_beta=1e-2
+        lr=1e-6, weight_beta=1e-2
+        lr=1e-5, weight_beta=1e-2
+    seems like good strating points
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(pp=self.pp, logger=self.logger, big_freps=True)
+        self.backward_fn = self.net.backward_supervised
+        assert self.pp['avg_reward']
+        self.weight_beta = self.pp['weight_beta']
+        self.weight_beta_decay = self.pp['weight_beta_decay']
+        self.prep_net(200)
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+                    discount, max_ch, next_max_val, p):
+        frep = NGF.feature_rep_big2(grid)
+        value_target = reward + next_val - self.avg_reward
+        err = self.backward(grids=grid, freps=[frep], value_target=[[value_target]])
+        if ch == max_ch:
+            self.avg_reward += self.weight_beta * err[0][0]
+
+    def prep_net(self, n=200):
+        """ Pre-train net on nominal chs """
+        r = np.count_nonzero(GF.nom_chs_mask)
+        frep = NGF.feature_rep_big2(GF.nom_chs_mask)
+        for _ in range(n):
+            self.net.backward_supervised(
+                grids=GF.nom_chs_mask, freps=[frep], value_target=[[r]])
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        grids = NGF.afterstates(grid, cell, ce_type, chs)
+        freps = NGF.feature_reps_big2(grids)
+        # Q-value for each ch in 'chs'
+        qvals_dense = self.net.forward(freps)
+        assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
+        return qvals_dense
+
+
+class ExpBigAvgSinghNetStrat(BigAvgSinghNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert self.batch_size > 1
+        self.next_elig_freps = None
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        grids = NGF.afterstates(grid, cell, ce_type, chs)
+        freps = NGF.feature_reps_big2(grids)
+        # Q-value for each ch in 'chs'
+        qvals_dense = self.net.forward(freps)
+        assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
+        return qvals_dense, freps
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        if ch is not None and self.next_elig_freps is not None:
+            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell,
+                             self.next_val, discount, self.max_ch, self.next_elig_freps)
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, self.next_val, self.max_ch, self.next_elig_freps = res
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> int:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return (None, ) * 4
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+
+        qvals_dense, freps = self.get_qvals(self.grid, cell, ce_type, chs)
+        self.qval_means.append(np.mean(qvals_dense))
+        if ce_type == CEvent.END:
+            idx = max_idx = np.argmax(qvals_dense)
+            ch = max_ch = chs[idx]
+        else:
+            ch, idx, _ = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            max_idx = np.argmax(qvals_dense)
+            max_ch = chs[max_idx]
+            self.epsilon *= self.epsilon_decay
+
+        if ch is None:
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
+
+        return ch, qvals_dense[idx], max_ch, freps
+
+    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
+                    discount, max_ch, next_elig_freps):
+        """
+        Update qval for pp['batch_size'] experience tuples,
+        sampled from the experience replay memory.
+        """
+        # frep, next_freps = NGF.successive_freps(grid, cell, ce_type, np.array(chs))
+        frep = NGF.feature_rep_big2(grid)
+        value_target = reward + next_val - self.avg_reward
+        td_err = self.backward(
+            freps=[frep], value_target=[[value_target]]).reshape([-1])
+        if ch == max_ch:
+            # TODO can possibly move this to optimal ch and update each iter since reward
+            # and next_val is known
+            self.avg_reward += self.weight_beta * td_err[0]
+
+        if len(self.exp_buffer) >= 1000:  # self.pp['buffer_size']:
+            # Can't backprop before exp store has enough experiences
+            data, weights, batch_idxes = self.exp_buffer.sample(
+                self.pp['batch_size'], beta=self.pri_beta_schedule.value(self.i))
+            data['weights'] = weights
+            data['value_target'] = np.zeros(self.pp['batch_size'])
+            for i, nef in enumerate(data['next_elig_freps']):
+                next_vals = self.net.forward(np.array(nef))
+                data['value_target'][
+                    i] = data['rewards'][i] - self.avg_reward + np.max(next_vals)
+            # data['value_target'] = np.expand_dims(
+            #     data['rewards'] - self.avg_reward + next_vals, axis=1)
+            data['value_target'] = np.expand_dims(data['value_target'], axis=1)
+            td_errs = self.backward(**data).reshape([-1])
+            self.avg_reward += self.weight_beta * np.mean(td_errs)
+            new_priorities = np.abs(td_errs) + self.prioritized_replay_eps
+            self.exp_buffer.update_priorities(batch_idxes, new_priorities)
+
+        pri = np.abs(td_err) + self.prioritized_replay_eps
+        self.exp_buffer.add_with_pri(
+            priority=pri, frep=frep, reward=reward, next_elig_freps=next_elig_freps)
 
 
 class LSTDSinghNetStrat(VNetStrat):

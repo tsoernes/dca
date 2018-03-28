@@ -203,6 +203,7 @@ Average cumulative block probability over 4 episodes: 0.1332 with standard devia
 ---------
 dlib tuning test
 
+NOTE: Below run does not have kernel init dense=zeros
 p3 runner.py avgsinghnet -phoff 0 -epol boltzmann -opt sgd --no_gpu --avg_reward --weight_beta 0.0129006 --net_lr 2.51769e-06 --epsilon 2.10259 --epsilon_decay 0.999901 --net_lr_decay 0.781374 --avg_runs 16
 Average cumulative block probability over 16 episodes: 0.1258 with standard deviation 0.00166
 [[0.1266531  0.        ]
