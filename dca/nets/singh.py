@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big
+from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big, InPlaneLocallyConnected2D
 
 
 class SinghNet(Net):
@@ -23,21 +23,21 @@ class SinghNet(Net):
                 # [filter_height, filter_width, in_channels, channel_multiplier]
                 # filters = tf.Variable(
                 #     tf.random_normal((2, 2, 70 * 3 + 1, 1), mean=0.2, stddev=0.2))
-                filters = tf.ones((3, 3, self.depth, 1)) * 0.1
-                conv = tf.nn.depthwise_conv2d(
-                    inp, filters, strides=[1, 3, 3, 1], padding='SAME')
-                print(inp.shape, conv.shape)
-                dense_inp = tf.nn.relu(conv)
+                #filters = tf.ones((3, 3, self.depth, 1)) * 0.1
+                #conv = tf.nn.depthwise_conv2d(
+                #    inp, filters, strides=[1, 3, 3, 1], padding='SAME')
+                #dense_inp = tf.nn.relu(conv)
                 # pad = tf.keras.layers.ZeroPadding2D((1, 1))
                 # out = pad(inp)
-                # dense_inp = tf.keras.layers.LocallyConnected2D(
-                #     filters=80,
-                #     kernel_size=3,
-                #     padding="valid",
-                #     kernel_initializer=self.kern_init_conv(),
-                #     use_bias=self.pp['conv_bias'],
-                #     activation=None)(out)
                 # dense_inp = self.add_conv_layer(inp, 80, 5)
+                inplane_loc = InPlaneLocallyConnected2D(
+                        kernel_size=[3, 3],
+                        strides=[1, 1],
+                        activation=tf.nn.relu,
+                        kernel_initializer=tf.constant_initializer(0.1))
+                        # kernel_initializer='glorot_uniform')
+                dense_inp = inplane_loc(inp)
+                print(inp.shape, dense_inp.shape)
             else:
                 dense_inp = inp
             value_layer = tf.layers.Dense(

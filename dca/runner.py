@@ -191,7 +191,7 @@ class Runner:
                 relative_noise_magnitude=info['relative_noise_magnitude'])
             self.logger.error(
                 f"Restored {len(evals)} trials, prev best: "
-                f"{prev_best[0]}@{zip(saved_params, prev_best[1:])}")
+                f"{prev_best[0]}@{list(zip(saved_params, prev_best[1:]))}")
         except FileNotFoundError:
             spec = dlib.function_spec(
                 bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
@@ -243,7 +243,7 @@ class Runner:
 
         self.logger.error(
             f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
-            f" on params {params} with low bounds {lo_bounds}, high {hi_bounds}")
+            f" on params {space}")
         # Spawn initial processes
         for i in range(n_concurrent):
             spawn_eval(i)
