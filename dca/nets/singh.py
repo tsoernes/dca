@@ -1,8 +1,9 @@
 import numpy as np
 import tensorflow as tf
 
+from nets.convlayers import InPlaneLocallyConnected2D, InPlaneSplit
 from nets.net import Net
-from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big, InPlaneLocallyConnected2D
+from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big
 
 
 class SinghNet(Net):
@@ -25,40 +26,12 @@ class SinghNet(Net):
                 #     tf.random_normal((2, 2, 70 * 3 + 1, 1), mean=0.2, stddev=0.2))
                 # filters = tf.ones((3, 3, self.depth, 1)) * 0.1
                 # conv = tf.nn.depthwise_conv2d(
-                    # inp, filters, strides=[1, 3, 3, 1], padding='VALID')
+                # inp, filters, strides=[1, 3, 3, 1], padding='VALID')
                 # dense_inp = tf.nn.relu(conv)
 
-                fp = tf.split(inp, [70,70,70,1], -1)
-                conv1 = tf.contrib.layers.conv2d_in_plane(
-                        inputs=fp[0], kernel_size=3, stride=1,
-                        padding='VALID',
-                        # padding='SAME',
-                        # biases_initializer=None,
-                        weights_initializer=tf.constant_initializer(0.1)
-                )
-                conv2 = tf.contrib.layers.conv2d_in_plane(
-                        inputs=fp[1], kernel_size=3, stride=1,
-                        padding='VALID',
-                        # padding='SAME',
-                        # biases_initializer=None,
-                        weights_initializer=tf.constant_initializer(0.1)
-                )
-                conv3 = tf.contrib.layers.conv2d_in_plane(
-                        inputs=fp[2], kernel_size=3, stride=1,
-                        padding='VALID',
-                        # padding='SAME',
-                        # biases_initializer=None,
-                        weights_initializer=tf.constant_initializer(0.1)
-                )
-                conv4 = tf.contrib.layers.conv2d_in_plane(
-                        inputs=fp[3], kernel_size=3, stride=1,
-                        padding='VALID',
-                        # padding='SAME',
-                        # biases_initializer=None,
-                        weights_initializer=tf.constant_initializer(0.1)
-                )
-                dense_inp = tf.concat([conv1, conv2, conv3, conv4], -1)
-
+                dense_inp = InPlaneSplit(
+                    inp, kernel_size=3, stride=1, use_bias=True, padding="SAME")
+                # TODO: Try with bias
                 # pad = tf.keras.layers.ZeroPadding2D((1, 1))
                 # out = pad(inp)
                 # dense_inp = self.add_conv_layer(inp, 80, 5)
