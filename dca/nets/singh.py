@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from nets.convlayers import InPlaneLocallyConnected2D, InPlaneSplit
+from nets.convlayers import InPlaneSplit, InPlaneSplitLocallyConnected2D
 from nets.net import Net
 from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big
 
@@ -14,13 +14,14 @@ class SinghNet(Net):
         self.name = "SinghNet"
         self.pre_conv = pp['pre_conv']
         self.grid_inp = pp['singh_grid']
-        self.depth = 3 * 70 + 1 if big_freps else 70 + 1
+        self.depth = 4 * 70 if big_freps else 70 + 1
         self.frepshape = [pp['rows'], pp['cols'], self.depth]
         super().__init__(name=self.name, pp=pp, logger=logger)
 
     def _build_net(self, inp, name):
         with tf.variable_scope('model/' + name) as scope:
             if self.pre_conv:
+                print(inp.shape)
                 # [filter_height, filter_width, in_channels, channel_multiplier]
                 # filters = tf.Variable(
                 #     tf.random_normal((2, 2, 70 * 3 + 1, 1), mean=0.2, stddev=0.2))
@@ -29,20 +30,20 @@ class SinghNet(Net):
                 # inp, filters, strides=[1, 3, 3, 1], padding='VALID')
                 # dense_inp = tf.nn.relu(conv)
 
-                dense_inp = InPlaneSplit(
-                    kernel_size=3, stride=1, use_bias=True, padding="SAME").apply(inp)
+                # dense_inp = InPlaneSplit(
+                #     kernel_size=3, stride=1, use_bias=True, padding="SAME").apply(inp)
                 # TODO: Try with bias
                 # pad = tf.keras.layers.ZeroPadding2D((1, 1))
                 # out = pad(inp)
                 # dense_inp = self.add_conv_layer(inp, 80, 5)
-                # inplane_loc = InPlaneLocallyConnected2D(
-                #         kernel_size=[3, 3],
-                #         strides=[3, 3],
-                #         activation=tf.nn.relu,
-                #         kernel_initializer=tf.constant_initializer(0.1))
-                #         # kernel_initializer='glorot_uniform')
-                # dense_inp = inplane_loc(inp)
-                print(inp.shape, dense_inp.shape)
+                inplane_loc = InPlaneSplitLocallyConnected2D(
+                    kernel_size=[3, 3],
+                    strides=[3, 3],
+                    activation=tf.nn.relu,
+                    kernel_initializer=tf.constant_initializer(0.1))
+                # kernel_initializer='glorot_uniform')
+                self.dense_inp = dense_inp = inplane_loc(inp)
+                print(dense_inp.shape)
             else:
                 dense_inp = inp
             value_layer = tf.layers.Dense(
@@ -90,8 +91,11 @@ class SinghNet(Net):
         }
         if self.grid_inp:
             data[self.grids] = prep_data_grids(grids, self.grid_split)
-        values = self.sess.run(
-            self.value, data, options=self.options, run_metadata=self.run_metadata)
+        values, shape = self.sess.run(
+            [self.value, tf.shape(self.dense_inp)],
+            data,
+            options=self.options,
+            run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
 

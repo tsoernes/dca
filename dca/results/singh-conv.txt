@@ -21,11 +21,28 @@ Average cumulative block probability over 4 episodes: 0.1304 with standard devia
 
 p3 runner.py bigavgsinghnet -epol boltzmann --net_lr 1e-08 --pre_conv  --weight_init_dense zeros --no_gpu --prep_net 50 --avg_runs 4
 conv1 = tf.contrib.layers.conv2d_in_plane(
-        inputs=fp[0], kernel_size=3, stride=1, padding='VALID')
+        inputs=fp[0], kernel_size=3, stride=1, padding='SAME)
 Average cumulative block probability over 4 episodes: 0.1267 with standard deviation 0.00205
 (bad start, good progression at end)
 
-same net
-p3 runner.py bigavgsinghnet -epol boltzmann --net_lr 1e-08 --pre_conv  --weight_init_dense zeros --no_gpu --prep_net 50 --avg_runs 4 --net_lr_decay 0.9 -i 100_000_0
+p3 runner.py bigavgsinghnet -epol boltzmann --net_lr 1e-08 --pre_conv  --weight_init_dense zeros --no_gpu --prep_net 50 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1234 with standard deviation 0.00126
 
+p3 runner.py bigavgsinghnet -epol boltzmann --net_lr 1e-07 --pre_conv  --weight_init_dense zeros --no_gpu --prep_net 1 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1241 with standard deviation 0.00188
 
+p3 runner.py bigavgsinghnet -epol nom_greedy --net_lr 5e-08 --pre_conv  --weight_init_dense zeros --no_gpu --prep_net 0 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1240 with standard deviation 0.00277
+
+bigavgsinghnet -epol boltzmann --net_lr 5e-09 --pre_conv  --weight_init_dense zeros --no_gpu --prep_net 1 --avg_runs 4 -opt sgd-m
+Average cumulative block probability over 4 episodes: 0.1229 with standard deviation 0.00135
+
+NOTE NOTE TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+In previous runs,
+NGF.feature_reps_bigs2 would call feature_rep_big
+while NGF.feature_reps_big2 worked as normal.
+Which means that different feature reps was used for get_qvals(big) and update_qval(big2)
+this worked because they had the same shape (they don't anymore, big2 was changed)
+
+So, everything above needs to be retested. Also need to retest
+vanilla frep(70+1) vs bigfrep(70x3+1 vs old_bigfrep2(70x3+1) vs new_bigfrep2(70x4)
