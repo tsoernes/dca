@@ -254,10 +254,9 @@ def feature_rep_big(grid):
 @njit(cache=True)
 def feature_reps_big2(grids):
     assert grids.ndim == 4
-    freps = np.zeros(
-        (len(grids), intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
+    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels * 4), dtype=int32)
     for i in range(len(grids)):
-        freps[i] = feature_rep_big(grids[i])
+        freps[i] = feature_rep_big2(grids[i])
     return freps
 
 
@@ -268,29 +267,34 @@ def feature_rep_big2(grid):
       - The number of times the ch is used by neighbors with dist 4
       - The number of times the ch is used by neighbors with dist 3
       - The number of times the ch is used by neighbors with dist 2
-      # - The number of times the ch is used by neighbors with dist 1
+      - The number of times the ch is used by neighbors with dist 1
     """
     assert grid.ndim == 3
-    frep = np.zeros((intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
+    frep = np.zeros((intp(rows), intp(cols), n_channels * 4), dtype=int32)
     for r in range(rows):
         for c in range(cols):
+            neighs1o = neighbors_np(1, r, c, False)
             neighs2o = _neighs2o[r, c, :_n_neighs_o[0, r, c]]
             neighs3o = _neighs3o[r, c, :_n_neighs_o[1, r, c]]
             neighs4o = _neighs4o[r, c, :_n_neighs_o[2, r, c]]
+            n_used1 = np.zeros(n_channels, dtype=int32)
             n_used2 = np.zeros(n_channels, dtype=int32)
             n_used3 = np.zeros(n_channels, dtype=int32)
             n_used4 = np.zeros(n_channels, dtype=int32)
+            for i in range(len(neighs1o)):
+                n_used1 += grid[neighs1o[i, 0], neighs1o[i, 1]]
             for i in range(len(neighs2o)):
                 n_used2 += grid[neighs2o[i, 0], neighs2o[i, 1]]
             for i in range(len(neighs3o)):
                 n_used3 += grid[neighs3o[i, 0], neighs3o[i, 1]]
             for i in range(len(neighs4o)):
                 n_used4 += grid[neighs4o[i, 0], neighs4o[i, 1]]
-            frep[r, c, :n_channels] = n_used2
-            frep[r, c, n_channels:n_channels * 2] = n_used3
-            frep[r, c, n_channels * 2:n_channels * 3] = n_used4
-            elig = _eligible_map(grid, r, c)
-            frep[r, c, -1] = np.sum(elig)
+            frep[r, c, :n_channels] = n_used1
+            frep[r, c, n_channels:n_channels * 2] = n_used2
+            frep[r, c, n_channels * 2:n_channels * 3] = n_used3
+            frep[r, c, n_channels * 3:n_channels * 4] = n_used4
+            # elig = _eligible_map(grid, r, c)
+            # frep[r, c, -1] = np.sum(elig)
     return frep
 
 

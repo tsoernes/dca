@@ -394,7 +394,7 @@ class BigAvgSinghNetStrat(VNetStrat):
         freps = NGF.feature_reps_big2(grids)
         # Q-value for each ch in 'chs'
         qvals_dense = self.net.forward(freps)
-        assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
+        assert qvals_dense.shape == (len(chs), ), (freps.shape, qvals_dense.shape)
         return qvals_dense
 
 
