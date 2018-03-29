@@ -254,7 +254,7 @@ def feature_rep_big(grid):
 @njit(cache=True)
 def feature_reps_big2(grids):
     assert grids.ndim == 4
-    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels * 4), dtype=int32)
+    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels * 5 + 1), dtype=int32)
     for i in range(len(grids)):
         freps[i] = feature_rep_big2(grids[i])
     return freps
@@ -263,14 +263,17 @@ def feature_reps_big2(grids):
 @njit(cache=True)
 def feature_rep_big2(grid):
     """
+    For each cell:
+      - The number of eligible channels
     For each cell-channel pair:
       - The number of times the ch is used by neighbors with dist 4
       - The number of times the ch is used by neighbors with dist 3
       - The number of times the ch is used by neighbors with dist 2
       - The number of times the ch is used by neighbors with dist 1
+      - If the ch is eligible or not
     """
     assert grid.ndim == 3
-    frep = np.zeros((intp(rows), intp(cols), n_channels * 4), dtype=int32)
+    frep = np.zeros((intp(rows), intp(cols), n_channels * 5 + 1), dtype=int32)
     for r in range(rows):
         for c in range(cols):
             neighs1o = neighbors_np(1, r, c, False)
@@ -293,8 +296,9 @@ def feature_rep_big2(grid):
             frep[r, c, n_channels:n_channels * 2] = n_used2
             frep[r, c, n_channels * 2:n_channels * 3] = n_used3
             frep[r, c, n_channels * 3:n_channels * 4] = n_used4
-            # elig = _eligible_map(grid, r, c)
-            # frep[r, c, -1] = np.sum(elig)
+            elig = _eligible_map(grid, r, c)
+            frep[r, c, n_channels * 4:n_channels * 5] = elig
+            frep[r, c, -1] = np.sum(elig)
     return frep
 
 

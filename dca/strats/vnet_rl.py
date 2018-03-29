@@ -133,7 +133,7 @@ class SinghNetStrat(VNetStrat):
         self.backward_fn = self.net.backward_supervised
         assert self.batch_size == 1
         assert not self.pp['avg_reward']
-        # self.prep_net()
+        self.prep_net(self.pp['prep_net'])
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount, max_ch, next_max_val, p):
@@ -857,12 +857,14 @@ class PPOSinghNetStrat(VNetStrat):
         # Q-value for each ch in 'chs'
         qvals_dense = self.net.forward_value(freps).reshape(len(chs))
         if ce_type == CEvent.END:
-            idx = max_idx = np.argmax(qvals_dense)
-            ch = max_ch = chs[idx]
+            idx = np.argmax(qvals_dense)
+            ch = chs[idx]
+            # max_idx = idx
+            # max_ch  = ch
         else:
             ch, idx, _ = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
-            max_idx = np.argmax(qvals_dense)
-            max_ch = chs[max_idx]
+            # max_idx = np.argmax(qvals_dense)
+            # max_ch = chs[max_idx]
             self.epsilon *= self.epsilon_decay
 
         if ch is None:

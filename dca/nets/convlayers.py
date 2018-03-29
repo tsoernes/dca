@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np  # noqa
 import tensorflow as tf
 from tensorflow.python.keras._impl.keras import backend as K
 from tensorflow.python.keras._impl.keras import (activations, initializers,

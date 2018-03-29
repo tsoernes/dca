@@ -5,7 +5,7 @@ from time import time
 
 import numpy as np
 import tensorflow as tf
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt  # noqa
 from tensorflow.python.client import timeline
 
 import datahandler
@@ -115,14 +115,15 @@ class Net:
             out = tf.layers.flatten(conv_out)
             return out
 
-    def add_conv_layer(self, inp, nfilters, kernel_size):
+    def add_conv_layer(self, inp, nfilters, kernel_size, padding="same", use_bias=None):
+        use_bias = self.pp['conv_bias'] if use_bias is None else use_bias
         conv = tf.layers.Conv2D(
             filters=nfilters,
             kernel_size=kernel_size,
-            padding="same",
+            padding=padding,
             kernel_initializer=self.kern_init_conv(),
             kernel_regularizer=self.conv_regularizer,
-            use_bias=self.pp['conv_bias'],
+            use_bias=use_bias,
             activation=self.act_fn)
         out = conv.apply(inp)
         self.weight_vars.append(conv.kernel)
