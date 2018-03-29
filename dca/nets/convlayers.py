@@ -31,11 +31,14 @@ class SplitConv:
         self.biases_initializer = tf.zeros_initializer() if use_bias else None
         self.kernel_initializer = kernel_initializer
 
-    def apply(self, inp):
-        splitaxis = split_axis(inp.shape)
-        fps = tf.split(inp, splitaxis, -1)
+    def apply(self, inp, concat=True):
+        if type(inp) is list:
+            fps = inp
+        else:
+            splitaxis = split_axis(inp.shape)
+            fps = tf.split(inp, splitaxis, -1)
         convs = [self.part_fn(feature_part) for feature_part in fps]
-        out = tf.concat(convs, -1)
+        out = tf.concat(convs, -1) if concat else convs
         return out
 
     def part_fn(self, feature_part):

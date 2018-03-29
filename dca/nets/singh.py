@@ -1,10 +1,11 @@
 import numpy as np
 import tensorflow as tf
+import tensorflow.contrib.keras as k  # noqa
 
-from nets.convlayers import InPlaneSplit, InPlaneSplitLocallyConnected2D  # noqa
+from nets.convlayers import (InPlaneSplit,  # noqa
+                             InPlaneSplitLocallyConnected2D)
 from nets.net import Net
 from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big
-import tensorflow.contrib.keras as k
 
 
 class SinghNet(Net):
@@ -29,10 +30,15 @@ class SinghNet(Net):
                 #     inp, filters, strides=[1, 1, 1, 1], padding='VALID')
                 # dense_inp = tf.nn.relu(conv)
 
-                # dense_inp = InPlaneSplit(
-                #     kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(inp)
-                lconv = k.layers.LocallyConnected2D(filters=70, kernel_size=3)
-                dense_inp = lconv(inp)
+                c1 = InPlaneSplit(
+                    kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
+                        inp, False)
+                dense_inp = InPlaneSplit(
+                    kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
+                        c1, True)
+
+                # lconv = k.layers.LocallyConnected2D(filters=70, kernel_size=3)
+                # dense_inp = lconv(inp)
 
                 # conv1 = self.add_conv_layer(inp, 2 * 70, 3, "valid")
                 # dense_inp = self.add_conv_layer(conv1, 3 * 70, 3)
@@ -94,10 +100,7 @@ class SinghNet(Net):
         if self.grid_inp:
             data[self.grids] = prep_data_grids(grids, self.grid_split)
         values = self.sess.run(
-            self.value,
-            data,
-            options=self.options,
-            run_metadata=self.run_metadata)
+            self.value, data, options=self.options, run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
 
