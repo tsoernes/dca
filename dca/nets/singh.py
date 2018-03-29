@@ -33,25 +33,29 @@ class SinghNet(Net):
                         inputs=fp[0], kernel_size=3, stride=1,
                         padding='VALID',
                         # padding='SAME',
-                        # biases_initializer=None
+                        # biases_initializer=None,
+                        weights_initializer=tf.constant_initializer(0.1)
                 )
                 conv2 = tf.contrib.layers.conv2d_in_plane(
                         inputs=fp[1], kernel_size=3, stride=1,
-                        padding='VALID'
+                        padding='VALID',
                         # padding='SAME',
-                        # biases_initializer=None
+                        # biases_initializer=None,
+                        weights_initializer=tf.constant_initializer(0.1)
                 )
                 conv3 = tf.contrib.layers.conv2d_in_plane(
                         inputs=fp[2], kernel_size=3, stride=1,
-                        padding='VALID'
+                        padding='VALID',
                         # padding='SAME',
-                        # biases_initializer=None
+                        # biases_initializer=None,
+                        weights_initializer=tf.constant_initializer(0.1)
                 )
                 conv4 = tf.contrib.layers.conv2d_in_plane(
                         inputs=fp[3], kernel_size=3, stride=1,
                         padding='VALID',
                         # padding='SAME',
-                        # biases_initializer=None
+                        # biases_initializer=None,
+                        weights_initializer=tf.constant_initializer(0.1)
                 )
                 dense_inp = tf.concat([conv1, conv2, conv3, conv4], -1)
 
