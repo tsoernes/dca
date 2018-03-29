@@ -27,20 +27,34 @@ class SinghNet(Net):
                 # conv = tf.nn.depthwise_conv2d(
                     # inp, filters, strides=[1, 3, 3, 1], padding='VALID')
                 # dense_inp = tf.nn.relu(conv)
+
                 fp = tf.split(inp, [70,70,70,1], -1)
                 conv1 = tf.contrib.layers.conv2d_in_plane(
-                        inputs=fp[0], kernel_size=3, stride=1, padding='SAME')
-                        # biases_initializer=None)
+                        inputs=fp[0], kernel_size=3, stride=1,
+                        padding='VALID',
+                        # padding='SAME',
+                        # biases_initializer=None
+                )
                 conv2 = tf.contrib.layers.conv2d_in_plane(
-                        inputs=fp[1], kernel_size=3, stride=1, padding='SAME')
-                        # biases_initializer=None)
+                        inputs=fp[1], kernel_size=3, stride=1,
+                        padding='VALID'
+                        # padding='SAME',
+                        # biases_initializer=None
+                )
                 conv3 = tf.contrib.layers.conv2d_in_plane(
-                        inputs=fp[2], kernel_size=3, stride=1, padding='SAME')
-                        # biases_initializer=None)
+                        inputs=fp[2], kernel_size=3, stride=1,
+                        padding='VALID'
+                        # padding='SAME',
+                        # biases_initializer=None
+                )
                 conv4 = tf.contrib.layers.conv2d_in_plane(
-                        inputs=fp[3], kernel_size=3, stride=1, padding='SAME')
-                        # biases_initializer=None)
+                        inputs=fp[3], kernel_size=3, stride=1,
+                        padding='VALID',
+                        # padding='SAME',
+                        # biases_initializer=None
+                )
                 dense_inp = tf.concat([conv1, conv2, conv3, conv4], -1)
+
                 # pad = tf.keras.layers.ZeroPadding2D((1, 1))
                 # out = pad(inp)
                 # dense_inp = self.add_conv_layer(inp, 80, 5)
