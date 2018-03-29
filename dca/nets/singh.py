@@ -30,7 +30,7 @@ class SinghNet(Net):
                 # dense_inp = tf.nn.relu(conv)
 
                 dense_inp = InPlaneSplit(
-                    inp, kernel_size=3, stride=1, use_bias=True, padding="SAME")
+                    kernel_size=3, stride=1, use_bias=True, padding="SAME").apply(inp)
                 # TODO: Try with bias
                 # pad = tf.keras.layers.ZeroPadding2D((1, 1))
                 # out = pad(inp)

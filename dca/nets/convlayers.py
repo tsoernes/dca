@@ -9,22 +9,30 @@ from tensorflow.python.keras._impl.keras.utils import conv_utils
 
 class SplitConv:
     def __init__(self,
-                 inp,
                  kernel_size=3,
                  stride=1,
                  use_bias=True,
                  padding="SAME",
                  kernel_initializer=tf.constant_initializer(0.1)):
+        self.kernel_size, self.stride = kernel_size, stride
         self.padding = padding.upper()
-        if inp.shape[-1] == 70 * 70 * 70 + 1:
-            self.split_axis = [70, 70, 70, 1]
-        elif inp.shape[-1] == 70 + 1:
-            self.split_axis = [70, 1]
-        else:
-            raise NotImplementedError
         self.biases_initializer = tf.zeros_initializer() if use_bias else None
         self.kernel_initializer = kernel_initializer
-        self.fps = tf.split(inp, self.split_axis, -1)
+
+    def apply(self, inp):
+        if inp.shape[-1] == 70 * 3 + 1:
+            split_axis = [70, 70, 70, 1]
+        elif inp.shape[-1] == 70 + 1:
+            split_axis = [70, 1]
+        else:
+            raise NotImplementedError(f"Input depth: {inp.shape[-1]}")
+        fps = tf.split(inp, split_axis, -1)
+        convs = [self.part_fn(feature_part) for feature_part in fps]
+        out = tf.concat(convs, -1)
+        return out
+
+    def part_fn(self, feature_part):
+        return feature_part
 
 
 class InPlaneSplit(SplitConv):
@@ -32,18 +40,15 @@ class InPlaneSplit(SplitConv):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        convs = []
-        for feature_part in self.fps:
-            conv = tf.contrib.layers.conv2d_in_plane(
+
+    def part_fn(self, feature_part):
+        return tf.contrib.layers.conv2d_in_plane(
                 inputs=feature_part,
                 kernel_size=self.kernel_size,
                 stride=self.stride,
                 padding=self.padding,
                 biases_initializer=self.biases_initializer,
                 weights_initializer=self.kernel_initializer)
-            convs.append(conv)
-        out = tf.concat(convs, -1)
-        return out
 
 
 class InPlaneLocallyConnected2D(Layer):
