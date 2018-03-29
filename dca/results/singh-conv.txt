@@ -77,3 +77,13 @@ Average cumulative block probability over 15 episodes: 0.1236 with standard devi
 
 -----
 InPlaneSplit(kernel_size=3, stride=1, use_bias=True, padding="SAME")
+
+--------
+Previous results for depthwise_conv2d CANNOT be valid(?!), because a constant was used as filter,
+which is not trained ....
+
+filters = tf.Variable(tf.ones((3, 3, self.depth, 1)) * 0.1)
+conv = tf.nn.depthwise_conv2d(
+    inp, filters, strides=[1, 1, 1, 1], padding='SAME')
+dense_inp = tf.nn.relu(conv)
+p3 runner.py bigavgsinghnet -epol boltzmann --net_lr 1e-7 --weight_init_dense zeros --prep_net 0 --pre_conv

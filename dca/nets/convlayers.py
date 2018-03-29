@@ -42,7 +42,8 @@ class SplitConv:
 
 
 class InPlaneSplit(SplitConv):
-    """Defaults to ReLU"""
+    """Use same kernel for each feature part.
+    Defaults to ReLU"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -55,6 +56,38 @@ class InPlaneSplit(SplitConv):
             padding=self.padding,
             biases_initializer=self.biases_initializer,
             weights_initializer=self.kernel_initializer)
+
+
+class SeparableSplit(SplitConv):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if type(self.stride) is int:
+            self.stride = (1, self.stride, self.stride, 1)
+
+    def part_fn(self, feature_part):
+        """        
+        """
+        if self.biases_initializer is not None:
+            raise NotImplementedError("Biases")
+        # shape = list(map(int, (*feature_part.shape[1:], 1)))
+        in_chs = int(feature_part.shape[-1])
+        # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
+        # Contains in_channels convolutional filters of depth 1.
+        depthwise_shape = [self.kernel_size, self.kernel_size, in_chs, 1]
+        depthwise_filter = tf.Variable(self.kernel_initializer(depthwise_shape))
+        # pointwise_filter: [1, 1, channel_multiplier * in_channels, out_channels].
+        # Pointwise filter to mix channels after depthwise_filter has convolved spatially.
+        pointwise_shape = [1, 1, in_chs, in_chs]
+        pointwise_filter = tf.Variable(self.kernel_initializer(pointwise_shape))
+
+        conv = tf.nn.separable_conv2d(
+            feature_part,
+            depthwise_filter=depthwise_filter,
+            pointwise_filter=pointwise_filter,
+            strides=self.stride,
+            padding=self.padding,
+        )
+        return tf.nn.relu(conv)
 
 
 class InPlaneSplitLocallyConnected2D(Layer):
