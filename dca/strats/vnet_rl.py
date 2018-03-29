@@ -375,7 +375,7 @@ class BigAvgSinghNetStrat(VNetStrat):
 
     def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
                     discount, max_ch, next_max_val, p):
-        frep = NGF.feature_rep_big2(grid)
+        frep = NGF.feature_rep_big(grid)
         value_target = reward + next_val - self.avg_reward
         err = self.backward(grids=grid, freps=[frep], value_target=[[value_target]])
         if ch == max_ch:
@@ -384,14 +384,14 @@ class BigAvgSinghNetStrat(VNetStrat):
     def prep_net(self, n=200):
         """ Pre-train net on nominal chs """
         r = np.count_nonzero(GF.nom_chs_mask)
-        frep = NGF.feature_rep_big2(GF.nom_chs_mask)
+        frep = NGF.feature_rep_big(GF.nom_chs_mask)
         for _ in range(n):
             self.net.backward_supervised(
                 grids=GF.nom_chs_mask, freps=[frep], value_target=[[r]])
 
     def get_qvals(self, grid, cell, ce_type, chs):
         grids = NGF.afterstates(grid, cell, ce_type, chs)
-        freps = NGF.feature_reps_big2(grids)
+        freps = NGF.feature_reps_big(grids)
         # Q-value for each ch in 'chs'
         qvals_dense = self.net.forward(freps)
         assert qvals_dense.shape == (len(chs), ), (freps.shape, qvals_dense.shape)

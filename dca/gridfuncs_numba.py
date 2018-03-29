@@ -252,6 +252,15 @@ def feature_rep_big(grid):
 
 
 @njit(cache=True)
+def feature_reps_big(grids):
+    assert grids.ndim == 4
+    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
+    for i in range(len(grids)):
+        freps[i] = feature_rep_big(grids[i])
+    return freps
+
+
+@njit(cache=True)
 def feature_reps_big2(grids):
     assert grids.ndim == 4
     freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels * 5 + 1), dtype=int32)

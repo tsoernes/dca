@@ -5,7 +5,7 @@ import tensorflow.contrib.keras as k  # noqa
 from nets.convlayers import (InPlaneSplit,  # noqa
                              InPlaneSplitLocallyConnected2D)
 from nets.net import Net
-from nets.utils import get_trainable_vars, prep_data_grids, scale_freps_big
+from nets.utils import get_trainable_vars, prep_data_grids
 
 
 class SinghNet(Net):
@@ -16,7 +16,7 @@ class SinghNet(Net):
         self.name = "SinghNet"
         self.pre_conv = pp['pre_conv']
         self.grid_inp = pp['singh_grid']
-        self.depth = 5 * 70 + 1 if big_freps else 70 + 1
+        self.depth = 3 * 70 + 1 if big_freps else 70 + 1
         self.frepshape = [pp['rows'], pp['cols'], self.depth]
         super().__init__(name=self.name, pp=pp, logger=logger)
 
@@ -25,22 +25,22 @@ class SinghNet(Net):
             if self.pre_conv:
                 print(inp.shape)
                 # [filter_height, filter_width, in_channels, channel_multiplier]
-                # filters = tf.ones((3, 3, self.depth, 1)) * 0.1
-                # conv = tf.nn.depthwise_conv2d(
-                #     inp, filters, strides=[1, 1, 1, 1], padding='VALID')
-                # dense_inp = tf.nn.relu(conv)
+                filters = tf.Variable(tf.ones((3, 3, self.depth, 1)) * 0.1)
+                conv = tf.nn.depthwise_conv2d(
+                    inp, filters, strides=[1, 1, 1, 1], padding='SAME')
+                dense_inp = tf.nn.relu(conv)
 
-                c1 = InPlaneSplit(
-                    kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
-                        inp, False)
-                dense_inp = InPlaneSplit(
-                    kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
-                        c1, True)
+                # c1 = InPlaneSplit(
+                #     kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
+                #         inp, False)
+                # dense_inp = InPlaneSplit(
+                #     kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
+                #         c1, True)
 
                 # lconv = k.layers.LocallyConnected2D(filters=70, kernel_size=3)
                 # dense_inp = lconv(inp)
 
-                # conv1 = self.add_conv_layer(inp, 2 * 70, 3, "valid")
+                # dense_inp = self.add_conv_layer(inp, 70, 3, padding="same", use_bias=False)
                 # dense_inp = self.add_conv_layer(conv1, 3 * 70, 3)
                 # TODO: Try with bias
                 # pad = tf.keras.layers.ZeroPadding2D((1, 1))
@@ -68,13 +68,13 @@ class SinghNet(Net):
         return value, trainable_vars
 
     def build(self):
-        self.freps = tf.placeholder(tf.float32, [None, *self.frepshape], "feature_reps")
+        self.freps = tf.placeholder(tf.int32, [None, *self.frepshape], "feature_reps")
         self.grids = tf.placeholder(
             tf.bool, [None, self.rows, self.cols, 2 * self.n_channels], "grid")
         self.value_target = tf.placeholder(tf.float32, [None, 1], "value_target")
         self.weights = tf.placeholder(tf.float32, [None, 1], "weight")
 
-        freps = scale_freps_big(self.freps) if self.pp['scale_freps'] else self.freps
+        freps = tf.cast(self.freps, tf.float32)
         if self.grid_inp:
             net_inp = tf.concat([tf.cast(self.grids, tf.float32), freps], axis=3)
         else:

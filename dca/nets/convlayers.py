@@ -8,14 +8,10 @@ from tensorflow.python.keras._impl.keras.utils import conv_utils
 
 
 def split_axis(input_shape):
-    if input_shape[-1] == 70 + 1:
-        split_axis = [70, 1]
-    elif input_shape[-1] == 70 * 3 + 1:
-        split_axis = [70, 70, 70, 1]
-    elif input_shape[-1] == 70 * 4:
-        split_axis = [70, 70, 70, 70]
-    else:
-        raise NotImplementedError
+    d = input_shape[-1]
+    split_axis = [70] * (d // 70)
+    if d % 70 > 0:
+        split_axis.append(int(d % 70))
     return split_axis
 
 
