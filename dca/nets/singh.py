@@ -2,11 +2,11 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.keras as k  # noqa
 
-from nets.convlayers import InPlaneSplit, SeparableSplit
+from nets.convlayers import InPlaneSplit, SeparableSplit  # noqa
 from nets.net import Net
 from nets.utils import get_trainable_vars, prep_data_grids
 
-from nets.convlayers import InPlaneSplitLocallyConnected2D  # noqa; noqa
+from nets.convlayers import InPlaneSplitLocallyConnected2D  # noqa
 
 
 class SinghNet(Net):
@@ -32,7 +32,7 @@ class SinghNet(Net):
                 # dense_inp = tf.nn.relu(conv)
 
                 dense_inp = SeparableSplit(
-                    kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
+                    kernel_size=3, stride=1, use_bias=True, padding="VALID").apply(
                         inp, True)
                 # c1 = InPlaneSplit(
                 #     kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(

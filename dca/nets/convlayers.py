@@ -65,8 +65,6 @@ class SeparableSplit(SplitConv):
             self.stride = (1, self.stride, self.stride, 1)
 
     def part_fn(self, feature_part):
-        """        
-        """
         if self.biases_initializer is not None:
             raise NotImplementedError("Biases")
         # shape = list(map(int, (*feature_part.shape[1:], 1)))
