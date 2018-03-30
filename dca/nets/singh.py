@@ -2,20 +2,11 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.keras as k  # noqa
 
-<<<<<<< HEAD
 from nets.convlayers import SeparableSplit  # noqa
 from nets.convlayers import InPlaneSplit, InPlaneSplitLocallyConnected2D
 from nets.net import Net
 from nets.utils import get_trainable_vars, prep_data_grids
 
-=======
-from nets.convlayers import InPlaneSplit, SeparableSplit  # noqa
-from nets.net import Net
-from nets.utils import get_trainable_vars, prep_data_grids
-
-from nets.convlayers import InPlaneSplitLocallyConnected2D  # noqa
-
->>>>>>> 9c69bee0b831edf0f7fb4e8d7b751be010e8913e
 
 class SinghNet(Net):
     def __init__(self, pp, logger, frep_depth=None):

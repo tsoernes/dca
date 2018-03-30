@@ -112,3 +112,15 @@ bigavgsinghnet -epol nom_greedy --net_lr 1e-9 --weight_init_dense zeros --prep_n
 Blocking probability events 465000-470000: 0.1279, cumulative 0.1216
 bigavgsinghnet -epol nom_fixed_greedy --net_lr 1e-9 --weight_init_dense zeros --prep_net 0 --pre_conv --no_gpu
 Blocking probability: 0.1245 for new calls, 0.0000 for handoffs
+
+-------------------------------
+
+SeparableSplit: kern 3, stride 1, bias False, pad Valid
+p3 runner.py bigavgsinghnet -epol nom_greedy --net_lr 1e-9 --weight_init_dense zeros --prep_net 0 --pre_conv --no_gpu --avg_runs 4
+With relu:
+Average cumulative block probability over 4 episodes: 0.1244 with standard deviation 0.00133
+
+With linear conv:
+Average cumulative block probability over 4 episodes: 0.1241 with standard deviation 0.00089
+
+--------------------
