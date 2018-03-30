@@ -343,6 +343,8 @@ def get_pparams(defaults=False):
         "as 1 on separate layer",
         default=False)
     parser.add_argument(
+        '-ftype', '--frep_type', choices=['vanilla', 'big', 'big2'], default='vanilla')
+    parser.add_argument(
         '--singh_grid',
         action='store_true',
         help="(Net) Include grid representation in "

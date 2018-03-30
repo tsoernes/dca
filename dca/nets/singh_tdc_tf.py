@@ -3,21 +3,22 @@ import tensorflow as tf
 
 from nets.net import Net
 from nets.utils import build_default_trainer, get_trainable_vars
+from utils import prod
 
 
 class TFTDCSinghNet(Net):
-    def __init__(self, pp, logger):
+    def __init__(self, pp, logger, frep_depth=None):
         """
         TD0 with Gradient correction
         """
         self.name = "SinghNet"
         self.weight_beta = pp['weight_beta']
+        self.frep_depth = pp['n_channels'] + 1 if frep_depth is None else frep_depth
         super().__init__(name=self.name, pp=pp, logger=logger)
 
     def build(self):
-        # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
-        frepshape = [None, self.rows, self.cols, self.n_channels + 1]
-        d = self.rows * self.cols * (self.n_channels + 1)
+        frepshape = [None, self.rows, self.cols, self.frep_depth]
+        d = prod(frepshape[1:])
         self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
         self.next_freps = tf.placeholder(tf.float32, frepshape, "next_feature_reps")
         self.rewards = tf.placeholder(tf.float32, [None], "rewards")
@@ -25,11 +26,9 @@ class TFTDCSinghNet(Net):
         self.grads = tf.placeholder(tf.float32, [d, 1], "grad_corr")
         freps_rowvec = tf.layers.flatten(self.freps)
         next_freps_rowvec = tf.layers.flatten(self.next_freps)
-        freps_colvec = tf.transpose(freps_rowvec)
-        next_freps_colvec = tf.transpose(next_freps_rowvec)
-
-        self.weights = tf.Variable(
-            tf.zeros(shape=(self.rows * self.cols * (self.n_channels + 1), 1)))
+        freps_colvec = tf.transpose(freps_rowvec)  # x_t
+        next_freps_colvec = tf.transpose(next_freps_rowvec)  # x_{t+1}
+        self.weights = tf.Variable(tf.zeros(shape=(d, 1)))  # v_t
 
         with tf.variable_scope('model/' + self.name) as scope:
             dense = tf.layers.Dense(
@@ -61,7 +60,7 @@ class TFTDCSinghNet(Net):
 
         return None, None
 
-    def forward(self, freps):
+    def forward(self, freps, grids):
         values = self.sess.run(
             self.value,
             feed_dict={self.freps: freps},
@@ -70,7 +69,7 @@ class TFTDCSinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, rewards, next_freps, discount):
+    def backward(self, freps, rewards, next_freps, discount, weights):
         assert len(freps) == 1  # Hard coded for one-step
 
         data = {

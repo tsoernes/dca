@@ -1,3 +1,11 @@
+from functools import reduce
+from operator import mul
+
+
+def prod(iterable):
+    return reduce(mul, iterable, 1)
+
+
 class LinearSchedule():
     def __init__(self, schedule_timesteps, final_p, initial_p=1.0):
         """Linear interpolation between initial_p and final_p over

@@ -252,9 +252,19 @@ def feature_rep_big(grid):
 
 
 @njit(cache=True)
+def feature_reps(grids):
+    assert grids.ndim == 4
+    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels + 1), dtype=int32)
+    for i in range(len(grids)):
+        freps[i] = feature_rep(grids[i])
+    return freps
+
+
+@njit(cache=True)
 def feature_reps_big(grids):
     assert grids.ndim == 4
-    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
+    freps = np.zeros(
+        (len(grids), intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
     for i in range(len(grids)):
         freps[i] = feature_rep_big(grids[i])
     return freps
@@ -263,7 +273,8 @@ def feature_reps_big(grids):
 @njit(cache=True)
 def feature_reps_big2(grids):
     assert grids.ndim == 4
-    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels * 5 + 1), dtype=int32)
+    freps = np.zeros(
+        (len(grids), intp(rows), intp(cols), n_channels * 5 + 1), dtype=int32)
     for i in range(len(grids)):
         freps[i] = feature_rep_big2(grids[i])
     return freps
@@ -313,32 +324,18 @@ def feature_rep_big2(grid):
 
 @njit(cache=True)
 def afterstate_freps(grid, cell, ce_type, chs):
-    """Feature representation for each of the afterstates of grid"""
+    """Feature representation for grid and each of the afterstates of grid"""
     frep = feature_rep(grid)
-    return incremental_freps(grid, frep, cell, ce_type, chs)
+    next_freps = incremental_freps(grid, frep, cell, ce_type, chs)
+    return (frep, next_freps)
 
 
 @njit(cache=True)
 def afterstate_freps_big(grid, cell, ce_type, chs):
-    """Feature representation for each of the afterstates of grid"""
+    """Feature representation for grid and each of the afterstates of grid"""
     frep = feature_rep_big(grid)
-    return incremental_freps_big(grid, frep, cell, ce_type, chs)
-
-
-@njit(cache=True)
-def successive_freps(grid, cell, ce_type, chs):
-    """Frep for grid and its afterstates"""
-    frep = feature_rep(grid)
-    next_frep = incremental_freps(grid, frep, cell, ce_type, chs)
-    return (frep, next_frep)
-
-
-@njit(cache=True)
-def successive_freps_big(grid, cell, ce_type, chs):
-    """Frep for grid and its afterstates"""
-    frep = feature_rep_big(grid)
-    next_frep = incremental_freps_big(grid, frep, cell, ce_type, chs)
-    return (frep, next_frep)
+    next_freps = incremental_freps_big(grid, frep, cell, ce_type, chs)
+    return (frep, next_freps)
 
 
 @njit(cache=True)
@@ -438,3 +435,30 @@ def scale_freps(freps):
     else:
         raise NotImplementedError
     return freps
+
+
+def afterstate_freps_big2(grid, cell, ce_type, chs):
+    grids = afterstates(grid, cell, ce_type, chs)
+    freps = feature_reps_big2(grids)
+    return freps
+
+
+def get_frep_funcs(name):
+    if name == 'vanilla':
+        return {
+            'afterstate_freps': afterstate_freps,
+            'feature_rep': feature_rep,
+            'feature_reps': feature_reps
+        }
+    elif name == 'big':
+        return {
+            'afterstate_freps': afterstate_freps_big,
+            'feature_rep': feature_rep_big,
+            'feature_reps': feature_reps_big
+        }
+    elif name == 'big2':
+        return {
+            'afterstate_freps': afterstate_freps_big2,
+            'feature_rep': feature_rep_big2,
+            'feature_reps': feature_reps_big2
+        }

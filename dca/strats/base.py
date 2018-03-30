@@ -261,7 +261,7 @@ class NetStrat(RLStrat):
         self.net.sess.close()
 
     def backward(self, *args, **kwargs):
-        loss, self.last_lr, td_errs = self.backward_fn(*args, **kwargs)
+        loss, self.last_lr, td_errs = self.net.backward(*args, **kwargs)
         if np.isinf(loss) or np.isnan(loss):
             self.logger.error(f"Invalid loss: {loss}")
             self.invalid_loss, self.quit_sim = True, True

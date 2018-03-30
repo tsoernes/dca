@@ -108,3 +108,7 @@ bigavgsinghnet -epol nom_fixed_greedy --net_lr 1e-9 --weight_init_dense zeros --
 Blocking probability: 0.1240 for new calls, 0.0000 for handoffs
 
 SeparableSplit: kern 3, stride 1, bias True, pad Valid
+bigavgsinghnet -epol nom_greedy --net_lr 1e-9 --weight_init_dense zeros --prep_net 0 --pre_conv --no_gpu
+Blocking probability events 465000-470000: 0.1279, cumulative 0.1216
+bigavgsinghnet -epol nom_fixed_greedy --net_lr 1e-9 --weight_init_dense zeros --prep_net 0 --pre_conv --no_gpu
+Blocking probability: 0.1245 for new calls, 0.0000 for handoffs
