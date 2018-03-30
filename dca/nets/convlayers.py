@@ -1,10 +1,13 @@
 import numpy as np  # noqa
 import tensorflow as tf
+from tensorflow.contrib.framework.python.ops import variables
+from tensorflow.contrib.layers.python.layers import utils
 from tensorflow.python.keras._impl.keras import backend as K
 from tensorflow.python.keras._impl.keras import (activations, initializers,
                                                  regularizers)
 from tensorflow.python.keras._impl.keras.engine import Layer
 from tensorflow.python.keras._impl.keras.utils import conv_utils
+from tensorflow.python.ops import nn
 
 
 def split_axis(input_shape):
@@ -24,7 +27,7 @@ class SplitConv:
                  kernel_initializer=tf.constant_initializer(0.1)):
         self.kernel_size, self.stride = kernel_size, stride
         self.padding = padding.upper()
-        self.biases_initializer = tf.zeros_initializer() if use_bias else None
+        self.biases_initializer = tf.zeros_initializer if use_bias else None
         self.kernel_initializer = kernel_initializer
 
     def apply(self, inp, concat=True):
@@ -33,7 +36,7 @@ class SplitConv:
         else:
             splitaxis = split_axis(inp.shape)
             fps = tf.split(inp, splitaxis, -1)
-        convs = [self.part_fn(feature_part) for feature_part in fps]
+        convs = [self.part_fn(feature_part, n) for n, feature_part in enumerate(fps)]
         out = tf.concat(convs, -1) if concat else convs
         return out
 
@@ -48,7 +51,7 @@ class InPlaneSplit(SplitConv):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def part_fn(self, feature_part):
+    def part_fn(self, feature_part, n):
         return tf.contrib.layers.conv2d_in_plane(
             inputs=feature_part,
             kernel_size=self.kernel_size,
@@ -64,9 +67,7 @@ class SeparableSplit(SplitConv):
         if type(self.stride) is int:
             self.stride = (1, self.stride, self.stride, 1)
 
-    def part_fn(self, feature_part):
-        if self.biases_initializer is not None:
-            raise NotImplementedError("Biases")
+    def part_fn(self, feature_part, n):
         # shape = list(map(int, (*feature_part.shape[1:], 1)))
         in_chs = int(feature_part.shape[-1])
         # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
@@ -85,7 +86,18 @@ class SeparableSplit(SplitConv):
             strides=self.stride,
             padding=self.padding,
         )
-        return tf.nn.relu(conv)
+        outputs = tf.nn.relu(conv)
+        if self.biases_initializer is not None:
+            biases = variables.model_variable(
+                'biases' + str(n),
+                shape=[
+                    in_chs,
+                ],
+                dtype=feature_part.dtype,
+                initializer=self.biases_initializer,
+            )
+            outputs = nn.bias_add(outputs, biases)
+        return outputs
 
 
 class InPlaneSplitLocallyConnected2D(Layer):
