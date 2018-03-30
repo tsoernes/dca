@@ -36,7 +36,7 @@ class SplitConv:
         else:
             splitaxis = split_axis(inp.shape)
             fps = tf.split(inp, splitaxis, -1)
-        convs = [self.part_fn(feature_part) for feature_part in fps]
+        convs = [self.part_fn(feature_part, n) for n, feature_part in enumerate(fps)]
         out = tf.concat(convs, -1) if concat else convs
         return out
 
@@ -51,7 +51,7 @@ class InPlaneSplit(SplitConv):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def part_fn(self, feature_part):
+    def part_fn(self, feature_part, n):
         return tf.contrib.layers.conv2d_in_plane(
             inputs=feature_part,
             kernel_size=self.kernel_size,
@@ -67,9 +67,7 @@ class SeparableSplit(SplitConv):
         if type(self.stride) is int:
             self.stride = (1, self.stride, self.stride, 1)
 
-    def part_fn(self, feature_part):
-        """        
-        """
+    def part_fn(self, feature_part, n):
         # shape = list(map(int, (*feature_part.shape[1:], 1)))
         in_chs = int(feature_part.shape[-1])
         # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
@@ -91,7 +89,7 @@ class SeparableSplit(SplitConv):
         outputs = tf.nn.relu(conv)
         if self.biases_initializer is not None:
             biases = variables.model_variable(
-                'biases',
+                'biases' + str(n),
                 shape=[
                     in_chs,
                 ],
