@@ -179,6 +179,7 @@ def get_pparams(defaults=False):
         default=False)
     parser.add_argument(
         '--no_avg_reward', action='store_true', help="(RL/Singh)", default=False)
+    parser.add_argument('--rsmart', action='store_true', help="(RL/Singh)", default=False)
     parser.add_argument(
         '--reward_scale',
         type=float,

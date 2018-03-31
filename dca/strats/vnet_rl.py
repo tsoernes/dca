@@ -29,11 +29,18 @@ class VNetBase(NetStrat):
         self.max_ch = 0
         self.next_val = np.float32(0)
 
+        # For avg. reward related strats
+        self.weight_beta = self.pp['weight_beta']
+        self.weight_beta_decay = self.pp['weight_beta_decay']
+        self.avg_reward = 0
         if self.pp['avg_reward']:
-            self.weight_beta = self.pp['weight_beta']
-            self.weight_beta_decay = self.pp['weight_beta_decay']
-            self.avg_reward = 0
+            assert not self.pp['dt_rewards']
             self.update_qval = self.update_qval_avg
+        elif self.pp['rsmart']:
+            assert not self.pp['dt_rewards']
+            self.update_qval = self.update_qval_rsmart
+        elif self.pp['elalfy']:
+            assert not self.pp['dt_rewards']
         else:
             self.update_qval = self.update_qval_disc
 
@@ -155,20 +162,9 @@ class VNetBase(NetStrat):
             self.avg_reward += self.weight_beta * np.mean(err)
             # self.weight_beta *= self.weight_beta_decay
 
-    def update_qval_rsmart_mdp(self, grid, cell, ce_type, ch, max_ch, p, reward,
-                               next_grid, next_val, discount):
+    def update_qval_rsmart(self, grid, cell, ce_type, ch, max_ch, p, reward, next_grid,
+                           next_val, discount):
         """ RSMART for MDP """
-        frep = self.feature_rep(grid)
-        value_target = reward + next_val - self.avg_reward
-        self.backward(freps=[frep], value_targets=[value_target], grids=grid, weights=[p])
-        if ch == max_ch:
-            self.avg_reward = (
-                1 - self.weight_beta) * self.avg_reward + self.weight_beta * reward
-            self.weight_beta *= self.weight_beta_decay
-
-    def update_qval_rsmart_smdp(self, grid, cell, ce_type, ch, max_ch, p, reward,
-                                next_grid, next_val, discount):
-        """ RSMART for SMDP """
         frep = self.feature_rep(grid)
         value_target = reward + next_val - self.avg_reward
         self.backward(freps=[frep], value_targets=[value_target], grids=grid, weights=[p])
@@ -451,10 +447,10 @@ class AlfySinghNetStrat(VNetBase):
             frep = self.feature_rep(grid)
             value_target = immediate_avg_reward - self.tot_rewards / self.tot_sotimes \
                 * avg_sojourn_time + self.next_val
-            self.backward(freps=[frep], value_target=[[value_target]])
+            self.backward(freps=[frep], value_targets=[value_target])
         # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
         # its execution.
-        next_ch, self.next_val, _ = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, self.next_val, *_ = self.optimal_ch(next_ce_type, next_cell)
         self.t0 = t1
         return next_ch
 
@@ -550,35 +546,6 @@ class SinghQNetStrat(VNetBase):
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
         return ch, qvals_dense[idx]
-
-
-class RSMARTSMDPNet(SinghNetStrat):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        assert self.pp['beta']
-        self.tot_reward = 0
-        self.tot_time = 0
-        self.t0 = 0
-
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
-        if ch is not None:
-            frep, next_freps = self.afterstate_freps(grid, cell, ce_type, np.array([ch]))
-            dt = next_cevent[0] - self.t0
-            # treward = reward * dt - self.avg_reward * dt
-            value_target = reward - self.avg_reward * dt + self.next_val
-            self.backward(grids=grid, freps=[frep], value_targets=[value_target])
-            self.tot_reward = (
-                1 - self.weight_beta) * self.tot_reward + self.weight_beta * float(reward)
-            self.tot_time = (
-                1 - self.weight_beta) * self.tot_time + self.weight_beta * float(dt)
-            self.avg_reward = (1 - self.weight_beta) * self.avg_reward \
-                + self.weight_beta * (self.tot_reward / self.tot_time)
-            self.weight_beta *= self.weight_beta_decay
-
-        self.t0, next_ce_type, next_cell = next_cevent[:3]
-        next_ch, self.next_val, next_max_ch, qval_max, p = self.optimal_ch(
-            next_ce_type, next_cell)
-        return next_ch
 
 
 class ACNSinghStrat(NetStrat):
