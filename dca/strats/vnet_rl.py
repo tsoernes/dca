@@ -39,8 +39,6 @@ class VNetBase(NetStrat):
         elif self.pp['rsmart']:
             assert not self.pp['dt_rewards']
             self.update_qval = self.update_qval_rsmart
-        elif self.pp['elalfy']:
-            assert not self.pp['dt_rewards']
         else:
             self.update_qval = self.update_qval_disc
 
@@ -139,7 +137,7 @@ class VNetBase(NetStrat):
         :param ce_type: Action type
         :param ch: Selected action
         :param max_ch: Greedy action
-        :param p: Probability of action under policy
+        :param p: Probability of selected action under policy
         :param reward: Reward for executing action
         :param next_grid: Resulting grid
         :param next_val: Value of next_grid
@@ -164,7 +162,7 @@ class VNetBase(NetStrat):
 
     def update_qval_rsmart(self, grid, cell, ce_type, ch, max_ch, p, reward, next_grid,
                            next_val, discount):
-        """ RSMART for MDP """
+        """ RSMART average reward for MDP """
         frep = self.feature_rep(grid)
         value_target = reward + next_val - self.avg_reward
         self.backward(freps=[frep], value_targets=[value_target], grids=grid, weights=[p])
@@ -410,49 +408,6 @@ class LSTDSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = LSTDSinghNet(self.pp, self.logger)
-
-
-class AlfySinghNetStrat(VNetBase):
-    """
-    El-Alfy average semi-markov
-    Ballpark
-    -opt sgd -lr 1e-7
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.net = SinghNet(self.pp, self.logger)
-        assert not self.pp['dt_rewards']
-        self.sojourn_times = np.zeros(self.dims, np.float64)
-        self.rewards = np.zeros(self.dims, np.float64)
-        self.act_count = np.zeros(self.dims, np.int64)
-        self.tot_rewards = 0
-        self.tot_sotimes = 0
-        self.t0 = 0
-
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
-        t1, next_ce_type, next_cell = next_cevent[:3]
-        if ch is not None:
-            dt = t1 - self.t0
-            self.act_count[cell][ch] += 1
-            immediate_reward = reward * dt
-            self.rewards[cell][ch] += (immediate_reward - self.rewards[cell][ch]) \
-                / self.act_count[cell][ch]
-            immediate_avg_reward = self.rewards[cell][ch]
-            self.sojourn_times[cell][ch] += (dt - self.sojourn_times[cell][ch]) \
-                / self.act_count[cell][ch]
-            avg_sojourn_time = self.sojourn_times[cell][ch]
-            self.tot_rewards += immediate_reward
-            self.tot_sotimes += dt
-            frep = self.feature_rep(grid)
-            value_target = immediate_avg_reward - self.tot_rewards / self.tot_sotimes \
-                * avg_sojourn_time + self.next_val
-            self.backward(freps=[frep], value_targets=[value_target])
-        # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
-        # its execution.
-        next_ch, self.next_val, *_ = self.optimal_ch(next_ce_type, next_cell)
-        self.t0 = t1
-        return next_ch
 
 
 class PSinghNetStrat(VNetBase):
