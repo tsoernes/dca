@@ -178,8 +178,7 @@ def get_pparams(defaults=False):
         help="(RL)",
         default=False)
     parser.add_argument(
-        '--no_avg_reward', action='store_true', help="(RL/Singh)", default=False)
-    parser.add_argument('--rsmart', action='store_true', help="(RL/Singh)", default=False)
+        '--target', choices=['avg', 'avg_rsmart', 'discount'], default='avg')
     parser.add_argument(
         '--reward_scale',
         type=float,
@@ -548,7 +547,7 @@ def get_pparams(defaults=False):
         pp['n_events'] = 7821 * pp['n_hours'] - 2015
     if not pp['call_rate']:
         pp['call_rate'] = pp['erlangs'] / pp['call_duration']
-    pp['dt_rewards'] = pp['beta'] is not None
+    pp['dt_rewards'] = pp['beta'] or pp['beta_disc']
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
     if "net" in pp['strat'].lower():
         if not pp['log_iter']:

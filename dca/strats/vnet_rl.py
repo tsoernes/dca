@@ -33,13 +33,13 @@ class VNetBase(NetStrat):
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
         self.avg_reward = 0
-        if self.pp['avg_reward']:
+        if self.pp['target'] == 'avg':
             assert not self.pp['dt_rewards']
             self.update_qval = self.update_qval_avg
-        elif self.pp['rsmart']:
+        if self.pp['target'] == 'avg_rsmart':
             assert not self.pp['dt_rewards']
             self.update_qval = self.update_qval_rsmart
-        else:
+        if self.pp['target'] == 'discount':
             self.update_qval = self.update_qval_disc
 
         frepfuncs = NGF.get_frep_funcs(self.pp['frep_type'])
