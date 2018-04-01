@@ -158,7 +158,9 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '-wbeta', '--weight_beta', type=float, help="(RL)", default=1.3e-2)
     parser.add_argument('--weight_beta_decay', type=float, help="(RL)", default=0.999_999)
+    parser.add_argument('-gbeta', '--grad_beta', type=float, help="(RL)", default=1e-5)
     parser.add_argument(
+        '-rtype',
         '--reward_type',
         help="new_block: +1 for accepted calls, -1 for blocked. "
         "callcount: Calls in progress. "

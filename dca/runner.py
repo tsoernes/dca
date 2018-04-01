@@ -240,7 +240,7 @@ class Runner:
             else:
                 if result is not None:
                     evals[i].set(result)
-                if i % save_iter == 0:
+                if i > 0 and i % save_iter == 0:
                     save()
 
         self.logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"

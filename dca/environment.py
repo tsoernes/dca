@@ -74,7 +74,6 @@ class Env:
         self.stats.iter(t, self.cevent)
 
         # Generate next event, log statistics and update the GUI
-        reward = 0
         n_used = np.count_nonzero(self.grid[cell])
         if ce_type == CEvent.NEW:
             self.stats.event_new()
@@ -106,6 +105,7 @@ class Env:
                 self.eventgen.event_end_handoff(t, cell, ch)
         elif ce_type == CEvent.END:
             self.stats.event_end()
+            reward = 0
             if ch is None:
                 self.logger.error("No channel assigned for end event")
                 raise Exception
