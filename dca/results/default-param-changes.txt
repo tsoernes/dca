@@ -26,3 +26,16 @@ buffer_size 1000
 net_lr_decay 0.78
 avg_reward True
 
+--------------------
+date/time 31.03 18:49
+
+Changing default params from:
+weight_init_dense: norm_cols
+
+Changing default params to:
+weight_init_dense: zeros
+
+--------------------
+date/time 
+Changing default params from:
+Changing default params to:

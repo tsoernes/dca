@@ -36,9 +36,9 @@ class VNetBase(NetStrat):
         self.avg_reward = 0
         if self.pp['target'] == 'avg':
             self.update_qval = self.update_qval_avg
-        if self.pp['target'] == 'avg_rsmart':
+        elif self.pp['target'] == 'avg_rsmart':
             self.update_qval = self.update_qval_rsmart
-        if self.pp['target'] == 'discount':
+        elif self.pp['target'] == 'discount':
             self.update_qval = self.update_qval_disc
 
         frepfuncs = NGF.get_frep_funcs(self.pp['frep_type'])
@@ -58,9 +58,8 @@ class VNetBase(NetStrat):
         pass
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
-        if ch is not None:
-            self.update_qval(grid, cell, ce_type, ch, self.max_ch, self.p, reward,
-                             self.grid, self.next_val, discount)
+        self.update_qval(grid, cell, ce_type, ch, self.max_ch, self.p, reward, self.grid,
+                         self.next_val, discount)
         # 'next_ch' will be passed as 'ch' next time get_action is called,
         # and self.next_val will be the value of executing then 'ch' on then 'grid'
         # i.e. the value of then 'self.grid'
@@ -152,10 +151,12 @@ class VNetBase(NetStrat):
                         next_val, discount):
         """ Average reward formulation """
         frep = self.feature_rep(grid)
+        if ch is None:
+            next_val = self.net.forward([frep])[0]
         value_target = reward + next_val - self.avg_reward
         err = self.backward(
             freps=[frep], value_targets=[value_target], grids=grid, weights=[p])
-        if ch == max_ch:
+        if ch is not None and ch == max_ch:
             self.avg_reward += self.weight_beta * np.mean(err)
             # self.weight_beta *= self.weight_beta_decay
 
@@ -466,7 +467,6 @@ class PSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(self.pp, self.logger)
-        assert not self.pp['dt_rewards']
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]

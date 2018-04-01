@@ -19,7 +19,7 @@ mongo_fail_msg = "Failed to connect to MongoDB. \
 
 
 def hopt_bounds(stratclass, params):
-    general = {
+    {
         'gamma': [0.65, 0.85],
         'alpha': [0.01, 0.04],
         'alpha_dec': [0.99999, 1.00],
@@ -322,7 +322,22 @@ def dlib_best(fname, n=1):
         raw_spec, raw_results, info = pickle.load(f)
     is_integer, lo_bounds, hi_bounds = raw_spec
     rs = raw_results[raw_results[:, 0].argsort()]
-    print(raw_spec, info, rs[:n])
+    losses = -rs[-n:, 0][::-1]
+    parms = rs[-n:, 1:][::-1]
+
+    res_str = ""
+    for i in range(len(losses)):
+        pa = [f"--{p} {v}" for p, v in zip(info['params'], parms[i])]
+        # pa = list(zip(parms[i]
+        lo = f"{losses[i]:.4f} "
+        res_str += lo + " ".join(pa) + "\n"
+
+    bounds_v = [f"{l}<>{u}" for l, u in zip(raw_spec[1], raw_spec[2])]
+    bounds = [f"{p}: {b}" for p, b in zip(info['params'], bounds_v)]
+    bounds_str = ", ".join(bounds)
+
+    print(f"{info['pp']}\nSolver Eps :{info['solver_epsilon']}\n"
+          f"\n{bounds_str}\n{res_str}")
 
 
 def compare_pps(old_pp, new_pp):

@@ -159,6 +159,13 @@ def get_pparams(defaults=False):
         '-wbeta', '--weight_beta', type=float, help="(RL)", default=1.3e-2)
     parser.add_argument('--weight_beta_decay', type=float, help="(RL)", default=0.999_999)
     parser.add_argument(
+        '--reward_type',
+        help="new_block: +1 for accepted calls, -1 for blocked. "
+        "callcount: Calls in progress. "
+        "smdp_callcount: Calls in progress, integrated over time",
+        choices=['new_block', 'callcount', 'smdp_callcount'],
+        default='callcount'),
+    parser.add_argument(
         '--beta',
         nargs='?',
         type=float,
@@ -179,11 +186,6 @@ def get_pparams(defaults=False):
         default=False)
     parser.add_argument(
         '--target', choices=['avg', 'avg_rsmart', 'discount'], default='avg')
-    parser.add_argument(
-        '--reward_scale',
-        type=float,
-        help="(RL) Factor by which rewards are scaled",
-        default=1)
     parser.add_argument(
         '--lambda',
         type=float,
@@ -275,7 +277,7 @@ def get_pparams(defaults=False):
     parser.add_argument('--qnom_lo', type=float, default=0.5)
     parser.add_argument('--qnom_hi', type=float, default=1.5)
     parser.add_argument(
-        '--weight_init_dense', choices=weight_initializers, default='norm_cols')
+        '--weight_init_dense', choices=weight_initializers, default='zeros')
     parser.add_argument(
         '-filters',
         '--conv_nfilters',
@@ -545,10 +547,10 @@ def get_pparams(defaults=False):
         pp['n_events'] = 7821 * pp['n_hours'] - 2015
     if not pp['call_rate']:
         pp['call_rate'] = pp['erlangs'] / pp['call_duration']
-    pp['dt_rewards'] = pp['beta'] or pp['beta_disc']
-    if pp['dt_rewards']:
-        assert pp['target'] == 'discount'
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
+    if pp['target'] != 'discount':
+        pp['gamma'] = None
+        pp['beta'] = None
     if "net" in pp['strat'].lower():
         if not pp['log_iter']:
             pp['log_iter'] = 5000

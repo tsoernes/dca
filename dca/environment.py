@@ -12,11 +12,18 @@ class Env:
         self.verify_grid = pp['verify_grid']
         self.save = pp['save_exp_data']
         self.log_iter = pp['log_iter']
-        self.reward_scale = pp['reward_scale']
-        self.gamma = pp['gamma']
-        self.dt_rewards = pp['dt_rewards']
-        self.beta = pp['beta']
-        self.bdisc = pp['beta_disc']
+        self.dt_rewards, self.ccount_rewards, self.nblock_rewards = False, False, False
+        if pp['reward_type'] == 'smdp_callcount':
+            self.dt_rewards = True
+            self.beta = pp['beta']
+            self.bdisc = pp['beta_disc']
+        elif pp['reward_type'] == 'callcount':
+            self.ccount_rewards = True
+            self.gamma = pp['gamma']
+        elif pp['reward_type'] == 'new_block':
+            self.nblock_rewards = True
+            self.gamma = pp['gamma']
+
         self.grid = grid
         self.logger = logger
         self.gui = gui
@@ -67,16 +74,19 @@ class Env:
         self.stats.iter(t, self.cevent)
 
         # Generate next event, log statistics and update the GUI
+        reward = 0
         n_used = np.count_nonzero(self.grid[cell])
         if ce_type == CEvent.NEW:
             self.stats.event_new()
             # Generate next incoming call
             self.eventgen.event_new(t, cell)
             if ch is None:
+                reward = -1
                 self.stats.event_new_reject(cell, n_used)
                 if self.gui:
                     self.gui.hgrid.mark_cell(*cell)
             else:
+                reward = 1
                 # With some probability, hand off call instead
                 # of generating the usual END event
                 if np.random.random() < self.p_handoff:
@@ -87,10 +97,12 @@ class Env:
         elif ce_type == CEvent.HOFF:
             self.stats.event_hoff_new()
             if ch is None:
+                reward = -1
                 self.stats.event_hoff_reject(cell, n_used)
                 if self.gui:
                     self.gui.hgrid.mark_cell(*cell)
             else:
+                reward = 1
                 self.eventgen.event_end_handoff(t, cell, ch)
         elif ce_type == CEvent.END:
             self.stats.event_end()
@@ -111,6 +123,8 @@ class Env:
         self.cevent = self.eventgen.pop()
         # Immediate reward, which is the total number of calls
         # currently in progress system-wide
+        if self.nblock_rewards:
+            return reward, self.gamma, self.cevent
         count = np.count_nonzero(self.grid)
         if self.dt_rewards:
             dt = self.cevent[0] - t
@@ -121,7 +135,8 @@ class Env:
             reward = count * (1 - beta_disc) / self.beta
             discount = beta_disc if self.bdisc else self.gamma
             return reward, discount, self.cevent
-        return count * self.reward_scale, self.gamma, self.cevent
+        elif self.ccount_rewards:
+            return count, self.gamma, self.cevent
 
     def execute_action(self, cevent, ch: int):
         """
