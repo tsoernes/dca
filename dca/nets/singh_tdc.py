@@ -13,7 +13,7 @@ class TDCSinghNet(Net):
         """
         self.name = "SinghNet"
         super().__init__(name=self.name, *args, **kwargs)
-        self.weight_beta = self.pp['weight_beta']
+        self.grad_beta = self.pp['grad_beta']
         self.weights = np.zeros((self.rows * self.cols * (self.n_channels + 1), 1))
 
     def build(self):
@@ -53,22 +53,37 @@ class TDCSinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, rewards, next_freps, discount, weights):
+    def backward(self,
+                 grids,
+                 freps,
+                 rewards,
+                 next_freps,
+                 value_targets,
+                 discount,
+                 weights,
+                 avg_reward=None):
         assert len(freps) == 1  # Hard coded for one-step
         value = self.sess.run(self.value, feed_dict={self.freps: freps})[0, 0]
         next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})[0, 0]
-        td_err = rewards[0] + discount * next_value - value
+        if avg_reward is None:
+            td_err = rewards[0] + discount * next_value - value
+        else:
+            td_err = rewards[0] - avg_reward + next_value - value
 
         frep_colvec = np.reshape(freps[0], [-1, 1])
         next_frep_colvec = np.reshape(next_freps[0], [-1, 1])
         # dot is inner product and therefore a scalar
         dot = np.dot(frep_colvec.T, self.weights)
-        grad = -2 * (td_err * frep_colvec - discount * next_frep_colvec * dot)
+        if avg_reward is None:
+            grad = -2 * (td_err * frep_colvec - discount * next_frep_colvec * dot)
+        else:
+            # Try + avgreward
+            grad = -2 * (td_err * frep_colvec + avg_reward - next_frep_colvec * dot)
         data = {self.grads[0][0]: grad}
         lr, _ = self.sess.run(
             [self.lr, self.do_train],
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
-        self.weights += self.weight_beta * (td_err - dot) * frep_colvec
+        self.weights += self.grad_beta * (td_err - dot) * frep_colvec
         return td_err**2, lr, td_err
