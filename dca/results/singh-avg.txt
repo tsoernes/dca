@@ -53,3 +53,10 @@ Average cumulative block probability over 4 episodes: 0.1261 with standard devia
 singhnet --net_lr 3.8004916992755537e-06 --net_lr_decay 0.7555424164288383 --epsilon 1.2 --epsilon_decay 0.9999 --no_gpu --target avg_rsmart --weight_beta 2e-1 --weight_beta_decay 0.999_999 --avg_runs 4
 Average cumulative block probability over 4 episodes: 0.1252 with standard deviation 0.00086
 
+-----------------
+plus minus 1 rewards
+(lr, beta not tuned)
+
+p3 runner.py singhnet --net_lr 4e-07 --net_lr_decay 0.7555424164288383 --weight_beta 0.05 --epsilon 1.0842370876238905 --epsilon_decay 0.9997 --no_gpu --avg_runs 8
+Average cumulative block probability over 8 episodes: 0.1269 with standard deviation 0.00153
+------------------

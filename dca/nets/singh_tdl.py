@@ -59,7 +59,7 @@ class TDLSinghNet(Net):
         value = self.sess.run(self.value, feed_dict={self.freps: freps})[0, 0]
         next_value, lr = self.sess.run(
             [self.value, self.lr], feed_dict={self.freps: next_freps})
-        next_value = next_value[0]
+        next_value = next_value[0, 0]
         frep_colvec = np.reshape(freps[0], [-1, 1])
         # next_frep_colvec = np.reshape(next_freps[0], [-1, 1])
 
