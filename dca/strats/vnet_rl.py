@@ -16,6 +16,7 @@ from nets.singh_q import SinghQNet
 from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
 from nets.singh_tdc_tf import TFTDCSinghNet
+from nets.singh_tdl import TDLSinghNet
 from nets.utils import softmax
 from strats.base import NetStrat
 from strats.exp_policies import BoltzmannGumbel
@@ -34,10 +35,8 @@ class VNetBase(NetStrat):
         self.weight_beta_decay = self.pp['weight_beta_decay']
         self.avg_reward = 0
         if self.pp['target'] == 'avg':
-            assert not self.pp['dt_rewards']
             self.update_qval = self.update_qval_avg
         if self.pp['target'] == 'avg_rsmart':
-            assert not self.pp['dt_rewards']
             self.update_qval = self.update_qval_rsmart
         if self.pp['target'] == 'discount':
             self.update_qval = self.update_qval_disc
@@ -167,8 +166,8 @@ class VNetBase(NetStrat):
         value_target = reward + next_val - self.avg_reward
         self.backward(freps=[frep], value_targets=[value_target], grids=grid, weights=[p])
         if ch == max_ch:
-            self.avg_reward = (
-                1 - self.weight_beta) * self.avg_reward + self.weight_beta * reward
+            self.avg_reward = self.weight_beta * reward + \
+                (1 - self.weight_beta) * self.avg_reward
             self.weight_beta *= self.weight_beta_decay
 
 
@@ -184,7 +183,6 @@ class ExpSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(pp=self.pp, logger=self.logger)
-        assert not self.pp['avg_reward']
         assert self.batch_size > 1
         self.bgumbel = BoltzmannGumbel(c=self.pp['exp_policy_param']).select_action
 
@@ -235,7 +233,6 @@ class ExpAvgSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert self.batch_size > 1
-        assert self.pp['avg_reward']
         self.next_elig_freps = None
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
@@ -371,6 +368,61 @@ class ResidSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ResidSinghNet(self.pp, self.logger)
+
+
+class TDLSinghNetStrat(VNetBase):
+    """TD(0) with Gradient Correction
+    Without beta/dt_rewards,
+        lr=1e-6, weight_beta=1e-6
+    seems like good strating points
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = TDLSinghNet(self.pp, self.logger)
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        if ch is not None:
+            self.update_qval(grid, cell, ce_type, ch, self.max_ch, self.p, reward,
+                             self.grid, self.next_val, discount)
+        # 'next_ch' will be passed as 'ch' next time get_action is called,
+        # and self.next_val will be the value of executing then 'ch' on then 'grid'
+        # i.e. the value of then 'self.grid'
+        next_ce_type, next_cell = next_cevent[1:3]
+        next_ch, next_val, self.max_ch, next_max_val, p = self.optimal_ch(
+            next_ce_type, next_cell)
+        # NOTE This looks funny. If imp sampling, is 'p' prob of max ch?
+        if self.importance_sampl:
+            self.p = p
+            self.next_val = next_max_val
+        else:
+            self.p = 1
+            self.next_val = next_val
+        return next_ch
+
+    def update_qval_disc(self, grid, cell, ce_type, ch, max_ch, p, reward, next_grid,
+                         next_val, discount):
+        """
+        :param grid: Grid on which action is executed
+        :param cell: Cell in which action is executed
+        :param ce_type: Action type
+        :param ch: Selected action
+        :param max_ch: Greedy action
+        :param p: Probability of selected action under policy
+        :param reward: Reward for executing action
+        :param next_grid: Resulting grid
+        :param next_val: Value of next_grid
+        :param discount: Discount factor, e.g. gamma
+        :returns: None
+
+        """
+        frep, next_freps = self.afterstate_freps(grid, cell, ce_type, np.array([ch]))
+        self.backward(
+            freps=[frep],
+            rewards=[reward],
+            next_freps=next_freps,
+            discount=discount,
+            weights=[p])
 
 
 class TDCSinghNetStrat(VNetBase):
@@ -602,7 +654,6 @@ class PPOSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = PPOSinghNet(pp=self.pp, logger=self.logger)
-        assert self.pp['avg_reward']
         self.rest = None
         self.buf = []
         self.n_step = self.pp['n_step']

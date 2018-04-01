@@ -5,6 +5,7 @@ import cProfile
 import datetime
 import logging
 import pickle
+import string
 import sys
 import time
 from functools import partial
@@ -189,9 +190,8 @@ class Runner:
                 [spec],
                 initial_function_evals=[evals],
                 relative_noise_magnitude=info['relative_noise_magnitude'])
-            self.logger.error(
-                f"Restored {len(evals)} trials, prev best: "
-                f"{prev_best[0]}@{list(zip(saved_params, prev_best[1:]))}")
+            self.logger.error(f"Restored {len(evals)} trials, prev best: "
+                              f"{prev_best[0]}@{list(zip(saved_params, prev_best[1:]))}")
         except FileNotFoundError:
             spec = dlib.function_spec(
                 bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
@@ -200,7 +200,8 @@ class Runner:
         optimizer.set_solver_epsilon(solver_epsilon)
 
         result_queue = Queue()
-        simproc = partial(dlib_proc, self.stratclass, self.pp, params, result_queue)
+        simproc = partial(dlib_proc, self.stratclass, self.pp, params, result_queue,
+                          self.pp['avg_runs'])
         evals = [None] * n_sims
 
         def save():
@@ -237,13 +238,13 @@ class Runner:
                     quit_opt()
                 sys.exit(0)
             else:
-                evals[i].set(result)
+                if result is not None:
+                    evals[i].set(result)
                 if i % save_iter == 0:
                     save()
 
-        self.logger.error(
-            f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
-            f" on params {space}")
+        self.logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
+                          f" on params {space}")
         # Spawn initial processes
         for i in range(n_concurrent):
             spawn_eval(i)
@@ -439,7 +440,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     return {'status': "ok", "loss": res, "hoff_loss": result[1]}
 
 
-def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
+def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals, avg_runs):
     logger = logging.getLogger('')
     logger.error(f"T{i} Testing {space_params}: {space_vals}")
     # Add/overwrite problem params with params given from dlib
@@ -448,17 +449,33 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     if pp['epsilon'] < 2.1 and pp['epsilon_decay'] < 0.999_8:
         pp['exp_policy'] = 'eps_greedy'
         pp['epsilon'] = 0
-    strat = stratclass(pp=pp, logger=logger, pid=i)
-    res = strat.simulate()[0]
-    if res is None:
-        res = 1
-    if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
-        # If user quits sim, don't want to return result
-        return
-    # result_queue.put(None)
-    # else:
-    # Must negate result as dlib performs maximization by default
-    result_queue.put((i, -res))
+
+    # Run avg_runs threads in parallel, gather average
+    if avg_runs is not None:
+
+        def sproc(avg_pid):
+            stratclass(pp=pp, logger=logger, pid=str(i) + avg_pid)
+
+        threads = string.ascii_lowercase[:avg_runs]
+        with Pool() as p:
+            results = p.map(sproc, threads)
+        if None in results:
+            res = 1
+        else:
+            res = np.mean(results)
+        # Must negate result as dlib performs maximization by default
+        result_queue.put((i, -res))
+    else:
+        strat = stratclass(pp=pp, logger=logger, pid=i)
+        res = strat.simulate()[0]
+        if res is None:
+            res = 1
+        if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
+            # If user quits sim, don't want to return result
+            result_queue.put(None)
+        else:
+            # Must negate result as dlib performs maximization by default
+            result_queue.put((i, -res))
 
 
 if __name__ == '__main__':

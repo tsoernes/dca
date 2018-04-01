@@ -526,8 +526,6 @@ def get_pparams(defaults=False):
     del pp['no_grid_split']
     pp['use_gpu'] = not pp['no_gpu']
     del pp['no_gpu']
-    pp['avg_reward'] = not pp['no_avg_reward']
-    del pp['no_avg_reward']
     # pp['conv_bias'] = not pp['no_conv_bias']
     # del pp['no_conv_bias']
 
@@ -548,6 +546,8 @@ def get_pparams(defaults=False):
     if not pp['call_rate']:
         pp['call_rate'] = pp['erlangs'] / pp['call_duration']
     pp['dt_rewards'] = pp['beta'] or pp['beta_disc']
+    if pp['dt_rewards']:
+        assert pp['target'] == 'discount'
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
     if "net" in pp['strat'].lower():
         if not pp['log_iter']:
