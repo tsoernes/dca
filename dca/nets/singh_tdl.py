@@ -2,8 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import (build_default_trainer, get_trainable_vars,
-                        scale_freps_big)
+from nets.utils import build_default_trainer, get_trainable_vars
 
 
 class TDLSinghNet(Net):
@@ -21,16 +20,14 @@ class TDLSinghNet(Net):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
         frepshape = [None, self.rows, self.cols, self.n_channels + 1]
         d = self.rows * self.cols * (self.n_channels + 1)
-        self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
+        self.freps = tf.placeholder(tf.int32, frepshape, "feature_reps")
+        self.next_freps = tf.placeholder(tf.int32, frepshape, "next_feature_reps")
+        freps = tf.layers.flatten(tf.cast(self.freps, tf.float32))
+        next_freps = tf.layers.flatten(tf.cast(self.next_freps, tf.float32))
         self.grads = tf.placeholder(tf.float32, [d, 1], "grad_corr")
 
-        if self.pp['scale_freps']:
-            freps = scale_freps_big(self.freps)
-        else:
-            freps = self.freps
         with tf.variable_scope('model/' + self.name) as scope:
-            self.value = tf.layers.dense(
-                inputs=tf.layers.flatten(freps),
+            value_layer = tf.layers.Dense(
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
@@ -38,6 +35,8 @@ class TDLSinghNet(Net):
                 use_bias=False,
                 activation=None,
                 name="vals")
+            self.value = value_layer.apply(freps)
+            self.next_value = value_layer.apply(next_freps)
             online_vars = tuple(get_trainable_vars(scope).values())
         self.grads = [(tf.placeholder(tf.float32, [d, 1]), online_vars[0])]
 
@@ -56,12 +55,15 @@ class TDLSinghNet(Net):
 
     def backward(self, freps, rewards, next_freps, discount, weights):
         assert len(freps) == 1  # Hard coded for one-step
-        value = self.sess.run(self.value, feed_dict={self.freps: freps})[0, 0]
-        next_value, lr = self.sess.run(
-            [self.value, self.lr], feed_dict={self.freps: next_freps})
+        value, next_value, lr = self.sess.run(
+            [self.value, self.next_value, self.lr],
+            feed_dict={
+                self.freps: freps,
+                self.next_freps: next_freps
+            })
+        value = value[0, 0]
         next_value = next_value[0, 0]
         frep_colvec = np.reshape(freps[0], [-1, 1])
-        # next_frep_colvec = np.reshape(next_freps[0], [-1, 1])
 
         td_err = rewards[0] + discount * next_value - value
 
