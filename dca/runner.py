@@ -9,7 +9,7 @@ import string
 import sys
 import time
 from functools import partial
-from multiprocessing import Pool, Process, Queue  # , cpu_count
+from multiprocessing import Pool, Process, Queue, cpu_count  # noqa
 
 #  import argcomplete
 import numpy as np
@@ -146,18 +146,18 @@ class Runner:
         import dlib
         n_sims = 4000  # The number of times to sample and test params
         save_iter = 50
-        n_concurrent = 6  # int(cpu_count() / 2) - 1  # Number of concurrent procs
+        n_concurrent = int(cpu_count() / 2) - 1  # Number of concurrent procs
         solver_epsilon = 0.0005
         relative_noise_magnitude = 0.001  # Default
         space = {
             # parameter: [IsInteger, Low-Bound, High-Bound]
             # 'gamma': [False, 0.60, 0.99],
-            'net_lr': [False, 8e-7, 8e-6],
+            'net_lr': [False, 1e-7, 1e-6],
             # 'beta': [True, 10, 3000],
-            'net_lr_decay': [False, 0.70, 1.0],
-            'weight_beta': [False, 5e-3, 1e-1],
-            'epsilon': [False, 2, 5],
-            'epsilon_decay': [False, 0.999_5, 0.999_999],
+            # 'net_lr_decay': [False, 0.70, 1.0],
+            'weight_beta': [False, 1e-3, 9e-1],
+            # 'epsilon': [False, 2, 5],
+            # 'epsilon_decay': [False, 0.999_5, 0.999_999],
             # 'alpha': [False, 0.00001, 0.3]
         }
         params, is_int, lo_bounds, hi_bounds = [], [], [], []
@@ -440,7 +440,7 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     return {'status': "ok", "loss": res, "hoff_loss": result[1]}
 
 
-def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals, avg_runs):
+def dlib_proc(stratclass, pp, space_params, result_queue, avg_runs, i, space_vals):
     logger = logging.getLogger('')
     logger.error(f"T{i} Testing {space_params}: {space_vals}")
     # Add/overwrite problem params with params given from dlib
@@ -452,6 +452,7 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals, avg_run
 
     # Run avg_runs threads in parallel, gather average
     if avg_runs is not None:
+        print("AVG RUNS")
 
         def sproc(avg_pid):
             stratclass(pp=pp, logger=logger, pid=str(i) + avg_pid)
