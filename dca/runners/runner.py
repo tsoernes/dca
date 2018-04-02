@@ -1,6 +1,7 @@
 import cProfile
 import datetime
 import logging
+import sys
 
 import numpy as np
 
@@ -16,9 +17,14 @@ class Runner:
         if self.pp['log_file']:
             fh = logging.FileHandler(self.pp['log_file'] + ".log")
             fh.setLevel(self.pp['log_level'])
+            # file_only_logger = logging.getLogger("fileonly")
+            # file_only_logger.addHandler(fh)
+            # file_only_logger.error(" ".join(sys.argv))
             self.logger.addHandler(fh)
+        cmdparms = " ".join(sys.argv)
         self.logger.error(
-            f"Starting simulation at {datetime.datetime.now()} with params:\n{self.pp}")
+            f"{cmdparms}\nStarting simulation at {datetime.datetime.now()} with params:\n{self.pp}"
+        )
 
     def run(self):
         strat = self.stratclass(self.pp, logger=self.logger)

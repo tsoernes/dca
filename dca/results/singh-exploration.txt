@@ -52,5 +52,31 @@ Average cumulative block probability over 4 episodes: 0.1349 with standard devia
 singhnet -epol bgumbel -phoff 0 -opt sgd-m -lr 1e-8 -epolc 6 --no_gpu --avg_runs 4 --net_lr_decay 1
 Average cumulative block probability over 4 episodes: 0.1358 with standard deviation 0.00315
 
+--------------------------------------------
+p3 main.py singhnet --exp_policy_cmp 4 --breakout_thresh 0.15{'strat': 'singhnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'traffic_preset': 'uniform', 'call_rate': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.0, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'breakout_thresh': 0.15, 'avg_runs': None, 'exp_policy_cmp': 4, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'wolf': 1, 'exp_policy': 'boltzmann', 'exp_policy_param': None, 'epsilon': 2.10259, 'epsilon_decay': 0.9999, 'gamma': None, 'gamma_end': None, 'weight_beta': 0.013, 'weight_beta_decay': 0.999999, 'grad_beta': 1e-05, 'reward_type': 'callcount', 'beta': None, 'beta_disc': False, 'importance_sampling': False, 'target': 'avg', 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'random_hopt': None, 'dlib_hopt': None, 'hopt': None, 'hopt_fname': None, 'net_lr': 2.52e-06, 'net_lr_decay': 0.78, 'optimizer': 'sgd', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'glorot_unif', 'qnom_lo': 0.5, 'qnom_hi': 1.5, 'weight_init_dense': 'zeros', 'conv_nfilters': [80, 70], 'conv_kernel_sizes': [4, 3], 'conv_bias': False, 'pre_conv': False, 'prep_net': 0, 'n_step': 1, 'bighead': False, 'dueling_qnet': False, 'layer_norm': False, 'l2_conv': False, 'l2_scale': 1e-05, 'l2_dense': False, 'top_stack': False, 'frep_type': 'vanilla', 'singh_grid': False, 'qnet_freps': False, 'qnet_freps_only': False, 'scale_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 1000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_copy_iter_decr': None, 'net_creep_tau': 0.12, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'analyze_net': False, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'debug': False, 'profiling': False, 'tfprofiling': '', 'print_weights': False, 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 58750, 'grid_split': True, 'use_gpu': False, 'freps': False, 'dims': (7, 7, 70), 'net': True}
 
-
+{'boltzmann', 'eps': 2, 'btresh': F, [-0.13020493823234813, -0.12461082785535751, -0.12261895734975437, -0.13081397658913374], 'avg': -0.12706217500664843}
+{'boltzmann', 'eps': 5, 'btresh': F, [-0.12900223528569496, -0.12673863441789346, -0.1282060464264967, -0.12881695709416055], 'avg': -0.12819096830606141}
+{'boltzmann', 'eps': 10, 'btresh': T, [], 'avg': 1}
+{'nom_boltzmann', 'eps': 2, 'btresh': T, [], 'avg': 1}
+{'nom_boltzmann', 'eps': 5, 'btresh': T, [], 'avg': 1}
+{'nom_boltzmann', 'eps': 10, 'btresh': T, [], 'avg': 1}
+{'eps_greedy', 'eps': 0.0, 'btresh': F, [-0.1280807582425453, -0.12996346839559075, -0.12807289801440452, -0.12694993669424515], 'avg': -0.12826676533669645}
+{'eps_greedy', 'eps': 0.2, 'btresh': F, [-0.12910307089056622, -0.12584604475322783, -0.12587248215196328, -0.12406436304906984], 'avg': -0.1262214902112068}
+{'eps_greedy', 'eps': 0.4, 'btresh': F, [-0.12575301204819278, -0.12650388890437636, -0.1268023461858552, -0.1266058699374776], 'avg': -0.12641627926897547}
+{'eps_greedy', 'eps': 0.7, 'btresh': T, [], 'avg': 1}
+{'nom_eps_greedy', 'eps': 0.1, 'btresh': F, [-0.1266302681305728, -0.12681569139617113, -0.12637603351866308, -0.12980750117280368], 'avg': -0.12740737355455267}
+{'nom_eps_greedy', 'eps': 0.4, 'btresh': F, [-0.12784001591881405, -0.12557974594775512, -0.12510362198699146, -0.13023294634801652], 'avg': -0.1271890825503943}
+{'nom_eps_greedy', 'eps': 0.7, 'btresh': T, [-0.14791191744524368, -0.13660418614231618], 'avg': -0.14225805179377993}
+{'nom_greedy', 'eps': 0, 'btresh': T, [], 'avg': 1}
+{'nom_fixed_greedy', 'eps': 0, 'btresh': T, [], 'avg': 1}
+{'bgumbel', 'epolc': 4.5, 'btresh': F, [-0.127557356429811, -0.12291356586208685, -0.12812156806570216, -0.12435156720375443], 'avg': -0.1257360143903386}
+{'bgumbel', 'epolc': 5.0, 'btresh': F, [-0.12554040108219675, -0.13016570808507594, -0.1253750851787059, -0.12700409677791802], 'avg': -0.12702132278097414}
+{'bgumbel', 'epolc': 5.5, 'btresh': F, [-0.12518631287810555, -0.12523263923483113, -0.12707613421023298, -0.12602176580251437], 'avg': -0.125879213031421}
+expand epolc range
+{'bgumbel', 'epolc': 1.0, 'btresh': F, [-0.13108495194809838, -0.12749535262342915, -0.12965606078075118, -0.1282447121735394], 'avg': -0.12912026938145452}
+{'bgumbel', 'epolc': 4.0, 'btresh': F, [-0.1294865626776832, -0.12767998216993484, -0.1270861865783355, -0.1274092237144836], 'avg': -0.12791548878510928}
+{'bgumbel', 'epolc': 4.5, 'btresh': F, [-0.12616157954903032, -0.12669836415476018, -0.128225533692776, -0.12715923069879653], 'avg': -0.12706117702384076}
+{'bgumbel', 'epolc': 5.0, 'btresh': F, [-0.12769539365284047, -0.12629885258894327, -0.12752602145401715, -0.12481764626164872], 'avg': -0.1265844784893624}
+{'bgumbel', 'epolc': 5.5, 'btresh': F, [-0.12615465506733745, -0.12408735839351152, -0.12409082208823811, -0.12319678932754603], 'avg': -0.12438240621915828}
+{'bgumbel', 'epolc': 10.0, 'btresh': F, [-0.12359747755365783, -0.1291609331625876, -0.12926290004453775, -0.12784543139127666], 'avg': -0.12746668553801496}

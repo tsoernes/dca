@@ -58,7 +58,7 @@ def _generate_neighbors():
                                 if dist <= 1:
                                     _neighs1[r1, c1, _n_neighs[0, r1, c1]] = (r2, c2)
                                     _n_neighs[0, r1, c1] += 1
-    print("Generated neighbors")
+    # print("Generated neighbors")
 
 
 _generate_neighbors()
