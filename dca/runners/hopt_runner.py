@@ -130,9 +130,9 @@ def hopt_proc(stratclass, pp, space, mongo_uri=None):
     """
     using_gpu_and_mongo = False
     # Don't override user-given arg for disabling GPU-usage
-    if pp['use_gpu'] and mongo_uri is not None:
+    if pp['gpu'] and mongo_uri is not None:
         using_gpu_and_mongo = mongo_decide_gpu_usage(mongo_uri, pp['max_gpu_procs'])
-        pp['use_gpu'] = using_gpu_and_mongo
+        pp['gpu'] = using_gpu_and_mongo
     for key, val in space.items():
         pp[key] = val
     # import psutil

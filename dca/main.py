@@ -488,9 +488,9 @@ def get_pparams(defaults=False):
         help="(Net) Run empty grid through net, print vals",
         default=False)
     parser.add_argument(
-        '--no_gpu',
+        '--gpu',
         action='store_true',
-        help="(Net) Disable TensorFlow GPU usage",
+        help="(Net) Enable TensorFlow GPU usage",
         default=False)
     parser.add_argument(
         '--max_gpu_procs',
@@ -561,8 +561,6 @@ def get_pparams(defaults=False):
     # We don't want no double negatives
     pp['grid_split'] = not pp['no_grid_split']
     del pp['no_grid_split']
-    pp['use_gpu'] = not pp['no_gpu']
-    del pp['no_gpu']
     # pp['conv_bias'] = not pp['no_conv_bias']
     # del pp['no_conv_bias']
 
@@ -597,7 +595,7 @@ def get_pparams(defaults=False):
         pp['net'] = False
     if pp['avg_runs'] or pp['exp_policy_cmp']:
         pp['gui'] = False
-        pp['use_gpu'] = False
+        pp['gpu'] = False
         if pp['n_events'] is None:
             pp['n_events'] = 470000
         pp['log_iter'] = int(pp['n_events'] // 8)

@@ -42,6 +42,7 @@ class VNetBase(NetStrat):
             self.update_qval = self.update_qval_disc
 
         frepfuncs = NGF.get_frep_funcs(self.pp['frep_type'])
+        self.frepshape = frepfuncs['shape']
         self.afterstate_freps = frepfuncs['afterstate_freps']
         self.feature_rep = frepfuncs['feature_rep']
         self.feature_reps = frepfuncs['feature_reps']
@@ -208,7 +209,7 @@ class VNetBase(NetStrat):
 class SinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = SinghNet(pp=self.pp, logger=self.logger)
+        self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
 
 class ExpSinghNetStrat(VNetBase):
@@ -216,7 +217,7 @@ class ExpSinghNetStrat(VNetBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = SinghNet(pp=self.pp, logger=self.logger)
+        self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         assert self.batch_size > 1
         self.bgumbel = BoltzmannGumbel(c=self.pp['exp_policy_param']).select_action
 
@@ -343,7 +344,7 @@ class ExpAvgSinghNetStrat(VNetBase):
 class WolfSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = SinghNet(self.pp, self.logger)
+        self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         self.val = 0
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
@@ -369,7 +370,7 @@ class ManSinghNetStrat(VNetBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = ManSinghNet(self.pp, self.logger)
+        self.net = ManSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
 
 class ResidSinghNetStrat(VNetBase):
@@ -377,7 +378,7 @@ class ResidSinghNetStrat(VNetBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = ResidSinghNet(self.pp, self.logger)
+        self.net = ResidSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
 
 class TDLSinghNetStrat(VNetBase):
@@ -389,7 +390,7 @@ class TDLSinghNetStrat(VNetBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = TDLSinghNet(self.pp, self.logger)
+        self.net = TDLSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
 
 class TDCSinghNetStrat(VNetBase):
@@ -401,7 +402,7 @@ class TDCSinghNetStrat(VNetBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = TDCSinghNet(self.pp, self.logger)
+        self.net = TDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
 
 class TFTDCSinghNetStrat(VNetBase):
@@ -409,13 +410,13 @@ class TFTDCSinghNetStrat(VNetBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = TFTDCSinghNet(self.pp, self.logger)
+        self.net = TFTDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
 
 class GTD2SinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = GTD2SinghNet(self.pp, self.logger)
+        self.net = GTD2SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
 
 class LSTDSinghNetStrat(VNetBase):
@@ -426,13 +427,13 @@ class LSTDSinghNetStrat(VNetBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = LSTDSinghNet(self.pp, self.logger)
+        self.net = LSTDSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
 
 class PSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = SinghNet(self.pp, self.logger)
+        self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
@@ -468,7 +469,7 @@ class PSinghNetStrat(VNetBase):
 class SinghQNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.net = SinghQNet(self.pp, self.logger)
+        self.net = SinghQNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]

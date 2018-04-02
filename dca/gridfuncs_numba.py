@@ -446,18 +446,21 @@ def afterstate_freps_big2(grid, cell, ce_type, chs):
 def get_frep_funcs(name):
     if name == 'vanilla':
         return {
+            'shape': [7, 7, 71],
             'afterstate_freps': afterstate_freps,
             'feature_rep': feature_rep,
             'feature_reps': feature_reps
         }
     elif name == 'big':
         return {
+            'shape': [7, 7, 70 * 3 + 1],
             'afterstate_freps': afterstate_freps_big,
             'feature_rep': feature_rep_big,
             'feature_reps': feature_reps_big
         }
     elif name == 'big2':
         return {
+            'shape': [7, 7, 70 * 5 + 1],
             'afterstate_freps': afterstate_freps_big2,
             'feature_rep': feature_rep_big2,
             'feature_reps': feature_reps_big2

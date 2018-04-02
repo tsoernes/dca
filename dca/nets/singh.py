@@ -9,12 +9,12 @@ from nets.utils import get_trainable_vars, prep_data_grids
 
 
 class SinghNet(Net):
-    def __init__(self, pp, logger, frep_depth=None):
+    def __init__(self, pp, logger, frepshape):
         self.name = "SinghNet"
-        self.frep_depth = pp['n_channels'] + 1 if frep_depth is None else frep_depth
+        # self.frep_depth = pp['n_channels'] + 1 if frep_depth is None else frep_depth
         self.pre_conv = pp['pre_conv']
         self.grid_inp = pp['singh_grid']
-        self.frepshape = [pp['rows'], pp['cols'], self.frep_depth]
+        self.frepshape = frepshape
         super().__init__(name=self.name, pp=pp, logger=logger)
 
     def _pre_conv(inp, name):

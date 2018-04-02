@@ -268,10 +268,11 @@ def dlib_save(spec, evals, params, solver_epsilon, relative_noise_magnitude, pp,
     raw_spec = (list(spec.is_integer_variable), list(spec.lower), list(spec.upper))
     raw_results = np.zeros((len(evals), len(evals[0].x) + 1))
     info = {
+        'cmd_args': " ".join(sys.argv),
         'params': params,
         'solver_epsilon': solver_epsilon,
         'relative_noise_magnitude': relative_noise_magnitude,
-        'pp': pp
+        'pp': pp,
     }
     for i, eeval in enumerate(evals):
         raw_results[i][0] = eeval.y
@@ -336,8 +337,8 @@ def dlib_best(fname, n=1):
     bounds = [f"{p}: {b}" for p, b in zip(info['params'], bounds_v)]
     bounds_str = ", ".join(bounds)
 
-    print(f"{info['pp']}\nSolver Eps :{info['solver_epsilon']}\n"
-          f"{len(raw_results)} results\n{bounds_str}\n{res_str}")
+    print(*info.items(), sep="\n")
+    print(f"{len(raw_results)} results\n{bounds_str}\n{res_str}")
 
 
 def compare_pps(old_pp, new_pp):
