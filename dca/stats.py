@@ -122,7 +122,7 @@ class Stats:
         delta = self.n_incoming + self.n_handoffs \
             - self.n_rejected - self.n_handoffs_rejected - self.n_ended
         if delta != n_inprogress:
-            self.logger.error(f"\nSome calls were lost. Counted in progress {delta}. "
+            self.logger.error(f"\nSome calls were lost. Counted in progress {delta}."
                               f" Actual in progress: {n_inprogress}"
                               f"\nIncoming: {self.n_incoming}"
                               f"\nIncoming handoffs: {self.n_handoffs}"
@@ -138,10 +138,13 @@ class Stats:
         # Avoid zero divisions by adding 1 do dividers
         self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         self.block_prob_cum_hoff = self.n_handoffs_rejected / (self.n_handoffs + 1)
+        if self.n_handoffs_rejected > 0:
+            hoff_str = f", {self.block_prob_cum_hoff:.4f} for handoffs"
+        else:
+            hoff_str = ""
         self.logger.error(f"\n{self.pid_str}Blocking probability:"
-                          f" {self.block_prob_cum:.4f} for new calls, "
-                          f"{self.block_prob_cum_hoff:.4f} for handoffs")
-        self.logger.warn(f"\nAverage number of calls in progress when blocking: "
+                          f" {self.block_prob_cum:.4f} for new calls" + hoff_str)
+        self.logger.info(f"\nAverage number of calls in progress when blocking: "
                          f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")
 
         if self.pp['do_plot']:
