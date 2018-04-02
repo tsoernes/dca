@@ -114,7 +114,12 @@ def get_pparams(defaults=False):
         type=int,
         help="Run simulation N times, report average block probs",
         default=None)
-
+    parser.add_argument(
+        '--exp_policy_cmp',
+        metavar='N',
+        type=int,
+        help="Run different exp pols, average each over N runs",
+        default=None)
     parser.add_argument(
         '--alpha', type=float, help="(RL/Table) learning rate", default=0.01938893)
     parser.add_argument(
@@ -562,12 +567,15 @@ def get_pparams(defaults=False):
             pp['log_iter'] = 50000
         pp['batch_size'] = 1
         pp['net'] = False
-    if pp['avg_runs']:
+    if pp['avg_runs'] or pp['exp_policy_cmp']:
         pp['gui'] = False
         pp['use_gpu'] = False
         if pp['n_events'] is None:
             pp['n_events'] = 470000
         pp['log_iter'] = int(pp['n_events'] // 8)
+    if pp['exp_policy_cmp']:
+        if pp['log_level'] is None:
+            pp['log_level'] = logging.ERROR
     if pp['dlib_hopt'] is not None or pp['hopt'] is not None:
         if pp['net']:
             if pp['n_events'] is None:

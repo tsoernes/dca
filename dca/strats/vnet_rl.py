@@ -85,6 +85,8 @@ class VNetBase(NetStrat):
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
+        """ Select a channel and return selected channel, greedy channel, qval and frep for both,
+        in addition to prob of picking selected channel, and current frep"""
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:

@@ -105,7 +105,7 @@ class SinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, value_targets, grids=None, weights=[1]):
+    def backward(self, *, freps, value_targets, grids=None, weights=[1], **kwargs):
         data = {self.frep: freps, self.value_target: value_targets, self.weight: weights}
         if self.grid_inp:
             data[self.grid] = prep_data_grids(grids, self.grid_split)

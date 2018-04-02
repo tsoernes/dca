@@ -117,8 +117,7 @@ class Boltzmann(Policy):
         scaled = np.exp((qvals_dense - np.max(qvals_dense)) / temp)
         probs = scaled / np.sum(scaled)
         idx = np.random.choice(range(len(chs)), p=probs)
-        ch = chs[idx]
-        return ch, idx, probs[idx]
+        return chs[idx], idx, probs[idx]
 
 
 class NomBoltzmann(Policy):
