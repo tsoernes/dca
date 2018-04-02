@@ -337,7 +337,7 @@ def dlib_best(fname, n=1):
     bounds_str = ", ".join(bounds)
 
     print(f"{info['pp']}\nSolver Eps :{info['solver_epsilon']}\n"
-          f"\n{bounds_str}\n{res_str}")
+          f"{len(raw_results)} results\n{bounds_str}\n{res_str}")
 
 
 def compare_pps(old_pp, new_pp):
