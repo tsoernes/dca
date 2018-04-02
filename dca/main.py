@@ -13,7 +13,35 @@ import strats.fixedstrats  # noqa
 import strats.qnet_rl  # noqa
 import strats.table_rl  # noqa
 import strats.vnet_rl  # noqa
+from runners.avg_runner import AvgRunner
+from runners.dlib_runner import DlibRunner
+from runners.exp_pol_runner import ExpPolRunner
+from runners.hopt_runner import HoptRunner
+from runners.runner import AnalyzeNetRunner, Runner, ShowRunner, TrainNetRunner
 from strats.exp_policies import exp_pol_funcs
+
+
+def main():
+    pp, stratclass = get_pparams()
+
+    if pp['hopt']:
+        run_cls = HoptRunner
+    elif pp['dlib_hopt']:
+        run_cls = DlibRunner
+    elif pp['exp_policy_cmp']:
+        run_cls = ExpPolRunner
+    elif pp['avg_runs']:
+        run_cls = AvgRunner
+    elif pp['strat'] == 'show':
+        run_cls = ShowRunner
+    elif pp['train_net']:
+        run_cls = TrainNetRunner
+    elif pp['analyze_net']:
+        run_cls = AnalyzeNetRunner
+    else:
+        run_cls = Runner
+    runner = run_cls(pp, stratclass)
+    runner.run()
 
 
 def get_classes(module_name):
@@ -659,3 +687,7 @@ def non_uniform_preset(pp):
             elif c == 'h':
                 call_rates[0][i] = cr_h
         pattern_call_rates.append(call_rates)
+
+
+if __name__ == '__main__':
+    main()
