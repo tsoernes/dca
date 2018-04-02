@@ -14,6 +14,7 @@ from utils import LinearSchedule
 class Strat:
     def __init__(self, pp, logger, pid="", gui=None, *args, **kwargs):
         self.rows, self.cols, self.n_channels = self.dims = pp['dims']
+        self.pid = pid
         self.save = pp['save_exp_data']
         self.batch_size = pp['batch_size']
         self.n_hours, self.n_events = pp['n_hours'], pp['n_events']
@@ -99,7 +100,10 @@ class Strat:
                     self.logger.info(f"Decreased net copy iter to {self.net_copy_iter}")
             if (self.env.stats.block_probs_cum and  # yapf: disable
                     self.env.stats.block_probs_cum[-1] > self.pp['breakout_thresh']):
-                self.logger.error("Block prob threshold exceeded; breaking out early")
+                pid_str = "" if self.pid == "" else f"T{self.pid} "
+                self.logger.error(
+                    f"{pid_str}Block prob threshold exceeded "
+                    f"at {self.env.stats.block_probs_cum[-1]:.4f}; breaking out early")
                 self.quit_sim = True
                 self.exceeded_bthresh = True
             ch, cevent = next_ch, next_cevent
