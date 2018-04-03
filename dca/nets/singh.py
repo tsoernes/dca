@@ -17,7 +17,7 @@ class SinghNet(Net):
         self.frepshape = frepshape
         super().__init__(name=self.name, pp=pp, logger=logger)
 
-    def _pre_conv(inp, name):
+    def _build_pre_conv(self, inp, name):
         with tf.variable_scope('model/' + name):
             print(inp.shape)
             # [filter_height, filter_width, in_channels, channel_multiplier]
@@ -27,8 +27,12 @@ class SinghNet(Net):
             # dense_inp = tf.nn.relu(conv)
 
             dense_inp = SeparableSplit(
-                kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
-                    inp, True)
+                kernel_size=3,
+                stride=1,
+                use_bias=False,
+                padding="VALID",
+                kernel_initializer=self.kern_init_conv).apply(inp, True)
+
             # c1 = InPlaneSplit(
             #     kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
             #         inp, False)
@@ -54,11 +58,11 @@ class SinghNet(Net):
         return dense_inp
 
     def _build_net(self, top_inp, name):
-        dense_inp = self.pre_conv(top_inp, name) if self.pre_conv else top_inp
+        dense_inp = self._build_pre_conv(top_inp, name) if self.pre_conv else top_inp
         with tf.variable_scope('model/' + name) as scope:
             value_layer = tf.layers.Dense(
                 units=1,
-                kernel_initializer=tf.zeros_initializer(),
+                kernel_initializer=self.kern_init_dense,
                 use_bias=False,
                 activation=None)
             value = value_layer.apply(tf.layers.flatten(dense_inp))
