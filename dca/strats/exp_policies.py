@@ -114,10 +114,15 @@ class Boltzmann(Policy):
         pass
 
     def select_action(self, temp, chs, qvals_dense, *args):
-        scaled = np.exp((qvals_dense - np.max(qvals_dense)) / temp)
+        max_idx = np.argmax(qvals_dense)
+        scaled = np.exp((qvals_dense - qvals_dense[max_idx]) / temp)
         probs = scaled / np.sum(scaled)
         idx = np.random.choice(range(len(chs)), p=probs)
-        return chs[idx], idx, probs[idx]
+        if idx == max_idx:
+            p = 1 / probs[idx]
+        else:
+            p = 0
+        return chs[idx], idx, p
 
 
 class NomBoltzmann(Policy):
@@ -188,7 +193,7 @@ class BoltzmannGumbel(Policy):
     tau = C/sqrt(N/K)."""
 
     def __init__(self, c, n_channels=70):
-        c = 5.0 if c is None else c
+        c = 5.3 if c is None else c
         assert c > 0
         self.c = c
         self.action_counts = np.ones(n_channels)
