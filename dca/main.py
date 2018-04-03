@@ -14,9 +14,7 @@ import strats.qnet_rl  # noqa
 import strats.table_rl  # noqa
 import strats.vnet_rl  # noqa
 from runners.avg_runner import AvgRunner
-from runners.dlib_runner import DlibRunner
 from runners.exp_pol_runner import ExpPolRunner
-from runners.hopt_runner import HoptRunner
 from runners.runner import AnalyzeNetRunner, Runner, ShowRunner, TrainNetRunner
 from strats.exp_policies import exp_pol_funcs
 
@@ -25,8 +23,10 @@ def main():
     pp, stratclass = get_pparams()
 
     if pp['hopt']:
+        from runners.hopt_runner import HoptRunner
         run_cls = HoptRunner
     elif pp['dlib_hopt']:
+        from runners.dlib_runner import DlibRunner
         run_cls = DlibRunner
     elif pp['exp_policy_cmp']:
         run_cls = ExpPolRunner
@@ -77,7 +77,10 @@ def get_pparams(defaults=False):
         stratclasses[i] = (s2, stratclasses[i][1])
 
     policy_func_names = list(exp_pol_funcs.keys()) + ['greedy']
-    weight_initializers = ['zeros', 'glorot_unif', 'glorot_norm', 'norm_cols', 'nominal']
+    weight_initializers = [
+        'zeros', 'glorot_unif', 'glorot_norm', 'norm_cols', 'nominal', 'norm_pos',
+        'const_pos'
+    ]
     hopt_opts = [
         'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
         'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff', 'beta',
@@ -640,6 +643,8 @@ def get_pparams(defaults=False):
     if pp['exp_policy'] == "greedy":
         pp['exp_policy'] = "eps_greedy"
         pp['epsilon'] = 0
+    if pp['avg_runs'] and pp['avg_runs'] >= 16 and not pp['log_file']:
+        pp['log_file'] = 'results-big'
 
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])
