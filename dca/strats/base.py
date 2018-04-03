@@ -252,8 +252,8 @@ class NetStrat(RLStrat):
             self.env.stats.report_weights(*self.net.get_weights())
 
     def fn_after(self):
-        self.logger.info(
-            f"TF Rand: {self.net.rand_uniform()}, NP seed: {np.random.get_state()[1][0]}")
+        # self.logger.info(
+        #     f"TF Rand: {self.net.rand_uniform()}, NP seed: {np.random.get_state()[1][0]}")
         if self.pp['save_net']:
             inp = ""
             if self.quit_sim:

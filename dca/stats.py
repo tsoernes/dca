@@ -144,8 +144,8 @@ class Stats:
             hoff_str = ""
         self.logger.error(f"\n{self.pid_str}Blocking probability:"
                           f" {self.block_prob_cum:.4f} for new calls" + hoff_str)
-        self.logger.info(f"\nAverage number of calls in progress when blocking: "
-                         f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")
+        # self.logger.info(f"\nAverage number of calls in progress when blocking: "
+        #                  f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")
 
         if self.pp['do_plot']:
             self.plot()
