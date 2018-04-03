@@ -80,9 +80,11 @@ class TDCSinghNet(Net):
         # dot is inner product and therefore a scalar
         dot = np.dot(frep_colvec.T, self.weights)
         if avg_reward is None:
-            grad = -2 * (td_err * frep_colvec - discount * next_frep_colvec * dot)
+            grad = -2 * weights[0] * (
+                td_err * frep_colvec - discount * next_frep_colvec * dot)
         else:
-            grad = -2 * (td_err * frep_colvec + avg_reward - next_frep_colvec * dot)
+            grad = -2 * weights[0] * (
+                td_err * frep_colvec + avg_reward - next_frep_colvec * dot)
         data = {self.grads[0][0]: grad}
         lr, _ = self.sess.run(
             [self.lr, self.do_train],
