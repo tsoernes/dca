@@ -6,12 +6,13 @@ from nets.utils import build_default_trainer, get_trainable_vars
 
 
 class TDLSinghNet(Net):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, pp, logger, frepshape):
         """
         True online td lambda
         """
+        self.frepshape = frepshape
         self.name = "SinghNet"
-        super().__init__(name=self.name, *args, **kwargs)
+        super().__init__(name=self.name, pp=pp, logger=logger)
         self.z = np.zeros((self.rows * self.cols * (self.n_channels + 1), 1))
         self.lmbda = self.pp['lambda']
         self.v_old = 0
@@ -53,7 +54,7 @@ class TDLSinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, rewards, next_freps, discount, weights):
+    def backward(self, *, freps, rewards, next_freps, discount, weights, **kwargs):
         assert len(freps) == 1  # Hard coded for one-step
         value, next_value, lr = self.sess.run(
             [self.value, self.next_value, self.lr],

@@ -19,6 +19,9 @@ def split_axis(input_shape):
 
 
 class SplitConv:
+    """ Base class. Apply a function separately to each part
+    of the feature representation. This base class returns input as-is."""
+
     def __init__(self,
                  kernel_size=3,
                  stride=1,
@@ -62,7 +65,14 @@ class InPlaneSplit(SplitConv):
 
 
 class SeparableSplit(SplitConv):
-    def __init__(self, *args, **kwargs):
+    """ For each feature part, 
+    """
+
+    def __init__(self,
+                 pointwise_initializer=tf.constant_initializer(0.1),
+                 *args,
+                 **kwargs):
+        self.pointwise_initializer = pointwise_initializer
         super().__init__(*args, **kwargs)
         if type(self.stride) is int:
             self.stride = (1, self.stride, self.stride, 1)
@@ -77,7 +87,7 @@ class SeparableSplit(SplitConv):
         # pointwise_filter: [1, 1, channel_multiplier * in_channels, out_channels].
         # Pointwise filter to mix channels after depthwise_filter has convolved spatially.
         pointwise_shape = [1, 1, in_chs, in_chs]
-        pointwise_filter = tf.Variable(self.kernel_initializer(pointwise_shape))
+        pointwise_filter = tf.Variable(self.pointwise_initializer(pointwise_shape))
 
         conv = tf.nn.separable_conv2d(
             feature_part,

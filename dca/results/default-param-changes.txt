@@ -36,6 +36,11 @@ Changing default params to:
 weight_init_dense: zeros
 
 --------------------
+date/time  03.04 18:12
+Changing default params from: epolc bgumbel 5.0
+Changing default params  to:epolc bgumbel 5.3
+
+--------------------
 date/time 
 Changing default params from:
 Changing default params to:

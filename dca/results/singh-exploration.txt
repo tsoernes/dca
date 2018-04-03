@@ -80,3 +80,27 @@ expand epolc range
 {'bgumbel', 'epolc': 5.0, 'btresh': F, [-0.12769539365284047, -0.12629885258894327, -0.12752602145401715, -0.12481764626164872], 'avg': -0.1265844784893624}
 {'bgumbel', 'epolc': 5.5, 'btresh': F, [-0.12615465506733745, -0.12408735839351152, -0.12409082208823811, -0.12319678932754603], 'avg': -0.12438240621915828}
 {'bgumbel', 'epolc': 10.0, 'btresh': F, [-0.12359747755365783, -0.1291609331625876, -0.12926290004453775, -0.12784543139127666], 'avg': -0.12746668553801496}
+
+p3 main.py singhnet -epol bgumbel -epolc 5.0 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1270 with standard deviation 0.00086
+
+p3 main.py singhnet -epol bgumbel -epolc 5.2 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1270 with standard deviation 0.00012
+
+p3 main.py singhnet -epol bgumbel -epolc 5.25 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1250 with standard deviation 0.00293
+
+p3 main.py singhnet -epol bgumbel -epolc 5.3 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1246 with standard deviation 0.00135
+
+p3 main.py singhnet -epol bgumbel -epolc 5.35 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1268 with standard deviation 0.00170
+
+p3 main.py singhnet -epol bgumbel -epolc 5.4 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1252 with standard deviation 0.00108
+
+p3 main.py singhnet -epol bgumbel -epolc 5.6 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1263 with standard deviation 0.00122
+
+p3 main.py singhnet -epol bgumbel -epolc 5.9 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1276 with standard deviation 0.00092

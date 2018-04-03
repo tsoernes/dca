@@ -72,17 +72,21 @@ class VNetBase(NetStrat):
         # and self.next_val will be the value of executing then 'ch' on then 'grid'
         # i.e. the value of then 'self.grid'
         next_ce_type, next_cell = next_cevent[1:3]
-        next_ch, next_val, self.max_ch, next_max_val, p, self.frep, next_frep, next_max_frep = self.optimal_ch(
-            next_ce_type, next_cell)
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_val, self.max_ch, next_max_val, p, self.frep, next_frep, next_max_frep = res
         # NOTE This looks funny. If imp sampling, is 'p' prob of max ch?
-        if self.importance_sampl:
-            self.p = p
-            self.next_val = next_max_val
-            self.next_frep = next_max_frep
-        else:
-            self.p = 1
-            self.next_val = next_val
-            self.next_frep = next_frep
+        # if self.importance_sampl:
+        #     self.p = p
+        # else:
+        #     self.p = 1
+        #     self.next_val = next_val
+        #     self.next_frep = next_frep
+        # self.p = p
+        self.p = 1
+        # self.next_val = next_val
+        # self.next_frep = next_frep
+        self.next_val = next_max_val
+        self.next_frep = next_max_frep
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
@@ -176,7 +180,7 @@ class VNetBase(NetStrat):
         err = self.backward(
             freps=[frep],
             rewards=[reward],
-            next_freps=[frep],
+            next_freps=[next_frep],
             discount=None,
             value_targets=[value_target],
             grids=grid,

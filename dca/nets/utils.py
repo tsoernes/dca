@@ -80,12 +80,13 @@ def normalized_columns_initializer(std=1.0):
 
 
 def get_init_by_name(name, pp):
+    # NOTE: are these initialized each time this fn is called, or just once?
     inits = {
-        "zeros": tf.zeros_initializer,
+        "zeros": tf.zeros_initializer(),
         "glorot_unif":  # The default for dense, perhaps for conv2d also. AKA Xavier.
-        tf.glorot_uniform_initializer,
-        "glorot_norm": tf.glorot_normal_initializer,
-        "norm_cols": normalized_columns_initializer,
+        tf.glorot_uniform_initializer(),
+        "glorot_norm": tf.glorot_normal_initializer(),
+        "norm_cols": normalized_columns_initializer(),
         "norm_pos": tf.random_normal_initializer(0., 0.2),  # Try for dense kernel
         "const_pos": tf.constant_initializer(0.1),  # Try for dense bias
         "nominal": partial(NominalInitializer, pp['qnom_lo'], pp['qnom_hi'])
