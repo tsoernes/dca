@@ -224,3 +224,22 @@ Average cumulative block probability over 16 episodes: 0.1258 with standard devi
  [0.12592374 0.        ]]
 
 ----------
+
+on-policy, vs off-policy, vs off-policy with imp sampling
+p3 main.py tdcsinghnet -epol boltzmann -eps 3 --epsilon_decay 0.99999 --avg_runs 16
+
+on-policy: p=1, self.next_val=next_val, self.next_frep=next_frep
+Average new call block each log iter: 0.1228, 0.1240, 0.1251, 0.1215, 0.1231, 0.1244, 0.1259, 0.1238
+Average cumulative block probability over 16 episodes: 0.1238 with standard deviation 0.00181
+
+?? p=p, self.next_val=next_val, self.next_frep=next_frep
+Average new call block each log iter: 0.1226, 0.1254, 0.1253, 0.1235, 0.1250, 0.1224, 0.1221, 0.1244
+Average cumulative block probability over 16 episodes: 0.1239 with standard deviation 0.00151
+
+off-policy: p=1, self.next_val=next_max_val, self.next_frep=next_max_frep
+Average new call block each log iter: 0.1224, 0.1241, 0.1272, 0.1269, 0.1236, 0.1242, 0.1249, 0.1245
+Average cumulative block probability over 16 episodes: 0.1247 with standard deviation 0.00151
+
+off-policy w/imp: p=p, self.next_val=next_max_val, self.next_frep=next_max_frep
+Average new call block each log iter: 0.1209, 0.1258, 0.1262, 0.1253, 0.1235, 0.1220, 0.1260, 0.1236
+Average cumulative block probability over 16 episodes: 0.1242 with standard deviation 0.00184

@@ -66,3 +66,10 @@ before it has learned.
 
 -------
 could should sate act state space explicitly for dca, see eg usaha
+
+-------------
+why vnet?
+-applicable because afterstates
+-for a single-layer net, only has 1/K the amount of params where K is number of chs
+why linear?
+-allows for TDC
