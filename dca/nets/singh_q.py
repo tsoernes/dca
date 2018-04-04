@@ -39,7 +39,7 @@ class SinghQNet(Net):
                 kernel_initializer=self.kern_init_dense(),
                 name="advantages")
             q_vals = value + (
-                advantages - tf.reduce_mean(advantages, axis=1, keep_dims=True))
+                advantages - tf.reduce_mean(advantages, axis=1, keepdims=True))
             trainable_vars = get_trainable_vars(scope)
             print(q_vals.shape)
             return q_vals, trainable_vars

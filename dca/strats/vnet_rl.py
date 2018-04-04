@@ -549,7 +549,7 @@ class SinghQNetStrat(VNetBase):
         return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p
 
 
-class SinghQQNetStrat(SinghQNetStrat):
+class SinghQQNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghQQNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
@@ -574,6 +574,42 @@ class SinghQQNetStrat(SinghQNetStrat):
         # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
         # its execution.
         return next_ch
+
+    def get_init_action(self, cevent):
+        res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, next_val, self.max_ch, next_max_val, p = res
+        return ch
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        frep = self.feature_rep(grid)
+        # Q-value for each ch in 'chs'
+        qvals_sparse = self.net.forward(grids=[grid], freps=[frep], cells=[cell])
+        qvals_dense = qvals_sparse[chs]
+        assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
+        return qvals_dense
+
+    def optimal_ch(self, ce_type, cell) -> int:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return (None, ) * 5
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+
+        qvals_dense = self.get_qvals(self.grid, cell, ce_type, chs)
+        self.qval_means.append(np.mean(qvals_dense))
+        if ce_type == CEvent.END:
+            idx = max_idx = np.argmin(qvals_dense)
+            ch = max_ch = chs[idx]
+            p = 1
+        else:
+            ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            max_idx = np.argmax(qvals_dense)
+            max_ch = chs[max_idx]
+            self.epsilon *= self.epsilon_decay
+
+        assert ch is not None, f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n"
+        return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p
 
 
 class ACNSinghStrat(NetStrat):
