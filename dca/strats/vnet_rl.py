@@ -46,7 +46,6 @@ class VNetBase(NetStrat):
         self.afterstate_freps = frepfuncs['afterstate_freps']
         self.feature_rep = frepfuncs['feature_rep']
         self.feature_reps = frepfuncs['feature_reps']
-        self.prep_net(self.pp['prep_net'])
         self.frep, self.next_frep = self.feature_rep(self.grid), None
 
     def get_init_action(self, cevent):
@@ -54,12 +53,20 @@ class VNetBase(NetStrat):
         ch, self.next_qval, self.max_ch, _, self.p, self.frep, self.next_frep, _ = res
         return ch
 
-    def prep_net(self, n=200):
+    def prep_net(self):
         """ Pre-train net on nominal chs """
         r = np.count_nonzero(GF.nom_chs_mask)
         frep = self.feature_rep(GF.nom_chs_mask)
-        for _ in range(n):
-            self.net.backward(freps=[frep], value_target=[r], grids=GF.nom_chs_mask)
+        for _ in range(self.pp['prep_net']):
+            self.net.backward(freps=[frep], value_targets=[r], grids=GF.nom_chs_mask)
+
+    def prep_net_sup(self):
+        """ Pre-train net on nominal chs """
+        r = np.count_nonzero(GF.nom_chs_mask)
+        frep = self.feature_rep(GF.nom_chs_mask)
+        for _ in range(self.pp['prep_net']):
+            self.net.backward_supervised(
+                freps=[frep], value_targets=[r], grids=GF.nom_chs_mask)
 
     def update_target_net(self):
         pass
@@ -81,12 +88,12 @@ class VNetBase(NetStrat):
         #     self.p = 1
         #     self.next_val = next_val
         #     self.next_frep = next_frep
-        # self.p = p
         self.p = 1
-        # self.next_val = next_val
-        # self.next_frep = next_frep
-        self.next_val = next_max_val
-        self.next_frep = next_max_frep
+        # self.p = 1
+        self.next_val = next_val
+        self.next_frep = next_frep
+        # self.next_val = next_max_val
+        # self.next_frep = next_max_frep
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
@@ -214,6 +221,7 @@ class SinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.prep_net()
 
 
 class ExpSinghNetStrat(VNetBase):
@@ -222,6 +230,7 @@ class ExpSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.prep_net()
         assert self.batch_size > 1
         self.bgumbel = BoltzmannGumbel(c=self.pp['exp_policy_param']).select_action
 
@@ -349,6 +358,7 @@ class WolfSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.prep_net()
         self.val = 0
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
@@ -375,6 +385,7 @@ class ManSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ManSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.prep_net()
 
 
 class ResidSinghNetStrat(VNetBase):
@@ -383,6 +394,7 @@ class ResidSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ResidSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.prep_net()
 
 
 class TDLSinghNetStrat(VNetBase):
@@ -395,6 +407,7 @@ class TDLSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TDLSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.prep_net()
 
 
 class TDCSinghNetStrat(VNetBase):
@@ -407,6 +420,7 @@ class TDCSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.prep_net()
 
 
 class TFTDCSinghNetStrat(VNetBase):

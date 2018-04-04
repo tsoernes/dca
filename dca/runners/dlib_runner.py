@@ -160,7 +160,9 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     # Add/overwrite problem params with params given from dlib
     for j, key in enumerate(space_params):
         pp[key] = space_vals[j]
-    if pp['epsilon'] < 2.1 and pp['epsilon_decay'] < 0.999_8:
+    if pp['exp_policy'].lower().endswith(
+            'boltzmann') and pp['epsilon'] < 2.1 and pp['epsilon_decay'] < 0.999_8:
+        # Avoid overflow in boltzmann pol
         pp['exp_policy'] = 'eps_greedy'
         pp['epsilon'] = 0
 

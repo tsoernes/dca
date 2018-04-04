@@ -1,7 +1,6 @@
 import numpy as np  # noqa
 import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import variables
-from tensorflow.contrib.layers.python.layers import utils
 from tensorflow.python.keras._impl.keras import backend as K
 from tensorflow.python.keras._impl.keras import (activations, initializers,
                                                  regularizers)
@@ -89,14 +88,13 @@ class SeparableSplit(SplitConv):
         pointwise_shape = [1, 1, in_chs, in_chs]
         pointwise_filter = tf.Variable(self.pointwise_initializer(pointwise_shape))
 
-        conv = tf.nn.separable_conv2d(
+        outputs = tf.nn.separable_conv2d(
             feature_part,
             depthwise_filter=depthwise_filter,
             pointwise_filter=pointwise_filter,
             strides=self.stride,
             padding=self.padding,
         )
-        outputs = tf.nn.relu(conv)
         if self.biases_initializer is not None:
             biases = variables.model_variable(
                 'biases' + str(n),
@@ -107,6 +105,7 @@ class SeparableSplit(SplitConv):
                 initializer=self.biases_initializer,
             )
             outputs = nn.bias_add(outputs, biases)
+        outputs = tf.nn.relu(outputs)
         return outputs
 
 
