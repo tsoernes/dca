@@ -15,10 +15,7 @@ from strats.base import NetStrat
 class QNetStrat(NetStrat):
     def __init__(self, name, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.pp['rnn']:
-            from nets.rnn_qnet import RQNet
-            self.net = RQNet(name, self.pp, self.logger)
-        elif self.pp['bighead']:
+        if self.pp['bighead']:
             from nets.bighead import BigHeadQNet
             self.net = BigHeadQNet(name, self.pp, self.logger)
         else:
@@ -29,14 +26,28 @@ class QNetStrat(NetStrat):
             self.gamma = self.pp['gamma']
             self.logger.warn("Using experience replay with batch"
                              f" size of {self.batch_size}")
+        if self.pp['prep_net']:
+            self.prep_net()
 
-    def prep_net_sup(self):
+    def prep_net(self):
         """ Pre-train net on nominal chs """
-        r = np.count_nonzero(GF.nom_chs_mask)
-        frep = self.feature_rep(GF.nom_chs_mask)
+        grids = []
+        freps = []
+        cells = []
+        chs = []
+        for r in range(self.rows):
+            for c in range(self.cols):
+                grid = np.zeros(self.dims, np.bool)
+                grid[r, c] = GF.nom_chs_mask[r, c]
+                frep = self.feature_rep(grid)
+                grids.append((grid, ) * 10)
+                freps.append((frep, ) * 10)
+                cells.append((r, c) * 10)
+                chs.extend(GF.nom_chs[r, c])
         for _ in range(self.pp['prep_net']):
             self.net.backward_supervised(
-                grids=GF.nom_chs_mask, freps=[frep], value_targets=[r])
+                freps=freps, q_targets=(10, ) * len(grids), grids=grids)
+        self.logger.info("Prepped net")
 
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)

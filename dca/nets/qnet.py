@@ -59,7 +59,7 @@ class QNet(Net):
                 q_valsd = tf.layers.Dense(
                     units=self.n_channels,
                     kernel_initializer=self.kern_init_dense(),
-                    kernel_regularizer=self.regularizer,
+                    kernel_regularizer=self.dense_regularizer,
                     use_bias=False,
                     name="q_vals")
                 q_vals = q_valsd.apply(inp)

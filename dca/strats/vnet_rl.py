@@ -34,20 +34,12 @@ class VNetBase(NetStrat):
         # For avg. reward related strats
         self.weight_beta = self.pp['weight_beta']
         self.weight_beta_decay = self.pp['weight_beta_decay']
-        self.avg_reward = 0
         if self.pp['target'] == 'avg':
             self.update_qval = self.update_qval_avg
         elif self.pp['target'] == 'avg_rsmart':
             self.update_qval = self.update_qval_rsmart
         elif self.pp['target'] == 'discount':
             self.update_qval = self.update_qval_disc
-
-        frepfuncs = NGF.get_frep_funcs(self.pp['frep_type'])
-        self.frepshape = frepfuncs['shape']
-        self.afterstate_freps = frepfuncs['afterstate_freps']
-        self.feature_rep = frepfuncs['feature_rep']
-        self.feature_reps = frepfuncs['feature_reps']
-        self.frep, self.next_frep = self.feature_rep(self.grid), None
 
     def get_init_action(self, cevent):
         res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
@@ -63,6 +55,7 @@ class VNetBase(NetStrat):
                 frep = self.feature_rep(grid)
                 for _ in range(self.pp['prep_net']):
                     self.net.backward(freps=[frep], value_targets=[10], grids=grid)
+        self.logger.info("Prepped net")
 
     def prep_net_sup(self):
         """ Pre-train net on nominal chs """

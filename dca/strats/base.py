@@ -244,6 +244,14 @@ class NetStrat(RLStrat):
         self.net_copy_iter = self.pp['net_copy_iter']
         self.last_lr = 1
 
+        self.avg_reward = 0
+        frepfuncs = NGF.get_frep_funcs(self.pp['frep_type'])
+        self.frepshape = frepfuncs['shape']
+        self.afterstate_freps = frepfuncs['afterstate_freps']
+        self.feature_rep = frepfuncs['feature_rep']
+        self.feature_reps = frepfuncs['feature_reps']
+        self.frep, self.next_frep = self.feature_rep(self.grid), None
+
     def fn_report(self):
         avg_reward = self.avg_reward if self.avg_reward != 0 else None
         self.env.stats.report_rl(self.epsilon, self.last_lr, self.losses, self.qval_means,
