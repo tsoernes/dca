@@ -563,7 +563,7 @@ class SinghQQNetStrat(SinghQNetStrat):
             frep, next_freps = self.afterstate_freps(grid, cell, ce_type, np.array([ch]))
             next_vals = self.net.forward(
                 grids=[self.grid], freps=next_freps, cells=[next_cell])
-            next_val = np.max(next_vals)
+            next_val = next_vals[ch]
             value_target = reward + discount * next_val
             self.backward(
                 grids=grid,
