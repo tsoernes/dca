@@ -313,7 +313,7 @@ def dlib_load(fname):
         x = list(raw_result[1:])
         result = dlib.function_evaluation(x=x, y=raw_result[0])
         evals.append(result)
-    return spec, evals, info, prev_best
+    return raw_spec, spec, evals, info, prev_best
 
 
 def dlib_best(fname, n=1):

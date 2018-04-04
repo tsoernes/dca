@@ -23,8 +23,7 @@ class TDCSinghNet(Net):
 
     def build(self):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
-        frepshape = [None, self.rows, self.cols, self.n_channels + 1]
-        self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
+        self.freps = tf.placeholder(tf.float32, [None, *self.frepshape], "feature_reps")
         self.grads = tf.placeholder(tf.float32, [self.wdim, 1], "grad_corr")
 
         if self.pp['scale_freps']:
@@ -56,6 +55,19 @@ class TDCSinghNet(Net):
             run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
+
+    def backward_supervised(self,
+                            *,
+                            freps,
+                            value_targets,
+                            **kwargs):
+        value = self.sess.run(self.value, feed_dict={self.freps: freps})[0, 0]
+        frep_colvec = np.reshape(freps[0], [-1, 1])
+        grad = -2 * (value_targets[0] - value) * frep_colvec
+        data = {self.grads[0][0]: grad}
+        lr, _ = self.sess.run(
+            [self.lr, self.do_train],
+            feed_dict=data)
 
     def backward(self,
                  *,

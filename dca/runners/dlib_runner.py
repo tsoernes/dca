@@ -20,7 +20,7 @@ class DlibRunner(Runner):
         self.noise_mag = 0.001  # relative_noise_magnitude. Default setting: 0.001
         self.fname = "dlib-" + self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         space = {
-            # parameter: [IsInteger, Low-Bound, High-Bound]
+            # parameter: [IsInteger, Low_Bound, High_Bound]
             'gamma': [False, 0.60, 0.99],
             'lambda': [False, 0.60, 0.99],
             'net_lr': [False, 1e-7, 1e-6],
@@ -39,33 +39,36 @@ class DlibRunner(Runner):
             lo_bounds.append(li[1])
             hi_bounds.append(li[2])
         try:
-            old_spec, self.evals, info, prev_best = dlib_load(self.fname)
-            # Restore saved params and settings if they differ from current/specified
+            old_raw_spec, old_spec, old_evals, info, prev_best = dlib_load(self.fname)
             saved_params = info['params']
-            if saved_params != self.params:
-                self.logger.error(
-                    f"Saved params {saved_params} differ from specified ones {self.params}"
-                    "; using saved")
-                # TODO could check if bounds match as well
-                self.params = saved_params
-            saved_solver_epsilon = info['solver_epsilon']
-            if saved_solver_epsilon != self.eps:
-                self.logger.error(
-                    f"Saved solver_epsilon {saved_solver_epsilon} differ from"
-                    " specified one {self.eps}, using specified")
-                # self.eps = saved_solver_epsilon
-            _, self.pp = compare_pps(info['pp'], self.pp)
-            self.spec = dlib.function_spec(
-                bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
-            self.optimizer = dlib.global_function_search(
-                [self.spec],
-                initial_function_evals=[self.evals],
-                relative_noise_magnitude=info['relative_noise_magnitude'])
             self.logger.error(f"Restored {len(self.evals)} trials, prev best: "
                               f"{prev_best[0]}@{list(zip(saved_params, prev_best[1:]))}")
-        except FileNotFoundError:
+            # Switching params being optimized over would throw off DLIB.
+            # Have to assert that they are equal instead.
+            # What happens if you introduce another variable in addition to the previously?
+            # E.g. initialize dlib with evals over (eps, beta) then specify bounds for
+            # (eps, beta, gamma)?
+            # Restore saved params and settings if they differ from current/specified
+            if self.params != saved_params:
+                self.logger.error(
+                    f"Saved params {saved_params} differ from currently specified "
+                    f"{self.params}. Using saved.")
+                self.params = saved_params
+            raw_spec = self.cmp_and_choose('bounds', old_raw_spec,
+                                           [is_int, lo_bounds, hi_bounds])
             self.spec = dlib.function_spec(
-                bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
+                bound1=raw_spec[1], bound2=raw_spec[2], is_integer=raw_spec[0])
+            self.eps = self.cmp_and_choose('solver_epsilon', info['solver_epsilon'],
+                                           self.eps)
+            self.noise_mag = self.cmp_and_choose('relative_noise_magnitude',
+                                                 info['relative_noise_magnitude'],
+                                                 self.noise_mag)
+            _, self.pp = compare_pps(info['pp'], self.pp)
+            self.optimizer = dlib.global_function_search(
+                [self.spec],
+                initial_function_evals=[old_evals],
+                relative_noise_magnitude=self.noise_mag)
+        except FileNotFoundError:
             self.optimizer = dlib.global_function_search(self.spec)
             self.optimizer.set_relative_noise_magnitude(self.noise_mag)
         self.optimizer.set_solver_epsilon(self.eps)
@@ -75,6 +78,18 @@ class DlibRunner(Runner):
                                self.result_queue)
         # Becomes populated with evaluation objects to be set later
         self.evals = [None] * self.n_sims
+
+    def cmp_and_choose(self, what, saved, specified):
+        chosen = specified
+        if saved != specified:
+            self.logger.error(
+                f"Saved {what} {saved} differ from currently specified {specified}")
+            inp = ""
+            while inp not in ['N', 'Y']:
+                inp = input(f"Use specified {what} (Y) instead of saved (N)?: ").upper()
+            if inp == "N":
+                chosen = saved
+        return chosen
 
     def run(self):
         if not self.pp['avg_runs']:
@@ -90,8 +105,8 @@ class DlibRunner(Runner):
                   self.pp, self.fname)
         best_eval = self.optimizer.get_best_function_eval()
         prms = list(zip(self.params, list(best_eval[0])))
-        self.logger.error(f"Finished {len(finished_evals)} trials."
-                          f" Best eval this session: {best_eval[1]}@{prms}")
+        self.logger.error(f"Saving {len(finished_evals)} trials. "
+                          f"Best eval so far: {best_eval[1]}@{prms}")
 
     def spawn_eval(self, i):
         """Spawn a new sim process"""
@@ -160,7 +175,9 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     # Add/overwrite problem params with params given from dlib
     for j, key in enumerate(space_params):
         pp[key] = space_vals[j]
-    if pp['epsilon'] < 2.1 and pp['epsilon_decay'] < 0.999_8:
+    if pp['exp_policy'].lower().endswith(
+            'boltzmann') and pp['epsilon'] < 2.1 and pp['epsilon_decay'] < 0.999_8:
+        # Avoid overflow in boltzmann pol
         pp['exp_policy'] = 'eps_greedy'
         pp['epsilon'] = 0
 
