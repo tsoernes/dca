@@ -13,6 +13,7 @@ from nets.singh_lstd import LSTDSinghNet
 from nets.singh_man import ManSinghNet
 from nets.singh_ppo import PPOSinghNet
 from nets.singh_q import SinghQNet
+from nets.singh_qq import SinghQQNet
 from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
 from nets.singh_tdc_tf import TFTDCSinghNet
@@ -147,7 +148,7 @@ class VNetBase(NetStrat):
         cur_frep, freps = self.afterstate_freps(grid, cell, ce_type, chs)
         grids = NGF.afterstates(grid, cell, ce_type, chs)
         # Q-value for each ch in 'chs'
-        qvals_dense = self.net.forward(freps, grids)
+        qvals_dense = self.net.forward(freps=freps, grids=grids)
         assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
         return qvals_dense, cur_frep, freps
 
@@ -489,6 +490,11 @@ class SinghQNetStrat(VNetBase):
         super().__init__(*args, **kwargs)
         self.net = SinghQNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
+    def get_init_action(self, cevent):
+        res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, next_val, self.max_ch, next_max_val, p = res
+        return ch
+
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if ch is not None:
@@ -505,7 +511,8 @@ class SinghQNetStrat(VNetBase):
                 next_freps=next_freps,
                 next_cells=next_cell,
                 discount=discount)
-        next_ch, next_val = self.optimal_ch(next_ce_type, next_cell)
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_val, self.max_ch, next_max_val, p = res
         # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
         # its execution.
         return next_ch
@@ -513,7 +520,7 @@ class SinghQNetStrat(VNetBase):
     def get_qvals(self, grid, cell, ce_type, chs):
         frep = self.feature_rep(grid)
         # Q-value for each ch in 'chs'
-        qvals_sparse = self.net.forward([grid], [frep], [cell])
+        qvals_sparse = self.net.forward(grids=[grid], freps=[frep], cells=[cell])
         qvals_dense = qvals_sparse[chs]
         assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
         return qvals_dense
@@ -522,22 +529,51 @@ class SinghQNetStrat(VNetBase):
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
-                return None, 0
+                return (None, ) * 5
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
         qvals_dense = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
         if ce_type == CEvent.END:
-            idx = np.argmin(qvals_dense)
-            ch = chs[idx]
+            idx = max_idx = np.argmin(qvals_dense)
+            ch = max_ch = chs[idx]
+            p = 1
         else:
             ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            max_idx = np.argmax(qvals_dense)
+            max_ch = chs[max_idx]
             self.epsilon *= self.epsilon_decay
 
-        if ch is None:
-            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
-        return ch, qvals_dense[idx]
+        assert ch is not None, f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n"
+        return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p
+
+
+class SinghQQNetStrat(SinghQNetStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghQQNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        if ch is not None:
+            # frep = self.feature_rep(grid)
+            frep, next_freps = self.afterstate_freps(grid, cell, ce_type, np.array([ch]))
+            next_vals = self.net.forward(
+                grids=[self.grid], freps=next_freps, cells=[next_cell])
+            next_val = np.max(next_vals)
+            value_target = reward + discount * next_val
+            self.backward(
+                grids=grid,
+                freps=[frep],
+                cells=[cell],
+                chs=[ch],
+                value_targets=[value_target])
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, self.next_val, self.max_ch, next_max_val, self.p = res
+        # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
+        # its execution.
+        return next_ch
 
 
 class ACNSinghStrat(NetStrat):

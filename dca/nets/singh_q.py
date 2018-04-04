@@ -6,12 +6,13 @@ from nets.utils import get_trainable_vars, prep_data_cells
 
 
 class SinghQNet(Net):
-    def __init__(self, *args, **kwargs):
-        """
-        Afterstate value net
-        """
+    def __init__(self, pp, logger, frepshape):
         self.name = "SinghNet"
-        super().__init__(name=self.name, *args, **kwargs)
+        # self.frep_depth = pp['n_channels'] + 1 if frep_depth is None else frep_depth
+        self.pre_conv = pp['pre_conv']
+        self.grid_inp = pp['singh_grid']
+        self.frepshape = frepshape
+        super().__init__(name=self.name, pp=pp, logger=logger)
 
     def _build_net(self, inp, name):
         with tf.variable_scope('model/' + name) as scope:
@@ -38,7 +39,7 @@ class SinghQNet(Net):
                 kernel_initializer=self.kern_init_dense(),
                 name="advantages")
             q_vals = value + (
-                advantages - tf.reduce_mean(advantages, axis=1, keepdims=True))
+                advantages - tf.reduce_mean(advantages, axis=1, keep_dims=True))
             trainable_vars = get_trainable_vars(scope)
             print(q_vals.shape)
             return q_vals, trainable_vars
@@ -92,7 +93,7 @@ class SinghQNet(Net):
             },
             options=self.options,
             run_metadata=self.run_metadata)
-        vals = np.reshape(values, [-1])
+        vals = np.squeeze(values, axis=1)
         return vals
 
     def backward(self, grids, freps, cells, chs, rewards, next_grids, next_elig,
