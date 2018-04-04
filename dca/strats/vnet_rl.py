@@ -56,10 +56,13 @@ class VNetBase(NetStrat):
 
     def prep_net(self):
         """ Pre-train net on nominal chs """
-        r = np.count_nonzero(GF.nom_chs_mask)
-        frep = self.feature_rep(GF.nom_chs_mask)
-        for _ in range(self.pp['prep_net']):
-            self.net.backward(freps=[frep], value_targets=[r], grids=GF.nom_chs_mask)
+        for r in range(self.rows):
+            for c in range(self.cols):
+                grid = np.zeros(self.dims, np.bool)
+                grid[r, c] = GF.nom_chs_mask[r, c]
+                frep = self.feature_rep(grid)
+                for _ in range(self.pp['prep_net']):
+                    self.net.backward(freps=[frep], value_targets=[10], grids=grid)
 
     def prep_net_sup(self):
         """ Pre-train net on nominal chs """
@@ -554,6 +557,14 @@ class SinghQQNetStrat(VNetBase):
         super().__init__(*args, **kwargs)
         self.net = SinghQQNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
+    def update_target_net(self):
+        self.net.sess.run(self.net.copy_online_to_target)
+
+    def get_init_action(self, cevent):
+        res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, next_val, self.max_ch, next_max_val, p = res
+        return ch
+
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         res = self.optimal_ch(next_ce_type, next_cell)
@@ -574,11 +585,6 @@ class SinghQQNetStrat(VNetBase):
         # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
         # its execution.
         return next_ch
-
-    def get_init_action(self, cevent):
-        res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
-        ch, next_val, self.max_ch, next_max_val, p = res
-        return ch
 
     def get_qvals(self, grid, cell, ce_type, chs):
         frep = self.feature_rep(grid)

@@ -30,6 +30,14 @@ class QNetStrat(NetStrat):
             self.logger.warn("Using experience replay with batch"
                              f" size of {self.batch_size}")
 
+    def prep_net_sup(self):
+        """ Pre-train net on nominal chs """
+        r = np.count_nonzero(GF.nom_chs_mask)
+        frep = self.feature_rep(GF.nom_chs_mask)
+        for _ in range(self.pp['prep_net']):
+            self.net.backward_supervised(
+                grids=GF.nom_chs_mask, freps=[frep], value_targets=[r])
+
     def update_target_net(self):
         self.net.sess.run(self.net.copy_online_to_target)
 
