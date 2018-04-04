@@ -172,10 +172,11 @@ def prep_data_grids(grids, split=True):
     split: Copy alloc map and invert second copy (empty as 1; inuse as 0).
     Leaves freps as is.
     """
-    assert type(grids) == np.ndarray
-    if grids.ndim == 3:
+    if type(grids) == list:
+        grids = np.array(grids)
+    elif grids.ndim == 3:
         grids = np.expand_dims(grids, axis=0)
-    assert grids.shape[1:] == (7, 7, 70)
+    assert grids.shape[1:] == (7, 7, 70), grids.shape
     np.concatenate
     if split:
         sgrids = np.zeros((len(grids), 7, 7, 140), dtype=np.bool)
@@ -190,7 +191,8 @@ def prep_data_cells(cells):
     if type(cells) == tuple:
         cells = [cells]
     if type(cells[0]) != tuple:
-        raise Exception("WHOAH WHOAH using np arrays for indexing works differently")
+        raise Exception(f"type(cells)={type(cells)}, type(cells[0])={type(cells[0])} "
+                        "Using np arrays for indexing works differently")
         # For python atleast. perhaps admissible in TF
     oh_cells = np.zeros((len(cells), 7, 7, 1), dtype=np.bool)
     for i, cell in enumerate(cells):

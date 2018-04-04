@@ -40,13 +40,17 @@ class QNetStrat(NetStrat):
                 grid = np.zeros(self.dims, np.bool)
                 grid[r, c] = GF.nom_chs_mask[r, c]
                 frep = self.feature_rep(grid)
-                grids.append((grid, ) * 10)
-                freps.append((frep, ) * 10)
-                cells.append((r, c) * 10)
+                grids.extend((grid, ) * 10)
+                freps.extend((frep, ) * 10)
+                cells.extend(((r, c), ) * 10)
                 chs.extend(GF.nom_chs[r, c])
         for _ in range(self.pp['prep_net']):
             self.net.backward_supervised(
-                freps=freps, q_targets=(10, ) * len(grids), grids=grids)
+                freps=freps,
+                q_targets=(10, ) * len(grids),
+                grids=grids,
+                cells=cells,
+                chs=chs)
         self.logger.info("Prepped net")
 
     def update_target_net(self):
