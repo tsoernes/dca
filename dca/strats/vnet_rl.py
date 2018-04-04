@@ -556,7 +556,9 @@ class SinghQQNetStrat(SinghQNetStrat):
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
-        if ch is not None:
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_val, max_ch, next_max_val, p = res
+        if ch is not None and next_ch is not None and ce_type != CEvent.END:
             # frep = self.feature_rep(grid)
             frep, next_freps = self.afterstate_freps(grid, cell, ce_type, np.array([ch]))
             next_vals = self.net.forward(
@@ -569,8 +571,6 @@ class SinghQQNetStrat(SinghQNetStrat):
                 cells=[cell],
                 chs=[ch],
                 value_targets=[value_target])
-        res = self.optimal_ch(next_ce_type, next_cell)
-        next_ch, self.next_val, self.max_ch, next_max_val, self.p = res
         # 'next_ch' will be 'ch' next iteration, thus the value of 'self.grid' after
         # its execution.
         return next_ch

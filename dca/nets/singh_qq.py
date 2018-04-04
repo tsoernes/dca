@@ -31,7 +31,7 @@ class SinghQQNet(Net):
                     kernel_initializer=self.kern_init_dense(),
                     name="advantages")
                 q_vals = value + (
-                    advantages - tf.reduce_mean(advantages, axis=1, keepdims=True))
+                    advantages - tf.reduce_mean(advantages, axis=1, keep_dims=True))
                 print("Dueling q-out shape:", q_vals.shape)
             else:
                 q_vals = tf.layers.dense(
