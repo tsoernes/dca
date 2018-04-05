@@ -39,6 +39,7 @@ class SplitConv:
             fps = inp
         else:
             splitaxis = split_axis(inp.shape)
+            print(f"Split at: {splitaxis}")
             fps = tf.split(inp, splitaxis, -1)
         convs = [self.part_fn(feature_part, n) for n, feature_part in enumerate(fps)]
         out = tf.concat(convs, -1) if concat else convs
