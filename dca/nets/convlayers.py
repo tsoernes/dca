@@ -10,6 +10,8 @@ from tensorflow.python.ops import nn
 
 
 def split_axis(input_shape):
+    """ Split e.g. [b, w, h, 140] into 2*[b, w, h, 70]
+    or [b, w, h, 141] into 2*[b, w, h, 70] + 1*[b, w, h, 1]"""
     d = input_shape[-1]
     split_axis = [70] * (d // 70)
     if d % 70 > 0:
@@ -64,7 +66,7 @@ class InPlaneSplit(SplitConv):
 
 
 class SeparableSplit(SplitConv):
-    """ For each feature part, 
+    """ For each feature part,
     """
 
     def __init__(self,

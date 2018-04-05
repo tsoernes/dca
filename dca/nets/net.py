@@ -11,6 +11,7 @@ from tensorflow.python.client import timeline
 import datahandler
 from nets.utils import (build_default_minimizer, get_act_fn_by_name,
                         get_init_by_name)
+from nets.convlayers import InPlaneSplit
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  # warn
 """
@@ -103,6 +104,29 @@ class Net:
         raise NotImplementedError
 
     def _build_base_net(self, top_inp, cell, name):
+        """A series of convolutional layers with 'grid' and 'frep' as inputs,
+        and 'cell' stacked with the outputs"""
+        # TODO Try one conv after cell stack
+        with tf.variable_scope('model/' + name):
+            inp = tf.concat([top_inp, cell], axis=3) if self.pp['top_stack'] else top_inp
+            nconvs = len(self.pp['conv_nfilters'])
+            for i in range(nconvs - 1):
+                conv = InPlaneSplit(
+                    self.pp['conv_kernel_sizes'][i],
+                    stride=1,
+                    use_bias=self.pp['conv_bias'],
+                    padding="SAME",
+                    kernel_initializer=self.conv_regularizer)
+                islast = i == nconvs - 2
+                inp = conv.apply(inp, islast)
+            inp = self.add_conv_layer(inp, self.pp['conv_nfilters'][nconvs - 1],
+                                      self.pp['conv_kernel_sizes'][nconvs - 1])
+            self.logger.error(f"Conv out shape, before cellstack: {inp.shape}")
+            conv_out = inp if self.pp['top_stack'] else tf.concat([inp, cell], axis=3)
+            out = tf.layers.flatten(conv_out)
+            return out
+
+    def _build_base_net2(self, top_inp, cell, name):
         """A series of convolutional layers with 'grid' and 'frep' as inputs,
         and 'cell' stacked with the outputs"""
         # TODO Try one conv after cell stack
