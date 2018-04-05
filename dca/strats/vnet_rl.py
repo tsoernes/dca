@@ -218,7 +218,8 @@ class SinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
-        self.prep_net()
+        if self.pp['prep_net']:
+            self.prep_net()
 
 
 class ExpSinghNetStrat(VNetBase):
@@ -227,7 +228,8 @@ class ExpSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
-        self.prep_net()
+        if self.pp['prep_net']:
+            self.prep_net()
         assert self.batch_size > 1
         self.bgumbel = BoltzmannGumbel(c=self.pp['exp_policy_param']).select_action
 
@@ -355,7 +357,8 @@ class WolfSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
-        self.prep_net()
+        if self.pp['prep_net']:
+            self.prep_net()
         self.val = 0
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
@@ -382,7 +385,8 @@ class ManSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ManSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
-        self.prep_net()
+        if self.pp['prep_net']:
+            self.prep_net()
 
 
 class ResidSinghNetStrat(VNetBase):
@@ -391,7 +395,8 @@ class ResidSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = ResidSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
-        self.prep_net()
+        if self.pp['prep_net']:
+            self.prep_net()
 
 
 class TDLSinghNetStrat(VNetBase):
@@ -404,7 +409,8 @@ class TDLSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TDLSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
-        self.prep_net()
+        if self.pp['prep_net']:
+            self.prep_net()
 
 
 class TDCSinghNetStrat(VNetBase):
@@ -417,7 +423,8 @@ class TDCSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
-        self.prep_net()
+        if self.pp['prep_net']:
+            self.prep_net()
 
 
 class TFTDCSinghNetStrat(VNetBase):

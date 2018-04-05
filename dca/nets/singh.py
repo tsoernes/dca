@@ -26,12 +26,12 @@ class SinghNet(Net):
             #     inp, filters, strides=[1, 1, 1, 1], padding='SAME')
             # dense_inp = tf.nn.relu(conv)
 
-            dense_inp = SeparableSplit(
-                kernel_size=3,
-                stride=1,
-                use_bias=False,
-                padding="VALID",
-                kernel_initializer=self.kern_init_conv).apply(inp, True)
+            # dense_inp = SeparableSplit(
+            #     kernel_size=3,
+            #     stride=1,
+            #     use_bias=False,
+            #     padding="VALID",
+            #     kernel_initializer=self.kern_init_conv).apply(inp, True)
 
             # c1 = InPlaneSplit(
             #     kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
@@ -40,8 +40,13 @@ class SinghNet(Net):
             #     kernel_size=3, stride=1, use_bias=False, padding="VALID").apply(
             #         c1, True)
 
-            # lconv = k.layers.LocallyConnected2D(filters=70, kernel_size=3)
-            # dense_inp = lconv(inp)
+            lconv = k.layers.LocallyConnected2D(
+                filters=self.pp['conv_nfilters'][0],
+                kernel_size=self.pp['conv_kernel_sizes'][0],
+                activation=tf.nn.relu,
+                kernel_initializer=self.kern_init_conv(),
+                use_bias=False)
+            dense_inp = lconv(inp)
 
             # dense_inp = self.add_conv_layer(inp, 70, 3, padding="same", use_bias=False)
             # dense_inp = self.add_conv_layer(conv1, 3 * 70, 3)

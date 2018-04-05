@@ -107,8 +107,8 @@ class QLearnNetStrat(QNetStrat):
                     next_max_ch, discount):
         if ce_type != CEvent.END and ch is not None:
             if self.pp['freps']:
-                frep, next_freps = NGF.successive_freps(grid, cell, ce_type,
-                                                        np.array([ch]))
+                frep, next_freps = self.afterstate_freps(grid, cell, ce_type,
+                                                         np.array([ch]))
                 freps = [frep]
             else:
                 freps, next_freps = None, None
@@ -205,8 +205,8 @@ class QLearnEligibleNetStrat(QNetStrat):
         """ Update qval for one experience tuple"""
         if ce_type != CEvent.END and ch is not None and next_max_ch is not None:
             if self.pp['freps']:
-                frep, next_freps = GF.successive_freps(grid, cell, ce_type,
-                                                       np.array([ch]))
+                frep, next_freps = self.afterstate_freps(grid, cell, ce_type,
+                                                         np.array([ch]))
                 freps = [frep]
             else:
                 freps, next_freps = None, None
@@ -235,8 +235,8 @@ class SARSANetStrat(QNetStrat):
         """ Update qval for one experience tuple"""
         if ce_type != CEvent.END and ch is not None and next_ch is not None:
             if self.pp['freps']:
-                frep, next_freps = GF.successive_freps(grid, cell, ce_type,
-                                                       np.array([ch]))
+                frep, next_freps = self.afterstate_freps(grid, cell, ce_type,
+                                                         np.array([ch]))
                 freps = [frep]
             else:
                 freps, next_freps = None, None

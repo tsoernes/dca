@@ -103,7 +103,7 @@ class Net:
     def backward(self):
         raise NotImplementedError
 
-    def _build_base_net(self, top_inp, cell, name):
+    def _build_base_net2(self, top_inp, cell, name):
         """A series of convolutional layers with 'grid' and 'frep' as inputs,
         and 'cell' stacked with the outputs"""
         # TODO Try one conv after cell stack
@@ -126,7 +126,7 @@ class Net:
             out = tf.layers.flatten(conv_out)
             return out
 
-    def _build_base_net2(self, top_inp, cell, name):
+    def _build_base_net(self, top_inp, cell, name):
         """A series of convolutional layers with 'grid' and 'frep' as inputs,
         and 'cell' stacked with the outputs"""
         # TODO Try one conv after cell stack

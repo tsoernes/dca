@@ -18,8 +18,8 @@ class QNet(Net):
         super().__init__(name=name, *args, **kwargs)
         # self.sess.run(self.copy_online_to_target)
 
-    def _build_net(self, top_inp, cells, name):
-        inp = self._build_base_net(top_inp, cells, name)
+    def _build_net(self, top_inp, cell, name):
+        inp = self._build_base_net(top_inp, cell, name)
         with tf.variable_scope('model/' + name) as scope:
             if self.pp['dueling_qnet']:
                 h1 = inp

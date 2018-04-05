@@ -112,6 +112,40 @@ class SeparableSplit(SplitConv):
         return outputs
 
 
+def separable_conv2d(inp, kernel_size, stride, padding, kernel_initializer):
+    in_chs = int(inp.shape[-1])
+    stride = (1, stride, stride, 1)
+    # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
+    # Contains in_channels convolutional filters of depth 1.
+    depthwise_shape = [kernel_size, kernel_size, in_chs, 1]
+    depthwise_filter = tf.Variable(kernel_initializer(depthwise_shape))
+    # pointwise_filter: [1, 1, channel_multiplier * in_channels, out_channels].
+    # Pointwise filter to mix channels after depthwise_filter has convolved spatially.
+    pointwise_initializer = tf.constant_initializer(0.1)
+    pointwise_shape = [1, 1, in_chs, in_chs]
+    pointwise_filter = tf.Variable(pointwise_initializer(pointwise_shape))
+
+    outputs = tf.nn.separable_conv2d(
+        inp,
+        depthwise_filter=depthwise_filter,
+        pointwise_filter=pointwise_filter,
+        strides=stride,
+        padding=padding.upper(),
+    )
+    # if self.biases_initializer is not None:
+    #     biases = variables.model_variable(
+    #         'biases' + str(n),
+    #         shape=[
+    #             in_chs,
+    #         ],
+    #         dtype=feature_part.dtype,
+    #         initializer=self.biases_initializer,
+    #     )
+    #     outputs = nn.bias_add(outputs, biases)
+    outputs = tf.nn.relu(outputs)
+    return outputs
+
+
 class InPlaneSplitLocallyConnected2D(Layer):
     """In-plane Split Locally-connected layer for 2D inputs.
   The `InPlaneSplitLocallyConnected2D` layer works similarly
