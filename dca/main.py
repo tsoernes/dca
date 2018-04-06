@@ -184,6 +184,7 @@ def get_pparams(defaults=False):
         help="(RL) (initial) probability of choosing random action",
         default=2.10259)
     parser.add_argument(
+        '-edec',
         '--epsilon_decay',
         type=float,
         help="(RL) factor by which epsilon is multiplied each iteration",

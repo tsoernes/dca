@@ -17,11 +17,8 @@ class Runner:
         if self.pp['log_file']:
             fh = logging.FileHandler(self.pp['log_file'] + ".log")
             fh.setLevel(self.pp['log_level'])
-            # file_only_logger = logging.getLogger("fileonly")
-            # file_only_logger.addHandler(fh)
-            # file_only_logger.error(" ".join(sys.argv))
             self.logger.addHandler(fh)
-        cmdparms = " ".join(sys.argv)
+        cmdparms = " ".join(sys.argv[1:])
         self.logger.error(
             f"{cmdparms}\nStarting simulation at {datetime.datetime.now()} with params:\n{self.pp}"
         )

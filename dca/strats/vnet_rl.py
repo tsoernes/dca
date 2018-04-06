@@ -222,6 +222,85 @@ class SinghNetStrat(VNetBase):
             self.prep_net()
 
 
+class ESinghNetStrat(VNetBase):
+    """Expectation"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        if self.pp['prep_net']:
+            self.prep_net()
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        if ch is not None:
+            self.update_qval(grid, self.frep, cell, ce_type, ch, self.max_ch, self.p,
+                             reward, self.grid, self.next_frep, self.next_val, discount)
+        # 'next_ch' will be passed as 'ch' next time get_action is called,
+        # and self.next_val will be the value of executing then 'ch' on then 'grid'
+        # i.e. the value of then 'self.grid'
+        next_ce_type, next_cell = next_cevent[1:3]
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_val, self.max_ch, next_max_val, p, self.frep, next_frep, next_max_frep = res
+        # NOTE This looks funny. If imp sampling, is 'p' prob of max ch?
+        # if self.importance_sampl:
+        #     self.p = p
+        # else:
+        #     self.p = 1
+        #     self.next_val = next_val
+        #     self.next_frep = next_frep
+        self.p = 1
+        # self.p = 1
+        self.next_val = next_val
+        self.next_frep = next_frep
+        # self.next_val = next_max_val
+        # self.next_frep = next_max_frep
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> int:
+        """ Select a channel and return selected channel, greedy channel, qval and frep for both,
+        in addition to prob of picking selected channel, and current frep"""
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return (None, ) * 8
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+
+        qvals_dense, cur_frep, freps = self.get_qvals(self.grid, cell, ce_type, chs)
+        self.qval_means.append(np.mean(qvals_dense))
+        if ce_type == CEvent.END:
+            idx = max_idx = np.argmax(qvals_dense)
+            ch = max_ch = chs[idx]
+            p = 1
+        else:
+            ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            max_idx = np.argmax(qvals_dense)
+            max_ch = chs[max_idx]
+            self.epsilon *= self.epsilon_decay
+
+        assert ch is not None, f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n"
+        return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p, cur_frep, freps[
+            idx], freps[max_idx]
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        afterstates = self.afterstates(grid, cell, ce_type, chs)
+        # Q-value for each ch in 'chs'
+        qvals_dense = self.net.forward(freps=freps)
+
+        for r in range(self.rows):
+            for c in range(self.cols):
+                ncell = (r, c)
+                elig_chs = GF.get_eligible_chs(grid, cell)
+                if elig_chs:
+                    pass
+                inuse_chs = np.nonzero(grid[cell])[0]
+
+        qvals_dense, cur_frep, freps = self.get_qvals(grid, cell, ce_type, chs)
+        idx = np.argmax(qvals_dense)
+        ch = chs[idx]
+        return ch, qvals_dense[idx]
+
+
 class ExpSinghNetStrat(VNetBase):
     """ Experience replay """
 

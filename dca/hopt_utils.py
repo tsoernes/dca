@@ -268,7 +268,7 @@ def dlib_save(spec, evals, params, solver_epsilon, relative_noise_magnitude, pp,
     raw_spec = (list(spec.is_integer_variable), list(spec.lower), list(spec.upper))
     raw_results = np.zeros((len(evals), len(evals[0].x) + 1))
     info = {
-        'cmd_args': " ".join(sys.argv),
+        'cmd_args': " ".join(sys.argv[1:]),
         'params': params,
         'solver_epsilon': solver_epsilon,
         'relative_noise_magnitude': relative_noise_magnitude,
