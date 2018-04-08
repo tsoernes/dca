@@ -41,6 +41,16 @@ Changing default params from: epolc bgumbel 5.0
 Changing default params  to:epolc bgumbel 5.3
 
 --------------------
+date/time  08.04
+Changing default params from:
+wbeta 1.3e-2
+gbeta 1e-5
+
+Changing default params to:
+wbeta 6e-2
+gbeta 5e-6
+
+--------------------
 date/time 
 Changing default params from:
 Changing default params to:

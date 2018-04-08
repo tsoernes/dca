@@ -84,7 +84,8 @@ def get_pparams(defaults=False):
     hopt_opts = [
         'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
         'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff', 'beta',
-        'net_lr_decay', 'n_step', 'weight_beta'
+        'net_lr_decay', 'n_step', 'weight_beta', 'weight_beta_decay', 'grad_beta',
+        'grad_beta_decay'
     ]
 
     parser.add_argument('strat', type=str, choices=stratnames, default="rs_sarsa")
@@ -192,10 +193,12 @@ def get_pparams(defaults=False):
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
         '--gamma_end', type=float, help="(RL) discount factor at sim end", default=None)
+    parser.add_argument('-wbeta', '--weight_beta', type=float, help="(RL)", default=6e-2)
     parser.add_argument(
-        '-wbeta', '--weight_beta', type=float, help="(RL)", default=1.3e-2)
-    parser.add_argument('--weight_beta_decay', type=float, help="(RL)", default=0.999_999)
-    parser.add_argument('-gbeta', '--grad_beta', type=float, help="(RL)", default=1e-5)
+        '-wbeta_dec', '--weight_beta_decay', type=float, help="(RL)", default=1)
+    parser.add_argument('-gbeta', '--grad_beta', type=float, help="(RL)", default=5e-6)
+    parser.add_argument(
+        '-gbeta_dec', '--grad_beta_decay', type=float, help="(RL)", default=1)
     parser.add_argument(
         '-rtype',
         '--reward_type',

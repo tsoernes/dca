@@ -12,13 +12,18 @@ from runners.runner import Runner
 class DlibRunner(Runner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.n_concurrent = cpu_count() // 2 - 1  # Number of concurrent procs
-        self.n_concurrent = cpu_count() - 1  # Number of concurrent procs
-        self.n_sims = 4000  # The number of times to sample and test params
-        self.save_iter = 50
-        self.eps = 0.0005  # solver_epsilon
-        self.noise_mag = 0.001  # relative_noise_magnitude. Default setting: 0.001
-        self.fname = "dlib-" + self.pp['hopt_fname'].replace('.pkl', '') + '.pkl'
+
+    def run(self):
+        pp = self.pp
+        logger = self.logger
+
+        # n_concurrent = cpu_count() // 2 - 1  # Number of concurrent procs
+        n_concurrent = cpu_count() - 1  # Number of concurrent procs
+        n_sims = 4000  # The number of times to sample and test params
+        save_iter = 50
+        eps = 0.0005  # solver_epsilon
+        noise_mag = 0.001  # relative_noise_magnitude. Default setting: 0.001
+        fname = "dlib-" + pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         space = {
             # parameter: [IsInteger, Low_Bound, High_Bound]
             'gamma': [False, 0.60, 0.99],
@@ -27,112 +32,93 @@ class DlibRunner(Runner):
             'beta': [True, 10, 3000],
             'net_lr_decay': [False, 0.70, 1.0],
             'weight_beta': [False, 1e-3, 9e-1],
+            'weight_beta_decay': [False, 0.999_9, 0.999_999],
+            'grad_beta': [False, 1e-3, 9e-1],
+            'grad_beta_decay': [False, 0.999_9, 0.999_999],
             'epsilon': [False, 2, 5],
             'epsilon_decay': [False, 0.999_5, 0.999_999],
             'alpha': [False, 0.00001, 0.3]
         }
-        self.space = {param: space[param] for param in self.pp['dlib_hopt']}
-        self.params, is_int, lo_bounds, hi_bounds = [], [], [], []
-        for p, li in self.space.items():
-            self.params.append(p)
+        space = {param: space[param] for param in pp['dlib_hopt']}
+        params, is_int, lo_bounds, hi_bounds = [], [], [], []
+        for p, li in space.items():
+            params.append(p)
             is_int.append(li[0])
             lo_bounds.append(li[1])
             hi_bounds.append(li[2])
         try:
-            old_raw_spec, old_spec, old_evals, info, prev_best = dlib_load(self.fname)
+            old_raw_spec, old_spec, old_evals, info, prev_best = dlib_load(fname)
             saved_params = info['params']
-            self.logger.error(f"Restored {len(self.evals)} trials, prev best: "
-                              f"{prev_best[0]}@{list(zip(saved_params, prev_best[1:]))}")
+            logger.error(f"Restored {len(old_evals)} trials, prev best: "
+                         f"{prev_best[0]}@{list(zip(saved_params, prev_best[1:]))}")
             # Switching params being optimized over would throw off DLIB.
             # Have to assert that they are equal instead.
             # What happens if you introduce another variable in addition to the previously?
             # E.g. initialize dlib with evals over (eps, beta) then specify bounds for
             # (eps, beta, gamma)?
             # Restore saved params and settings if they differ from current/specified
-            if self.params != saved_params:
-                self.logger.error(
+            if params != saved_params:
+                logger.error(
                     f"Saved params {saved_params} differ from currently specified "
-                    f"{self.params}. Using saved.")
-                self.params = saved_params
-            raw_spec = self.cmp_and_choose('bounds', old_raw_spec,
-                                           [is_int, lo_bounds, hi_bounds])
-            self.spec = dlib.function_spec(
+                    f"{params}. Using saved.")
+                params = saved_params
+            raw_spec = cmp_and_choose('bounds', old_raw_spec,
+                                      [is_int, lo_bounds, hi_bounds])
+            spec = dlib.function_spec(
                 bound1=raw_spec[1], bound2=raw_spec[2], is_integer=raw_spec[0])
-            self.eps = self.cmp_and_choose('solver_epsilon', info['solver_epsilon'],
-                                           self.eps)
-            self.noise_mag = self.cmp_and_choose('relative_noise_magnitude',
-                                                 info['relative_noise_magnitude'],
-                                                 self.noise_mag)
-            _, self.pp = compare_pps(info['pp'], self.pp)
-            self.optimizer = dlib.global_function_search(
-                [self.spec],
+            eps = cmp_and_choose('solver_epsilon', info['solver_epsilon'], eps)
+            noise_mag = cmp_and_choose('relative_noise_magnitude',
+                                       info['relative_noise_magnitude'], noise_mag)
+            _, pp = compare_pps(info['pp'], pp)
+            optimizer = dlib.global_function_search(
+                [spec],
                 initial_function_evals=[old_evals],
-                relative_noise_magnitude=self.noise_mag)
+                relative_noise_magnitude=noise_mag)
         except FileNotFoundError:
-            self.optimizer = dlib.global_function_search(self.spec)
-            self.optimizer.set_relative_noise_magnitude(self.noise_mag)
-        self.optimizer.set_solver_epsilon(self.eps)
+            spec = dlib.function_spec(
+                bound1=lo_bounds, bound2=hi_bounds, is_integer=is_int)
+            optimizer = dlib.global_function_search(spec)
+            optimizer.set_relative_noise_magnitude(noise_mag)
+        optimizer.set_solver_epsilon(eps)
         # Becomes populated with results as simulations finished
-        self.result_queue = Queue()
-        self.simproc = partial(dlib_proc, self.stratclass, self.pp, self.params,
-                               self.result_queue)
+        result_queue = Queue()
+        simproc = partial(dlib_proc, self.stratclass, pp, params, result_queue)
         # Becomes populated with evaluation objects to be set later
-        self.evals = [None] * self.n_sims
+        evals = [None] * n_sims
 
-    def cmp_and_choose(self, what, saved, specified):
-        chosen = specified
-        if saved != specified:
-            self.logger.error(
-                f"Saved {what} {saved} differ from currently specified {specified}")
-            inp = ""
-            while inp not in ['N', 'Y']:
-                inp = input(f"Use specified {what} (Y) instead of saved (N)?: ").upper()
-            if inp == "N":
-                chosen = saved
-        return chosen
+        def save_evals():
+            """Store results of finished evals to file; print best eval"""
+            finished_evals = optimizer.get_function_evaluations()[1][0]
+            dlib_save(spec, finished_evals, params, eps, noise_mag, pp, fname)
+            best_eval = optimizer.get_best_function_eval()
+            prms = list(zip(params, list(best_eval[0])))
+            logger.error(f"Saving {len(finished_evals)} trials. "
+                         f"Best eval so far: {best_eval[1]}@{prms}")
 
-    def run(self):
-        if not self.pp['avg_runs']:
-            self.run_single()
-        else:
-            raise NotImplementedError
-            self.run_avg()
+        def spawn_eval(i):
+            """Spawn a new sim process"""
+            eeval = optimizer.get_next_x()
+            evals[i] = eeval  # Store eval object to be set with result later
+            Process(target=simproc, args=(i, list(eeval.x))).start()
 
-    def save_evals(self):
-        """Store results of finished evals to file; print best eval"""
-        finished_evals = self.optimizer.get_function_evaluations()[1][0]
-        dlib_save(self.spec, finished_evals, self.params, self.eps, self.noise_mag,
-                  self.pp, self.fname)
-        best_eval = self.optimizer.get_best_function_eval()
-        prms = list(zip(self.params, list(best_eval[0])))
-        self.logger.error(f"Saving {len(finished_evals)} trials. "
-                          f"Best eval so far: {best_eval[1]}@{prms}")
+        def store_result():
+            """Block until a result is ready, then store it and report it to dlib"""
+            try:
+                # Blocks until a result is ready
+                i, result = result_queue.get()
+            except KeyboardInterrupt:
+                inp = ""
+                while inp not in ["Y", "N"]:
+                    inp = input("Premature exit. Save? Y/N: ").upper()
+                if inp == "Y":
+                    save_evals()
+                sys.exit(0)
+            else:
+                if result is not None:
+                    evals[i].set(result)
+                if i > 0 and i % save_iter == 0:
+                    save_evals()
 
-    def spawn_eval(self, i):
-        """Spawn a new sim process"""
-        eeval = self.optimizer.get_next_x()
-        self.evals[i] = eeval  # Store eval object to be set with result later
-        Process(target=self.simproc, args=(i, list(eeval.x))).start()
-
-    def store_result(self):
-        """Block until a result is ready, then store it and report it to dlib"""
-        try:
-            # Blocks until a result is ready
-            i, result = self.result_queue.get()
-        except KeyboardInterrupt:
-            inp = ""
-            while inp not in ["Y", "N"]:
-                inp = input("Premature exit. Save? Y/N: ").upper()
-            if inp == "Y":
-                self.save_evals()
-            sys.exit(0)
-        else:
-            if result is not None:
-                self.evals[i].set(result)
-            if i > 0 and i % self.save_iter == 0:
-                self.save_evals()
-
-    def run_single(self):
         """ the search will only attempt to find a global minimizer to at most
         solver_epsilon accuracy. Once a local minimizer is found to that
         accuracy the search will focus entirely on finding other minima
@@ -150,23 +136,34 @@ class DlibRunner(Runner):
         on odd iterations we pick the next x according to the trust region model
         """
 
-        self.logger.error(
-            f"Dlib hopt for {self.n_sims} sims with {self.n_concurrent} procs"
-            f" on params {self.space}")
+        logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
+                     f" on params {space}")
         # Spawn initial processes
-        for i in range(self.n_concurrent):
-            self.spawn_eval(i)
+        for i in range(n_concurrent):
+            spawn_eval(i)
         # When a thread returns a result, start a new sim
-        for i in range(self.n_concurrent, self.n_sims):
-            self.store_result()
-            self.spawn_eval(i)
+        for i in range(n_concurrent, n_sims):
+            store_result()
+            spawn_eval(i)
         # Get remaining results
-        for _ in range(self.n_concurrent):
-            self.store_result()
-        self.save_evals()
+        for _ in range(n_concurrent):
+            store_result()
+        save_evals()
 
-    def run_avg(self):
-        pass
+        def run_avg():
+            pass
+
+
+def cmp_and_choose(what, saved, specified):
+    chosen = specified
+    if saved != specified:
+        print(f"Saved {what} {saved} differ from currently specified {specified}")
+        inp = ""
+        while inp not in ['N', 'Y']:
+            inp = input(f"Use specified {what} (Y) instead of saved (N)?: ").upper()
+        if inp == "N":
+            chosen = saved
+    return chosen
 
 
 def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
