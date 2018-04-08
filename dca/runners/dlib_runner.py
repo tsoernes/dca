@@ -21,8 +21,8 @@ class DlibRunner(Runner):
         n_concurrent = cpu_count() - 1  # Number of concurrent procs
         n_sims = 4000  # The number of times to sample and test params
         save_iter = 50
-        eps = 0.0002  # solver_epsilon
-        noise_mag = 0.001  # relative_noise_magnitude. Default setting: 0.001
+        eps = 0.0005  # solver_epsilon
+        noise_mag = 0.005  # relative_noise_magnitude. Default setting: 0.001
         fname = "dlib-" + pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         space = {
             # parameter: [IsInteger, Low_Bound, High_Bound]

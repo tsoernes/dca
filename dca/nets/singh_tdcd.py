@@ -114,9 +114,9 @@ class TDCDSinghNet(Net):
         else:
             inp_colvec = np.reshape(freps[0], [-1, 1])
             next_inp_colvec = np.reshape(next_freps[0], [-1, 1])
-        dot = np.dot(inp_colvec.T, self.weights)
         td_inp = td_err * inp_colvec
-        nextv = np.dot(np.dot(next_inp_colvec, dot), td_inp)
+        dot = np.dot(inp_colvec.T, np.dot(self.weights, td_inp))
+        nextv = np.dot(next_inp_colvec, dot)
         if avg_reward is None:
             grad = -2 * weights[0] * (td_inp - discount * nextv)
         else:

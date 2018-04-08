@@ -39,6 +39,7 @@ class TDLSinghNet(Net):
             self.value = value_layer.apply(freps)
             self.next_value = value_layer.apply(next_freps)
             online_vars = tuple(get_trainable_vars(scope).values())
+        print(online_vars[0])
         self.grads = [(tf.placeholder(tf.float32, [d, 1]), online_vars[0])]
 
         trainer, self.lr, global_step = build_default_trainer(**self.pp)

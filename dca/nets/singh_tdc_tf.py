@@ -7,41 +7,36 @@ from utils import prod
 
 
 class TFTDCSinghNet(Net):
-    def __init__(self, pp, logger, frep_depth=None):
+    def __init__(self, pp, logger, frepshape):
         """
         TD0 with Gradient correction
         """
         self.name = "SinghNet"
-        self.weight_beta = pp['weight_beta']
-        self.frep_depth = pp['n_channels'] + 1 if frep_depth is None else frep_depth
+        self.grad_beta = pp['grad_beta']
+        # self.frep_depth = pp['n_channels'] + 1 if frep_depth is None else frep_depth
+        self.frepshape = [None, *frepshape]
         super().__init__(name=self.name, pp=pp, logger=logger)
 
     def build(self):
-        frepshape = [None, self.rows, self.cols, self.frep_depth]
-        d = prod(frepshape[1:])
-        self.freps = tf.placeholder(tf.float32, frepshape, "feature_reps")
-        self.next_freps = tf.placeholder(tf.float32, frepshape, "next_feature_reps")
+        # frepshape = [None, self.rows, self.cols, self.frep_depth]
+        d = prod(self.frepshape[1:])
+        self.freps = tf.placeholder(tf.int32, self.frepshape, "feature_reps")
+        self.next_freps = tf.placeholder(tf.int32, self.frepshape, "next_feature_reps")
         self.rewards = tf.placeholder(tf.float32, [None], "rewards")
         self.discount = tf.placeholder(tf.float32, [None], "discount")
         self.grads = tf.placeholder(tf.float32, [d, 1], "grad_corr")
-        freps_rowvec = tf.layers.flatten(self.freps)
-        next_freps_rowvec = tf.layers.flatten(self.next_freps)
+
+        freps = tf.cast(self.freps, tf.float32)
+        next_freps = tf.cast(self.next_freps, tf.float32)
+        freps_rowvec = tf.layers.flatten(freps)
+        next_freps_rowvec = tf.layers.flatten(next_freps)
         freps_colvec = tf.transpose(freps_rowvec)  # x_t
         next_freps_colvec = tf.transpose(next_freps_rowvec)  # x_{t+1}
         self.weights = tf.Variable(tf.zeros(shape=(d, 1)))  # v_t
 
-        with tf.variable_scope('model/' + self.name) as scope:
-            dense = tf.layers.Dense(
-                units=1,
-                kernel_initializer=tf.zeros_initializer(),
-                kernel_regularizer=None,
-                bias_initializer=tf.zeros_initializer(),
-                use_bias=False,
-                activation=None,
-                name="vals")
-            self.value = dense.apply(freps_rowvec)
-            next_value = dense.apply(next_freps_rowvec)
-            online_vars = tuple(get_trainable_vars(scope).values())
+        hidden = tf.Variable(tf.zeros(shape=(d, 1)), name="hidden")
+        self.value = tf.matmul(freps_rowvec, hidden)
+        next_value = tf.matmul(next_freps_rowvec, hidden)
 
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
 
@@ -51,12 +46,12 @@ class TFTDCSinghNet(Net):
         # Multiply by -1 because SGD-variants invert grads
         grads = -2 * (
             self.td_err * freps_colvec - self.discount * next_freps_colvec * dot)
-        grads_and_vars = [(grads, online_vars[0])]
+        grads_and_vars = [(grads, hidden)]
         self.do_train = trainer.apply_gradients(grads_and_vars, global_step=global_step)
 
-        with tf.control_dependencies([self.do_train]):
-            diff = self.weight_beta * (self.td_err - dot) * freps_colvec
-            self.update_weights = self.weights.assign_add(diff)
+        # with tf.control_dependencies([self.do_train]):
+        diff = self.grad_beta * (self.td_err - dot) * freps_colvec
+        self.update_weights = self.weights.assign_add(diff)
 
         return None, None
 
@@ -69,9 +64,9 @@ class TFTDCSinghNet(Net):
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, freps, rewards, next_freps, discount, weights):
+    def backward(self, *, freps, rewards, next_freps, discount, weights, **kwargs):
         assert len(freps) == 1  # Hard coded for one-step
-
+        assert discount is not None
         data = {
             self.freps: freps,
             self.next_freps: next_freps,

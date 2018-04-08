@@ -1,12 +1,10 @@
-from functools import reduce
-from operator import mul
-
 import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
 from nets.utils import (build_default_trainer, get_trainable_vars,
                         prep_data_grids)
+from utils import prod
 
 
 class TDCSinghNet(Net):
@@ -18,9 +16,9 @@ class TDCSinghNet(Net):
         self.grid_inp = pp['singh_grid']
         self.frepshape = frepshape
         if self.grid_inp:
-            self.wdim = reduce(mul, frepshape) + reduce(mul, [7, 7, 2 * pp['n_channels']])
+            self.wdim = prod(frepshape) + prod([7, 7, 2 * pp['n_channels']])
         else:
-            self.wdim = reduce(mul, frepshape)
+            self.wdim = prod(frepshape)
         super().__init__(name=self.name, pp=pp, logger=logger)
         self.grad_beta = self.pp['grad_beta']
         self.grad_beta_decay = 1 - self.pp['grad_beta_decay']
