@@ -32,7 +32,7 @@ class DlibRunner(Runner):
             'beta': [True, 10, 3000],
             'net_lr_decay': [False, 0.70, 1.0],
             'weight_beta': [False, 1e-3, 9e-1],
-            'weight_beta_decay': [False, 1e-7, 1e-3],
+            'weight_beta_decay': [False, 1e-8, 1e-4],
             'grad_beta': [False, 1e-3, 9e-1],
             'grad_beta_decay': [False, 1e-7, 1e-3],
             'epsilon': [False, 2, 5],
@@ -137,7 +137,7 @@ class DlibRunner(Runner):
         """
 
         logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
-                     f" on params {space}")
+                     f" on params {space} and s.eps {eps}")
         # Spawn initial processes
         for i in range(n_concurrent):
             spawn_eval(i)
