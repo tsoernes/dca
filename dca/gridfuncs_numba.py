@@ -252,35 +252,6 @@ def feature_rep_big(grid):
 
 
 @njit(cache=True)
-def feature_reps(grids):
-    assert grids.ndim == 4
-    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels + 1), dtype=int32)
-    for i in range(len(grids)):
-        freps[i] = feature_rep(grids[i])
-    return freps
-
-
-@njit(cache=True)
-def feature_reps_big(grids):
-    assert grids.ndim == 4
-    freps = np.zeros(
-        (len(grids), intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
-    for i in range(len(grids)):
-        freps[i] = feature_rep_big(grids[i])
-    return freps
-
-
-@njit(cache=True)
-def feature_reps_big2(grids):
-    assert grids.ndim == 4
-    freps = np.zeros(
-        (len(grids), intp(rows), intp(cols), n_channels * 5 + 1), dtype=int32)
-    for i in range(len(grids)):
-        freps[i] = feature_rep_big2(grids[i])
-    return freps
-
-
-@njit(cache=True)
 def feature_rep_big2(grid):
     """
     For each cell:
@@ -320,22 +291,6 @@ def feature_rep_big2(grid):
             frep[r, c, n_channels * 4:n_channels * 5] = elig
             frep[r, c, -1] = np.sum(elig)
     return frep
-
-
-@njit(cache=True)
-def afterstate_freps(grid, cell, ce_type, chs):
-    """Feature representation for grid and each of the afterstates of grid"""
-    frep = feature_rep(grid)
-    next_freps = incremental_freps(grid, frep, cell, ce_type, chs)
-    return (frep, next_freps)
-
-
-@njit(cache=True)
-def afterstate_freps_big(grid, cell, ce_type, chs):
-    """Feature representation for grid and each of the afterstates of grid"""
-    frep = feature_rep_big(grid)
-    next_freps = incremental_freps_big(grid, frep, cell, ce_type, chs)
-    return (frep, next_freps)
 
 
 @njit(cache=True)
@@ -421,6 +376,111 @@ def incremental_freps_big(grid, frep, cell, ce_type, chs):
 
 
 @njit(cache=True)
+def incremental_freps_big2(grid, frep, cell, ce_type, chs):
+    """
+    Given a grid, its feature representation frep,
+    and a set of actions specified by cell, event type and a list of channels,
+    derive feature representations for the afterstates of grid
+    """
+    r, c = cell
+    neighs1o = neighbors_np(1, r, c, False)
+    neighs2o = _neighs2o[r, c, :_n_neighs_o[0, r, c]]
+    neighs3o = _neighs3o[r, c, :_n_neighs_o[1, r, c]]
+    neighs4o = _neighs4o[r, c, :_n_neighs_o[2, r, c]]
+    neighs2 = neighbors_np(2, r, c, True)
+    freps = np.zeros((len(chs), intp(rows), intp(cols), n_channels * 5 + 1), dtype=int32)
+    freps[:] = frep
+    if ce_type == CEvent.END:
+        n_used_neighs_diff = -1
+        n_elig_self_diff = 1
+        bflip = 1
+        grid[cell][chs] = 0
+    else:
+        n_used_neighs_diff = 1
+        n_elig_self_diff = -1
+        bflip = 0
+    for i in range(len(chs)):
+        ch = chs[i]
+        for j in range(len(neighs1o)):
+            freps[i, neighs1o[j, 0], neighs1o[j, 1], ch] += n_used_neighs_diff
+        for j in range(len(neighs2o)):
+            freps[i, neighs2o[j, 0], neighs2o[j, 1], n_channels + ch] += n_used_neighs_diff
+        for j in range(len(neighs3o)):
+            freps[i, neighs3o[j, 0], neighs3o[j, 1], n_channels * 2 + ch] += n_used_neighs_diff
+        for j in range(len(neighs4o)):
+            freps[i, neighs4o[j, 0], neighs4o[j, 1], n_channels * 3 + ch] += n_used_neighs_diff
+
+        for j in range(len(neighs2)):
+            r2, c2 = neighs2[j, 0], neighs2[j, 1]
+            neighs = neighbors_np(2, r2, c2, False)
+            not_eligible = grid[r2, c2, ch]
+            for k in range(len(neighs)):
+                not_eligible = not_eligible or grid[neighs[k, 0], neighs[k, 1], ch]
+            if not not_eligible:
+                # For END: ch is in use at 'cell', but will become eligible
+                # For NEW: ch is eligible at given neighs2, but will be taken in use
+                freps[i, neighs2[j, 0], neighs2[j, 1], n_channels * 4 + ch] = bflip
+                freps[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig_self_diff
+    if ce_type == CEvent.END:
+        grid[cell][chs] = 1
+    return freps
+
+
+@njit(cache=True)
+def feature_reps(grids):
+    assert grids.ndim == 4
+    freps = np.zeros((len(grids), intp(rows), intp(cols), n_channels + 1), dtype=int32)
+    for i in range(len(grids)):
+        freps[i] = feature_rep(grids[i])
+    return freps
+
+
+@njit(cache=True)
+def feature_reps_big(grids):
+    assert grids.ndim == 4
+    freps = np.zeros(
+        (len(grids), intp(rows), intp(cols), n_channels * 3 + 1), dtype=int32)
+    for i in range(len(grids)):
+        freps[i] = feature_rep_big(grids[i])
+    return freps
+
+
+@njit(cache=True)
+def feature_reps_big2(grids):
+    assert grids.ndim == 4
+    freps = np.zeros(
+        (len(grids), intp(rows), intp(cols), n_channels * 5 + 1), dtype=int32)
+    for i in range(len(grids)):
+        freps[i] = feature_rep_big2(grids[i])
+    return freps
+
+
+@njit(cache=True)
+def afterstate_freps(grid, cell, ce_type, chs):
+    """Feature representation for grid and each of the afterstates of grid"""
+    frep = feature_rep(grid)
+    next_freps = incremental_freps(grid, frep, cell, ce_type, chs)
+    return (frep, next_freps)
+
+
+@njit(cache=True)
+def afterstate_freps_big(grid, cell, ce_type, chs):
+    """Feature representation for grid and each of the afterstates of grid"""
+    frep = feature_rep_big(grid)
+    next_freps = incremental_freps_big(grid, frep, cell, ce_type, chs)
+    return (frep, next_freps)
+
+
+@njit(cache=True)
+def afterstate_freps_big2(grid, cell, ce_type, chs):
+    frep = feature_rep_big2(grid)
+    # astates = afterstates(grid, cell, ce_type, chs)
+    # next_freps = feature_reps_big2(astates)
+    next_freps = incremental_freps_big2(grid, frep, cell, ce_type, chs)
+    return (frep, next_freps)
+
+
+@njit(cache=True)
 def scale_freps(freps):
     # Scale freps in range [0, 1]
     # TODO Try Scale freps in range [-1, 1]
@@ -434,12 +494,6 @@ def scale_freps(freps):
         freps[:, :, -1] *= 1 / float(n_channels)
     else:
         raise NotImplementedError
-    return freps
-
-
-def afterstate_freps_big2(grid, cell, ce_type, chs):
-    grids = afterstates(grid, cell, ce_type, chs)
-    freps = feature_reps_big2(grids)
     return freps
 
 
