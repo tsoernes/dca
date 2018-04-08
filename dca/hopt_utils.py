@@ -264,6 +264,17 @@ def hopt_plot(trials):
     plt.show()
 
 
+def dlib_plot(fname):
+    raw_spec, raw_results, info = dlib_load_raw(fname)
+    losses = raw_results[:, 0]
+    params = info['params']
+    for i, param in enumerate(params):
+        pl1 = plt.subplot(len(params), 1, i + 1)
+        pl1.plot(raw_results[:, i + 1], losses, 'ro')
+        plt.xlabel(param)
+    plt.show()
+
+
 def dlib_save(spec, evals, params, solver_epsilon, relative_noise_magnitude, pp, fname):
     raw_spec = (list(spec.is_integer_variable), list(spec.lower), list(spec.upper))
     raw_results = np.zeros((len(evals), len(evals[0].x) + 1))
@@ -417,8 +428,9 @@ def runner(inp=None):
         'fname',
         type=str,
         nargs='?',
-        help="File name or MongoDB data base name"
-        "for hyperopt destination/source. Prepend 'mongo:' to MongoDB names",
+        help="File name or MongoDB data base name "
+        "for hyperopt destination/source. Prepend 'mongo:' to MongoDB names, "
+        "'dlib-' for DLIB pickle files.",
         default=None)
     parser.add_argument(
         '--best',
@@ -426,7 +438,7 @@ def runner(inp=None):
         metavar='N',
         nargs='?',
         type=int,
-        help="Show N best params found and corresponding loss",
+        help="Show N best block probs and corresponding params",
         default=0,
         const=1)
     parser.add_argument(
@@ -442,16 +454,6 @@ def runner(inp=None):
         help="(MongoDB) Reset gpu proc count for all dbs",
         default=False)
     parser.add_argument(
-        '--prune_thresh',
-        type=float,
-        help="(DLIB) Drop results with worse block prob than given val",
-        default=None)
-    parser.add_argument(
-        '--clip',
-        type=float,
-        help="Clip loss (negative block prob) to given minimum value",
-        default=None)
-    parser.add_argument(
         '--drop_empty_dbs',
         action='store_true',
         help="(MongoDB) Drop empty databases",
@@ -466,19 +468,28 @@ def runner(inp=None):
         action='store_true',
         help="(MongoDB) Prune suspended jobs, drop empty dbs, reset gpu proc count",
         default=False)
+    parser.add_argument(
+        '--prune_thresh',
+        type=float,
+        help="(DLIB) Drop results with worse block prob than given val",
+        default=None)
+    parser.add_argument(
+        '--clip',
+        type=float,
+        help="(DLIB) Clip block prob to given maximum value",
+        default=None)
+
     args = vars(parser.parse_args(inp))
-    if args['list_dbs']:
-        mongo_list_dbs()
-        return
-    elif args['drop_empty_dbs']:
-        mongo_drop_empty()
-        return
-    elif args['reset_gpu_procs']:
-        mongo_reset_gpu_procs(None)
-        return
     fname = args['fname']
     trials = None
-    if args['hopt_best'] > 0:
+
+    if args['list_dbs']:
+        mongo_list_dbs()
+    elif args['drop_empty_dbs']:
+        mongo_drop_empty()
+    elif args['reset_gpu_procs']:
+        mongo_reset_gpu_procs(None)
+    elif args['hopt_best'] > 0:
         if fname.startswith('dlib'):
             dlib_best(fname, args['hopt_best'])
         else:
@@ -489,8 +500,11 @@ def runner(inp=None):
     elif args['prune_thresh']:
         dlib_prune(fname, args['prune_thresh'])
     elif args['plot']:
-        trials = hopt_trials(fname)
-        hopt_plot(trials)
+        if fname.startswith('dlib'):
+            dlib_plot(fname)
+        else:
+            trials = hopt_trials(fname)
+            hopt_plot(trials)
     elif args['prune_jobs']:
         trials = hopt_trials(fname)
         trials.prune_suspended()
