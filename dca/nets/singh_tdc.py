@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from nets.net import Net
 from nets.utils import (build_default_trainer, get_trainable_vars,
-                        scale_freps_big)
+                        prep_data_grids)
 
 
 class TDCSinghNet(Net):
@@ -15,24 +15,36 @@ class TDCSinghNet(Net):
         TD0 with Gradient correction
         """
         self.name = "TDCNet"
+        self.grid_inp = pp['singh_grid']
         self.frepshape = frepshape
-        self.wdim = reduce(mul, frepshape)
+        if self.grid_inp:
+            self.wdim = reduce(mul, frepshape) + reduce(mul, [7, 7, 2 * pp['n_channels']])
+        else:
+            self.wdim = reduce(mul, frepshape)
         super().__init__(name=self.name, pp=pp, logger=logger)
         self.grad_beta = self.pp['grad_beta']
         self.weights = np.zeros((self.wdim, 1))
 
     def build(self):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
-        self.freps = tf.placeholder(tf.float32, [None, *self.frepshape], "feature_reps")
+        self.frep = tf.placeholder(tf.int32, [None, *self.frepshape], "feature_reps")
         self.grads = tf.placeholder(tf.float32, [self.wdim, 1], "grad_corr")
 
-        if self.pp['scale_freps']:
-            freps = scale_freps_big(self.freps)
+        frep = tf.cast(self.frep, tf.float32)
+        if self.grid_inp:
+            grid_depth = 2 * self.n_channels
+            self.grid = tf.placeholder(tf.bool, [None, self.rows, self.cols, grid_depth],
+                                       "grid")
+            grid = tf.cast(self.grid, tf.float32)
+            top_inp = tf.concat([grid, frep], axis=3)
+            self.depth = self.frepshape[-1] + grid_depth
         else:
-            freps = self.freps
+            top_inp = frep
+            self.depth = self.frepshape[-1]
+
         with tf.variable_scope('model/' + self.name) as scope:
             self.value = tf.layers.dense(
-                inputs=tf.layers.flatten(freps),
+                inputs=tf.layers.flatten(top_inp),
                 units=1,
                 kernel_initializer=tf.zeros_initializer(),
                 kernel_regularizer=None,
@@ -48,26 +60,21 @@ class TDCSinghNet(Net):
         return None, None
 
     def forward(self, freps, grids=None):
+        data = {self.frep: freps}
+        if self.grid_inp:
+            data[self.grid] = prep_data_grids(grids, self.grid_split)
         values = self.sess.run(
-            self.value,
-            feed_dict={self.freps: freps},
-            options=self.options,
-            run_metadata=self.run_metadata)
+            self.value, data, options=self.options, run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward_supervised(self,
-                            *,
-                            freps,
-                            value_targets,
-                            **kwargs):
-        value = self.sess.run(self.value, feed_dict={self.freps: freps})[0, 0]
+    def backward_supervised(self, *, freps, value_targets, **kwargs):
+        raise NotImplementedError
+        value = self.sess.run(self.value, feed_dict={self.frep: freps})[0, 0]
         frep_colvec = np.reshape(freps[0], [-1, 1])
         grad = -2 * (value_targets[0] - value) * frep_colvec
         data = {self.grads[0][0]: grad}
-        lr, _ = self.sess.run(
-            [self.lr, self.do_train],
-            feed_dict=data)
+        lr, _ = self.sess.run([self.lr, self.do_train], feed_dict=data)
 
     def backward(self,
                  *,
@@ -77,31 +84,46 @@ class TDCSinghNet(Net):
                  discount,
                  weights,
                  avg_reward=None,
+                 grids=None,
+                 next_grids=None,
                  **kwargs):
         # NOTE can possible take in val, next_val here as theyre already known
         assert len(freps) == 1  # Hard coded for one-step
-        value = self.sess.run(self.value, feed_dict={self.freps: freps})[0, 0]
-        next_value = self.sess.run(self.value, feed_dict={self.freps: next_freps})[0, 0]
+        data1 = {self.frep: freps}
+        data2 = {self.frep: next_freps}
+        if self.grid_inp:
+            pgrids = prep_data_grids(grids, self.grid_split)
+            pnext_grids = prep_data_grids(next_grids, self.grid_split)
+            data1[self.grid] = pgrids
+            data2[self.grid] = pnext_grids
+        value = self.sess.run(self.value, feed_dict=data1)[0, 0]
+        next_value = self.sess.run(self.value, feed_dict=data2)[0, 0]
         if avg_reward is None:
             td_err = rewards[0] + discount * next_value - value
         else:
             td_err = rewards[0] - avg_reward + next_value - value
 
-        frep_colvec = np.reshape(freps[0], [-1, 1])
-        next_frep_colvec = np.reshape(next_freps[0], [-1, 1])
+        if self.grid_inp:
+            # print(pgrids[0].shape, freps[0].shape)
+            inp = np.dstack((pgrids[0], freps[0]))
+            next_inp = np.dstack((pnext_grids[0], next_freps[0]))
+            inp_colvec = np.reshape(inp, [-1, 1])
+            next_inp_colvec = np.reshape(next_inp, [-1, 1])
+        else:
+            inp_colvec = np.reshape(freps[0], [-1, 1])
+            next_inp_colvec = np.reshape(next_freps[0], [-1, 1])
         # dot is inner product and therefore a scalar
-        dot = np.dot(frep_colvec.T, self.weights)
+        dot = np.dot(inp_colvec.T, self.weights)
         if avg_reward is None:
             grad = -2 * weights[0] * (
-                td_err * frep_colvec - discount * next_frep_colvec * dot)
+                td_err * inp_colvec - discount * next_inp_colvec * dot)
         else:
             grad = -2 * weights[0] * (
-                td_err * frep_colvec + avg_reward - next_frep_colvec * dot)
-        data = {self.grads[0][0]: grad}
+                td_err * inp_colvec + avg_reward - next_inp_colvec * dot)
         lr, _ = self.sess.run(
             [self.lr, self.do_train],
-            feed_dict=data,
+            feed_dict={self.grads[0][0]: grad},
             options=self.options,
             run_metadata=self.run_metadata)
-        self.weights += self.grad_beta * (td_err - dot) * frep_colvec
+        self.weights += self.grad_beta * (td_err - dot) * inp_colvec
         return td_err**2, lr, td_err

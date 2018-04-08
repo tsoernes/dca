@@ -333,8 +333,8 @@ def dlib_best(fname, n=1):
         lo = f"{losses[i]:.4f} "
         res_str += lo + " ".join(pa) + "\n"
 
-    bounds_v = [f"{l}<>{u}" for l, u in zip(raw_spec[1], raw_spec[2])]
-    bounds = [f"{p}: {b}" for p, b in zip(info['params'], bounds_v)]
+    bound_vals = [f"{lo}<>{hi}" for lo, hi in zip(raw_spec[1], raw_spec[2])]
+    bounds = [f"{prm}: {bnd}" for prm, bnd in zip(info['params'], bound_vals)]
     bounds_str = ", ".join(bounds)
 
     print(*info.items(), sep="\n")
@@ -365,7 +365,7 @@ def compare_pps(old_pp, new_pp):
     if old_pp != new_pp:
         if 'dt' in old_pp:
             print(f"Found old problem params in MongoDB added at {dt}")
-        print(f"Diff(a:old, from db. b: from args):\n{pp_diff}")
+        print(f"Diff('a': old, from DB. 'b': specified, from args):\n{pp_diff}")
         ans = ''
         while ans not in ['y', 'n']:
             ans = input("Use old pp instead? Y/N:").lower()

@@ -139,15 +139,16 @@ class Net:
             out = tf.layers.flatten(conv_out)
             return out
 
-    def add_conv_layer(self, inp, nfilters, kernel_size, padding="same", use_bias=None):
+    def add_conv_layer(self, inp, filters, kernel_size, padding="same", use_bias=None):
         use_bias = self.pp['conv_bias'] if use_bias is None else use_bias
         conv = tf.layers.Conv2D(
-            filters=nfilters,
+            filters=filters,
             kernel_size=kernel_size,
             padding=padding,
             kernel_initializer=self.kern_init_conv(),
             kernel_regularizer=self.conv_regularizer,
             use_bias=use_bias,
+            bias_initializer=tf.constant_initializer(0.1),
             activation=self.act_fn)
         out = conv.apply(inp)
         self.weight_vars.append(conv.kernel)
