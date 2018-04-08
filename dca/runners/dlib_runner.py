@@ -4,6 +4,7 @@ from functools import partial
 from multiprocessing import Process, Queue, cpu_count
 
 import dlib
+import numpy as np
 
 from hopt_utils import compare_pps, dlib_load, dlib_save
 from runners.runner import Runner
@@ -17,9 +18,12 @@ class DlibRunner(Runner):
         pp = self.pp
         logger = self.logger
 
-        # n_concurrent = cpu_count() // 2 - 1  # Number of concurrent procs
-        n_concurrent = cpu_count() - 1  # Number of concurrent procs
-        n_sims = 4000  # The number of times to sample and test params
+        n_concurrent = cpu_count() - 2  # Number of concurrent procs
+        n_avg = 2
+        assert n_concurrent % n_avg == 0, \
+            f"n_avg {n_avg} does not evenly divide n_concurrent {n_concurrent}"
+        n_step = n_concurrent // n_avg
+        n_sims = 1000  # The number of times to sample and test params
         save_iter = 50
         eps = 0.0005  # solver_epsilon
         noise_mag = 0.005  # relative_noise_magnitude. Default setting: 0.001
@@ -85,6 +89,7 @@ class DlibRunner(Runner):
         simproc = partial(dlib_proc, self.stratclass, pp, params, result_queue)
         # Becomes populated with evaluation objects to be set later
         evals = [None] * n_sims
+        results = [[]] * n_sims
 
         def save_evals():
             """Store results of finished evals to file; print best eval"""
@@ -95,11 +100,12 @@ class DlibRunner(Runner):
             logger.error(f"Saving {len(finished_evals)} trials. "
                          f"Best eval so far: {best_eval[1]}@{prms}")
 
-        def spawn_eval(i):
+        def spawn_evals(i):
             """Spawn a new sim process"""
             eeval = optimizer.get_next_x()
             evals[i] = eeval  # Store eval object to be set with result later
-            Process(target=simproc, args=(i, list(eeval.x))).start()
+            for _ in range(n_avg):
+                Process(target=simproc, args=(i, list(eeval.x))).start()
 
         def store_result():
             """Block until a result is ready, then store it and report it to dlib"""
@@ -115,7 +121,10 @@ class DlibRunner(Runner):
                 sys.exit(0)
             else:
                 if result is not None:
-                    evals[i].set(result)
+                    ress = results[i]
+                    ress.append(result)
+                    if len(ress) == n_avg:
+                        evals[i].set(np.mean(ress))
                 if i > 0 and i % save_iter == 0:
                     save_evals()
 
@@ -139,14 +148,14 @@ class DlibRunner(Runner):
         logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
                      f" on params {space} and s.eps {eps}")
         # Spawn initial processes
-        for i in range(n_concurrent):
-            spawn_eval(i)
+        for i in range(n_step):
+            spawn_evals(i)
         # When a thread returns a result, start a new sim
-        for i in range(n_concurrent, n_sims):
+        for i in range(n_step, n_sims):
             store_result()
-            spawn_eval(i)
+            spawn_evals(i)
         # Get remaining results
-        for _ in range(n_concurrent):
+        for _ in range(n_step):
             store_result()
         save_evals()
 
@@ -175,6 +184,7 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
         pp['exp_policy'] = 'eps_greedy'
         pp['epsilon'] = 0
 
+    np.seed()
     strat = stratclass(pp=pp, logger=logger, pid=i)
     res = strat.simulate()[0]
     if res is None:
