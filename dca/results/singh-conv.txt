@@ -124,3 +124,14 @@ With linear conv:
 Average cumulative block probability over 4 episodes: 0.1241 with standard deviation 0.00089
 
 --------------------
+dense_inp = self.add_conv_layer
+padding="same"
+filters, kernels, bias from args
+
+p3 main.py singhnet --pre_conv --frep_type big2 -lr 5e-8 -kernels 5 -filters 70 -epol nom_greedy --singh_grid --target discount --huber_loss 2e2 --gpu
+Bad start, but seem to improve:
+Blocking probability events 245000-250000: 0.1104, cumulative 0.1201
+Maybe use huber loss after X iters?
+
+p3 main.py singhnet --pre_conv --frep_type big2 -lr 5e-8 -kernels 5 -filters 1 -epol nom_greedy --singh_grid --target discount
+Blocking probability events 180000-185000: 0.1445, cumulative 0.1228

@@ -9,7 +9,7 @@ from nets.utils import (build_default_trainer, get_trainable_vars,
                         prep_data_grids)
 
 
-class TDCSinghNet(Net):
+class TDCDSinghNet(Net):
     def __init__(self, pp, logger, frepshape):
         """
         TD0 with Gradient correction
@@ -24,8 +24,8 @@ class TDCSinghNet(Net):
         super().__init__(name=self.name, pp=pp, logger=logger)
         self.grad_beta = self.pp['grad_beta']
         self.grad_beta_decay = 1 - self.pp['grad_beta_decay']
-        # Weights is a column vector of same length as flatten net input
-        self.weights = np.zeros((self.wdim, 1))
+        # Inverse of expectation of the outer product of net_inp
+        self.weights = np.diag(np.repeat(1 / 1e-5, self.wdim))
 
     def build(self):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
@@ -114,19 +114,22 @@ class TDCSinghNet(Net):
         else:
             inp_colvec = np.reshape(freps[0], [-1, 1])
             next_inp_colvec = np.reshape(next_freps[0], [-1, 1])
-        # dot is inner product and therefore a scalar
         dot = np.dot(inp_colvec.T, self.weights)
+        td_inp = td_err * inp_colvec
+        nextv = np.dot(np.dot(next_inp_colvec, dot), td_inp)
         if avg_reward is None:
-            grad = -2 * weights[0] * (
-                td_err * inp_colvec - discount * next_inp_colvec * dot)
+            grad = -2 * weights[0] * (td_inp - discount * nextv)
         else:
-            grad = -2 * weights[0] * (
-                td_err * inp_colvec + avg_reward - next_inp_colvec * dot)
+            grad = -2 * weights[0] * (td_inp + avg_reward - nextv)
         lr, _ = self.sess.run(
             [self.lr, self.do_train],
             feed_dict={self.grads[0][0]: grad},
             options=self.options,
             run_metadata=self.run_metadata)
-        self.weights += self.grad_beta * (td_err - dot) * inp_colvec
-        self.grad_beta *= self.grad_beta_decay
+        # up = np.dot(np.dot(self.weights, np.dot(inp_colvec, inp_colvec.T)), self.weights)
+        # lo = 1 + np.dot(dot, inp_colvec)
+        # self.weights -= up / lo
+        v = np.dot(self.weights.T, next_inp_colvec)
+        lo = 1 + np.dot(v.T, inp_colvec)
+        self.weights -= np.dot(np.dot(self.weights, inp_colvec), v.T) / lo
         return td_err**2, lr, td_err

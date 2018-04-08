@@ -17,6 +17,7 @@ from nets.singh_qq import SinghQQNet
 from nets.singh_resid import ResidSinghNet
 from nets.singh_tdc import TDCSinghNet
 from nets.singh_tdc_tf import TFTDCSinghNet
+from nets.singh_tdcd import TDCDSinghNet
 from nets.singh_tdl import TDLSinghNet
 from nets.utils import softmax
 from strats.base import NetStrat
@@ -433,6 +434,20 @@ class TDCSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.net = TDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        if self.pp['prep_net']:
+            self.prep_net()
+
+
+class TDCDSinghNetStrat(VNetBase):
+    """TD(0) with Gradient Correction
+    Without beta/dt_rewards,
+        lr=1e-6, weight_beta=1e-6
+    seems like good strating points
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = TDCDSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         if self.pp['prep_net']:
             self.prep_net()
 
