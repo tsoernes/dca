@@ -21,7 +21,7 @@ class DlibRunner(Runner):
         n_concurrent = cpu_count() - 1  # Number of concurrent procs
         n_sims = 4000  # The number of times to sample and test params
         save_iter = 50
-        eps = 0.0005  # solver_epsilon
+        eps = 0.0002  # solver_epsilon
         noise_mag = 0.001  # relative_noise_magnitude. Default setting: 0.001
         fname = "dlib-" + pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         space = {
@@ -32,9 +32,9 @@ class DlibRunner(Runner):
             'beta': [True, 10, 3000],
             'net_lr_decay': [False, 0.70, 1.0],
             'weight_beta': [False, 1e-3, 9e-1],
-            'weight_beta_decay': [False, 0.999_9, 0.999_999],
+            'weight_beta_decay': [False, 1e-7, 1e-3],
             'grad_beta': [False, 1e-3, 9e-1],
-            'grad_beta_decay': [False, 0.999_9, 0.999_999],
+            'grad_beta_decay': [False, 1e-7, 1e-3],
             'epsilon': [False, 2, 5],
             'epsilon_decay': [False, 0.999_5, 0.999_999],
             'alpha': [False, 0.00001, 0.3]
@@ -160,8 +160,8 @@ def cmp_and_choose(what, saved, specified):
         print(f"Saved {what} {saved} differ from currently specified {specified}")
         inp = ""
         while inp not in ['N', 'Y']:
-            inp = input(f"Use specified {what} (Y) instead of saved (N)?: ").upper()
-        if inp == "N":
+            inp = input(f"Use saved {what} (Y) instead of specified (N)?: ").upper()
+        if inp == "Y":
             chosen = saved
     return chosen
 

@@ -23,7 +23,7 @@ class TDCSinghNet(Net):
             self.wdim = reduce(mul, frepshape)
         super().__init__(name=self.name, pp=pp, logger=logger)
         self.grad_beta = self.pp['grad_beta']
-        self.grad_beta_decay = self.pp['grad_beta_decay']
+        self.grad_beta_decay = 1 - self.pp['grad_beta_decay']
         self.weights = np.zeros((self.wdim, 1))
 
     def build(self):

@@ -368,7 +368,7 @@ def compare_pps(old_pp, new_pp):
         print(f"Diff('a': old, from DB. 'b': specified, from args):\n{pp_diff}")
         ans = ''
         while ans not in ['y', 'n']:
-            ans = input("Use old pp instead? Y/N:").lower()
+            ans = input("Use old pp (Y) instead of specified (N)?: ").lower()
         if ans == 'y':
             use_old_pp = True
             pp = old_pp

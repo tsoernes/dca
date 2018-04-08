@@ -195,10 +195,10 @@ def get_pparams(defaults=False):
         '--gamma_end', type=float, help="(RL) discount factor at sim end", default=None)
     parser.add_argument('-wbeta', '--weight_beta', type=float, help="(RL)", default=6e-2)
     parser.add_argument(
-        '-wbeta_dec', '--weight_beta_decay', type=float, help="(RL)", default=1)
+        '-wbeta_dec', '--weight_beta_decay', type=float, help="(RL)", default=0)
     parser.add_argument('-gbeta', '--grad_beta', type=float, help="(RL)", default=5e-6)
     parser.add_argument(
-        '-gbeta_dec', '--grad_beta_decay', type=float, help="(RL)", default=1)
+        '-gbeta_dec', '--grad_beta_decay', type=float, help="(RL)", default=0)
     parser.add_argument(
         '-rtype',
         '--reward_type',

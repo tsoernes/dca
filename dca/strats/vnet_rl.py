@@ -33,7 +33,7 @@ class VNetBase(NetStrat):
 
         # For avg. reward related strats
         self.weight_beta = self.pp['weight_beta']
-        self.weight_beta_decay = self.pp['weight_beta_decay']
+        self.weight_beta_decay = 1 - self.pp['weight_beta_decay']
         if self.pp['target'] == 'avg':
             self.update_qval = self.update_qval_avg
         elif self.pp['target'] == 'avg_rsmart':
