@@ -277,6 +277,24 @@ def dlib_save(spec, evals, params, solver_epsilon, relative_noise_magnitude, pp,
     for i, eeval in enumerate(evals):
         raw_results[i][0] = eeval.y
         raw_results[i][1:] = list(eeval.x)
+    dlib_save_raw(raw_spec, raw_results, info, fname)
+
+
+def dlib_prep_fname(fname):
+    fname = fname.replace(".pkl", '') + ".pkl"
+    fname = "dlib-" + fname.replace("dlib-", '')
+    return fname
+
+
+def dlib_load_raw(fname):
+    fname = dlib_prep_fname(fname)
+    with open(fname, "rb") as f:
+        raw_spec, raw_results, info = pickle.load(f)
+    return raw_spec, raw_results, info
+
+
+def dlib_save_raw(raw_spec, raw_results, info, fname):
+    fname = dlib_prep_fname(fname)
     with open(fname, "wb") as f:
         pickle.dump((raw_spec, raw_results, info), f)
 
@@ -301,10 +319,7 @@ def dlib_load(fname):
     (dlib.function_spec, [dlib.function_eval], dict, prev_best)
       where prev_best: np.array[result, param1, param2, ...]
     """
-    fname = fname.replace(".pkl", '') + ".pkl"
-    fname = "dlib-" + fname.replace("dlib-", '')
-    with open(fname, "rb") as f:
-        raw_spec, raw_results, info = pickle.load(f)
+    raw_spec, raw_results, info = dlib_load_raw(fname)
     is_integer, lo_bounds, hi_bounds = raw_spec
     spec = dlib.function_spec(bound1=lo_bounds, bound2=hi_bounds, is_integer=is_integer)
     evals = []
@@ -317,12 +332,10 @@ def dlib_load(fname):
 
 
 def dlib_best(fname, n=1):
-    fname = fname.replace(".pkl", '') + ".pkl"
-    fname = "dlib-" + fname.replace("dlib-", '')
-    with open(fname, "rb") as f:
-        raw_spec, raw_results, info = pickle.load(f)
+    raw_spec, raw_results, info = dlib_load_raw(fname)
     is_integer, lo_bounds, hi_bounds = raw_spec
     rs = raw_results[raw_results[:, 0].argsort()]
+    # Losses are stored as negative so negate.
     losses = -rs[-n:, 0][::-1]
     parms = rs[-n:, 1:][::-1]
 
@@ -339,6 +352,28 @@ def dlib_best(fname, n=1):
 
     print(*info.items(), sep="\n")
     print(f"{len(raw_results)} results\n{bounds_str}\n{res_str}")
+
+
+def dlib_prune(fname, threshold):
+    """Remove results with block prob worse than threshold."""
+    assert threshold > 0
+    raw_spec, raw_results, info = dlib_load_raw(fname)
+    raw_results_p = raw_results[raw_results[:, 0] > -threshold]
+    # raw_results[:, 0] = raw_results[:, 0].clip(None, -clip_val)
+    dlib_save_raw(raw_spec, raw_results_p, info, fname)
+    print(f"Pruned {len(raw_results)-len(raw_results_p)} results")
+
+
+def dlib_clip_loss(fname, clip_val):
+    """Clip loss so that new_loss = min(old_loss, -clip_val),
+    i.e. new_block_prob = min(old_bp, clip_val).
+    Useful if increasing breakout threshold"""
+    assert clip_val > 0
+    raw_spec, raw_results, info = dlib_load_raw(fname)
+    raw_results[:, 0] = raw_results[:, 0].clip(-clip_val, None)
+    # raw_results[:, 0] = raw_results[:, 0].clip(None, -clip_val)
+    dlib_save_raw(raw_spec, raw_results, info, fname)
+    print(f"Clipped to {clip_val}")
 
 
 def compare_pps(old_pp, new_pp):
@@ -407,6 +442,16 @@ def runner(inp=None):
         help="(MongoDB) Reset gpu proc count for all dbs",
         default=False)
     parser.add_argument(
+        '--prune_thresh',
+        type=float,
+        help="(DLIB) Drop results with worse block prob than given val",
+        default=None)
+    parser.add_argument(
+        '--clip',
+        type=float,
+        help="Clip loss (negative block prob) to given minimum value",
+        default=None)
+    parser.add_argument(
         '--drop_empty_dbs',
         action='store_true',
         help="(MongoDB) Drop empty databases",
@@ -432,22 +477,30 @@ def runner(inp=None):
         mongo_reset_gpu_procs(None)
         return
     fname = args['fname']
-    trials = hopt_trials(fname)
+    trials = None
     if args['hopt_best'] > 0:
         if fname.startswith('dlib'):
             dlib_best(fname, args['hopt_best'])
         else:
+            trials = hopt_trials(fname)
             hopt_best(trials, args['hopt_best'], view_pp=True)
+    elif args['clip']:
+        dlib_clip_loss(fname, args['clip'])
+    elif args['prune_thresh']:
+        dlib_prune(fname, args['prune_thresh'])
     elif args['plot']:
+        trials = hopt_trials(fname)
         hopt_plot(trials)
     elif args['prune_jobs']:
+        trials = hopt_trials(fname)
         trials.prune_suspended()
     elif args['clean']:
+        trials = hopt_trials(fname)
         mongo_drop_empty()
         trials.prune_suspended()
         mongo_reset_gpu_procs(None)
 
-    if type(trials) == MongoConn:
+    if trials is not None and type(trials) == MongoConn:
         trials.client.close()
 
 

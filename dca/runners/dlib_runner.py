@@ -63,7 +63,7 @@ class DlibRunner(Runner):
                     f"{params}. Using saved.")
                 params = saved_params
             raw_spec = cmp_and_choose('bounds', old_raw_spec,
-                                      [is_int, lo_bounds, hi_bounds])
+                                      (is_int, lo_bounds, hi_bounds))
             spec = dlib.function_spec(
                 bound1=raw_spec[1], bound2=raw_spec[2], is_integer=raw_spec[0])
             eps = cmp_and_choose('solver_epsilon', info['solver_epsilon'], eps)
@@ -149,9 +149,6 @@ class DlibRunner(Runner):
         for _ in range(n_concurrent):
             store_result()
         save_evals()
-
-        def run_avg():
-            pass
 
 
 def cmp_and_choose(what, saved, specified):
