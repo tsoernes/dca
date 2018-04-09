@@ -9,10 +9,10 @@ from nets.utils import (build_default_trainer, get_trainable_vars,
                         prep_data_grids)
 
 
-class TDCNSinghNet(Net):
+class TDCDSinghNet(Net):
     def __init__(self, pp, logger, frepshape):
         """
-        TD0 with Gradient correction for Non Linear func approx
+        TDC which stores runnning inverse of expectation of the outer prod X@X.T where X is net inp
         """
         self.name = "TDCNet"
         self.grid_inp = pp['singh_grid']

@@ -28,6 +28,7 @@ class TDCSinghNet(Net):
     def build(self):
         # frepshape = [None, self.rows, self.cols, self.n_channels * 3 + 1]
         self.frep = tf.placeholder(tf.int32, [None, *self.frepshape], "feature_reps")
+        self.next_frep = tf.placeholder(tf.int32, [None, *self.frepshape], "nfeature_reps")
         self.grads = tf.placeholder(tf.float32, [self.wdim, 1], "grad_corr")
 
         frep = tf.cast(self.frep, tf.float32)
@@ -42,18 +43,9 @@ class TDCSinghNet(Net):
             top_inp = frep
             self.depth = self.frepshape[-1]
 
-        with tf.variable_scope('model/' + self.name) as scope:
-            self.value = tf.layers.dense(
-                inputs=tf.layers.flatten(top_inp),
-                units=1,
-                kernel_initializer=tf.zeros_initializer(),
-                kernel_regularizer=None,
-                bias_initializer=tf.zeros_initializer(),
-                use_bias=False,
-                activation=None,
-                name="vals")
-            online_vars = tuple(get_trainable_vars(scope).values())
-        self.grads = [(tf.placeholder(tf.float32, [self.wdim, 1]), online_vars[0])]
+        hidden = tf.Variable(tf.zeros(shape=(self.wdim, 1)), name="hidden")
+        self.value = tf.matmul(tf.layers.flatten(top_inp), hidden)
+        self.grads = [(tf.placeholder(tf.float32, [self.wdim, 1]), hidden)]
 
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
         self.do_train = trainer.apply_gradients(self.grads, global_step=global_step)
