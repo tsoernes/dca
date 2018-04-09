@@ -184,7 +184,7 @@ class VNetBase(NetStrat):
             grids=grid,
             next_grids=next_grid,
             weights=[p],
-            avg_reward=self.avg_reward)
+            avg_reward=None)
 
     def update_qval_avg(self, grid, frep, cell, ce_type, ch, max_ch, p, reward, next_grid,
                         next_frep, next_val, discount):
