@@ -24,7 +24,7 @@ class DlibRunner(Runner):
             f"n_avg {n_avg} does not evenly divide n_concurrent {n_concurrent}"
         n_step = n_concurrent // n_avg
         n_sims = 1000  # The number of times to sample and test params
-        save_iter = 10
+        save_iter = 30
         eps = 0.0005  # solver_epsilon
         noise_mag = 0.005  # relative_noise_magnitude. Default setting: 0.001
         fname = "dlib-" + pp['hopt_fname'].replace('.pkl', '') + '.pkl'

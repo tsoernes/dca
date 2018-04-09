@@ -13,6 +13,7 @@ class TFTDCSinghNet(Net):
         """
         self.name = "SinghNet"
         self.grad_beta = pp['grad_beta']
+        self.grad_beta_decay = 1 - self.pp['grad_beta_decay']
         self.frepshape = [None, *frepshape]
         super().__init__(name=self.name, pp=pp, logger=logger)
 
@@ -22,6 +23,7 @@ class TFTDCSinghNet(Net):
         self.next_freps = tf.placeholder(tf.int32, self.frepshape, "next_feature_reps")
         self.rewards = tf.placeholder(tf.float32, [None], "rewards")
         self.discount = tf.placeholder(tf.float32, [None], "discount")
+        self.ph_grad_beta = tf.placeholder(tf.float32, [None], "grad_beta")
 
         freps_rowvec = tf.layers.flatten(tf.cast(self.freps, tf.float32))
         next_freps_rowvec = tf.layers.flatten(tf.cast(self.next_freps, tf.float32))
@@ -44,7 +46,7 @@ class TFTDCSinghNet(Net):
         self.do_train = trainer.apply_gradients(grads_and_vars, global_step=global_step)
 
         with tf.control_dependencies([self.do_train]):
-            diff = (tf.constant(self.grad_beta) * (self.td_err - dot)) * freps_colvec
+            diff = (self.ph_grad_beta * (self.td_err - dot)) * freps_colvec
             self.update_weights = self.weights.assign_add(diff)
 
         return None, None
@@ -60,12 +62,14 @@ class TFTDCSinghNet(Net):
 
     def backward(self, *, freps, rewards, next_freps, discount, weights, **kwargs):
         assert len(freps) == 1  # Hard coded for one-step
+        self.grad_beta *= self.grad_beta_decay
         assert discount is not None
         data = {
             self.freps: freps,
             self.next_freps: next_freps,
             self.rewards: rewards,
-            self.discount: [discount]
+            self.discount: [discount],
+            self.ph_grad_beta: self.grad_beta
         }
         lr, td_err, _, _ = self.sess.run(
             [self.lr, self.td_err, self.do_train, self.update_weights],

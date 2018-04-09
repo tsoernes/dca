@@ -2,7 +2,8 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.keras as k  # noqa
 
-from nets.convlayers import SeparableSplit, InPlaneSplit, InPlaneSplitLocallyConnected2D  # yapf:disable # noqa
+from nets.convlayers import (InPlaneSplit,  # yapf:disable # noqa
+                             InPlaneSplitLocallyConnected2D, SeparableSplit)
 from nets.net import Net
 from nets.utils import get_trainable_vars, prep_data_grids
 
@@ -20,11 +21,9 @@ class SinghNet(Net):
         with tf.variable_scope('model/' + name):
             print(inp.shape)
             # [filter_height, filter_width, in_channels, channel_multiplier]
-            filters = tf.Variable(self.kern_init_conv()((
-                self.pp['conv_kernel_sizes'][0],
-                self.pp['conv_kernel_sizes'][0],
-                self.depth,
-                1)))
+            filters = tf.Variable(self.kern_init_conv()(
+                (self.pp['conv_kernel_sizes'][0], self.pp['conv_kernel_sizes'][0],
+                 self.depth, 1)))
             conv = tf.nn.depthwise_conv2d(
                 inp, filters, strides=[1, 1, 1, 1], padding='SAME')
             dense_inp = tf.nn.relu(conv)
@@ -93,13 +92,14 @@ class SinghNet(Net):
         frep = tf.cast(self.frep, tf.float32)
         if self.grid_inp:
             grid_depth = 2 * self.n_channels
-            self.grid = tf.placeholder(
-                tf.bool, [None, self.rows, self.cols, grid_depth], "grid")
+            self.grid = tf.placeholder(tf.bool, [None, self.rows, self.cols, grid_depth],
+                                       "grid")
             grid = tf.cast(self.grid, tf.float32)
             top_inp = tf.concat([grid, frep], axis=3)
             self.depth = self.frepshape[-1] + grid_depth
         else:
             top_inp = frep
+            self.depth = self.frepshape[-1]
         return top_inp
 
     def build(self):
@@ -110,7 +110,9 @@ class SinghNet(Net):
         if self.pp['huber_loss'] is not None:
             # Linear when loss is above delta and squared difference below
             self.loss = tf.losses.huber_loss(
-                labels=self.value_target, predictions=self.value, delta=self.pp['huber_loss'])
+                labels=self.value_target,
+                predictions=self.value,
+                delta=self.pp['huber_loss'])
         else:
             self.loss = tf.losses.mean_squared_error(
                 labels=self.value_target, predictions=self.value, weights=self.weight)

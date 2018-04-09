@@ -146,6 +146,26 @@ def separable_conv2d(inp, kernel_size, stride, padding, kernel_initializer):
     return outputs
 
 
+class DepthwiseConv2D:
+    def __init__(self,
+                 in_chs,
+                 kernel_size,
+                 padding="SAME",
+                 activation=tf.nn.relu,
+                 kernel_initializer=tf.glorot_uniform_initializer):
+        shape = (kernel_size, kernel_size, in_chs, 1)
+        self.filters = tf.Variable(kernel_initializer()(shape))
+        self.act_fn = activation
+        self.padding = padding.upper()
+        self.name = "deptwise_conv2d"
+
+    def apply(self, inp):
+        conv = tf.nn.depthwise_conv2d(
+            inp, self.filters, strides=[1, 1, 1, 1], padding=self.padding)
+        out = self.act_fn(conv)
+        return out
+
+
 class InPlaneSplitLocallyConnected2D(Layer):
     """In-plane Split Locally-connected layer for 2D inputs.
   The `InPlaneSplitLocallyConnected2D` layer works similarly
