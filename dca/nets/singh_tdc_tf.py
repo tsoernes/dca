@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import build_default_trainer, get_trainable_vars
+from nets.utils import build_default_trainer
 from utils import prod
 
 
@@ -37,7 +37,8 @@ class TFTDCSinghNet(Net):
         dot = tf.matmul(freps_rowvec, self.weights)
         # Multiply by 2 to get equivalent magnitude to MSE
         # Multiply by -1 because SGD-variants invert grads
-        grads = (-2 * self.td_err) * freps_colvec + (2 * self.discount * dot) * next_freps_colvec
+        grads = (-2 * self.td_err) * freps_colvec + (
+            2 * self.discount * dot) * next_freps_colvec
         grads_and_vars = [(grads, hidden)]
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
         self.do_train = trainer.apply_gradients(grads_and_vars, global_step=global_step)
