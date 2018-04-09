@@ -2,8 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import (build_default_trainer, get_trainable_vars,
-                        prep_data_grids)
+from nets.utils import (build_default_trainer, prep_data_grids)
 from utils import prod
 
 
