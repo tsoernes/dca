@@ -10,7 +10,10 @@ from utils import prod
 class TDCNLSinghNet(Net):
     def __init__(self, pp, logger, frepshape):
         """
-        TD0 with Gradient correction for Non-linear func approx
+        TD0 with Gradient correction for non-linear function approximation
+        See 'Convergent Temporal-Difference Learning with Arbitrary
+        Smooth Function Approximation' Hamid R. Maei 2009
+        http://papers.nips.cc/paper/3809-convergent-temporal-difference-learning-with-arbitrary-smooth-function-approximation.pdf
         """
         self.name = "SinghNet"
         self.grad_beta = pp['grad_beta']

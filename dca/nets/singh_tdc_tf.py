@@ -9,7 +9,7 @@ from utils import prod
 class TFTDCSinghNet(Net):
     def __init__(self, pp, logger, frepshape):
         """
-        TD0 with Gradient correction
+        TD0 with Gradient correction, TF impl
         """
         self.name = "SinghNet"
         self.grad_beta = pp['grad_beta']
