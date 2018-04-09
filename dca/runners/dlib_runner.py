@@ -18,13 +18,13 @@ class DlibRunner(Runner):
         pp = self.pp
         logger = self.logger
 
-        n_concurrent = cpu_count() - 2  # Number of concurrent procs
+        n_concurrent = cpu_count() - 4  # Number of concurrent procs
         n_avg = 2
         assert n_concurrent % n_avg == 0, \
             f"n_avg {n_avg} does not evenly divide n_concurrent {n_concurrent}"
         n_step = n_concurrent // n_avg
         n_sims = 1000  # The number of times to sample and test params
-        save_iter = 50
+        save_iter = 10
         eps = 0.0005  # solver_epsilon
         noise_mag = 0.005  # relative_noise_magnitude. Default setting: 0.001
         fname = "dlib-" + pp['hopt_fname'].replace('.pkl', '') + '.pkl'
@@ -38,7 +38,7 @@ class DlibRunner(Runner):
             'weight_beta': [False, 1e-3, 9e-1],
             'weight_beta_decay': [False, 1e-8, 1e-4],
             'grad_beta': [False, 1e-3, 9e-1],
-            'grad_beta_decay': [False, 1e-7, 1e-3],
+            'grad_beta_decay': [False, 1e-8, 1e-3],
             'epsilon': [False, 2, 5],
             'epsilon_decay': [False, 0.999_5, 0.999_999],
             'alpha': [False, 0.00001, 0.3]
@@ -60,6 +60,7 @@ class DlibRunner(Runner):
             # What happens if you introduce another variable in addition to the previously?
             # E.g. initialize dlib with evals over (eps, beta) then specify bounds for
             # (eps, beta, gamma)?
+
             # Restore saved params and settings if they differ from current/specified
             if params != saved_params:
                 logger.error(
@@ -89,7 +90,9 @@ class DlibRunner(Runner):
         simproc = partial(dlib_proc, self.stratclass, pp, params, result_queue)
         # Becomes populated with evaluation objects to be set later
         evals = [None] * n_sims
-        results = [[]] * n_sims
+        # Becomes populates with losses. When n_avg losses for a particular
+        # set of params are ready, their mean is set for the correponding eval.
+        results = [[] for _ in range(n_sims)]
 
         def save_evals():
             """Store results of finished evals to file; print best eval"""
@@ -104,8 +107,10 @@ class DlibRunner(Runner):
             """Spawn a new sim process"""
             eeval = optimizer.get_next_x()
             evals[i] = eeval  # Store eval object to be set with result later
+            vals = list(eeval.x)
+            logger.error(f"T{i} Testing {params}: {vals}")
             for _ in range(n_avg):
-                Process(target=simproc, args=(i, list(eeval.x))).start()
+                Process(target=simproc, args=(i, vals)).start()
 
         def store_result():
             """Block until a result is ready, then store it and report it to dlib"""
@@ -121,11 +126,10 @@ class DlibRunner(Runner):
                 sys.exit(0)
             else:
                 if result is not None:
-                    ress = results[i]
-                    ress.append(result)
-                    if len(ress) == n_avg:
-                        evals[i].set(np.mean(ress))
-                if i > 0 and i % save_iter == 0:
+                    results[i].append(result)
+                    if len(results[i]) == n_avg:
+                        evals[i].set(np.mean(results[i]))
+                if i > 0 and i % save_iter == 0 and len(results[i]) == n_avg:
                     save_evals()
 
         """ the search will only attempt to find a global minimizer to at most
@@ -152,11 +156,13 @@ class DlibRunner(Runner):
             spawn_evals(i)
         # When a thread returns a result, start a new sim
         for i in range(n_step, n_sims):
-            store_result()
+            for _ in range(n_avg):
+                store_result()
             spawn_evals(i)
         # Get remaining results
         for _ in range(n_step):
-            store_result()
+            for _ in range(n_avg):
+                store_result()
         save_evals()
 
 
@@ -174,7 +180,6 @@ def cmp_and_choose(what, saved, specified):
 
 def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
     logger = logging.getLogger('')
-    logger.error(f"T{i} Testing {space_params}: {space_vals}")
     # Add/overwrite problem params with params given from dlib
     for j, key in enumerate(space_params):
         pp[key] = space_vals[j]
@@ -184,14 +189,14 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
         pp['exp_policy'] = 'eps_greedy'
         pp['epsilon'] = 0
 
-    np.seed()
+    np.random.seed()
     strat = stratclass(pp=pp, logger=logger, pid=i)
     res = strat.simulate()[0]
     if res is None:
         res = 1
     if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
         # If user quits sim, don't want to return result
-        result_queue.put(None)
+        result_queue.put((i, None))
     else:
         # Must negate result as dlib performs maximization by default
         result_queue.put((i, -res))
