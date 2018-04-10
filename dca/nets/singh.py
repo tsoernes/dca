@@ -112,7 +112,7 @@ class SinghNet(Net):
         self.err = self.value_target - value
         if self.pp['huber_loss'] is not None:
             # Linear when loss is above delta and squared difference below
-            self.loss = tf.losses.huber_loss(
+            self.loss = 2 * tf.losses.huber_loss(
                 labels=self.value_target,
                 predictions=self.value,
                 delta=self.pp['huber_loss'])
