@@ -124,17 +124,17 @@ class TDCNLSinghNet(Net):
         # print("zip", list(zip(v_grads, weights)))
         self.td_err = self.reward + self.discount * next_value - self.value
         dot = tf.matmul(tf.transpose(v_gradsf), weights)
-        nl_hess, _ = zip(*trainer.compute_gradients(dot, var_list=trainable_vars_by_name))
-        nl_hessp = []
-        for i, v in enumerate(nl_hess):
+        v_hess, _ = zip(*trainer.compute_gradients(dot, var_list=trainable_vars_by_name))
+        v_hessp = []
+        for i, v in enumerate(v_hess):
             if v is None:
                 self.logger.error(f"None-gradient in hessian at var {i}")
-                nl_hessp.append(0.0)
+                v_hessp.append(0.0)
             else:
-                nl_hessp.append(v)
-        nl_hessf = flatten(nl_hessp)
+                v_hessp.append(v)
+        v_hessf = flatten(v_hessp)
         # print(shapes, trainable_vars1a, trainable_vars1b, trainable_vars2)
-        h = (self.td_err - dot) * nl_hessf
+        h = (self.td_err - dot) * v_hessf
         # Multiply by 2 to get equivalent magnitude to MSE
         # Multiply by -1 because SGD-variants invert grads
         gradsf = -2 * (self.td_err * v_gradsf - (self.discount * dot) * nv_gradsf - h)

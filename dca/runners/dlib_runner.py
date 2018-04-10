@@ -1,7 +1,7 @@
 import logging
 import sys
 from functools import partial
-from multiprocessing import Process, Queue, cpu_count
+from multiprocessing import Process, Queue, cpu_count  # noqa
 
 import dlib
 import numpy as np
@@ -18,8 +18,9 @@ class DlibRunner(Runner):
         pp = self.pp
         logger = self.logger
 
-        n_concurrent = cpu_count() - 4  # Number of concurrent procs
-        n_avg = 2
+        # n_concurrent = cpu_count() - 4  # Number of concurrent procs
+        n_concurrent = 12
+        n_avg = 4
         assert n_concurrent % n_avg == 0, \
             f"n_avg {n_avg} does not evenly divide n_concurrent {n_concurrent}"
         n_step = n_concurrent // n_avg
