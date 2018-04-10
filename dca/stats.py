@@ -99,6 +99,7 @@ class Stats:
                        f" Val:{avg_losses[2]:.2E}, Ent:{avg_losses[3]:.2E}"
         else:
             avg_loss = f"{sum(losses[-niter:]) / niter :.2E}"
+            max_loss = f"{max(losses[-niter:]):.2E}"
 
         if qval_means:
             avg_qval = f", qvals: {sum(qval_means[-niter:]) / niter :.2E}"
@@ -110,7 +111,8 @@ class Stats:
             avg_reward_s = ""
         self.logger.info(
             f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
-            f" Avg. loss last {niter} events: {avg_loss}{avg_qval}{avg_reward_s}")
+            f" Avg|max loss last {niter} events: {avg_loss}|{max_loss}{avg_qval}{avg_reward_s}"
+        )
 
     def report_weights(self, weights, names):
         for i, w in enumerate(weights):

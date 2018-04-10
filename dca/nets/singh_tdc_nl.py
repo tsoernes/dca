@@ -108,7 +108,7 @@ class TDCNLSinghNet(Net):
         # print(shapes, fshapes, wdim)
         v_grads, trainable_vars = zip(
             *trainer.compute_gradients(self.value, var_list=trainable_vars_by_name))
-        nv_grads, _ = zip(
+        nv_grads, tv2 = zip(
             *trainer.compute_gradients(next_value, var_list=trainable_vars_by_name))
         shapes = [tuple(map(int, v.shape)) for v in trainable_vars]
         wdim = sum([prod(s) for s in shapes])  # Total number of parameters in net
@@ -122,10 +122,12 @@ class TDCNLSinghNet(Net):
 
         # print("vgrad", v_grads)
         # print("zip", list(zip(v_grads, weights)))
-        self.td_err = self.reward + self.discount * next_value - self.value
+        self.td_err = self.reward - self.avg_reward + self.discount * next_value - self.value
         dot = tf.matmul(tf.transpose(v_gradsf), weights)
-        v_hess, _ = zip(*trainer.compute_gradients(dot, var_list=trainable_vars_by_name))
+        v_hess, tv3 = zip(
+            *trainer.compute_gradients(dot, var_list=trainable_vars_by_name))
         v_hessp = []
+        assert trainable_vars == tv2 == tv3
         for i, v in enumerate(v_hess):
             if v is None:
                 self.logger.error(f"None-gradient in hessian at var {i}")
@@ -137,7 +139,8 @@ class TDCNLSinghNet(Net):
         h = (self.td_err - dot) * v_hessf
         # Multiply by 2 to get equivalent magnitude to MSE
         # Multiply by -1 because SGD-variants invert grads
-        gradsf = -2 * (self.td_err * v_gradsf - (self.discount * dot) * nv_gradsf - h)
+        gradsf = -2 * (self.td_err * v_gradsf + self.avg_reward -
+                       (self.discount * dot) * nv_gradsf - h)
 
         # Revert back from a single flat weight to one non-flat weight for each layer
         grads = []
