@@ -28,20 +28,27 @@ class SplitConv:
                  stride=1,
                  use_bias=True,
                  padding="SAME",
-                 kernel_initializer=tf.constant_initializer(0.1)):
+                 kernel_initializer=tf.constant_initializer(0.1),
+                 act_fn=tf.nn.relu,
+                 name='splitconv'):
         self.kernel_size, self.stride = kernel_size, stride
         self.padding = padding.upper()
         self.biases_initializer = tf.zeros_initializer if use_bias else None
         self.kernel_initializer = kernel_initializer
+        self.act_fn = act_fn
+        self.name = name
 
-    def apply(self, inp, concat=True):
+    def apply(self, inp, concat=True, reuse=False):
         if type(inp) is list:
             fps = inp
         else:
             splitaxis = split_axis(inp.shape)
             print(f"Split at: {splitaxis}")
             fps = tf.split(inp, splitaxis, -1)
-        convs = [self.part_fn(feature_part, n) for n, feature_part in enumerate(fps)]
+        convs = [
+            self.part_fn(feature_part, str(n), reuse)
+            for n, feature_part in enumerate(fps)
+        ]
         out = tf.concat(convs, -1) if concat else convs
         return out
 
@@ -56,14 +63,19 @@ class InPlaneSplit(SplitConv):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def part_fn(self, feature_part, n):
-        return tf.contrib.layers.conv2d_in_plane(
-            inputs=feature_part,
-            kernel_size=self.kernel_size,
-            stride=self.stride,
-            padding=self.padding,
-            biases_initializer=self.biases_initializer,
-            weights_initializer=self.kernel_initializer)
+    def part_fn(self, feature_part, n, reuse):
+        with tf.variable_scope(self.name + '/conv2d_in_plane/' + n) as scope:
+            conv = tf.contrib.layers.conv2d_in_plane(
+                inputs=feature_part,
+                kernel_size=self.kernel_size,
+                stride=self.stride,
+                padding=self.padding,
+                biases_initializer=self.biases_initializer,
+                weights_initializer=self.kernel_initializer,
+                reuse=reuse,
+                scope=scope)
+            outputs = self.act_fn(conv)
+        return outputs
 
 
 class SeparableSplit(SplitConv):
@@ -79,89 +91,107 @@ class SeparableSplit(SplitConv):
         if type(self.stride) is int:
             self.stride = (1, self.stride, self.stride, 1)
 
-    def part_fn(self, feature_part, n):
-        # shape = list(map(int, (*feature_part.shape[1:], 1)))
-        in_chs = int(feature_part.shape[-1])
-        # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
-        # Contains in_channels convolutional filters of depth 1.
-        depthwise_shape = [self.kernel_size, self.kernel_size, in_chs, 1]
-        depthwise_filter = tf.Variable(self.kernel_initializer(depthwise_shape))
-        # pointwise_filter: [1, 1, channel_multiplier * in_channels, out_channels].
-        # Pointwise filter to mix channels after depthwise_filter has convolved spatially.
-        pointwise_shape = [1, 1, in_chs, in_chs]
-        pointwise_filter = tf.Variable(self.pointwise_initializer(pointwise_shape))
+    def part_fn(self, feature_part, n, reuse):
+        name = self.name + '/separable_split/' + n
+        with tf.variable_scope(name, reuse=reuse):
+            # shape = list(map(int, (*feature_part.shape[1:], 1)))
+            in_chs = int(feature_part.shape[-1])
+            # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
+            # Contains in_channels convolutional filters of depth 1.
+            depthwise_shape = [self.kernel_size, self.kernel_size, in_chs, 1]
+            depthwise_filter = tf.get_variable(name + '/depthwise_filter',
+                                               depthwise_shape, tf.float32,
+                                               self.kernel_initializer)
+            # depthwise_filter = tf.Variable(self.kernel_initializer(depthwise_shape))
+            # pointwise_filter: [1, 1, channel_multiplier * in_channels, out_channels].
+            # Pointwise filter to mix channels after depthwise_filter has convolved spatially.
+            pointwise_shape = [1, 1, in_chs, in_chs]
+            # pointwise_filter = tf.Variable(self.pointwise_initializer(pointwise_shape))
+            pointwise_filter = tf.get_variable(name + 'pointwise_filter', pointwise_shape,
+                                               tf.float32, self.pointwise_initializer)
 
-        outputs = tf.nn.separable_conv2d(
-            feature_part,
-            depthwise_filter=depthwise_filter,
-            pointwise_filter=pointwise_filter,
-            strides=self.stride,
-            padding=self.padding,
-        )
-        if self.biases_initializer is not None:
-            biases = variables.model_variable(
-                'biases' + str(n),
-                shape=[
-                    in_chs,
-                ],
-                dtype=feature_part.dtype,
-                initializer=self.biases_initializer,
+            outputs = tf.nn.separable_conv2d(
+                feature_part,
+                depthwise_filter=depthwise_filter,
+                pointwise_filter=pointwise_filter,
+                strides=self.stride,
+                padding=self.padding,
             )
-            outputs = nn.bias_add(outputs, biases)
-        outputs = tf.nn.relu(outputs)
+            if self.biases_initializer is not None:
+                biases = variables.model_variable(
+                    'biases' + n,
+                    shape=[
+                        in_chs,
+                    ],
+                    dtype=feature_part.dtype,
+                    initializer=self.biases_initializer,
+                )
+                outputs = nn.bias_add(outputs, biases)
+            outputs = self.act_fn(outputs)
         return outputs
 
 
-def separable_conv2d(inp, kernel_size, stride, padding, kernel_initializer):
-    in_chs = int(inp.shape[-1])
-    stride = (1, stride, stride, 1)
-    # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
-    # Contains in_channels convolutional filters of depth 1.
-    depthwise_shape = [kernel_size, kernel_size, in_chs, 1]
-    depthwise_filter = tf.Variable(kernel_initializer(depthwise_shape))
-    # pointwise_filter: [1, 1, channel_multiplier * in_channels, out_channels].
-    # Pointwise filter to mix channels after depthwise_filter has convolved spatially.
-    pointwise_initializer = tf.constant_initializer(0.1)
-    pointwise_shape = [1, 1, in_chs, in_chs]
-    pointwise_filter = tf.Variable(pointwise_initializer(pointwise_shape))
+class SeparableConv2D:
+    def __init__(self, kernel_size, stride, padding, kernel_initializer):
+        self.kernel_size = kernel_size
+        self.stride = (1, stride, stride, 1)
+        self.padding = padding.upper()
+        self.kernel_initializer = kernel_initializer
+        raise NotImplementedError
 
-    outputs = tf.nn.separable_conv2d(
-        inp,
-        depthwise_filter=depthwise_filter,
-        pointwise_filter=pointwise_filter,
-        strides=stride,
-        padding=padding.upper(),
-    )
-    # if self.biases_initializer is not None:
-    #     biases = variables.model_variable(
-    #         'biases' + str(n),
-    #         shape=[
-    #             in_chs,
-    #         ],
-    #         dtype=feature_part.dtype,
-    #         initializer=self.biases_initializer,
-    #     )
-    #     outputs = nn.bias_add(outputs, biases)
-    outputs = tf.nn.relu(outputs)
-    return outputs
+    def apply(self, inp, reuse):
+        with tf.variable_scope('separable_conv2d/', reuse=reuse):
+            in_chs = int(inp.shape[-1])
+            # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
+            # Contains in_channels convolutional filters of depth 1.
+            depthwise_shape = [self.kernel_size, self.kernel_size, in_chs, 1]
+            depthwise_filter = tf.Variable(self.kernel_initializer(depthwise_shape))
+            # pointwise_filter: [1, 1, channel_multiplier * in_channels, out_channels].
+            # Pointwise filter to mix channels after depthwise_filter has convolved spatially.
+            pointwise_initializer = tf.constant_initializer(0.1)
+            pointwise_shape = [1, 1, in_chs, in_chs]
+            pointwise_filter = tf.Variable(pointwise_initializer(pointwise_shape))
+
+            outputs = tf.nn.separable_conv2d(
+                inp,
+                depthwise_filter=depthwise_filter,
+                pointwise_filter=pointwise_filter,
+                strides=self.stride,
+                padding=self.padding,
+            )
+            # if self.biases_initializer is not None:
+            #     biases = variables.model_variable(
+            #         'biases' + str(n),
+            #         shape=[
+            #             in_chs,
+            #         ],
+            #         dtype=feature_part.dtype,
+            #         initializer=self.biases_initializer,
+            #     )
+            #     outputs = nn.bias_add(outputs, biases)
+            outputs = tf.nn.relu(outputs)
+        return outputs
 
 
 class DepthwiseConv2D:
     def __init__(self,
-                 in_chs,
                  kernel_size,
                  padding="SAME",
                  activation=tf.nn.relu,
-                 kernel_initializer=tf.glorot_uniform_initializer):
-        shape = (kernel_size, kernel_size, in_chs, 1)
-        self.filters = tf.Variable(kernel_initializer()(shape))
+                 kernel_initializer=tf.glorot_uniform_initializer(),
+                 name="deptwise_conv2d"):
         self.act_fn = activation
         self.padding = padding.upper()
-        self.name = "deptwise_conv2d"
+        self.name = name
 
-    def apply(self, inp):
+    def apply(self, inp, reuse=False):
+        shape = (self.kernel_size, self.kernel_size, inp.shape[-1], 1)
+        with tf.variable_scope(self.name, reuse=reuse):
+            # self.filters = tf.Variable(kernel_initializer()(shape))
+            filters = tf.get_variable('weights', shape, tf.float32,
+                                      self.kernel_initializer)
         conv = tf.nn.depthwise_conv2d(
-            inp, self.filters, strides=[1, 1, 1, 1], padding=self.padding)
+            inp, filters, strides=[1, 1, 1, 1], padding=self.padding)
         out = self.act_fn(conv)
         return out
 
