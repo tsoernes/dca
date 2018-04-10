@@ -11,22 +11,22 @@ class TFTDCSinghNet(Net):
         """
         TD0 with Gradient correction, TF impl
         """
-        self.name = "SinghNet"
+        self.name = "TF_TDC"
         self.grad_beta = pp['grad_beta']
         self.grad_beta_decay = 1 - pp['grad_beta_decay']
         self.frepshape = [None, *frepshape]
         super().__init__(name=self.name, pp=pp, logger=logger)
 
     def build(self):
-        self.freps = tf.placeholder(tf.int32, self.frepshape, "feature_reps")
-        self.next_freps = tf.placeholder(tf.int32, self.frepshape, "next_feature_reps")
+        self.frep = tf.placeholder(tf.int32, self.frepshape, "feature_reps")
+        self.next_frep = tf.placeholder(tf.int32, self.frepshape, "next_feature_reps")
         self.avg_reward = tf.placeholder(tf.float32, [], "avg_reward")
-        self.rewards = tf.placeholder(tf.float32, [None], "rewards")
+        self.reward = tf.placeholder(tf.float32, [None], "rewards")
         self.discount = tf.placeholder(tf.float32, [None], "discount")
         self.ph_grad_beta = tf.placeholder(tf.float32, [], "grad_beta")
 
-        freps_rowvec = tf.layers.flatten(tf.cast(self.freps, tf.float32))
-        next_freps_rowvec = tf.layers.flatten(tf.cast(self.next_freps, tf.float32))
+        freps_rowvec = tf.layers.flatten(tf.cast(self.frep, tf.float32))
+        next_freps_rowvec = tf.layers.flatten(tf.cast(self.next_frep, tf.float32))
         freps_colvec = tf.transpose(freps_rowvec)  # x_t
         next_freps_colvec = tf.transpose(next_freps_rowvec)  # x_{t+1}
 
@@ -36,7 +36,7 @@ class TFTDCSinghNet(Net):
         self.value = tf.matmul(freps_rowvec, hidden)
         next_value = tf.matmul(next_freps_rowvec, hidden)
 
-        self.td_err = self.rewards - self.avg_reward + self.discount * next_value - self.value
+        self.td_err = self.reward - self.avg_reward + self.discount * next_value - self.value
         dot = tf.matmul(freps_rowvec, self.weights)
         # Multiply by 2 to get equivalent magnitude to MSE
         # Multiply by -1 because SGD-variants inverts grads
@@ -55,14 +55,21 @@ class TFTDCSinghNet(Net):
     def forward(self, freps, grids):
         values = self.sess.run(
             self.value,
-            feed_dict={self.freps: freps},
+            feed_dict={self.frep: freps},
             options=self.options,
             run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
         return vals
 
-    def backward(self, *, freps, rewards, next_freps,
-                 discount=None, weights=None, avg_reward=None, **kwargs):
+    def backward(self,
+                 *,
+                 freps,
+                 rewards,
+                 next_freps,
+                 discount=None,
+                 weights=None,
+                 avg_reward=None,
+                 **kwargs):
         assert len(freps) == 1  # Hard coded for one-step
         assert discount is not None or avg_reward is not None
         if avg_reward is not None:
@@ -71,9 +78,9 @@ class TFTDCSinghNet(Net):
             avg_reward = 0
 
         data = {
-            self.freps: freps,
-            self.next_freps: next_freps,
-            self.rewards: rewards,
+            self.frep: freps,
+            self.next_frep: next_freps,
+            self.reward: rewards,
             self.discount: [discount],
             self.avg_reward: avg_reward,
             self.ph_grad_beta: self.grad_beta
