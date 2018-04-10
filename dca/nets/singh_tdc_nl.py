@@ -101,7 +101,7 @@ class TDCNLSinghNet(Net):
         net_inp = self._build_inputs()
         v, trainable_vars_by_name = self._build_net(net_inp)
         self.value, next_value = v
-        print("val shapes:", self.value.shape, next_value.shape)
+        assert self.value.shape[1:] == (1, )
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
 
         # print(trainable_vars_by_name)

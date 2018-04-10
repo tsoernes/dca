@@ -2,8 +2,10 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.keras as k  # noqa
 
-from nets.convlayers import (InPlaneSplit,  # yapf:disable # noqa
+# yapf: disable
+from nets.convlayers import (DepthwiseConv2D, InPlaneSplit,  # noqa
                              InPlaneSplitLocallyConnected2D, SeparableSplit)
+# yapf: enable
 from nets.net import Net
 from nets.utils import get_trainable_vars, prep_data_grids
 
@@ -20,13 +22,14 @@ class SinghNet(Net):
     def _build_pre_conv(self, inp, name):
         with tf.variable_scope('model/' + name):
             print(inp.shape)
+            # WORKS very well in start, but block prob diverges rapidly around 80k iters
             # [filter_height, filter_width, in_channels, channel_multiplier]
-            filters = tf.Variable(self.kern_init_conv()(
-                (self.pp['conv_kernel_sizes'][0], self.pp['conv_kernel_sizes'][0],
-                 self.depth, 1)))
-            conv = tf.nn.depthwise_conv2d(
-                inp, filters, strides=[1, 1, 1, 1], padding='SAME')
-            dense_inp = tf.nn.relu(conv)
+            # filters = tf.Variable(self.kern_init_conv()(
+            #     (self.pp['conv_kernel_sizes'][0], self.pp['conv_kernel_sizes'][0],
+            #      self.depth, 1)))
+            # conv = tf.nn.depthwise_conv2d(
+            #     inp, filters, strides=[1, 1, 1, 1], padding='SAME')
+            # dense_inp = tf.nn.relu(conv)
 
             # dense_inp = SeparableSplit(
             #     kernel_size=3,
@@ -50,12 +53,12 @@ class SinghNet(Net):
             #     use_bias=self.pp['conv_bias'])
             # dense_inp = lconv(inp)
 
-            # dense_inp = self.add_conv_layer(
-            #     inp,
-            #     filters=self.pp['conv_nfilters'][0],
-            #     kernel_size=self.pp['conv_kernel_sizes'][0],
-            #     padding="same",
-            #     use_bias=self.pp['conv_bias'])
+            dense_inp = self.add_conv_layer(
+                inp,
+                filters=self.pp['conv_nfilters'][0],
+                kernel_size=self.pp['conv_kernel_sizes'][0],
+                padding="same",
+                use_bias=self.pp['conv_bias'])
             # dense_inp = self.add_conv_layer(inp, 70, 3, padding="same", use_bias=False)
             # dense_inp = self.add_conv_layer(conv1, 3 * 70, 3)
             # TODO: Try with bias
