@@ -33,7 +33,7 @@ class DlibRunner(Runner):
             # parameter: [IsInteger, Low_Bound, High_Bound]
             'gamma': [False, 0.60, 0.99],
             'lambda': [False, 0.60, 0.99],
-            'net_lr': [False, 1e-7, 1e-6],
+            'net_lr': [False, 8e-7, 3e-6],
             'beta': [True, 10, 3000],
             'net_lr_decay': [False, 0.70, 1.0],
             'weight_beta': [False, 1e-3, 9e-1],
@@ -42,7 +42,8 @@ class DlibRunner(Runner):
             'grad_beta_decay': [False, 1e-8, 1e-3],
             'epsilon': [False, 2, 5],
             'epsilon_decay': [False, 0.999_5, 0.999_999],
-            'alpha': [False, 0.00001, 0.3]
+            'alpha': [False, 0.00001, 0.3],
+            'huber_loss': [True, 10, 40]
         }
         space = {param: space[param] for param in pp['dlib_hopt']}
         params, is_int, lo_bounds, hi_bounds = [], [], [], []

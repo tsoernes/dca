@@ -516,7 +516,7 @@ def get_frep_funcs(name):
             'afterstate_freps': afterstate_freps_big,
             'feature_rep': feature_rep_big,
             'feature_reps': feature_reps_big,
-            'incremental_freps': incremental_freps
+            'incremental_freps': incremental_freps_big
         }
     elif name == 'big2':
         return {
@@ -524,5 +524,5 @@ def get_frep_funcs(name):
             'afterstate_freps': afterstate_freps_big2,
             'feature_rep': feature_rep_big2,
             'feature_reps': feature_reps_big2,
-            'incremental_freps': notimpl
+            'incremental_freps': incremental_freps_big2
         }

@@ -85,7 +85,7 @@ def get_pparams(defaults=False):
         'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
         'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff', 'beta',
         'net_lr_decay', 'n_step', 'weight_beta', 'weight_beta_decay', 'grad_beta',
-        'grad_beta_decay'
+        'grad_beta_decay', 'huber_loss'
     ]
 
     parser.add_argument('strat', type=str, choices=stratnames, default="rs_sarsa")

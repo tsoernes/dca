@@ -6,7 +6,8 @@ from nets.convlayers import (DepthwiseConv2D, InPlaneSplit,  # noqa
                              InPlaneSplitLocallyConnected2D, SeparableSplit)
 # yapf: enable
 from nets.net import Net
-from nets.utils import build_default_trainer, get_trainable_vars
+from nets.utils import (build_default_trainer, get_trainable_vars,
+                        prep_data_grids)
 from utils import prod
 
 
@@ -28,42 +29,69 @@ class TDCNLSinghNet(Net):
     def _build_net(self, top_inps):
         with tf.variable_scope('model/' + self.name) as scope:
             # conv = DepthwiseConv2D(self.depth, self.pp['conv_kernel_sizes'][0])
-            conv1 = tf.layers.Conv2D(
+            conv1a = tf.layers.Conv2D(
                 filters=self.pp['conv_nfilters'][0],
                 kernel_size=self.pp['conv_kernel_sizes'][0],
                 padding='SAME',
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.conv_regularizer,
-                use_bias=False,
+                use_bias=self.pp['conv_bias'],
                 bias_initializer=tf.constant_initializer(0.1),
                 activation=self.act_fn,
                 name="vconv",
                 _reuse=False)
-            conv2 = tf.layers.Conv2D(
+            conv1b = tf.layers.Conv2D(
                 filters=self.pp['conv_nfilters'][0],
                 kernel_size=self.pp['conv_kernel_sizes'][0],
                 padding='SAME',
                 kernel_initializer=self.kern_init_conv(),
                 kernel_regularizer=self.conv_regularizer,
-                use_bias=False,
+                use_bias=self.pp['conv_bias'],
                 bias_initializer=tf.constant_initializer(0.1),
                 activation=self.act_fn,
                 name="vconv",
                 _reuse=True)
+            # conv1 = [conv1a, conv1b]
+            conv2a = tf.layers.Conv2D(
+                filters=self.pp['conv_nfilters'][1],
+                kernel_size=self.pp['conv_kernel_sizes'][1],
+                padding='SAME',
+                kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.conv_regularizer,
+                use_bias=self.pp['conv_bias'],
+                bias_initializer=tf.constant_initializer(0.1),
+                activation=self.act_fn,
+                name="vconv2",
+                _reuse=False)
+            conv2b = tf.layers.Conv2D(
+                filters=self.pp['conv_nfilters'][1],
+                kernel_size=self.pp['conv_kernel_sizes'][1],
+                padding='SAME',
+                kernel_initializer=self.kern_init_conv(),
+                kernel_regularizer=self.conv_regularizer,
+                use_bias=self.pp['conv_bias'],
+                bias_initializer=tf.constant_initializer(0.1),
+                activation=self.act_fn,
+                name="vconv2",
+                _reuse=True)
+            # conv2 = [conv2a, conv2b]
+            # conv = [conv1, conv2]
             value_layer = tf.layers.Dense(
                 units=1,
                 kernel_initializer=self.kern_init_dense(),
                 use_bias=False,
                 activation=None)
 
-            val = value_layer.apply(tf.layers.flatten(conv1.apply(top_inps[0]))),
-            next_val = value_layer.apply(tf.layers.flatten(conv2.apply(top_inps[1])))
+            val = value_layer.apply(
+                tf.layers.flatten(conv2a.apply(conv1a.apply(top_inps[0]))))
+            nval = value_layer.apply(
+                tf.layers.flatten(conv2b.apply(conv1b.apply(top_inps[1]))))
             self.weight_vars.append(value_layer.kernel)
             self.weight_names.append(value_layer.name)
             # self.weight_vars.append(conv.filters)
             # self.weight_names.append(conv.name)
             trainable_vars_by_name = get_trainable_vars(scope)
-        return val, next_val, trainable_vars_by_name
+        return val, nval, trainable_vars_by_name
 
     def _build_inputs(self):
         self.frep = tf.placeholder(tf.int32, self.frepshape, "feature_rep")
@@ -154,9 +182,12 @@ class TDCNLSinghNet(Net):
         return None, None
 
     def forward(self, freps, grids):
+        data = {self.frep: freps}
+        if self.grid_inp:
+            data[self.grid] = prep_data_grids(grids, self.grid_split)
         values = self.sess.run(
             self.value,
-            feed_dict={self.frep: freps},
+            feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
         vals = np.reshape(values, [-1])
@@ -170,6 +201,8 @@ class TDCNLSinghNet(Net):
                  discount=None,
                  weights=None,
                  avg_reward=None,
+                 grids=None,
+                 next_grids=None,
                  **kwargs):
         assert len(freps) == 1  # Hard coded for one-step
         assert discount is not None or avg_reward is not None
@@ -186,6 +219,9 @@ class TDCNLSinghNet(Net):
             self.avg_reward: avg_reward,
             self.ph_grad_beta: self.grad_beta
         }
+        if self.grid_inp:
+            data[self.grid] = prep_data_grids(grids, self.grid_split)
+            data[self.next_grid] = prep_data_grids(next_grids, self.grid_split)
         lr, td_err, _, _ = self.sess.run(
             [self.lr, self.td_err, self.do_train, self.update_weights],
             feed_dict=data,
