@@ -56,20 +56,14 @@ class TDCNLSinghNet(Net):
                 use_bias=False,
                 activation=None)
 
-            # def napply(inp):
-            #     return value_layer.apply(conv.apply(inp))
-
-            # vals = list(map(napply, top_inps))
-            vals = [
-                value_layer.apply(tf.layers.flatten(conv1.apply(top_inps[0]))),
-                value_layer.apply(tf.layers.flatten(conv2.apply(top_inps[1])))
-            ]
+            val = value_layer.apply(tf.layers.flatten(conv1.apply(top_inps[0]))),
+            next_val = value_layer.apply(tf.layers.flatten(conv2.apply(top_inps[1])))
             self.weight_vars.append(value_layer.kernel)
             self.weight_names.append(value_layer.name)
             # self.weight_vars.append(conv.filters)
             # self.weight_names.append(conv.name)
             trainable_vars_by_name = get_trainable_vars(scope)
-        return vals, trainable_vars_by_name
+        return val, next_val, trainable_vars_by_name
 
     def _build_inputs(self):
         self.frep = tf.placeholder(tf.int32, self.frepshape, "feature_rep")
@@ -99,8 +93,7 @@ class TDCNLSinghNet(Net):
 
     def build(self):
         net_inp = self._build_inputs()
-        v, trainable_vars_by_name = self._build_net(net_inp)
-        self.value, next_value = v
+        self.value, next_value, trainable_vars_by_name = self._build_net(net_inp)
         assert self.value.shape[1:] == (1, )
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
 
