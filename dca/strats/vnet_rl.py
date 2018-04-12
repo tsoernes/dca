@@ -295,31 +295,40 @@ class ExpAvgSinghNetStrat(VNetBase):
         self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         assert self.batch_size > 1
         self.next_elig_freps = None
+        self.next_elig_grids = None
 
     def get_init_action(self, cevent):
         res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
-        next_ch, self.next_val, self.max_ch, self.next_elig_freps = res
+        next_ch, self.next_val, self.max_ch, self.next_elig_freps, self.next_elig_grids = res
         return next_ch
+
+    def get_qvals(self, grid, cell, ce_type, chs):
+        cur_frep, freps = self.afterstate_freps(grid, cell, ce_type, chs)
+        grids = NGF.afterstates(grid, cell, ce_type, chs)
+        # Q-value for each ch in 'chs'
+        qvals_dense = self.net.forward(freps=freps, grids=grids)
+        assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
+        return qvals_dense, cur_frep, freps, grids
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if ch is not None and self.next_elig_freps is not None:
             self.update_qval_exp(grid, cell, ce_type, ch, reward, self.grid, next_cell,
                                  self.next_val, discount, self.max_ch,
-                                 self.next_elig_freps)
+                                 self.next_elig_grids, self.next_elig_freps)
         res = self.optimal_ch(next_ce_type, next_cell)
-        next_ch, self.next_val, self.max_ch, self.next_elig_freps = res
+        next_ch, self.next_val, self.max_ch, self.next_elig_freps, self.next_elig_grids = res
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
-                return (None, ) * 4
+                return (None, ) * 5
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        qvals_dense, _, freps = self.get_qvals(self.grid, cell, ce_type, chs)
+        qvals_dense, _, freps, astates = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
         if ce_type == CEvent.END:
             idx = max_idx = np.argmax(qvals_dense)
@@ -333,10 +342,10 @@ class ExpAvgSinghNetStrat(VNetBase):
         if ch is None:
             self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
 
-        return ch, qvals_dense[idx], max_ch, freps
+        return ch, qvals_dense[idx], max_ch, freps, astates
 
     def update_qval_exp(self, grid, cell, ce_type, ch, reward, next_grid, next_cell,
-                        next_val, discount, max_ch, next_elig_freps):
+                        next_val, discount, max_ch, next_elig_grids, next_elig_freps):
         """
         Update qval for pp['batch_size'] experience tuples,
         sampled from the experience replay memory.
@@ -345,7 +354,8 @@ class ExpAvgSinghNetStrat(VNetBase):
         frep = self.feature_rep(grid)
         # value_target = reward + next_val - self.avg_reward
         value_target = reward + discount * next_val
-        td_err = self.backward(freps=[frep], value_targets=[value_target]).reshape([-1])
+        td_err = self.backward(
+            grids=grid, freps=[frep], value_targets=[value_target]).reshape([-1])
         # if ch == max_ch:
         #     self.avg_reward += self.weight_beta * td_err[0]
 
@@ -356,7 +366,8 @@ class ExpAvgSinghNetStrat(VNetBase):
             data['weights'] = weights
             data['value_targets'] = np.zeros(self.pp['batch_size'])
             for i, nef in enumerate(data['next_elig_freps']):
-                next_vals = self.net.forward(np.array(nef))
+                neg = data['next_elig_grids'][i]
+                next_vals = self.net.forward(freps=np.array(nef), grids=neg)
                 # target = data['rewards'][i] - self.avg_reward + np.max(next_vals)
                 target = data['rewards'][i] + discount * np.max(next_vals)
                 data['value_targets'][i] = target
@@ -370,7 +381,12 @@ class ExpAvgSinghNetStrat(VNetBase):
 
         pri = np.abs(td_err) + self.prioritized_replay_eps
         self.exp_buffer.add_with_pri(
-            priority=pri, frep=frep, reward=reward, next_elig_freps=next_elig_freps)
+            priority=pri,
+            grid=grid,
+            frep=frep,
+            reward=reward,
+            next_elig_freps=next_elig_freps,
+            next_elig_grids=next_elig_grids)
 
 
 class WolfSinghNetStrat(VNetBase):

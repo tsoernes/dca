@@ -30,7 +30,8 @@ class ReplayBuffer():
             'next_grids': [],
             'next_freps': [],
             'next_cells': [],
-            'next_elig_freps': []
+            'next_elig_freps': [],
+            'next_elig_grids': []
         }
         self._maxsize = size
         self._next_idx = 0
@@ -49,6 +50,7 @@ class ReplayBuffer():
             next_grid=None,
             next_frep=None,
             next_cell=None,
+            next_elig_grids=None,
             next_elig_freps=None):
         lenn = len(self)
 
@@ -78,6 +80,8 @@ class ReplayBuffer():
             _add('next_cells', next_cell)
         if next_elig_freps is not None:
             _add('next_elig_freps', next_elig_freps)
+        if next_elig_grids is not None:
+            _add('next_elig_grids', next_elig_grids)
 
         self._next_idx = (self._next_idx + 1) % self._maxsize
 
@@ -90,6 +94,7 @@ class ReplayBuffer():
         include_re = len(self._storage['rewards']) > 0
         include_nf = len(self._storage['next_freps']) > 0
         include_nef = len(self._storage['next_elig_freps']) > 0
+        include_neg = len(self._storage['next_elig_grids']) > 0
         include_val = len(self._storage['values']) > 0
         include_ng = len(self._storage['next_grids']) > 0
         include_nc = len(self._storage['next_cells']) > 0
@@ -113,6 +118,8 @@ class ReplayBuffer():
                 (n_samples, self.rows, self.cols, self.n_channels), dtype=np.int8)
         if include_nef:
             data['next_elig_freps'] = []
+        if include_neg:
+            data['next_elig_grids'] = []
         if include_nf:
             data['next_freps'] = np.zeros(
                 (n_samples, self.rows, self.cols, self.frep_depth), dtype=np.bool)
@@ -133,6 +140,8 @@ class ReplayBuffer():
                 data['next_freps'][i][:] = self._storage['next_freps'][j]
             if include_nef:
                 data['next_elig_freps'].append(self._storage['next_elig_freps'][j])
+            if include_neg:
+                data['next_elig_grids'].append(self._storage['next_elig_grids'][j])
             if include_val:
                 data['values'][i] = self._storage['values'][j]
             if include_ng:
