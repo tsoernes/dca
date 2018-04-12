@@ -108,7 +108,7 @@ class SeparableSplit(SplitConv):
             pointwise_shape = [1, 1, in_chs, in_chs]
             # pointwise_filter = tf.Variable(self.pointwise_initializer(pointwise_shape))
             pointwise_filter = tf.get_variable(name + 'pointwise_filter', pointwise_shape,
-                                               tf.float32, self.kernel_initializer)
+                                               tf.float32, self.kernel_initializer())
 
             outputs = tf.nn.separable_conv2d(
                 feature_part,
@@ -137,19 +137,21 @@ class SeparableConv2D:
         self.stride = (1, stride, stride, 1)
         self.padding = padding.upper()
         self.kernel_initializer = kernel_initializer
-        raise NotImplementedError
+        self.depthwise_initializer = lambda: tf.constant_initializer(0.1)
 
-    def apply(self, inp, reuse):
+    def apply(self, inp, reuse=False):
         with tf.variable_scope('separable_conv2d/', reuse=reuse):
             in_chs = int(inp.shape[-1])
             # depthwise_filter: [filter_height, filter_width, in_channels, channel_multiplier].
             # Contains in_channels convolutional filters of depth 1.
             depthwise_shape = [self.kernel_size, self.kernel_size, in_chs, 1]
-            depthwise_filter = tf.Variable(tf.constant_initializer(0.1)(depthwise_shape))
+            depthwise_filter = tf.get_variable(
+                'depthwise', depthwise_shape, tf.float32, self.depthwise_initializer())
             # pointwise_filter: [1, 1, channel_multiplier * in_channels, out_channels].
             # Pointwise filter to mix channels after depthwise_filter has convolved spatially.
             pointwise_shape = [1, 1, in_chs, in_chs]
-            pointwise_filter = tf.Variable(self.kernel_initializer(pointwise_shape))
+            pointwise_filter = tf.get_variable(
+                'pointwise', pointwise_shape, tf.float32, self.kernel_initializer())
 
             outputs = tf.nn.separable_conv2d(
                 inp,
