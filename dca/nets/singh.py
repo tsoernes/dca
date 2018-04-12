@@ -114,11 +114,14 @@ class SinghNet(Net):
 
     def build(self):
         top_inp = self._build_inputs()
-        value, online_vars = self._build_net(top_inp, "online")
-        self.value = tf.squeeze(value, 1)
-        self.err = self.value_target - value
+        self.value, online_vars = self._build_net(top_inp, "online")
+        # self.value = tf.squeeze(value, 1)
+        value_target = tf.expand_dims(self.value_target, axis=1)
+        self.err = value_target - self.value
         self.loss = self.default_loss(
-            pred=self.value, target=self.value_target, weight=self.weight)
+            pred=self.value,
+            target=value_target,
+            weight=tf.expand_dims(self.weight, axis=1))
         return self.loss, online_vars
 
     def forward(self, freps, grids=None):
@@ -139,5 +142,8 @@ class SinghNet(Net):
             feed_dict=data,
             options=self.options,
             run_metadata=self.run_metadata)
+        # if len(freps) > 1:
+        #     print(loss, loss.shape, errs, errs.shape, freps.shape, value_targets,
+        #           value_targets.shape, weights, weights.shape)
         errs = np.squeeze(errs, 1)
         return loss, lr, errs

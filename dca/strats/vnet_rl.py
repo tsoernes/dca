@@ -259,7 +259,8 @@ class ExpSinghNetStrat(VNetBase):
         else:
             chs = [ch]
         frep, next_freps = self.afterstate_freps(grid, cell, ce_type, np.array(chs))
-        gamma = self.gamma_schedule.value(self.i)
+        # gamma = self.gamma_schedule.value(self.i)
+        gamma = discount
         td_err = self.backward(
             grids=grid,
             freps=[frep],
@@ -291,14 +292,21 @@ class ExpSinghNetStrat(VNetBase):
 class ExpAvgSinghNetStrat(VNetBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.net = SinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         assert self.batch_size > 1
         self.next_elig_freps = None
+
+    def get_init_action(self, cevent):
+        res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        next_ch, self.next_val, self.max_ch, self.next_elig_freps = res
+        return next_ch
 
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         if ch is not None and self.next_elig_freps is not None:
-            self.update_qval(grid, cell, ce_type, ch, reward, self.grid, next_cell,
-                             self.next_val, discount, self.max_ch, self.next_elig_freps)
+            self.update_qval_exp(grid, cell, ce_type, ch, reward, self.grid, next_cell,
+                                 self.next_val, discount, self.max_ch,
+                                 self.next_elig_freps)
         res = self.optimal_ch(next_ce_type, next_cell)
         next_ch, self.next_val, self.max_ch, self.next_elig_freps = res
         return next_ch
@@ -311,7 +319,7 @@ class ExpAvgSinghNetStrat(VNetBase):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        qvals_dense, freps = self.get_qvals(self.grid, cell, ce_type, chs)
+        qvals_dense, _, freps = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
         if ce_type == CEvent.END:
             idx = max_idx = np.argmax(qvals_dense)
@@ -327,36 +335,36 @@ class ExpAvgSinghNetStrat(VNetBase):
 
         return ch, qvals_dense[idx], max_ch, freps
 
-    def update_qval(self, grid, cell, ce_type, ch, reward, next_grid, next_cell, next_val,
-                    discount, max_ch, next_elig_freps):
+    def update_qval_exp(self, grid, cell, ce_type, ch, reward, next_grid, next_cell,
+                        next_val, discount, max_ch, next_elig_freps):
         """
         Update qval for pp['batch_size'] experience tuples,
         sampled from the experience replay memory.
         """
         # frep, next_freps = self.afterstate_freps(grid, cell, ce_type, np.array(chs))
-        frep = self.feature_rep_big2(grid)
-        value_target = reward + next_val - self.avg_reward
-        td_err = self.backward(freps=[frep], value_target=[[value_target]]).reshape([-1])
-        if ch == max_ch:
-            # TODO can possibly move this to optimal ch and update each iter since reward
-            # and next_val is known
-            self.avg_reward += self.weight_beta * td_err[0]
+        frep = self.feature_rep(grid)
+        # value_target = reward + next_val - self.avg_reward
+        value_target = reward + discount * next_val
+        td_err = self.backward(freps=[frep], value_targets=[value_target]).reshape([-1])
+        # if ch == max_ch:
+        #     self.avg_reward += self.weight_beta * td_err[0]
 
+        # Can't backprop before exp store has enough experiences
         if len(self.exp_buffer) >= 1000:  # self.pp['buffer_size']:
-            # Can't backprop before exp store has enough experiences
             data, weights, batch_idxes = self.exp_buffer.sample(
                 self.pp['batch_size'], beta=self.pri_beta_schedule.value(self.i))
             data['weights'] = weights
-            data['value_target'] = np.zeros(self.pp['batch_size'])
+            data['value_targets'] = np.zeros(self.pp['batch_size'])
             for i, nef in enumerate(data['next_elig_freps']):
                 next_vals = self.net.forward(np.array(nef))
-                data['value_target'][
-                    i] = data['rewards'][i] - self.avg_reward + np.max(next_vals)
+                # target = data['rewards'][i] - self.avg_reward + np.max(next_vals)
+                target = data['rewards'][i] + discount * np.max(next_vals)
+                data['value_targets'][i] = target
             # data['value_target'] = np.expand_dims(
             #     data['rewards'] - self.avg_reward + next_vals, axis=1)
-            data['value_target'] = np.expand_dims(data['value_target'], axis=1)
+            # data['value_targets'] = np.expand_dims(data['value_targets'], axis=1)
             td_errs = self.backward(**data).reshape([-1])
-            self.avg_reward += self.weight_beta * np.mean(td_errs)
+            # self.avg_reward += self.weight_beta * np.mean(td_errs)
             new_priorities = np.abs(td_errs) + self.prioritized_replay_eps
             self.exp_buffer.update_priorities(batch_idxes, new_priorities)
 

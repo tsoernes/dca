@@ -34,7 +34,7 @@ class ReplayBuffer():
         }
         self._maxsize = size
         self._next_idx = 0
-        self.frep_depth = 3 * 70 + 1
+        self.frep_depth = 5 * 70 + 1
 
     def __len__(self):
         return len(self._storage['rewards'])
