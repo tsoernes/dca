@@ -1,0 +1,17 @@
+p3 main tftdcsinghnet --avg_runs 8
+avg: 0.1229, stddev 0.00164
+
+p3 main tftdcsinghnet --avg_runs 8 --huber_loss 2e2
+avg: 0.1244, stddev 0.00104
+
+p3 main tftdcsinghnet --avg_runs 8 --huber_loss 4e2
+avg: 0.1252, stddev 0.00214
+
+p3 main tftdcsinghnet --avg_runs 8 --huber_loss 5e2
+avg: 0.1238, stddev 0.00124
+
+p3 main tftdcsinghnet --avg_runs 8 --huber_loss 6e2
+avg: 0.1241, stddev 0.00199
+
+p3 main tftdcsinghnet --avg_runs 8 --huber_loss 7e2
+avg: 0.1230, stddev 0.00209

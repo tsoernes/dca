@@ -9,9 +9,9 @@ from matplotlib import pyplot as plt  # noqa
 from tensorflow.python.client import timeline
 
 import datahandler
+from nets.convlayers import InPlaneSplit
 from nets.utils import (build_default_minimizer, get_act_fn_by_name,
                         get_init_by_name)
-from nets.convlayers import InPlaneSplit
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  # warn
 """
@@ -339,6 +339,28 @@ class Net:
         # elig_qvals = tf.boolean_mask(qvals, tf.logical_not(alloc_maps))
         elig_qvals = tf.cast(tf.logical_not(alloc_maps), tf.float32) * qvals
         return elig_qvals
+
+    def default_loss(self, pred, target, weight):
+        if self.pp['huber_loss'] is not None:
+            # Linear when loss is above delta and squared difference below
+            loss = 2 * tf.losses.huber_loss(
+                labels=target,
+                predictions=pred,
+                delta=self.pp['huber_loss'],
+                weights=weight)
+        else:
+            loss = tf.losses.mean_squared_error(
+                labels=target, predictions=pred, weights=weight)
+        return loss
+
+    def default_loss_grad(self, td_err):
+        if self.pp['huber_loss'] is not None:
+            err = tf.abs(td_err)
+            mg = tf.constant(self.pp['huber_loss'])
+            loss = tf.where(err < mg, td_err, mg * tf.sign(td_err))
+        else:
+            loss = td_err
+        return loss
 
 
 if __name__ == "__main__":

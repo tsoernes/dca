@@ -110,15 +110,8 @@ class SinghNet(Net):
         value, online_vars = self._build_net(top_inp, "online")
         self.value = tf.squeeze(value, 1)
         self.err = self.value_target - value
-        if self.pp['huber_loss'] is not None:
-            # Linear when loss is above delta and squared difference below
-            self.loss = 2 * tf.losses.huber_loss(
-                labels=self.value_target,
-                predictions=self.value,
-                delta=self.pp['huber_loss'])
-        else:
-            self.loss = tf.losses.mean_squared_error(
-                labels=self.value_target, predictions=self.value, weights=self.weight)
+        self.loss = self.default_loss(
+            pred=self.value, target=self.value_target, weight=self.weight)
         return self.loss, online_vars
 
     def forward(self, freps, grids=None):
