@@ -3,8 +3,9 @@ import tensorflow as tf
 import tensorflow.contrib.keras as k  # noqa
 
 # yapf: disable
-from nets.convlayers import (DepthwiseConv2D, InPlaneSplit, SeparableConv2D, # noqa
-                             InPlaneSplitLocallyConnected2D, SeparableSplit)
+from nets.convlayers import (DepthwiseConv2D, InPlaneSplit,  # noqa
+                             InPlaneSplitLocallyConnected2D, SeparableConv2D,
+                             SeparableSplit)
 # yapf: enable
 from nets.net import Net
 from nets.utils import get_trainable_vars, prep_data_grids
@@ -146,4 +147,5 @@ class SinghNet(Net):
         #     print(loss, loss.shape, errs, errs.shape, freps.shape, value_targets,
         #           value_targets.shape, weights, weights.shape)
         errs = np.squeeze(errs, 1)
+        assert errs.shape == np.array(value_targets).shape
         return loss, lr, errs
