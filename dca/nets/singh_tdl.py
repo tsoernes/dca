@@ -36,9 +36,7 @@ class TDLSinghNet(ManSinghNet):
         dot = np.dot(inp_colvec.T, self.z)
         self.z = discount * self.lmbda * self.z + (
             1 - lr * discount * self.lmbda * dot) * inp_colvec
-        z_colvec = np.reshape(self.z, [-1, 1])
-        grad = (td_err + value - self.v_old) * z_colvec - (
-            value - self.v_old) * inp_colvec
+        grad = (td_err + value - self.v_old) * self.z - (value - self.v_old) * inp_colvec
         data = {self.grads[0][0]: -grad}
         lr, _ = self.sess.run(
             [self.lr, self.do_train],

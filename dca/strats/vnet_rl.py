@@ -38,6 +38,8 @@ class VNetBase(NetStrat):
         self.weight_beta_decay = 1 - self.pp['weight_beta_decay']
         if self.pp['target'] == 'avg':
             self.update_qval = self.update_qval_avg
+        elif self.pp['target'] == 'avg_smdp':
+            self.update_qval = self.update_qval_smdp
         elif self.pp['target'] == 'avg_rsmart':
             self.update_qval = self.update_qval_rsmart
         elif self.pp['target'] == 'discount':
@@ -188,6 +190,25 @@ class VNetBase(NetStrat):
 
     def update_qval_avg(self, grid, frep, cell, ce_type, ch, max_ch, p, reward, next_grid,
                         next_frep, next_val, discount):
+        """ Average reward formulation """
+        # frep = self.feature_rep(grid)
+        value_target = reward + next_val - self.avg_reward
+        err = self.backward(
+            freps=[frep],
+            rewards=[reward],
+            next_freps=[next_frep],
+            discount=None,
+            value_targets=[value_target],
+            grids=grid,
+            next_grids=next_grid,
+            weights=[p],
+            avg_reward=self.avg_reward)
+        if ch is not None and ch == max_ch:
+            self.avg_reward += self.weight_beta * np.mean(err)
+            self.weight_beta *= self.weight_beta_decay
+
+    def update_qval_avg_smdp(self, grid, frep, cell, ce_type, ch, max_ch, p, reward,
+                             next_grid, next_frep, next_val, discount):
         """ Average reward formulation """
         # frep = self.feature_rep(grid)
         value_target = reward + next_val - self.avg_reward
