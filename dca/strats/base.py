@@ -182,6 +182,7 @@ class RLStrat(Strat):
         # don't update q-value at all
         if ce_type != CEvent.END and  \
            ch is not None and next_ch is not None:
+            assert next_max_ch is not None
             # Observe reward from previous action, and
             # update q-values with one-step look-ahead
             self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
