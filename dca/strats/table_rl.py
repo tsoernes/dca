@@ -1,6 +1,7 @@
 import numpy as np
 
 from strats.base import RLStrat
+from utils import prod
 
 
 class QTable(RLStrat):
@@ -187,3 +188,50 @@ class E_RS_SARSA(QTable):
         self.qvals[frep][ch] += self.alpha * td_err
         if self.alpha > self.pp['min_alpha']:
             self.alpha *= self.alpha_decay
+
+
+class ZapQ(RLStrat):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.alpha = self.pp['alpha']
+        self.alpha_decay = self.pp['alpha_decay']
+        # State-action pair numbers
+        self.d = prod(self.dims)
+        self.qvals = np.zeros(self.d)
+        self.sa_nums = np.arange(self.d).reshape(self.dims)
+        self.azap = np.zeros((self.d, self.d))
+
+    def fn_after(self):
+        self.logger.info(f"Max qval: {np.max(self.qvals)}")
+
+    def get_qvals(self, cell, n_used=None, chs=None, *args, **kwargs):
+        if chs is None or type(chs) is list:
+            raise NotImplementedError(chs)
+        else:
+            return self.qvals[self.sa_nums[cell][chs]]
+
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
+                    discount, p):
+        assert type(ch) == np.int64
+        assert ch is not None
+        assert next_max_ch is not None
+
+        sa_num = self.sa_nums[cell][ch]
+        next_sa_num = self.sa_nums[next_cell][next_max_ch]
+        outer1 = np.zeros((self.d, self.d))
+        outer2 = np.zeros((self.d, self.d))
+        outer1[sa_num, sa_num] = 1
+        outer2[sa_num, next_sa_num] = 1
+
+        azap_gam = np.power((self.i + 1), -0.85)  # stepsize for matrix gain recursion
+        self.azap += azap_gam * ((-outer1 + discount * outer2) - self.azap)
+        azap_inv = np.linalg.pinv(self.azap)
+        a_inv_dot = azap_inv[:, sa_num]
+
+        q = self.get_qvals(cell, chs=ch)
+        next_q = self.get_qvals(next_cell, chs=next_max_ch)
+        td_err = reward + discount * next_q - q
+        self.qvals -= self.alpha * a_inv_dot * td_err
+
+        self.losses.append(td_err**2)
+        self.alpha *= self.alpha_decay
