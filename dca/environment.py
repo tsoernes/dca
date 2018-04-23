@@ -6,13 +6,19 @@ from stats import Stats
 
 
 class Env:
-    def __init__(self, pp, grid, logger, pid="", gui=None, *args, **kwargs):
+    def __init__(self, pp, grid, hgrid, logger, pid="", gui=None, *args, **kwargs):
         self.rows, self.cols = pp['rows'], pp['cols']
         self.p_handoff = pp['p_handoff']
         self.verify_grid = pp['verify_grid']
         self.save = pp['save_exp_data']
         self.log_iter = pp['log_iter']
+        self.grid = grid
+        self.hgrid = hgrid
+        self.logger = logger
+        self.gui = gui
+
         self.dt_rewards, self.ccount_rewards, self.nblock_rewards = False, False, False
+        self.hoff_pri = pp['hoff_pri']
         if pp['reward_type'] == 'smdp_callcount':
             self.dt_rewards = True
             self.beta = pp['beta']
@@ -23,10 +29,6 @@ class Env:
         elif pp['reward_type'] == 'new_block':
             self.nblock_rewards = True
             self.gamma = pp['gamma']
-
-        self.grid = grid
-        self.logger = logger
-        self.gui = gui
 
         self.stats = Stats(pp=pp, logger=logger, pid=pid)
         self.eventgen = EventGen(logger=logger, **pp)
@@ -136,7 +138,9 @@ class Env:
             discount = beta_disc if self.bdisc else self.gamma
             return reward, discount, self.cevent
         elif self.ccount_rewards:
-            return count, self.gamma, self.cevent
+            hcount = np.count_nonzero(self.hgrid)
+            countreward = count + self.hoff_pri * hcount
+            return countreward, self.gamma, self.cevent
 
     def execute_action(self, cevent, ch: int):
         """
@@ -156,6 +160,8 @@ class Env:
                 raise Exception
             self.logger.debug(f"Assigned call in cell {cell} to ch {ch}")
             self.grid[cell][ch] = 1
+            if ce_type == CEvent.HOFF:
+                self.hgrid[cell][ch] = 1
         elif ce_type == CEvent.END:
             reass_ch = cevent[3]
             if not self.grid[cell][reass_ch]:
@@ -173,3 +179,4 @@ class Env:
             else:
                 self.logger.debug(f"Ended call cell in {cell} on ch {ch}")
             self.grid[cell][ch] = 0
+            self.hgrid[cell][ch] = 0

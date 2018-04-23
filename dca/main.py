@@ -199,6 +199,7 @@ def get_pparams(defaults=False):
     parser.add_argument('-gbeta', '--grad_beta', type=float, help="(RL)", default=5e-6)
     parser.add_argument(
         '-gbeta_dec', '--grad_beta_decay', type=float, help="(RL)", default=0)
+    parser.add_argument('--hoff_pri', type=float, help="Prioritize hand-offs", default=0)
     parser.add_argument(
         '-rtype',
         '--reward_type',
@@ -227,7 +228,7 @@ def get_pparams(defaults=False):
         help="(RL)",
         default=False)
     parser.add_argument(
-        '--target', choices=['avg', 'avg_smdp', 'avg_rsmart', 'discount'], default='avg')
+        '--target', choices=['avg', 'avg_rsmart', 'discount'], default='avg')
     parser.add_argument(
         '--lambda',
         type=float,
