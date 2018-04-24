@@ -283,7 +283,7 @@ class CACSinghNetStrat(VNetBase):
 
         admit, admit_prob = None, None
         if ce_type == CEvent.NEW:
-            frep = self.feature_rep(GF.nom_chs_mask)
+            frep = self.feature_rep(self.grid)
             admit, admit_prob = self.pnet.forward([frep], [self.grid])
             assert admit in [0, 1]
             if not admit:
