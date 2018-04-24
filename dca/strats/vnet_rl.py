@@ -241,13 +241,12 @@ class CACSinghNetStrat(VNetBase):
     def get_action(self, next_cevent, grid, cell, ch, reward, hreward, ce_type,
                    discount) -> int:
         if ce_type == CEvent.NEW and self.cac_act is not None:
-            if self.frep is None:
-                self.frep = self.feature_rep(self.grid)
+            frep = self.feature_rep(grid)
             # print(hreward, self.avg_reward, self.cac_act, self.cac_prob)
             # Should this backprop for other events than NEW events, where actions
             # are always admitted?
             self.pnet.backward(
-                freps=[self.frep],
+                freps=[frep],
                 grids=grid,
                 rewards=hreward,
                 avg_reward=self.avg_reward,
