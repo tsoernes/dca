@@ -8,6 +8,7 @@ from gridfuncs import GF
 from nets.afterstate import AfterstateNet  # noqa
 from nets.singh import SinghNet
 from nets.singh_ac import ACSinghNet
+from nets.singh_cac import CACSinghNet
 from nets.singh_gtd2 import GTD2SinghNet
 from nets.singh_lstd import LSTDSinghNet
 from nets.singh_man import ManSinghNet
@@ -224,6 +225,76 @@ class VNetBase(NetStrat):
             self.avg_reward = self.weight_beta * reward + \
                 (1 - self.weight_beta) * self.avg_reward
             self.weight_beta *= self.weight_beta_decay
+
+
+class CACSinghNetStrat(VNetBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.net = TFTDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.pnet = CACSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        if ce_type == CEvent.NEW:
+            # CAC needs to prioritize hoff rewards; DCA need not
+            # Should this backprop for other events than NEW events, where actions
+            # are always admitted?
+            self.pnet.backward(
+                freps=self.frep,
+                grids=grid,
+                rewards=reward,
+                avg_reward=self.avg_reward,
+                actions=None,
+                action_probs=None)
+        if ch is None:
+            frep = next_frep = self.feature_rep(self.grid)
+            assert (grid == self.grid).all()
+            val = self.net.forward(grids=grid, freps=[frep])[0]
+            self.update_qval(grid, frep, cell, ce_type, ch, self.max_ch, self.p, reward,
+                             self.grid, next_frep, val, discount)
+        else:
+            self.update_qval(grid, self.frep, cell, ce_type, ch, self.max_ch, self.p,
+                             reward, self.grid, self.next_frep, self.next_val, discount)
+        next_ce_type, next_cell = next_cevent[1:3]
+        res = self.optimal_ch(next_ce_type, next_cell)
+        next_ch, next_val, self.max_ch, next_max_val, p, frep, next_frep, next_max_frep = res
+        self.frep = frep
+        self.p = 1
+        # self.p = 1
+        self.next_val = next_val
+        self.next_frep = next_frep
+        # self.next_val = next_max_val
+        # self.next_frep = next_max_frep
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell) -> int:
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = GF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return (None, ) * 10
+        else:
+            chs = np.nonzero(self.grid[cell])[0]
+
+        if ce_type == CEvent.NEW:
+            frep = self.feature_rep(GF.nom_chs_mask)
+            admit_prob, admit = self.pnet.forward([frep], [self.grid])
+            if not admit:
+                return (*(None, ) * 8, admit_prob, admit)
+
+        qvals_dense, cur_frep, freps = self.get_qvals(self.grid, cell, ce_type, chs)
+        self.qval_means.append(np.mean(qvals_dense))
+        if ce_type == CEvent.END:
+            idx = max_idx = np.argmax(qvals_dense)
+            ch = max_ch = chs[idx]
+            p = 1
+        else:
+            ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            max_idx = np.argmax(qvals_dense)
+            max_ch = chs[max_idx]
+            self.epsilon *= self.epsilon_decay
+
+        assert ch is not None, f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n"
+        return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p, cur_frep, freps[
+            idx], freps[max_idx], admit_prob, admit
 
 
 class SinghNetStrat(VNetBase):
