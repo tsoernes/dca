@@ -23,8 +23,8 @@ class Strat:
 
         self.grid = np.zeros(pp['dims'], np.bool)
         # Contains hand-offs only
-        hgrid = np.zeros(pp['dims'], np.bool)
-        self.env = Env(pp, self.grid, hgrid, logger, pid)
+        self.hgrid = np.zeros(pp['dims'], np.bool)
+        self.env = Env(pp, self.grid, self.hgrid, logger, pid)
         if (self.save or self.batch_size > 1):
             size = self.n_events if self.save else pp['buffer_size']
             self.exp_buffer = PrioritizedReplayBuffer(
