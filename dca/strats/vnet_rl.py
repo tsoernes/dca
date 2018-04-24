@@ -233,18 +233,26 @@ class CACSinghNetStrat(VNetBase):
         self.net = TFTDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         self.pnet = CACSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
-        if ce_type == CEvent.NEW:
-            # CAC needs to prioritize hoff rewards; DCA need not
+    def get_init_action(self, cevent):
+        res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, self.next_qval, self.max_ch, _, self.p, self.frep, self.next_frep, _, self.cac_act, self.cac_prob = res
+        return ch
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, hreward, ce_type,
+                   discount) -> int:
+        if ce_type == CEvent.NEW and self.cac_act is not None:
+            if self.frep is None:
+                self.frep = self.feature_rep(self.grid)
+            # print(hreward, self.avg_reward, self.cac_act, self.cac_prob)
             # Should this backprop for other events than NEW events, where actions
             # are always admitted?
             self.pnet.backward(
-                freps=self.frep,
+                freps=[self.frep],
                 grids=grid,
-                rewards=reward,
+                rewards=hreward,
                 avg_reward=self.avg_reward,
-                actions=None,
-                action_probs=None)
+                actions=[self.cac_act],
+                action_probs=[self.cac_prob])
         if ch is None:
             frep = next_frep = self.feature_rep(self.grid)
             assert (grid == self.grid).all()
@@ -256,7 +264,7 @@ class CACSinghNetStrat(VNetBase):
                              reward, self.grid, self.next_frep, self.next_val, discount)
         next_ce_type, next_cell = next_cevent[1:3]
         res = self.optimal_ch(next_ce_type, next_cell)
-        next_ch, next_val, self.max_ch, next_max_val, p, frep, next_frep, next_max_frep = res
+        next_ch, next_val, self.max_ch, next_max_val, p, frep, next_frep, next_max_frep, self.cac_act, self.cac_prob = res
         self.frep = frep
         self.p = 1
         # self.p = 1
@@ -274,11 +282,13 @@ class CACSinghNetStrat(VNetBase):
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
+        admit, admit_prob = None, None
         if ce_type == CEvent.NEW:
             frep = self.feature_rep(GF.nom_chs_mask)
-            admit_prob, admit = self.pnet.forward([frep], [self.grid])
+            admit, admit_prob = self.pnet.forward([frep], [self.grid])
+            assert admit in [0, 1]
             if not admit:
-                return (*(None, ) * 8, admit_prob, admit)
+                return (*(None, ) * 8, admit, admit_prob)
 
         qvals_dense, cur_frep, freps = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
@@ -294,7 +304,7 @@ class CACSinghNetStrat(VNetBase):
 
         assert ch is not None, f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n"
         return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p, cur_frep, freps[
-            idx], freps[max_idx], admit_prob, admit
+            idx], freps[max_idx], admit, admit_prob
 
 
 class SinghNetStrat(VNetBase):
