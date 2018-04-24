@@ -98,12 +98,12 @@ class Env:
         elif ce_type == CEvent.HOFF:
             self.stats.event_hoff_new()
             if ch is None:
-                reward = -1
+                reward = -self.hoff_pri
                 self.stats.event_hoff_reject(cell, n_used)
                 if self.gui:
                     self.gui.hgrid.mark_cell(*cell)
             else:
-                reward = 1
+                reward = self.hoff_pri
                 self.eventgen.event_end_handoff(t, cell, ch)
         elif ce_type == CEvent.END:
             self.stats.event_end()
