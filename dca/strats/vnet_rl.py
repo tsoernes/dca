@@ -232,6 +232,7 @@ class CACSinghNetStrat(VNetBase):
         super().__init__(*args, **kwargs)
         self.net = TFTDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         self.pnet = CACSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
+        self.havg_reward = 0
 
     def get_init_action(self, cevent):
         res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
@@ -241,6 +242,8 @@ class CACSinghNetStrat(VNetBase):
     def get_action(self, next_cevent, grid, cell, ch, reward, hreward, ce_type,
                    discount) -> int:
         if ce_type == CEvent.NEW and self.cac_act is not None:
+            self.havg_reward = self.weight_beta * hreward + (
+                1 - self.weight_beta) * self.havg_reward
             frep = self.feature_rep(grid)
             # print(hreward, self.avg_reward, self.cac_act, self.cac_prob)
             # Should this backprop for other events than NEW events, where actions
@@ -249,7 +252,7 @@ class CACSinghNetStrat(VNetBase):
                 freps=[frep],
                 grids=grid,
                 rewards=hreward,
-                avg_reward=self.avg_reward,
+                avg_reward=self.havg_reward,
                 actions=[self.cac_act],
                 action_probs=[self.cac_prob])
         if ch is None:
