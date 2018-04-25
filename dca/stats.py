@@ -82,7 +82,18 @@ class Stats:
             self.n_curr_rejected = 0
             self.n_curr_incoming = 0
 
-    def report_rl(self, epsilon, alpha, losses, qval_means=None, avg_reward=None):
+    def report_cac(self, admits=None, denies=None):
+        admit_s = f"deny perc: {denies/(denies+admits)}"
+        self.logger.error(admit_s)
+
+    def report_rl(
+            self,
+            epsilon,
+            alpha,
+            losses,
+            qval_means=None,
+            avg_reward=None,
+    ):
         self.alphas.append(alpha)
         self.epsilons.append(epsilon)
 
@@ -101,14 +112,11 @@ class Stats:
             avg_loss = f"{sum(losses[-niter:]) / niter :.2E}"
             max_loss = f"{max(losses[-niter:]):.2E}"
 
+        avg_reward_s, avg_qval = "", ""
         if qval_means:
             avg_qval = f", qvals: {sum(qval_means[-niter:]) / niter :.2E}"
-        else:
-            avg_qval = ""
         if avg_reward:
             avg_reward_s = f", reward: {avg_reward:.2f}"
-        else:
-            avg_reward_s = ""
         self.logger.info(
             f"Epsilon: {epsilon:.5f}, Alpha: {alpha:.3E},"
             f" Avg|max loss last {niter} events: {avg_loss}|{max_loss}{avg_qval}{avg_reward_s}"

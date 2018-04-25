@@ -233,11 +233,20 @@ class CACSinghNetStrat(VNetBase):
         self.net = TFTDCSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         self.pnet = CACSinghNet(pp=self.pp, logger=self.logger, frepshape=self.frepshape)
         self.havg_reward = 0
+        self.n_denies, self.n_admits = 0, 0
 
     def get_init_action(self, cevent):
         res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         ch, self.next_qval, self.max_ch, _, self.p, self.frep, self.next_frep, _, self.cac_act, self.cac_prob = res
         return ch
+
+    def fn_report(self):
+        """
+        Report stats for different strategies
+        """
+        self.env.stats.report_cac(self.n_admits, self.n_denies)
+        super().fn_report()
+        self.n_denies, self.n_admits = 0, 0
 
     def get_action(self, next_cevent, grid, cell, ch, reward, hreward, ce_type,
                    discount) -> int:
@@ -291,7 +300,9 @@ class CACSinghNetStrat(VNetBase):
             admit, admit_prob = self.pnet.forward([frep], [self.grid])
             assert admit in [0, 1]
             if not admit:
+                self.n_denies += 1
                 return (*(None, ) * 8, admit, admit_prob)
+            self.n_admits += 1
         admit = 1
 
         qvals_dense, cur_frep, freps = self.get_qvals(self.grid, cell, ce_type, chs)
