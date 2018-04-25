@@ -250,7 +250,7 @@ class CACSinghNetStrat(VNetBase):
 
     def get_action(self, next_cevent, grid, cell, ch, reward, hreward, ce_type,
                    discount) -> int:
-        if ce_type != CEvent.END and self.cac_act is not None:
+        if ce_type != CEvent.END:
             self.havg_reward = self.weight_beta * hreward + (
                 1 - self.weight_beta) * self.havg_reward
             frep = self.feature_rep(grid)
@@ -286,15 +286,15 @@ class CACSinghNetStrat(VNetBase):
         return next_ch
 
     def optimal_ch(self, ce_type, cell) -> int:
+        frep = self.feature_rep(self.grid)
+        admit, admit_prob = self.pnet.forward([frep], [self.grid])
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = GF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
-                return (None, ) * 10
+                return (*(None, ) * 8, 0, admit_prob)
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        frep = self.feature_rep(self.grid)
-        admit, admit_prob = self.pnet.forward([frep], [self.grid])
         if ce_type == CEvent.NEW:
             frep = self.feature_rep(self.grid)
             admit, admit_prob = self.pnet.forward([frep], [self.grid])
