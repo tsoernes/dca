@@ -74,7 +74,6 @@ class VNetBase(NetStrat):
     def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         if ch is None:
             frep = next_frep = self.feature_rep(self.grid)
-            assert (grid == self.grid).all()
             val = self.net.forward(grids=grid, freps=[frep])[0]
             self.update_qval(grid, frep, cell, ce_type, ch, self.max_ch, self.p, reward,
                              self.grid, next_frep, val, discount)
@@ -107,13 +106,19 @@ class VNetBase(NetStrat):
         """ Select a channel and return selected channel, greedy channel, qval and frep for both,
         in addition to prob of picking selected channel, and current frep"""
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return (None, ) * 8
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
-        qvals_dense, cur_frep, freps = self.get_qvals(self.grid, cell, ce_type, chs)
+        next_event = self.env.eventgen.peek()
+        if self.pp['hoff_look'] and next_event[1] == CEvent.HOFF:
+            assert ce_type == CEvent.END
+            qvals_dense, cur_frep, freps = self.get_hoff_qvals(self.grid, cell, ce_type,
+                                                               chs, next_event)
+        else:
+            qvals_dense, cur_frep, freps = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
         if ce_type == CEvent.END:
             idx = max_idx = np.argmax(qvals_dense)
@@ -156,6 +161,29 @@ class VNetBase(NetStrat):
         # Q-value for each ch in 'chs'
         qvals_dense = self.net.forward(freps=freps, grids=grids)
         assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
+        return qvals_dense, cur_frep, freps
+
+    def get_hoff_qvals(self, grid, cell, ce_type, chs, hoff_cell):
+        """ Look ahead for handoffs """
+        end_astates = NGF.afterstates(grid, cell, ce_type, chs)
+        hoff_astates = []
+        n_hoff_astates = []  # For a given end_astate, how many hoff astates?
+        for astate in end_astates:
+            h_chs = NGF.get_eligible_chs(astate, hoff_cell)
+            h_astates = NGF.afterstates(astate, hoff_cell, CEvent.HOFF, h_chs)
+            hoff_astates.extend(h_astates)
+            n_hoff_astates.append(len(h_astates))
+        hoff_astates = np.array(hoff_astates)
+        hfreps = self.feature_reps(hoff_astates)
+        hqvals_dense = self.net.forward(freps=hfreps, grids=hoff_astates)
+        assert hqvals_dense.shape == (len(hoff_astates), ), hqvals_dense.shape
+        qvals_dense = np.zeros(len(chs))
+        t = 0
+        for i, n in enumerate(n_hoff_astates):
+            qvals_dense[i] = np.max(hqvals_dense[t:t + n])
+            t += n
+
+        cur_frep, freps = self.feature_rep(grid), self.feature_reps(end_astates)
         return qvals_dense, cur_frep, freps
 
     def update_qval_disc(self, grid, frep, cell, ce_type, ch, max_ch, p, reward,
@@ -289,7 +317,7 @@ class CACSinghNetStrat(VNetBase):
         frep = self.feature_rep(self.grid)
         admit, admit_prob = self.pnet.forward([frep], [self.grid])
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return (*(None, ) * 8, 0, admit_prob)
         else:
@@ -418,7 +446,7 @@ class ExpAvgSinghNetStrat(VNetBase):
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return (None, ) * 5
         else:
@@ -688,7 +716,7 @@ class SinghQNetStrat(VNetBase):
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return (None, ) * 5
         else:
@@ -754,7 +782,7 @@ class SinghQQNetStrat(VNetBase):
 
     def optimal_ch(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return (None, ) * 5
         else:
@@ -814,7 +842,7 @@ class ACNSinghStrat(NetStrat):
     def optimal_ch(self, ce_type, cell):
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             # Calls eligible for assignment
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
         else:
             # Calls in progress
             chs = np.nonzero(self.grid[cell])[0]
@@ -910,7 +938,7 @@ class PPOSinghNetStrat(VNetBase):
 
     def optimal_ch_pol(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return (None, ) * 5
         else:
@@ -924,7 +952,7 @@ class PPOSinghNetStrat(VNetBase):
 
     def optimal_ch_val(self, ce_type, cell) -> int:
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
-            chs = GF.get_eligible_chs(self.grid, cell)
+            chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
                 return (None, ) * 5
         else:

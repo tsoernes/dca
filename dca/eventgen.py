@@ -261,6 +261,17 @@ class EventGen:
         del self.events[key]
         return event
 
+    def peek(self):
+        if not self.event_times:
+            raise KeyError('No events to peek')
+        key = self.event_times[0]
+        try:
+            event = self.events[key]
+        except KeyError:
+            print(self.events)
+            raise
+        return event
+
 
 def ce_str(cevent):
     string = f"{cevent[0]:.3f}: {cevent[1].name} {cevent[2]}"
