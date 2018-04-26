@@ -71,7 +71,8 @@ class VNetBase(NetStrat):
     def update_target_net(self):
         pass
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, hreward, ce_type,
+                   discount) -> int:
         if ch is None:
             frep = next_frep = self.feature_rep(self.grid)
             val = self.net.forward(grids=grid, freps=[frep])[0]
@@ -113,10 +114,10 @@ class VNetBase(NetStrat):
             chs = np.nonzero(self.grid[cell])[0]
 
         next_event = self.env.eventgen.peek()
-        if self.pp['hoff_look'] and next_event[1] == CEvent.HOFF:
+        if self.pp['hoff_lookahead'] and next_event[1] == CEvent.HOFF:
             assert ce_type == CEvent.END
             qvals_dense, cur_frep, freps = self.get_hoff_qvals(self.grid, cell, ce_type,
-                                                               chs, next_event)
+                                                               chs, next_event[2])
         else:
             qvals_dense, cur_frep, freps = self.get_qvals(self.grid, cell, ce_type, chs)
         self.qval_means.append(np.mean(qvals_dense))
@@ -163,27 +164,34 @@ class VNetBase(NetStrat):
         assert qvals_dense.shape == (len(chs), ), qvals_dense.shape
         return qvals_dense, cur_frep, freps
 
-    def get_hoff_qvals(self, grid, cell, ce_type, chs, hoff_cell):
+    def get_hoff_qvals(self, grid, cell, ce_type, chs, h_cell):
         """ Look ahead for handoffs """
         end_astates = NGF.afterstates(grid, cell, ce_type, chs)
         hoff_astates = []
         n_hoff_astates = []  # For a given end_astate, how many hoff astates?
         for astate in end_astates:
-            h_chs = NGF.get_eligible_chs(astate, hoff_cell)
-            h_astates = NGF.afterstates(astate, hoff_cell, CEvent.HOFF, h_chs)
-            hoff_astates.extend(h_astates)
-            n_hoff_astates.append(len(h_astates))
-        hoff_astates = np.array(hoff_astates)
-        hfreps = self.feature_reps(hoff_astates)
-        hqvals_dense = self.net.forward(freps=hfreps, grids=hoff_astates)
-        assert hqvals_dense.shape == (len(hoff_astates), ), hqvals_dense.shape
-        qvals_dense = np.zeros(len(chs))
-        t = 0
-        for i, n in enumerate(n_hoff_astates):
-            qvals_dense[i] = np.max(hqvals_dense[t:t + n])
-            t += n
-
+            h_chs = NGF.get_eligible_chs(astate, h_cell)
+            if len(h_chs) > 0:
+                h_astates = NGF.afterstates(astate, h_cell, CEvent.HOFF, h_chs)
+                hoff_astates.extend(h_astates)
+                n = len(h_astates)
+            else:
+                n = 0
+            n_hoff_astates.append(n)
         cur_frep, freps = self.feature_rep(grid), self.feature_reps(end_astates)
+        if len(hoff_astates) > 0:
+            hoff_astates = np.array(hoff_astates)
+            hfreps = self.feature_reps(hoff_astates)
+            hqvals_dense = self.net.forward(freps=hfreps, grids=hoff_astates)
+            assert hqvals_dense.shape == (len(hoff_astates), ), hqvals_dense.shape
+            qvals_dense = np.zeros(len(chs))
+            t = 0
+            for i, n in enumerate(n_hoff_astates):
+                qvals_dense[i] = np.max(hqvals_dense[t:t + n]) if n > 0 else 0
+                t += n
+        else:
+            qvals_dense = self.net.forward(freps=freps, grids=end_astates)
+
         return qvals_dense, cur_frep, freps
 
     def update_qval_disc(self, grid, frep, cell, ce_type, ch, max_ch, p, reward,

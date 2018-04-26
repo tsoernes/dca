@@ -228,6 +228,8 @@ def get_pparams(defaults=False):
         help="(RL)",
         default=False)
     parser.add_argument(
+        '-hla', '--hoff_lookahead', action='store_true', help="(RL)", default=False)
+    parser.add_argument(
         '--target', choices=['avg', 'avg_rsmart', 'discount'], default='avg')
     parser.add_argument(
         '--lambda',
