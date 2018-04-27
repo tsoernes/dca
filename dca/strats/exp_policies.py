@@ -72,6 +72,31 @@ class NomGreedyEpsGreedy(Policy):
         return ch, idx, p
 
 
+class EpsNomGreedy(Policy):
+    """Select nominal channel with prob. epsilon, greedy otherwise"""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def select_action(self, epsilon, chs, qvals_dense, cell):
+        if np.random.random() < epsilon:
+            # Choose at greedily from nominal channels, else at random
+            nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
+            if nom_elig_idxs:
+                nidx = np.argmax(qvals_dense[nom_elig_idxs])
+                idx = nom_elig_idxs[nidx]
+                p = epsilon
+            else:
+                idx = np.argmax(qvals_dense)
+                p = 1 - epsilon
+        else:
+            # Choose greedily
+            idx = np.argmax(qvals_dense)
+            p = 1 - epsilon
+        ch = chs[idx]
+        return ch, idx, p
+
+
 class NomGreedyGreedy(Policy):
     """Channel is always greedily selected from the cells nominal channels, if one
     is available, else greedily from the eligible channels.
@@ -231,6 +256,7 @@ exp_pol_funcs = {
     'eps_greedy': EpsGreedy,
     'nom_greedy': NomGreedyGreedy,
     'nom_eps_greedy': NomGreedyEpsGreedy,
+    'eps_nom_greedy': EpsNomGreedy,
     'boltzmann': Boltzmann,
     'nom_boltzmann': NomBoltzmann,
     'nom_boltzmann2': NomBoltzmann2,

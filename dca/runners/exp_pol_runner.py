@@ -15,13 +15,14 @@ class ExpPolRunner(Runner):
 
     def run(self):
         pols = {
-            # 'boltzmann': {'epsilon': [2, 5, 10]},
-            # 'nom_boltzmann': {'epsilon': [2, 5, 10]},
-            # 'eps_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]},
-            # 'nom_eps_greedy': {'epsilon': [0.1, 0.4, 0.7]},
-            # 'nom_greedy': {'epsilon': [0]},
-            # 'nom_fixed_greedy': {'epsilon': [0]},
-            'bgumbel': {'exp_policy_param': [1.0, 4.0, 4.5, 5.0, 5.5, 10.0]}
+            'boltzmann': {'epsilon': [2, 4, 6]},
+            'nom_boltzmann': {'epsilon': [2, 4, 6]},
+            'eps_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]},
+            'nom_eps_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]},
+            'eps_nom_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]},
+            'nom_greedy': {'epsilon': [0]},
+            'nom_fixed_greedy': {'epsilon': [0]},
+            'bgumbel': {'exp_policy_param': [4.0, 4.5, 5.0, 5.5, 6.0]}
         }  # yapf: disable
         space, results = [], []
         for pol, polparams in pols.items():
@@ -37,6 +38,7 @@ class ExpPolRunner(Runner):
             f"for up to {n_avg*len(space)} sims on space:\n{pols}")
         result_queue = Queue()
         simproc = partial(exp_proc, self.stratclass, self.pp, result_queue)
+
         # If the first run of a set of params exceeds block prob, there's
         # no need to run multiple of them and take the average.
 
