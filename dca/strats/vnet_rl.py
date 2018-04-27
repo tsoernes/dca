@@ -190,6 +190,7 @@ class VNetBase(NetStrat):
                 qvals_dense[i] = np.max(hqvals_dense[t:t + n]) if n > 0 else 0
                 t += n
         else:
+            # Not possible to assign HOFF for any reass on END.
             qvals_dense = self.net.forward(freps=freps, grids=end_astates)
 
         return qvals_dense, cur_frep, freps
