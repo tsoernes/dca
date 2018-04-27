@@ -8,13 +8,14 @@ import tensorflow as tf
 from gridfuncs import GF
 
 
-def scale_and_centre_freps(freps):
+def scale_freps(freps, centre=False):
     """Scale feature reps to range [-1, 1]"""
     freps_f = tf.cast(freps, tf.float32)
     mult1 = np.ones(freps.shape[1:], np.float32)
     mult1[:, :, :-1] /= 3.5
     mult1[:, :, -1] /= 35
-    freps_f = freps_f * tf.constant(mult1) - 1
+    if centre:
+        freps_f = freps_f * tf.constant(mult1) - 1
     return freps_f
 
 

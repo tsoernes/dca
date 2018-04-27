@@ -136,7 +136,7 @@ class Env:
             beta_disc = np.exp(-self.beta * dt)
             reward = count * (1 - beta_disc) / self.beta
             discount = beta_disc if self.bdisc else self.gamma
-            return None, reward, discount, self.cevent
+            return reward, None, discount, self.cevent
         elif self.ccount_rewards:
             hreward = count + self.hoff_pri * np.count_nonzero(self.hgrid)
             return count, hreward, self.gamma, self.cevent

@@ -1,8 +1,7 @@
-import numpy as np
 import tensorflow as tf
 
 from nets.net import Net
-from nets.utils import build_default_trainer, prep_data_grids
+from nets.utils import build_default_trainer, prep_data_grids, scale_freps
 from utils import prod
 
 
@@ -20,7 +19,7 @@ class CACSinghNet(Net):
         self.prob_ph = tf.placeholder(tf.float32, [1], "act_prob")
         self.act_ph = tf.placeholder(tf.int32, [1], "act")
 
-        frep = tf.cast(self.frep, tf.float32)
+        frep = tf.cast(scale_freps(self.frep), tf.float32)
         if self.grid_inp:
             gridshape = [None, self.rows, self.cols, self.n_channels * 2]
             wdim = prod(self.frepshape[1:]) + prod(gridshape[1:])
