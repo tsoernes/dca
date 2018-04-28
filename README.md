@@ -4,6 +4,10 @@ Dynamic Channel Allocation using different strategies, such as Fixed Assignment 
 Example usage, TDC gradient value net on simulation with 10 Erlangs and 15% chance of hand-offs using hand-off look-ahead:
 `python3 main.py tftdcsinghnet --hoff_lookahead --erlangs 10 --p_handoff 0.15`
 
+In general:
+`python3 main.py <agent_name> --long_option_name -short_option_name`
+
+Listed below are some of the features and agent implementations. Run `python3 main.py --help` for comprehensive list.
 # Non-learning agents
 See `fixedstrats.py`
 - Fixed Assign (`fixedassign`)
@@ -12,12 +16,10 @@ See `fixedstrats.py`
 
 ## RL agents
 # Features and implementations
-Some of the features and agent implementations. Run `python3 main.py --help` for comprehensive list.
-
 Target types: 
-- MDP Average reward (`-target avg -wbeta 0.01`)
-- MDP Discounted reward (`-target discount --gamma 0.8`)
-- SMDP Discounted reward (`-target discount -bdisc --beta 40 -rtype smdp_callcount`)
+- MDP Average reward (e.g. `-target avg -wbeta 0.01`)
+- MDP Discounted reward (e.g. `-target discount --gamma 0.8`)
+- SMDP Discounted reward (e.g. `-target discount -bdisc --beta 40 -rtype smdp_callcount`)
 - RSMART (`-target avg_rsmart`)
 
 Reward types:
@@ -29,57 +31,65 @@ Two step look-ahead on hand-offs (`-hla`)
 
 Exploration strategies (`exp_policies.py`):
 - Greedy (`-epol greedy`)
-- Epsilon-greedy (`-epol eps_greedy -eps 0.5`)
-- Boltzmann (`-epol boltzmann -eps 2`)
+- Epsilon-greedy (e.g. `-epol eps_greedy -eps 0.5`)
+- Boltzmann (e.g. `-epol boltzmann -eps 2`)
 - Boltzmann-Gumbel (`-epol bgumbel`)
 - Fixed nominal channel preference (`-epol nom_fixed_greedy`)
 - Greedy nominal channel preference (`-epol nom_greedy`)
 - Boltzmann with nominal channel preference (`-epol nom_boltzmann`)
 
 # State Value Nets
-Using Singh and Bertsekas 1997 paper (see above) as base
+Using Singh and Bertsekas 1997 paper as base implementation
 
 Different gradients/RL methods:
-- True Online TD Lambda (`singh_tdl.py`)
-- GTD2 (`singh_gtd2.py`)
-- TDC - TD0 with Gradient correction (`singh_tdc.py`, `singh_tdc_tf.py` for full TF version)
+- True Online TD Lambda (`tdlsinghnet`, `singh_tdl.py`)
+- GTD2 (`gtd2singhnet`, `singh_gtd2.py`)
+- TDC - TD0 with Gradient correction (`tdcsinghnet` for `singh_tdc.py`, `tftdcsinghnet` for `singh_tdc_tf.py` which is equivalent version implemented in all TensorFlow)
 - TDC-NL - TD0 with Gradient correction for Non-linear func. approx (`singh_tdc_nl.py`)
 - Naive Residual Gradients - (`singh_resid.py`)
 - LSTD - Least Squares Temporal Difference (`singh_lstd.py`)
 
 Feature representations (see `gridfuncs_numba.py`)
 - As in Singh97 (`-ftype vanilla`)
-- As in Singh97, include number of used chs with dist 3 or less (`-ftype big`)
-- Number of used chs with dist 4, with dist 3, .. (`-ftype big2`)
+- As in Singh97, also include number of used chs with dist 3 or less (`-ftype big`)
+- Separate features for number of used chs with dist 4, with dist 3, .. (`-ftype big2`)
 
 # State-Action Value Nets
 RL Methods:
 - Q-Learning (`qlearnnet`)
 - SARSA (`sarsanet`)
-- Update towards _eligible_ max action (``)
+- Update towards _eligible_ max action (`qlearneligiblenet`)
 
 Options:
-- n\_channels X n\_cells outputs (`--bighead`)
+- Use n\_channels X n\_cells outputs (`--bighead`) instead of default where cell is input to network and output is of size n\_channels_
 - Dueling Q-Net (`-duel`)
-- Double Q-Net (`--net_copy_iter 50 --net_creep_tau 0.1`)
-- Experience replay (`--batch_size 10 --buffer_size 5000`)
+- Double Q-Net (e.g. `--net_copy_iter 50 --net_creep_tau 0.1`)
+- Experience replay (e.g. `--batch_size 10 --buffer_size 5000`)
+
+Other:
+- N-step returns (e.g. `nqlearnnet --n_step 4`)
+- GAE (Generalized Advantage Estimator) returns (`gaeqlearnnet`)
+- Feature representation as network input (raw grid is default) (`--qnet_freps` or `--qnet_freps_only`)
+- ++
 
 # State-Action Table Lookup
-See `table_rl.py`
+See `table_rl.py` for implementation
 - Lilith SARSA (`sarsa`)
 - Lilith Table-Trimmed SARSA (`tt_sarsa`)
 - Lilith Reduced-State SARSA (`rs_sarsa`)
-- All of the above accept lambda returns, e.g. (`rs_sarsa --lambda 0.8`)
-- Zap-Q learning (`zapq`) (Warning: SLOW!)
+- All of the above accept lambda returns, (e.g. `rs_sarsa --lambda 0.8`)
+- Zap-Q learning with RS-SARSA feature rep. (`zapq`) (Warning: __Very_ SLOW!)
 
 ## Misc
-Extensive scaffolding for hyperparameter testing using either Dlib (`runners/dlib_runner.py`) or Hyperopt (`runners/hopt_runner.py`)
-- Parallel optimization
-- Save and restore optimization results and parameters to file or database (MongoDB)
-- Limit GPU usage to N simultaneous processes, use CPU only for remaining
+Extensive scaffolding for hyperparameter testing using either Dlib (see `runners/dlib_runner.py`) or Hyperopt (see `runners/hopt_runner.py`)
+- Parallel optimization processes
+- Save and resume optimization results and parameters to file or database (MongoDB, for Hyperopt only)
+- Limit GPU usage to N<M of the simultaneous processes M, use CPU only for remaining M-N processes
 - Run N<=M processes with same hyperparameters but different random seeds and take average, with a total of M concurrent processes
 
-Other runners
-- Average over multiple runs (e.g. `python3 rs_sarsa --avg_runs 8`, see `runners/avg_runner.py`)
-- Exploration comparisons (`e.g. python3 rs_sarsa --exp_policy_cmp`, see `runners/exp_pol_runner.py`)
+Average over multiple runs (e.g. `python3 rs_sarsa --avg_runs 8`, see `runners/avg_runner.py`)
+
+Exploration comparisons (`e.g. python3 rs_sarsa --exp_policy_cmp N`, see `runners/exp_pol_runner.py`)
+- Compare different exploration strategies, each using a different range of exploration parameters (e.g. epsilon)
+- For each exploration strategy and parameter choice, average over up to N runs if all runs so far have yielded block. prob. less than threshold (e.g. `--breakout_thresh 0.15`)
  

@@ -1,0 +1,485 @@
+p3 main.py tftdcsinghnet -hla -phoff 0.15 --exp_policy_cmp 6 --breakout_thresh 0.17
+tftdcsinghnet -hla -phoff 0.15 --exp_policy_cmp 6 --breakout_thresh 0.17
+Starting simulation at 2018-04-27 22:34:42.144837 with params:
+{'strat': 'tftdcsinghnet', 'rows': 7, 'cols': 7, 'n_channels': 70, 'erlangs': 10, 'traffic_preset': 'uniform', 'call_rate': 3.3333333333333335, 'call_duration': 3, 'p_handoff': 0.15, 'hoff_call_duration': 1, 'n_events': 470000, 'n_hours': None, 'breakout_thresh': 0.17, 'avg_runs': None, 'exp_policy_cmp': 6, 'alpha': 0.01938893, 'alpha_decay': 0.9999999, 'wolf': 1, 'exp_policy': 'boltzmann', 'exp_policy_param': None, 'epsilon': 2.10259, 'epsilon_decay': 0.9999, 'gamma': None, 'gamma_end': None, 'weight_beta': 0.06, 'weight_beta_decay': 0, 'grad_beta': 5e-06, 'grad_beta_decay': 0, 'hoff_pri': 0, 'reward_type': 'callcount', 'beta': None, 'beta_disc': False, 'importance_sampling': False, 'hoff_lookahead': True, 'target': 'avg', 'lambda': None, 'min_alpha': 0.0, 'save_exp_data': False, 'restore_qtable': '', 'random_hopt': None, 'dlib_hopt': None, 'hopt': None, 'hopt_fname': None, 'net_lr': 2.52e-06, 'net_lr_decay': 0.78, 'optimizer': 'sgd', 'huber_loss': None, 'max_grad_norm': None, 'weight_init_conv': 'glorot_unif', 'qnom_lo': 0.5, 'qnom_hi': 1.5, 'weight_init_dense': 'zeros', 'conv_nfilters': [80, 70], 'conv_kernel_sizes': [4, 3], 'conv_bias': False, 'pre_conv': False, 'prep_net': 0, 'n_step': 1, 'bighead': False, 'dueling_qnet': False, 'layer_norm': False, 'l2_conv': False, 'l2_scale': 1e-05, 'l2_dense': False, 'top_stack': False, 'frep_type': 'vanilla', 'singh_grid': False, 'qnet_freps': False, 'qnet_freps_only': False, 'scale_freps': False, 'act_fn': 'relu', 'save_net': False, 'restore_net': False, 'batch_size': 1, 'buffer_size': 1000, 'bench_batch_size': False, 'net_copy_iter': 5, 'net_copy_iter_decr': None, 'net_creep_tau': 0.12, 'vf_coeff': 0.02, 'entropy_coeff': 10.0, 'train_net': 0, 'analyze_net': False, 'gpu': False, 'max_gpu_procs': 3, 'rng_seed': 0, 'verify_grid': False, 'debug': False, 'profiling': False, 'tfprofiling': '', 'print_weights': False, 'gui': False, 'do_plot': False, 'log_level': 40, 'log_file': None, 'log_iter': 58750, 'grid_split': True, 'freps': False, 'dims': (7, 7, 70), 'net': True}
+Running 15 concurrent procs with 6 average runs for up to 150 sims on space:
+{'boltzmann': {'epsilon': [2, 4, 6]}, 'nom_boltzmann': {'epsilon': [2, 4, 6]}, 'eps_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]}, 'nom_eps_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]}, 'eps_nom_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]}, 'nom_greedy': {'epsilon': [0]}, 'nom_fixed_greedy': {'epsilon': [0]}, 'bgumbel': {'exp_policy_param': [4.0, 4.5, 5.0, 5.5, 6.0]}}
+T0 Testing {'exp_policy': 'boltzmann', 'epsilon': 2}
+T1 Testing {'exp_policy': 'boltzmann', 'epsilon': 4}
+T2 Testing {'exp_policy': 'boltzmann', 'epsilon': 6}
+T3 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 2}
+T4 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 4}
+T5 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 6}
+T6 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.0}
+T7 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.2}
+T8 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.4}
+T9 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.7}
+T10 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.0}
+T11 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.2}
+T12 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.4}
+T13 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.7}
+T14 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.0}
+
+T10 Blocking probability: 0.1501 for new calls, 0.0783 for handoffs
+T15 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T9 Blocking probability: 0.1500 for new calls, 0.0712 for handoffs
+T16 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T13 Blocking probability: 0.1501 for new calls, 0.0742 for handoffs
+T17 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T8 Blocking probability: 0.1471 for new calls, 0.0714 for handoffs
+T18 Testing {'exp_policy': 'nom_greedy', 'epsilon': 0}
+
+T6 Blocking probability: 0.1518 for new calls, 0.0724 for handoffs
+T19 Testing {'exp_policy': 'nom_fixed_greedy', 'epsilon': 0}
+
+T14 Blocking probability: 0.1447 for new calls, 0.0722 for handoffs
+T20 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.0}
+
+T7 Blocking probability: 0.1492 for new calls, 0.0724 for handoffs
+T21 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.5}
+
+T12 Blocking probability: 0.1473 for new calls, 0.0735 for handoffs
+T22 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.0}
+
+T11 Blocking probability: 0.1470 for new calls, 0.0697 for handoffs
+T23 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.5}
+
+T3 Blocking probability: 0.1534 for new calls, 0.0729 for handoffs
+T24 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 6.0}
+
+T0 Blocking probability: 0.1506 for new calls, 0.0732 for handoffs
+T25 Testing {'exp_policy': 'boltzmann', 'epsilon': 2}
+
+T4 Blocking probability: 0.1497 for new calls, 0.0711 for handoffs
+T26 Testing {'exp_policy': 'boltzmann', 'epsilon': 4}
+
+T2 Blocking probability: 0.1509 for new calls, 0.0732 for handoffs
+T27 Testing {'exp_policy': 'boltzmann', 'epsilon': 6}
+
+T1 Blocking probability: 0.1494 for new calls, 0.0722 for handoffs
+T28 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 2}
+
+T5 Blocking probability: 0.1496 for new calls, 0.0692 for handoffs
+T29 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 4}
+
+T18 Blocking probability: 0.1509 for new calls, 0.0689 for handoffs
+T30 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 6}
+
+T17 Blocking probability: 0.1484 for new calls, 0.0735 for handoffs
+T31 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.0}
+
+T16 Blocking probability: 0.1510 for new calls, 0.0739 for handoffs
+T32 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.2}
+
+T19 Blocking probability: 0.1471 for new calls, 0.0716 for handoffs
+T33 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.4}
+
+T15 Blocking probability: 0.1499 for new calls, 0.0731 for handoffs
+T34 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.7}
+
+T22 Blocking probability: 0.1480 for new calls, 0.0739 for handoffs
+T35 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.0}
+
+T20 Blocking probability: 0.1488 for new calls, 0.0725 for handoffs
+T36 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T21 Blocking probability: 0.1459 for new calls, 0.0696 for handoffs
+T37 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T23 Blocking probability: 0.1453 for new calls, 0.0723 for handoffs
+T38 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T24 Blocking probability: 0.1514 for new calls, 0.0748 for handoffs
+T39 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.0}
+
+T25 Blocking probability: 0.1498 for new calls, 0.0764 for handoffs
+T40 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T29 Blocking probability: 0.1511 for new calls, 0.0712 for handoffs
+T41 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T28 Blocking probability: 0.1511 for new calls, 0.0722 for handoffs
+T42 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T27 Blocking probability: 0.1516 for new calls, 0.0721 for handoffs
+T43 Testing {'exp_policy': 'nom_greedy', 'epsilon': 0}
+
+T26 Blocking probability: 0.1467 for new calls, 0.0737 for handoffs
+T44 Testing {'exp_policy': 'nom_fixed_greedy', 'epsilon': 0}
+
+T33 Blocking probability: 0.1477 for new calls, 0.0730 for handoffs
+T45 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.0}
+
+T31 Blocking probability: 0.1464 for new calls, 0.0720 for handoffs
+T46 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.5}
+
+T34 Blocking probability: 0.1459 for new calls, 0.0719 for handoffs
+T47 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.0}
+
+T35 Blocking probability: 0.1517 for new calls, 0.0729 for handoffs
+T48 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.5}
+
+T36 Blocking probability: 0.1481 for new calls, 0.0749 for handoffs
+T49 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 6.0}
+
+T32 Blocking probability: 0.1475 for new calls, 0.0717 for handoffs
+T50 Testing {'exp_policy': 'boltzmann', 'epsilon': 2}
+
+T30 Blocking probability: 0.1520 for new calls, 0.0725 for handoffs
+T51 Testing {'exp_policy': 'boltzmann', 'epsilon': 4}
+
+T38 Blocking probability: 0.1506 for new calls, 0.0770 for handoffs
+T52 Testing {'exp_policy': 'boltzmann', 'epsilon': 6}
+
+T37 Blocking probability: 0.1511 for new calls, 0.0725 for handoffs
+T53 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 2}
+
+T39 Blocking probability: 0.1467 for new calls, 0.0700 for handoffs
+T54 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 4}
+
+T41 Blocking probability: 0.1475 for new calls, 0.0743 for handoffs
+T55 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 6}
+
+T42 Blocking probability: 0.1490 for new calls, 0.0721 for handoffs
+T56 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.0}
+
+T44 Blocking probability: 0.1473 for new calls, 0.0722 for handoffs
+T57 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.2}
+
+T40 Blocking probability: 0.1507 for new calls, 0.0737 for handoffs
+T58 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.4}
+
+T43 Blocking probability: 0.1521 for new calls, 0.0727 for handoffs
+T59 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.7}
+
+T46 Blocking probability: 0.1474 for new calls, 0.0750 for handoffs
+T60 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.0}
+
+T45 Blocking probability: 0.1494 for new calls, 0.0702 for handoffs
+T61 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T47 Blocking probability: 0.1485 for new calls, 0.0726 for handoffs
+T62 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T48 Blocking probability: 0.1499 for new calls, 0.0738 for handoffs
+T63 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T49 Blocking probability: 0.1474 for new calls, 0.0714 for handoffs
+T64 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.0}
+
+T53 Blocking probability: 0.1468 for new calls, 0.0713 for handoffs
+T65 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T50 Blocking probability: 0.1503 for new calls, 0.0715 for handoffs
+T66 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T51 Blocking probability: 0.1465 for new calls, 0.0706 for handoffs
+T67 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T54 Blocking probability: 0.1498 for new calls, 0.0756 for handoffs
+T68 Testing {'exp_policy': 'nom_greedy', 'epsilon': 0}
+
+T52 Blocking probability: 0.1479 for new calls, 0.0742 for handoffs
+T69 Testing {'exp_policy': 'nom_fixed_greedy', 'epsilon': 0}
+
+T56 Blocking probability: 0.1487 for new calls, 0.0724 for handoffs
+T70 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.0}
+
+T59 Blocking probability: 0.1478 for new calls, 0.0730 for handoffs
+T71 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.5}
+
+T57 Blocking probability: 0.1490 for new calls, 0.0733 for handoffs
+T72 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.0}
+
+T58 Blocking probability: 0.1455 for new calls, 0.0714 for handoffs
+T73 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.5}
+
+T55 Blocking probability: 0.1481 for new calls, 0.0699 for handoffs
+T74 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 6.0}
+
+T60 Blocking probability: 0.1483 for new calls, 0.0756 for handoffs
+T75 Testing {'exp_policy': 'boltzmann', 'epsilon': 2}
+
+T61 Blocking probability: 0.1474 for new calls, 0.0710 for handoffs
+T76 Testing {'exp_policy': 'boltzmann', 'epsilon': 4}
+
+T62 Blocking probability: 0.1476 for new calls, 0.0775 for handoffs
+T77 Testing {'exp_policy': 'boltzmann', 'epsilon': 6}
+
+T63 Blocking probability: 0.1489 for new calls, 0.0744 for handoffs
+T78 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 2}
+
+T64 Blocking probability: 0.1456 for new calls, 0.0704 for handoffs
+T79 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 4}
+
+T68 Blocking probability: 0.1499 for new calls, 0.0707 for handoffs
+T80 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 6}
+
+T67 Blocking probability: 0.1520 for new calls, 0.0746 for handoffs
+T81 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.0}
+
+T66 Blocking probability: 0.1490 for new calls, 0.0723 for handoffs
+T82 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.2}
+
+T69 Blocking probability: 0.1498 for new calls, 0.0690 for handoffs
+T83 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.4}
+
+T65 Blocking probability: 0.1479 for new calls, 0.0702 for handoffs
+T84 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.7}
+
+T71 Blocking probability: 0.1484 for new calls, 0.0732 for handoffs
+T85 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.0}
+
+T70 Blocking probability: 0.1476 for new calls, 0.0743 for handoffs
+T86 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T73 Blocking probability: 0.1470 for new calls, 0.0712 for handoffs
+T87 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T72 Blocking probability: 0.1453 for new calls, 0.0714 for handoffs
+T88 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T74 Blocking probability: 0.1476 for new calls, 0.0725 for handoffs
+T89 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.0}
+[GFX1-]: Receive IPC close with reason=AbnormalShutdown
+[Child 20617, Chrome_ChildThread] WARNING: pipe error (3): Connection reset by peer: file /builddir/build/BUILD/mozilla-release-239e434d6d2b8e1e2b697c3416d1e96d48fe98e5/ipc/chromium/src/chrome/common/ipc_channel_posix.cc, line 353
+
+T75 Blocking probability: 0.1499 for new calls, 0.0734 for handoffs
+T90 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T76 Blocking probability: 0.1463 for new calls, 0.0703 for handoffs
+T91 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T82 Blocking probability: 0.1478 for new calls, 0.0736 for handoffs
+T92 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T78 Blocking probability: 0.1467 for new calls, 0.0687 for handoffs
+T93 Testing {'exp_policy': 'nom_greedy', 'epsilon': 0}
+
+T84 Blocking probability: 0.1505 for new calls, 0.0723 for handoffs
+T94 Testing {'exp_policy': 'nom_fixed_greedy', 'epsilon': 0}
+
+T83 Blocking probability: 0.1476 for new calls, 0.0716 for handoffs
+T95 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.0}
+
+T79 Blocking probability: 0.1523 for new calls, 0.0739 for handoffs
+T96 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.5}
+
+T81 Blocking probability: 0.1450 for new calls, 0.0713 for handoffs
+T97 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.0}
+
+T77 Blocking probability: 0.1498 for new calls, 0.0754 for handoffs
+T98 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.5}
+
+T86 Blocking probability: 0.1495 for new calls, 0.0765 for handoffs
+T99 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 6.0}
+
+T80 Blocking probability: 0.1484 for new calls, 0.0699 for handoffs
+T100 Testing {'exp_policy': 'boltzmann', 'epsilon': 2}
+
+T88 Blocking probability: 0.1485 for new calls, 0.0731 for handoffs
+T101 Testing {'exp_policy': 'boltzmann', 'epsilon': 4}
+
+T89 Blocking probability: 0.1511 for new calls, 0.0764 for handoffs
+T102 Testing {'exp_policy': 'boltzmann', 'epsilon': 6}
+
+T85 Blocking probability: 0.1432 for new calls, 0.0715 for handoffs
+T103 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 2}
+
+T87 Blocking probability: 0.1490 for new calls, 0.0729 for handoffs
+T104 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 4}
+
+T90 Blocking probability: 0.1517 for new calls, 0.0752 for handoffs
+T105 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 6}
+
+T91 Blocking probability: 0.1489 for new calls, 0.0705 for handoffs
+T106 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.0}
+
+T94 Blocking probability: 0.1472 for new calls, 0.0693 for handoffs
+T107 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.2}
+
+T93 Blocking probability: 0.1516 for new calls, 0.0717 for handoffs
+T108 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.4}
+
+T92 Blocking probability: 0.1448 for new calls, 0.0726 for handoffs
+T109 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.7}
+
+T95 Blocking probability: 0.1520 for new calls, 0.0748 for handoffs
+T110 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.0}
+
+T96 Blocking probability: 0.1500 for new calls, 0.0736 for handoffs
+T111 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T97 Blocking probability: 0.1493 for new calls, 0.0729 for handoffs
+T112 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T99 Blocking probability: 0.1497 for new calls, 0.0718 for handoffs
+T113 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T98 Blocking probability: 0.1499 for new calls, 0.0739 for handoffs
+T114 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.0}
+
+T103 Blocking probability: 0.1484 for new calls, 0.0739 for handoffs
+T115 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T100 Blocking probability: 0.1471 for new calls, 0.0709 for handoffs
+T116 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T104 Blocking probability: 0.1504 for new calls, 0.0713 for handoffs
+T117 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T101 Blocking probability: 0.1518 for new calls, 0.0724 for handoffs
+T118 Testing {'exp_policy': 'nom_greedy', 'epsilon': 0}
+
+T102 Blocking probability: 0.1479 for new calls, 0.0713 for handoffs
+T119 Testing {'exp_policy': 'nom_fixed_greedy', 'epsilon': 0}
+
+T106 Blocking probability: 0.1481 for new calls, 0.0743 for handoffs
+T120 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.0}
+
+T105 Blocking probability: 0.1492 for new calls, 0.0713 for handoffs
+T121 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.5}
+
+T107 Blocking probability: 0.1486 for new calls, 0.0751 for handoffs
+T122 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.0}
+
+T108 Blocking probability: 0.1464 for new calls, 0.0730 for handoffs
+T123 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.5}
+
+T109 Blocking probability: 0.1477 for new calls, 0.0733 for handoffs
+T124 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 6.0}
+
+T110 Blocking probability: 0.1501 for new calls, 0.0740 for handoffs
+T125 Testing {'exp_policy': 'boltzmann', 'epsilon': 2}
+
+T111 Blocking probability: 0.1498 for new calls, 0.0738 for handoffs
+T126 Testing {'exp_policy': 'boltzmann', 'epsilon': 4}
+
+T112 Blocking probability: 0.1476 for new calls, 0.0728 for handoffs
+T127 Testing {'exp_policy': 'boltzmann', 'epsilon': 6}
+
+T113 Blocking probability: 0.1518 for new calls, 0.0769 for handoffs
+T128 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 2}
+
+T114 Blocking probability: 0.1499 for new calls, 0.0754 for handoffs
+T129 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 4}
+
+T118 Blocking probability: 0.1493 for new calls, 0.0711 for handoffs
+T130 Testing {'exp_policy': 'nom_boltzmann', 'epsilon': 6}
+
+T115 Blocking probability: 0.1496 for new calls, 0.0725 for handoffs
+T131 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.0}
+
+T119 Blocking probability: 0.1481 for new calls, 0.0707 for handoffs
+T132 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.2}
+
+T116 Blocking probability: 0.1482 for new calls, 0.0732 for handoffs
+T133 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.4}
+
+T117 Blocking probability: 0.1507 for new calls, 0.0757 for handoffs
+T134 Testing {'exp_policy': 'eps_greedy', 'epsilon': 0.7}
+
+T123 Blocking probability: 0.1487 for new calls, 0.0714 for handoffs
+T135 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.0}
+
+T121 Blocking probability: 0.1486 for new calls, 0.0714 for handoffs
+T136 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T120 Blocking probability: 0.1468 for new calls, 0.0725 for handoffs
+T137 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T122 Blocking probability: 0.1505 for new calls, 0.0755 for handoffs
+T138 Testing {'exp_policy': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T124 Blocking probability: 0.1476 for new calls, 0.0725 for handoffs
+T139 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.0}
+
+T125 Blocking probability: 0.1504 for new calls, 0.0705 for handoffs
+T140 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T126 Blocking probability: 0.1501 for new calls, 0.0749 for handoffs
+T141 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T128 Blocking probability: 0.1502 for new calls, 0.0701 for handoffs
+T142 Testing {'exp_policy': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T129 Blocking probability: 0.1509 for new calls, 0.0722 for handoffs
+T143 Testing {'exp_policy': 'nom_greedy', 'epsilon': 0}
+
+T131 Blocking probability: 0.1506 for new calls, 0.0714 for handoffs
+T144 Testing {'exp_policy': 'nom_fixed_greedy', 'epsilon': 0}
+
+T127 Blocking probability: 0.1484 for new calls, 0.0754 for handoffs
+T145 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.0}
+
+T132 Blocking probability: 0.1511 for new calls, 0.0751 for handoffs
+T146 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 4.5}
+
+T133 Blocking probability: 0.1505 for new calls, 0.0725 for handoffs
+T147 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.0}
+
+T134 Blocking probability: 0.1476 for new calls, 0.0758 for handoffs
+T148 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 5.5}
+
+T130 Blocking probability: 0.1471 for new calls, 0.0706 for handoffs
+T149 Testing {'exp_policy': 'bgumbel', 'exp_policy_param': 6.0}
+
+T138 Blocking probability: 0.1494 for new calls, 0.0742 for handoffs
+
+T135 Blocking probability: 0.1472 for new calls, 0.0729 for handoffs
+
+T137 Blocking probability: 0.1492 for new calls, 0.0733 for handoffs
+
+T136 Blocking probability: 0.1448 for new calls, 0.0717 for handoffs
+
+T139 Blocking probability: 0.1464 for new calls, 0.0716 for handoffs
+
+T140 Blocking probability: 0.1473 for new calls, 0.0760 for handoffs
+
+T143 Blocking probability: 0.1505 for new calls, 0.0731 for handoffs
+
+T144 Blocking probability: 0.1515 for new calls, 0.0693 for handoffs
+
+T141 Blocking probability: 0.1481 for new calls, 0.0729 for handoffs
+
+T142 Blocking probability: 0.1500 for new calls, 0.0727 for handoffs
+
+T145 Blocking probability: 0.1491 for new calls, 0.0714 for handoffs
+
+T147 Blocking probability: 0.1474 for new calls, 0.0720 for handoffs
+
+T146 Blocking probability: 0.1491 for new calls, 0.0722 for handoffs
+
+T148 Blocking probability: 0.1468 for new calls, 0.0748 for handoffs
+
+T149 Blocking probability: 0.1463 for new calls, 0.0726 for handoffs
+{'exp_policy': 'boltzmann', 'epsilon': 2, 'exceeded_btresh': False, 'results': [-0.15060931708487774, -0.1498480893110115, -0.1502582131383479, -0.14994840867445874, -0.147073639350401, -0.1504219832097446], 'avg_result': -0.14969327512814024}
+{'exp_policy': 'boltzmann', 'epsilon': 4, 'exceeded_btresh': False, 'results': [-0.14943424803991448, -0.14667041680060003, -0.14649121240265772, -0.14626141934792508, -0.15176986228224354, -0.15013290424671297], 'avg_result': -0.14846001052000898}
+{'exp_policy': 'boltzmann', 'epsilon': 6, 'exceeded_btresh': False, 'results': [-0.15092274076480458, -0.15158107338600613, -0.14789740570771062, -0.149809831743402, -0.1479355856377717, -0.14836693539412124], 'avg_result': -0.1494189287723027}
+{'exp_policy': 'nom_boltzmann', 'epsilon': 2, 'exceeded_btresh': False, 'results': [-0.15340441892198217, -0.1511239557542616, -0.146777127773418, -0.146664526685124, -0.1484427245410206, -0.1502214972680518], 'avg_result': -0.14943904182397635}
+{'exp_policy': 'nom_boltzmann', 'epsilon': 4, 'exceeded_btresh': False, 'results': [-0.14973517138067555, -0.1510792007371237, -0.14982155094920654, -0.15231791023543637, -0.15037476716308834, -0.15085932243417505], 'avg_result': -0.15069798714995095}
+{'exp_policy': 'nom_boltzmann', 'epsilon': 6, 'exceeded_btresh': False, 'results': [-0.1496074213618003, -0.1520432719039549, -0.14810161547577677, -0.14842237664921185, -0.1491693996862969, -0.14705291404537277], 'avg_result': -0.14906616652040225}
+{'exp_policy': 'eps_greedy', 'epsilon': 0.0, 'exceeded_btresh': False, 'results': [-0.1518237454100367, -0.14642617974016697, -0.14873654572670897, -0.14499282678358338, -0.14811146063404948, -0.15059433411865306], 'avg_result': -0.14844751540219978}
+{'exp_policy': 'eps_greedy', 'epsilon': 0.2, 'exceeded_btresh': False, 'results': [-0.14917403116510008, -0.14746007024245697, -0.1489767796542144, -0.14778700354578336, -0.14858165978541174, -0.15106395294473857], 'avg_result': -0.14884058288961752}
+{'exp_policy': 'eps_greedy', 'epsilon': 0.4, 'exceeded_btresh': False, 'results': [-0.14711436722339044, -0.14765079719032223, -0.145521654422936, -0.14757325762039963, -0.14640687965512472, -0.15046222079726407], 'avg_result': -0.14745486281823952}
+{'exp_policy': 'eps_greedy', 'epsilon': 0.7, 'exceeded_btresh': False, 'results': [-0.1500258227667759, -0.14585500207573532, -0.14780813611314225, -0.15048364337255007, -0.14773061464562298, -0.14763883877462838], 'avg_result': -0.14825700962474248}
+{'exp_policy': 'nom_eps_greedy', 'epsilon': 0.0, 'exceeded_btresh': False, 'results': [-0.15014239943040228, -0.15169282725988764, -0.14832608453217352, -0.143174911494721, -0.1500717002306877, -0.14718261505399355], 'avg_result': -0.1484317563336443}
+{'exp_policy': 'nom_eps_greedy', 'epsilon': 0.2, 'exceeded_btresh': False, 'results': [-0.1470451891275084, -0.14814930445603064, -0.147391612664404, -0.14950143939629895, -0.1497954600144381, -0.1447633006533027], 'avg_result': -0.14777438438533047}
+{'exp_policy': 'nom_eps_greedy', 'epsilon': 0.4, 'exceeded_btresh': False, 'results': [-0.1473419710163039, -0.15109207632513869, -0.14760623463318207, -0.1490127194018805, -0.14760108105215275, -0.14919031585698253], 'avg_result': -0.14864073304760675}
+{'exp_policy': 'nom_eps_greedy', 'epsilon': 0.7, 'exceeded_btresh': False, 'results': [-0.15009932388494462, -0.15063246035987884, -0.14886595731397329, -0.1485169255454282, -0.15183427689598278, -0.1493566094565934], 'avg_result': -0.14988425890946688}
+{'exp_policy': 'eps_nom_greedy', 'epsilon': 0.0, 'exceeded_btresh': False, 'results': [-0.1447408962021925, -0.14667754025232066, -0.1455543898028886, -0.1510928560950565, -0.14986538770124985, -0.1464235949837436], 'avg_result': -0.14739244417290862}
+{'exp_policy': 'eps_nom_greedy', 'epsilon': 0.2, 'exceeded_btresh': False, 'results': [-0.14993879776556207, -0.15068005094815223, -0.1479272280182821, -0.1516851186005271, -0.14956595290032498, -0.1472892049403839], 'avg_result': -0.14951439219553872}
+{'exp_policy': 'eps_nom_greedy', 'epsilon': 0.4, 'exceeded_btresh': False, 'results': [-0.15099833055091819, -0.14750353578391787, -0.14903625362826098, -0.14886291766508405, -0.1482417548129427, -0.14808037348139289], 'avg_result': -0.14878719432041945}
+{'exp_policy': 'eps_nom_greedy', 'epsilon': 0.7, 'exceeded_btresh': False, 'results': [-0.14843662969712904, -0.14901143157538335, -0.15196601725825104, -0.14475524788051325, -0.15074604934478567, -0.14998931604907495], 'avg_result': -0.14915078196752288}
+{'exp_policy': 'nom_greedy', 'epsilon': 0, 'exceeded_btresh': False, 'results': [-0.15088911551598982, -0.1520805680026369, -0.1498945250959065, -0.15161544312919542, -0.14927760991826877, -0.15053926105218196], 'avg_result': -0.1507160871190299}
+{'exp_policy': 'nom_fixed_greedy', 'epsilon': 0, 'exceeded_btresh': False, 'results': [-0.14711187306349505, -0.14727752565554258, -0.1497560214790223, -0.1471650818005031, -0.14808060179343002, -0.151512183394254], 'avg_result': -0.14848388119770786}
+{'exp_policy': 'bgumbel', 'exp_policy_param': 4.0, 'exceeded_btresh': False, 'results': [-0.14880502025012238, -0.1494303594351733, -0.14761853756069696, -0.15202402530475886, -0.14682950328290037, -0.14909351889412426], 'avg_result': -0.14896682745462936}
+{'exp_policy': 'bgumbel', 'exp_policy_param': 4.5, 'exceeded_btresh': False, 'results': [-0.14585184821296987, -0.14738474979718105, -0.14837606990173416, -0.15002294201239313, -0.14856240718194347, -0.1490898236672577], 'avg_result': -0.1482146401289132}
+{'exp_policy': 'bgumbel', 'exp_policy_param': 5.0, 'exceeded_btresh': False, 'results': [-0.1480291450344259, -0.14852010577999367, -0.1452912476173896, -0.14934048238238193, -0.15045040627939008, -0.14742338777947087], 'avg_result': -0.14817579581217535}
+{'exp_policy': 'bgumbel', 'exp_policy_param': 5.5, 'exceeded_btresh': False, 'results': [-0.14530758507291963, -0.14989283820574173, -0.14700567139803755, -0.14994337384852727, -0.14869444778459168, -0.14676392596626875], 'avg_result': -0.14793464037934778}
+{'exp_policy': 'bgumbel', 'exp_policy_param': 6.0, 'exceeded_btresh': False, 'results': [-0.1513841794064047, -0.14741814191856342, -0.14762956517859135, -0.14965595819869862, -0.14763711932357887, -0.14634135454468356], 'avg_result': -0.1483443864284201}
+Best:
+{'exp_policy': 'eps_nom_greedy', 'epsilon': 0.0, 'exceeded_btresh': False, 'results': [-0.1447408962021925, -0.14667754025232066, -0.1455543898028886, -0.1510928560950565, -0.14986538770124985, -0.1464235949837436], 'avg_result': -0.14739244417290862}
