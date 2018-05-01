@@ -29,7 +29,7 @@ class TDCNLSinghNet(Net):
     def _build_net(self, top_inps):
         with tf.variable_scope('model/' + self.name) as scope:
             # conv = DepthwiseConv2D(self.depth, self.pp['conv_kernel_sizes'][0])
-            conv1a = tf.layers.Conv2D(
+            conv1 = tf.layers.Conv2D(
                 filters=self.pp['conv_nfilters'][0],
                 kernel_size=self.pp['conv_kernel_sizes'][0],
                 padding='SAME',
@@ -40,19 +40,7 @@ class TDCNLSinghNet(Net):
                 activation=self.act_fn,
                 name="vconv",
                 _reuse=False)
-            conv1b = tf.layers.Conv2D(
-                filters=self.pp['conv_nfilters'][0],
-                kernel_size=self.pp['conv_kernel_sizes'][0],
-                padding='SAME',
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.conv_regularizer,
-                use_bias=self.pp['conv_bias'],
-                bias_initializer=tf.constant_initializer(0.1),
-                activation=self.act_fn,
-                name="vconv",
-                _reuse=True)
-            # conv1 = [conv1a, conv1b]
-            conv2a = tf.layers.Conv2D(
+            conv2 = tf.layers.Conv2D(
                 filters=self.pp['conv_nfilters'][1],
                 kernel_size=self.pp['conv_kernel_sizes'][1],
                 padding='SAME',
@@ -63,19 +51,6 @@ class TDCNLSinghNet(Net):
                 activation=self.act_fn,
                 name="vconv2",
                 _reuse=False)
-            conv2b = tf.layers.Conv2D(
-                filters=self.pp['conv_nfilters'][1],
-                kernel_size=self.pp['conv_kernel_sizes'][1],
-                padding='SAME',
-                kernel_initializer=self.kern_init_conv(),
-                kernel_regularizer=self.conv_regularizer,
-                use_bias=self.pp['conv_bias'],
-                bias_initializer=tf.constant_initializer(0.1),
-                activation=self.act_fn,
-                name="vconv2",
-                _reuse=True)
-            # conv2 = [conv2a, conv2b]
-            # conv = [conv1, conv2]
             value_layer = tf.layers.Dense(
                 units=1,
                 kernel_initializer=self.kern_init_dense(),
@@ -83,9 +58,10 @@ class TDCNLSinghNet(Net):
                 activation=None)
 
             val = value_layer.apply(
-                tf.layers.flatten(conv2a.apply(conv1a.apply(top_inps[0]))))
+                tf.layers.flatten(conv2.apply(conv1.apply(top_inps[0]))))
             nval = value_layer.apply(
-                tf.layers.flatten(conv2b.apply(conv1b.apply(top_inps[1]))))
+                tf.layers.flatten(conv2.apply(conv1.apply(top_inps[1]))))
+
             self.weight_vars.append(value_layer.kernel)
             self.weight_names.append(value_layer.name)
             # self.weight_vars.append(conv.filters)

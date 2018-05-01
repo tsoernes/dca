@@ -51,6 +51,16 @@ wbeta 6e-2
 gbeta 5e-6
 
 --------------------
+date/time 01.05
+Changing default params from:
+grad_beta_decay 0.0
+weight_beta_decay 0.0
+
+Changing default params to:
+grad_beta_decay 9e-4
+weight_beta_decay 4.75e-5
+
+--------------------
 date/time 
 Changing default params from:
 Changing default params to:

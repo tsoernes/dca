@@ -1,5 +1,7 @@
 import numpy as np
 
+import gridfuncs_numba as NGF
+from eventgen import CEvent
 from strats.base import RLStrat
 from utils import prod
 
@@ -124,6 +126,112 @@ class RS_SARSA(QTable):
 
     def feature_rep(self, cell, n_used):
         return cell
+
+
+class HLA_RS_SARSA(QTable):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.qvals = np.zeros(self.dims)
+
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
+        next_ce_type, next_cell = next_cevent[1:3]
+        next_ch, next_max_ch, p = self.optimal_ch(next_ce_type, next_cell)
+        # NOTE TODO this might not be correct for HLA
+        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+            assert next_max_ch is not None
+            self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
+                             discount, p)
+        return next_ch
+
+    def optimal_ch(self, ce_type, cell):
+        inuse = np.nonzero(self.grid[cell])[0]
+        n_used = len(inuse)
+
+        if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
+            chs = NGF.get_eligible_chs(self.grid, cell)
+            if len(chs) == 0:
+                return (None, None, 0)
+        else:
+            chs = inuse
+            assert n_used > 0
+
+        next_event = self.env.eventgen.peek()
+        if self.pp['hoff_lookahead'] and next_event[1] == CEvent.HOFF:
+            assert ce_type == CEvent.END
+            qvals_dense, cur_frep, freps = self.get_hoff_qvals(self.grid, cell, ce_type,
+                                                               chs, next_event[2])
+        else:
+            qvals_dense, cur_frep, freps = self.get_qvals(self.grid, cell, ce_type, chs)
+
+        qvals_dense = self.get_qvals(cell=cell, n_used=n_used, ce_type=ce_type, chs=chs)
+
+        if ce_type == CEvent.END:
+            amin_idx = np.argmin(qvals_dense)
+            ch = max_ch = chs[amin_idx]
+            p = 1
+        else:
+            ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
+            self.epsilon *= self.epsilon_decay
+            amax_idx = np.argmax(qvals_dense)
+            max_ch = chs[amax_idx]
+
+        # If qvals blow up ('NaN's and 'inf's), ch becomes none.
+        if ch is None:
+            self.logger.error(f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n")
+            raise Exception
+        self.logger.debug(f"Optimal ch: {ch} for event {ce_type} of possibilities {chs}")
+        return (ch, max_ch, p)
+
+    def get_qvals(self, cell, n_used, chs=None, *args, **kwargs):
+        if chs is None:
+            return self.qvals[cell]
+        else:
+            return self.qvals[cell][chs]
+
+    def get_hoff_qvals(self, grid, cell, ce_type, chs, h_cell):
+        """ Look ahead for handoffs """
+        end_astates = NGF.afterstates(grid, cell, ce_type, chs)
+        hoff_astates = []
+        n_hoff_astates = []  # For a given end_astate, how many hoff astates?
+        for astate in end_astates:
+            h_chs = NGF.get_eligible_chs(astate, h_cell)
+            if len(h_chs) > 0:
+                h_astates = NGF.afterstates(astate, h_cell, CEvent.HOFF, h_chs)
+                hoff_astates.extend(h_astates)
+                n = len(h_astates)
+            else:
+                n = 0
+            n_hoff_astates.append(n)
+        cur_frep, freps = self.feature_rep(grid), self.feature_reps(end_astates)
+        if len(hoff_astates) > 0:
+            hoff_astates = np.array(hoff_astates)
+            hfreps = self.feature_reps(hoff_astates)
+            hqvals_dense = self.net.forward(freps=hfreps, grids=hoff_astates)
+            assert hqvals_dense.shape == (len(hoff_astates), ), hqvals_dense.shape
+            qvals_dense = np.zeros(len(chs))
+            t = 0
+            for i, n in enumerate(n_hoff_astates):
+                qvals_dense[i] = np.max(hqvals_dense[t:t + n]) if n > 0 else 0
+                t += n
+        else:
+            # Not possible to assign HOFF for any reass on END.
+            qvals_dense = self.net.forward(freps=freps, grids=end_astates)
+
+        return qvals_dense, cur_frep, freps
+
+    def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
+                    discount, p):
+        assert (type(ch) == np.int64) and ch is not None
+        next_n_used = np.count_nonzero(self.grid[next_cell])
+        next_qval = self.get_qvals(next_cell, next_n_used, next_ch)
+        target_q = reward + discount * next_qval
+        n_used = np.count_nonzero(grid[cell])
+        q = self.get_qvals(cell, n_used, ch)
+        self.qval_means.append(np.mean(self.get_qvals(cell, n_used)))
+        td_err = target_q - q
+        self.losses.append(td_err**2)
+        self.qvals[cell][ch] += self.alpha * td_err
+        self.alpha *= self.alpha_decay
 
 
 class NT_RS_SARSA(QTable):

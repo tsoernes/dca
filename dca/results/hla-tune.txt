@@ -1,0 +1,48 @@
+Tuning SMDP for hand-offs and TDC
+
+(default gbeta 5e-6)
+tftdcsinghnet -hla --target discount -rtype smdp_callcount -phoff 0.15 --beta_disc --beta 20 -lr 5e-6 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1555 with standard deviation 0.00094
+Average cumulative handoff block probability 0.0699 with standard deviation 0.00158
+
+tftdcsinghnet -hla --target discount -rtype smdp_callcount -phoff 0.15 --beta_disc --beta 20 -lr 5e-6 --avg_runs 4 -gbeta 1e-6
+Average cumulative block probability over 4 episodes: 0.1554 with standard deviation 0.00201
+Average cumulative handoff block probability 0.0687 with standard deviation 0.00139
+
+tftdcsinghnet -hla --target discount -rtype smdp_callcount -phoff 0.15 --beta_disc --beta 20 -lr 5e-6 --avg_runs 4 -gbeta 1e-7
+Average cumulative block probability over 4 episodes: 0.1558 with standard deviation 0.00184
+Average cumulative handoff block probability 0.0709 with standard deviation 0.00219
+
+tftdcsinghnet -hla --target discount -rtype smdp_callcount -phoff 0.15 --beta_disc --beta 20 -lr 5e-6 --avg_runs 4 -gbeta 1e-8
+Average cumulative block probability over 4 episodes: 0.1556 with standard deviation 0.00026
+Average cumulative handoff block probability 0.0719 with standard deviation 0.00147
+
+----------------------------------------------------------------
+
+Frep types
+
+Vanilla
+p3 main.py tftdcsinghnet -hla -phoff 0.15 --avg_runs 4
+Average cumulative block probability over 4 episodes: 0.1481 with standard deviation 0.00144
+Average cumulative handoff block probability 0.0732 with standard deviation 0.00121
+
+Vanilla + Grid
+p3 main.py tftdcsinghnet -hla -phoff 0.15 --avg_runs 4 --singh_grid
+Average cumulative block probability over 4 episodes: 0.1487 with standard deviation 0.00193
+Average cumulative handoff block probability 0.0735 with standard deviation 0.00087
+
+Big
+Average cumulative block probability over 4 episodes: 0.1483 with standard deviation 0.00086
+Average cumulative handoff block probability 0.0731 with standard deviation 0.00142
+
+Big2
+Average cumulative block probability over 4 episodes: 0.1486 with standard deviation 0.00150
+Average cumulative handoff block probability 0.0725 with standard deviation 0.00196
+
+Big + grid
+Average cumulative block probability over 4 episodes: 0.1498 with standard deviation 0.00169
+Average cumulative handoff block probability 0.0742 with standard deviation 0.00142
+
+Big2 + grid
+Average cumulative block probability over 4 episodes: 0.1490 with standard deviation 0.00171
+Average cumulative handoff block probability 0.0740 with standard deviation 0.00264
