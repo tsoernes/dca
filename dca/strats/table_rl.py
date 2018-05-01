@@ -146,12 +146,11 @@ class HLA_RS_SARSA(QTable):
         next_ce_type, next_cell = next_cevent[1:3]
         res = self.optimal_ch(next_ce_type, next_cell)
         next_ch, next_max_ch, p, next_qval, next_max_qval = res
-        # NOTE TODO this might not be correct for HLA
-        # TODO Pass in and use next_qval
-        if ce_type != CEvent.END and ch is not None and next_ch is not None:
+        # if ce_type != CEvent.END and ch is not None and next_ch is not None:
+        if ch is not None and next_ch is not None:
             assert next_max_ch is not None
             self.update_qval(grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
-                             discount, p)
+                             next_qval, next_max_qval, discount, p)
         return next_ch
 
     def optimal_ch(self, ce_type, cell):
@@ -213,10 +212,10 @@ class HLA_RS_SARSA(QTable):
         return qvals_dense
 
     def update_qval(self, grid, cell, ch, reward, next_cell, next_ch, next_max_ch,
-                    discount, p):
+                    next_qval, next_max_qval, discount, p):
         assert (type(ch) == np.int64) and ch is not None
-        next_n_used = np.count_nonzero(self.grid[next_cell])
-        next_qval = self.get_qvals(next_cell, next_n_used, next_ch)
+        # next_n_used = np.count_nonzero(self.grid[next_cell])
+        # next_qval = self.get_qvals(next_cell, next_n_used, next_ch)
         target_q = reward + discount * next_qval
         n_used = np.count_nonzero(grid[cell])
         q = self.get_qvals(cell, n_used, ch)
