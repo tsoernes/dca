@@ -39,8 +39,7 @@ class TFTDCSinghNet(Net):
             next_net_inp = tf.concat([next_grid, next_frep], axis=3)
         else:
             wdim = prod(self.frepshape[1:])  # Number of parameters in neural net
-            net_inp = frep
-            next_net_inp = next_frep
+            net_inp, next_net_inp = frep, next_frep
 
         net_inp_rv = tf.layers.flatten(net_inp)  # x_t  Row vector
         next_net_inp_rv = tf.layers.flatten(next_net_inp)  # x_{t+1}  Row vector
@@ -48,7 +47,7 @@ class TFTDCSinghNet(Net):
         next_net_inp_cv = tf.transpose(next_net_inp_rv)  # Col vector
 
         self.weights = tf.Variable(tf.zeros(shape=(wdim, 1)), name="gradweights")  # w_t
-        hidden = tf.Variable(tf.zeros(shape=(wdim, 1)), name="dense")
+        hidden = tf.Variable(tf.zeros(shape=(wdim, 1)), name="dense")  # theta_t
         self.value = tf.matmul(net_inp_rv, hidden)
         next_value = tf.matmul(next_net_inp_rv, hidden)
 
@@ -59,10 +58,11 @@ class TFTDCSinghNet(Net):
         # Multiply by -1 because SGD-variants inverts grads
         grads = (-2 * self.loss_grad) * net_inp_cv - (2 * self.avg_reward) + (
             2 * self.discount * dot) * next_net_inp_cv
-        grads_and_vars = [(grads, hidden)]
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
-        self.do_train = trainer.apply_gradients(grads_and_vars, global_step=global_step)
+        self.do_train = trainer.apply_gradients(
+            [(grads, hidden)], global_step=global_step)
 
+        # Update nn weights before grad corr weights
         with tf.control_dependencies([self.do_train]):
             diff = (self.ph_grad_beta * (self.loss_grad - dot)) * net_inp_cv
             self.update_weights = self.weights.assign_add(diff)
