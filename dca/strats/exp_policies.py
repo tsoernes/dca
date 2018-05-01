@@ -252,6 +252,27 @@ class BoltzmannGumbel(Policy):
         pass
 
 
+class EpsNomBoltzmannGumbel(BoltzmannGumbel):
+    """With probability eps, choose greedily from the nominal channels, else
+    bgumbel explore"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def select_action(self, epsilon, chs, qvals_dense, cell):
+        if np.random.random() < epsilon:
+            # Choose at greedily from nominal channels, else at random
+            nom_elig_idxs = _nominal_eligible_idxs(chs, cell)
+            if nom_elig_idxs:
+                nidx = np.argmax(qvals_dense[nom_elig_idxs])
+                idx = nom_elig_idxs[nidx]
+                ch = chs[idx]
+                # NOTE This might not be optimal
+                self.action_counts[ch] += 1
+                return ch, idx, 1
+        return super().select_action(epsilon, chs, qvals_dense, cell)
+
+
 exp_pol_funcs = {
     'eps_greedy': EpsGreedy,
     'nom_greedy': NomGreedyGreedy,
@@ -261,5 +282,6 @@ exp_pol_funcs = {
     'nom_boltzmann': NomBoltzmann,
     'nom_boltzmann2': NomBoltzmann2,
     'nom_fixed_greedy': NomFixedGreedy,
+    'eps_nom_bgumbel': EpsNomBoltzmannGumbel,
     'bgumbel': BoltzmannGumbel
 }  # yapf: disable
