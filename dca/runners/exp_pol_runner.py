@@ -61,7 +61,7 @@ class ExpPolRunner(Runner):
                 best_h = min(params_and_res, key=itemgetter('avg_h'))
                 best_t = sorted(params_and_res, key=itemgetter('avg_t'))
                 self.logger.error(f"Best handoff:\n{best_h}")
-                best_tot = "\n".join(map(repr(best_t[:5])))
+                best_tot = "\n".join(map(repr, best_t[:5]))
                 self.logger.error(f"Best 5 total:\n{best_tot}")
 
         def spawn_eval(i):
