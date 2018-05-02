@@ -29,8 +29,8 @@ class ExpPolRunner(Runner):
         for pol, polparams in pols.items():
             for param, pvals in polparams.items():
                 for pval in pvals:
-                    space.append({'exp_policy': pol, param: pval})
-                    results.append({'exceeded_btresh': False, 'results': []})
+                    space.append({'pol': pol, param: pval})
+                    results.append({'btresh': False, 'results': []})
         n_avg = self.pp['exp_policy_cmp']
         # n_concurrent = cpu_count() // 2
         n_concurrent = cpu_count() - 1
@@ -45,33 +45,27 @@ class ExpPolRunner(Runner):
         def pprint(rr):
             return ", ".join([f"{-r:.4f}" for r in rr])
 
+        avg_descs = ['avg', 'avg_h', 'avg_t']
+
         def print_results():
             for evaluation in results:
-                res = evaluation['results']
-                new_calls = list(r[0] for r in res)
-                evaluation['avg'] = -np.mean(new_calls) if len(res) > 0 else 1
-                if include_hoffs:
-                    mean_h = np.mean(list(r[1] for r in res)) if len(res) > 0 else 1
-                    mean_t = np.mean(list(r[2] for r in res)) if len(res) > 0 else 1
-                    evaluation['avg_h'] = -mean_h
-                    evaluation['avg_t'] = -mean_t
-                else:
-                    evaluation['results'] = new_calls  # Prettier print
+                res = np.array(evaluation['results'])
+                for avg_typ in range(res.shape[1]):
+                    evaluation[avg_descs[avg_typ]] = f"{-np.mean(res[:, avg_typ]):.4f}"
                 evaluation['results'] = list(map(pprint, evaluation['results']))
             params_and_res = [{**p, **r} for p, r in zip(space, results)]
             self.logger.error("\n".join(map(repr, params_and_res)))
-            best = max(params_and_res, key=itemgetter('avg'))
+            best = min(params_and_res, key=itemgetter('avg'))
             self.logger.error(f"Best:\n{best}")
             if include_hoffs:
-                best_h = max(params_and_res, key=itemgetter('avg_h'))
-                # best_t = max(params_and_res, key=itemgetter('avg_t'))
-                best_t = sorted(params_and_res, key=itemgetter('avg_t'), reverse=True)
+                best_h = min(params_and_res, key=itemgetter('avg_h'))
+                best_t = sorted(params_and_res, key=itemgetter('avg_t'))
                 self.logger.error(f"Best handoff:\n{best_h}")
                 self.logger.error(f"Best 5 total:\n{best_t[:5]}")
 
         def spawn_eval(i):
             j = i % len(space)
-            if not results[j]['exceeded_btresh']:
+            if not results[j]['btresh']:
                 Process(target=simproc, args=(i, space[j])).start()
                 return True
             return False
@@ -86,7 +80,7 @@ class ExpPolRunner(Runner):
             else:
                 j = i % len(space)
                 if result is None:
-                    results[j]['exceeded_btresh'] = True
+                    results[j]['btresh'] = True
                 else:
                     results[j]['results'].append(result)
 
