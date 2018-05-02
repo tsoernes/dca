@@ -121,7 +121,8 @@ class Strat:
             if self.invalid_loss:
                 (None, None)
             return (1, 1)
-        return (self.env.stats.block_prob_cum, self.env.stats.block_prob_cum_hoff)
+        return (self.env.stats.block_prob_cum, self.env.stats.block_prob_cum_hoff,
+                self.env.stats.block_prob_cum_tot)
 
     def continue_sim(self, i, t) -> bool:
         if self.quit_sim:

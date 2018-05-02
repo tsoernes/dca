@@ -148,8 +148,11 @@ class Stats:
         # Avoid zero divisions by adding 1 do dividers
         self.block_prob_cum = self.n_rejected / (self.n_incoming + 1)
         self.block_prob_cum_hoff = self.n_handoffs_rejected / (self.n_handoffs + 1)
+        self.block_prob_cum_tot = (self.n_handoffs_rejected + self.n_rejected) / (
+            self.n_handoffs + self.n_incoming + 1)
         if self.n_handoffs_rejected > 0:
-            hoff_str = f", {self.block_prob_cum_hoff:.4f} for handoffs"
+            hoff_str = f", {self.block_prob_cum_hoff:.4f} for handoffs" \
+                       f", {self.block_prob_cum_tot:.4f} total"
         else:
             hoff_str = ""
         self.logger.error(f"\n{self.pid_str}Blocking probability:"

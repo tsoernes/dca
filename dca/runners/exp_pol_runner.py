@@ -2,7 +2,7 @@ import logging
 import sys
 from functools import partial
 from multiprocessing import Process, Queue, cpu_count
-from operator import itemgetter
+from operator import itemgetter, neg
 
 import numpy as np
 
@@ -14,6 +14,7 @@ class ExpPolRunner(Runner):
         super().__init__(*args, **kwargs)
 
     def run(self):
+        include_hoffs = self.pp['p_handoff'] > 0
         pols = {
             'boltzmann': {'epsilon': [2, 4, 6]},
             'nom_boltzmann': {'epsilon': [2, 4, 6]},
@@ -45,12 +46,24 @@ class ExpPolRunner(Runner):
         def print_results():
             for evaluation in results:
                 res = evaluation['results']
-                mean = np.mean(res) if len(res) > 0 else 1
-                evaluation['avg_result'] = mean
+                new_calls = list(r[0] for r in res)
+                evaluation['avg_result'] = np.mean(new_calls) if len(res) > 0 else 1
+                if include_hoffs:
+                    mean_h = np.mean(list(r[1] for r in res)) if len(res) > 0 else 1
+                    mean_t = np.mean(list(r[2] for r in res)) if len(res) > 0 else 1
+                    evaluation['avg_result_h'] = mean_h
+                    evaluation['avg_result_t'] = mean_t
+                else:
+                    evaluation['results'] = new_calls  # Prettier print
             params_and_res = [{**p, **r} for p, r in zip(space, results)]
             self.logger.error("\n".join(map(repr, params_and_res)))
             best = max(params_and_res, key=itemgetter('avg_result'))
             self.logger.error(f"Best:\n{best}")
+            if include_hoffs:
+                best_h = max(params_and_res, key=itemgetter('avg_result_h'))
+                best_t = max(params_and_res, key=itemgetter('avg_result_t'))
+                self.logger.error(f"Best handoff:\n{best_h}")
+                self.logger.error(f"Best total:\n{best_t}")
 
         def spawn_eval(i):
             j = i % len(space)
@@ -91,13 +104,13 @@ def exp_proc(stratclass, pp, result_queue, i, space):
         pp[param] = paramval
     np.random.seed()
     strat = stratclass(pp=pp, logger=logger, pid=i)
-    res = strat.simulate()[0]
+    res = strat.simulate()
     # if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
     if strat.quit_sim:
         # If user quits sim or sim exceeded block thresh, don't store result
         res = None
     else:
-        assert res is not None
+        assert res is not None and res[0] is not None
         # Must negate result as dlib performs maximization by default
-        res = -res
+        res = tuple(map(neg, res))
     result_queue.put((i, res))

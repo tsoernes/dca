@@ -193,7 +193,8 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
 
     np.random.seed()
     strat = stratclass(pp=pp, logger=logger, pid=i)
-    res = strat.simulate()[0]
+    result = strat.simulate()[0]
+    res = result[2] if len(result) > 1 else result[0]
     if res is None:
         res = 1
     if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:

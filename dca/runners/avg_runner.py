@@ -40,6 +40,9 @@ class AvgRunner(Runner):
             f"\nAverage cumulative handoff block probability"
             f" {np.mean(cum_block_probs[:,1]):.4f}"
             f" with standard deviation {np.std(cum_block_probs[:,1]):.5f}"
+            f"\nAverage cumulative total block probability"
+            f" {np.mean(cum_block_probs[:,2]):.4f}"
+            f" with standard deviation {np.std(cum_block_probs[:,2]):.5f}"
             f"\n{cum_block_probs}")
         # TODO Plot average cumulative over time
 
