@@ -42,28 +42,32 @@ class ExpPolRunner(Runner):
 
         # If the first run of a set of params exceeds block prob, there's
         # no need to run multiple of them and take the average.
+        def pprint(rr):
+            return ", ".join([f"{-r:.4f}" for r in rr])
 
         def print_results():
             for evaluation in results:
                 res = evaluation['results']
                 new_calls = list(r[0] for r in res)
-                evaluation['avg_result'] = np.mean(new_calls) if len(res) > 0 else 1
+                evaluation['avg'] = -np.mean(new_calls) if len(res) > 0 else 1
                 if include_hoffs:
                     mean_h = np.mean(list(r[1] for r in res)) if len(res) > 0 else 1
                     mean_t = np.mean(list(r[2] for r in res)) if len(res) > 0 else 1
-                    evaluation['avg_result_h'] = mean_h
-                    evaluation['avg_result_t'] = mean_t
+                    evaluation['avg_h'] = -mean_h
+                    evaluation['avg_t'] = -mean_t
                 else:
                     evaluation['results'] = new_calls  # Prettier print
+                evaluation['results'] = list(map(pprint, evaluation['results']))
             params_and_res = [{**p, **r} for p, r in zip(space, results)]
             self.logger.error("\n".join(map(repr, params_and_res)))
-            best = max(params_and_res, key=itemgetter('avg_result'))
+            best = max(params_and_res, key=itemgetter('avg'))
             self.logger.error(f"Best:\n{best}")
             if include_hoffs:
-                best_h = max(params_and_res, key=itemgetter('avg_result_h'))
-                best_t = max(params_and_res, key=itemgetter('avg_result_t'))
+                best_h = max(params_and_res, key=itemgetter('avg_h'))
+                # best_t = max(params_and_res, key=itemgetter('avg_t'))
+                best_t = sorted(params_and_res, key=itemgetter('avg_t'), reverse=True)
                 self.logger.error(f"Best handoff:\n{best_h}")
-                self.logger.error(f"Best total:\n{best_t}")
+                self.logger.error(f"Best 5 total:\n{best_t[:5]}")
 
         def spawn_eval(i):
             j = i % len(space)
