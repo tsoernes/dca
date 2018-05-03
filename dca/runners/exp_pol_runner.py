@@ -16,8 +16,8 @@ class ExpPolRunner(Runner):
     def run(self):
         include_hoffs = self.pp['p_handoff'] > 0
         pols = {
-            'boltzmann': {'epsilon': [2, 4, 6]},
-            'nom_boltzmann': {'epsilon': [2, 4, 6]},
+            'boltzmann': {'epsilon': [2.2, 4, 6]},
+            'nom_boltzmann': {'epsilon': [2.2, 4, 6]},
             'eps_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]},
             'nom_eps_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]},
             'eps_nom_greedy': {'epsilon': [0.0, 0.2, 0.4, 0.7]},
