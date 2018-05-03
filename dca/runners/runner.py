@@ -12,12 +12,18 @@ class Runner:
     def __init__(self, pp, stratclass):
         self.pp, self.stratclass = pp, stratclass
 
-        logging.basicConfig(level=self.pp['log_level'], format='%(message)s')
-        self.logger = logging.getLogger('')
         if self.pp['log_file']:
-            fh = logging.FileHandler(self.pp['log_file'] + ".log")
-            fh.setLevel(self.pp['log_level'])
-            self.logger.addHandler(fh)
+            fname = self.pp['log_file'] + ".log"
+            logging.basicConfig(
+                filename=fname, level=self.pp['log_level'], format='%(message)s')
+            self.logger = logging.getLogger('')
+            th = logging.StreamHandler(sys.stdout)
+            th.setLevel(self.pp['log_level'])
+            self.logger.addHandler(th)  # Log to file + stdout
+            self.fo_logger = logging.getLogger('file')  # File only
+        else:
+            logging.basicConfig(level=self.pp['log_level'], format='%(message)s')
+            self.logger = self.fo_logger = logging.getLogger('')
         cmdparms = " ".join(sys.argv[1:])
         self.logger.error(
             f"{cmdparms}\nStarting simulation at {datetime.datetime.now()} with params:\n{self.pp}"

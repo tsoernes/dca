@@ -554,6 +554,12 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--log_file', metavar='DEST', type=str, help="enable logging to given file name")
     parser.add_argument(
+        '-save_bp',
+        '--save_cum_block_probs',
+        action='store_true',
+        help="For avg runs, output and save cum. block. prob. for each log iter at end",
+        default=False)
+    parser.add_argument(
         '--log_iter',
         metavar='N',
         type=int,
@@ -610,6 +616,11 @@ def get_pparams(defaults=False):
             pp['n_events'] = 470000
         if pp['log_iter'] is None:
             pp['log_iter'] = int(pp['n_events'] // 8)
+        if pp['log_file'] is None and (pp['save_cum_block_probs']
+                                       or pp['avg_runs'] >= 16):
+            # Force file logging for big runs and when saving cum block probs
+            f_name = f"avg-{pp['strat']}"
+            pp['log_file'] = f_name
     if pp['exp_policy_cmp']:
         if pp['log_level'] is None:
             pp['log_level'] = logging.ERROR
@@ -633,8 +644,10 @@ def get_pparams(defaults=False):
         elif pp['hopt'] is not None:
             libname = "hopt"
             pnames = str.join("-", pp['hopt'])
-        f_name = f"results-{libname}-{pp['strat']}-{pnames}"
-        pp['log_file'] = f_name
+        if pp['log_file'] is None:
+            # Always log hopt runs
+            f_name = f"results-{libname}-{pp['strat']}-{pnames}"
+            pp['log_file'] = f_name
     if pp['bench_batch_size']:
         if pp['log_level'] is None:
             pp['log_level'] = logging.WARN
@@ -651,8 +664,6 @@ def get_pparams(defaults=False):
     if pp['exp_policy'] == "greedy":
         pp['exp_policy'] = "eps_greedy"
         pp['epsilon'] = 0
-    if pp['avg_runs'] and pp['avg_runs'] >= 16 and not pp['log_file']:
-        pp['log_file'] = 'results-big'
 
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])
