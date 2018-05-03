@@ -46,3 +46,27 @@ Average cumulative handoff block probability 0.0742 with standard deviation 0.00
 Big2 + grid
 Average cumulative block probability over 4 episodes: 0.1490 with standard deviation 0.00171
 Average cumulative handoff block probability 0.0740 with standard deviation 0.00264
+
+
+--------------------------------
+
+Always prefer reassignments that allow handoff?
+for i, n in enumerate(n_hoff_astates):
+    if n == 0:
+        # No:
+        astate = end_astates[i]
+        frep = self.feature_rep(astate)
+        qvals_dense[i] = self.net.forward(freps=frep, grids=astate)[0]
+        # Yes:
+        qvals_dense[i] = 0
+
+p3 main.py tftdcsinghnet -phoff 0.15 -hla --avg_runs 8
+No:
+Average cumulative block probability over 8 episodes: 0.1499 with standard deviation 0.00175
+Average cumulative handoff block probability 0.0745 with standard deviation 0.00150
+Average cumulative total block probability 0.1414 with standard deviation 0.00170
+
+Yes:
+Average cumulative block probability over 8 episodes: 0.1491 with standard deviation 0.00111
+Average cumulative handoff block probability 0.0725 with standard deviation 0.00178
+Average cumulative total block probability 0.1405 with standard deviation 0.00107

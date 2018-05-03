@@ -193,6 +193,9 @@ class VNetBase(NetStrat):
                 else:
                     astate = end_astates[i]
                     frep = self.feature_rep(astate)
+                    # To further prioritize hand-offs, set this to 0 instead s.t.
+                    # hand-offs are always accepted if possible.
+                    # Does that entail a penalty to new call block rate?
                     qvals_dense[i] = self.net.forward(freps=frep, grids=astate)[0]
                 t += n
         else:
