@@ -56,7 +56,7 @@ class ExpPolRunner(Runner):
             params_and_res = [{**p, **r} for p, r in zip(space, results)]
             self.logger.error("\n".join(map(repr, params_and_res)))
             best = min(params_and_res, key=itemgetter('avg'))
-            self.logger.error(f"Best:\n{best}")
+            self.logger.error(f"Best new call:\n{best}")
             if include_hoffs:
                 best_h = min(params_and_res, key=itemgetter('avg_h'))
                 best_t = sorted(params_and_res, key=itemgetter('avg_t'))

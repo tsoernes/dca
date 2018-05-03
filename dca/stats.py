@@ -28,7 +28,9 @@ class Stats:
         self.n_curr_rejected = 0  # Number of rejected calls last log_iter events
         self.n_curr_incoming = 0  # Number of incoming calls last log_iter events
         self.block_probs = []
-        self.block_probs_cum = []
+        self.block_probs_cum = []  # For each log iter, cumulative new call block prob
+        self.block_probs_cum_h = []  # For hoffs
+        self.block_probs_cum_t = []  # New + hoff
         self.i = 0  # Current iteration
         self.t = 0  # Current time
 
@@ -72,10 +74,16 @@ class Stats:
         niter = self.pp['log_iter']
         if self.i > 0 and self.i % niter == 0:
             # NOTE excluding handoffs
+            block_prob_cum = self.n_rejected / (self.n_incoming + 1)
+            block_prob_cum_h = self.n_handoffs_rejected / (self.n_handoffs + 1)
+            block_prob_cum_t = (self.n_rejected + self.n_handoffs_rejected) / (
+                self.n_handoffs + self.n_incoming + 1)
+            self.block_probs_cum.append(block_prob_cum)
+            self.block_probs_cum_h.append(block_prob_cum_h)
+            self.block_probs_cum_t.append(block_prob_cum_t)
+
             block_prob = self.n_curr_rejected / (self.n_curr_incoming + 1)
             self.block_probs.append(block_prob)
-            block_prob_cum = self.n_rejected / (self.n_incoming + 1)
-            self.block_probs_cum.append(block_prob_cum)
             self.logger.info(f"\n{self.pid_str}Blocking probability events"
                              f" {self.i-niter}-{self.i}:"
                              f" {block_prob:.4f}, cumulative {block_prob_cum:.4f}")
@@ -160,8 +168,8 @@ class Stats:
         # self.logger.info(f"\nAverage number of calls in progress when blocking: "
         #                  f"{self.n_inuse_rej/(self.n_rejected+1):.2f}")
 
-        if self.pp['do_plot']:
-            self.plot()
+        # if self.pp['do_plot']:
+        #     self.plot()
 
     def plot(self, losses=None):
         xlabel_iters = f"Iterations, in {self.pp['log_iter']}s"

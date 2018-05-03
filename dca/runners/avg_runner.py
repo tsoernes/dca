@@ -3,6 +3,7 @@ import time
 from functools import partial
 from multiprocessing import Pool
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from runners.runner import Runner
@@ -45,6 +46,12 @@ class AvgRunner(Runner):
             f" with standard deviation {np.std(cum_block_probs[:,2]):.5f}"
             f"\n{cum_block_probs}")
         # TODO Plot average cumulative over time
+        if self.pp['do_plot']:
+            block_probs = np.array([r[2] for r in results])
+            block_probs_h = np.array([r[3] for r in results])
+            block_probs_t = np.array([r[4] for r in results])
+            plot((block_probs, block_probs_h, block_probs_t), self.pp['log_iter'],
+                 n_events)
 
 
 def avg_proc(stratclass, pp, pid, reseed=True):
@@ -61,4 +68,31 @@ def avg_proc(stratclass, pp, pid, reseed=True):
     strat = stratclass(pp, logger=logger, pid=pid)
     result = strat.simulate()
     block_probs = strat.env.stats.block_probs
-    return result, block_probs
+    block_probs_cums = strat.env.stats.block_probs_cum
+    block_probs_cums_h = strat.env.stats.block_probs_cum_h
+    block_probs_cums_t = strat.env.stats.block_probs_cum_t
+    return result, block_probs, block_probs_cums, block_probs_cums_h, block_probs_cums_t
+
+
+def plot(all_block_probs_cums, log_iter, n_events):
+    """For each call type (new, hoff, tot), for each run, cumulative block prob for each log iter
+    [[run1_log1, run1_log2, ..], [run2_log1, run2_log2], ..]"""
+
+    plt.plot()
+    ctypes = ['New call', 'Hand-offs', 'Total']
+    x = np.arange(log_iter, n_events + 1, log_iter)
+    for i, block_probs_cums in enumerate(all_block_probs_cums):
+        # print(block_probs_cums, x)
+        y = np.mean(block_probs_cums, axis=0)
+        std_devs = np.std(block_probs_cums, axis=0)
+
+        plt.errorbar(x, y, yerr=std_devs, fmt='-o', label=ctypes[i])
+    plt.legend(loc='lower right')
+    # plt.title('Cumulative call blocking probability')
+    plt.ylabel("Call blocking probability")
+    plt.xlabel("Call events")
+    plt.show()
+
+
+if __name__ == '__main__':
+    plot(None)

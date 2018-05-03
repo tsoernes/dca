@@ -608,7 +608,8 @@ def get_pparams(defaults=False):
         pp['gpu'] = False
         if pp['n_events'] is None:
             pp['n_events'] = 470000
-        pp['log_iter'] = int(pp['n_events'] // 8)
+        if pp['log_iter'] is None:
+            pp['log_iter'] = int(pp['n_events'] // 8)
     if pp['exp_policy_cmp']:
         if pp['log_level'] is None:
             pp['log_level'] = logging.ERROR
