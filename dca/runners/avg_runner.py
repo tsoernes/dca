@@ -59,7 +59,7 @@ class AvgRunner(Runner):
         if self.pp['save_cum_block_probs']:
             self.save_bps(all_block_probs_cums, self.pp['log_iter'], n_events)
         if self.pp['do_plot']:
-            plotter.plot(all_block_probs_cums, self.pp['log_iter'], n_events)
+            plotter.plot_ctypes(all_block_probs_cums, self.pp['log_iter'], n_events)
 
     def save_bps(self, all_block_probs_cum, log_iter, n_events):
         """ Log cumulative block probs, and save to file"""
