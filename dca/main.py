@@ -556,9 +556,9 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '-save_bp',
         '--save_cum_block_probs',
-        action='store_true',
+        type=str,
         help="For avg runs, output and save cum. block. prob. for each log iter at end",
-        default=False)
+        default=None)
     parser.add_argument(
         '--log_iter',
         metavar='N',
@@ -616,8 +616,7 @@ def get_pparams(defaults=False):
             pp['n_events'] = 470000
         if pp['log_iter'] is None:
             pp['log_iter'] = int(pp['n_events'] // 8)
-        if pp['log_file'] is None and (pp['save_cum_block_probs']
-                                       or pp['avg_runs'] >= 16):
+        if pp['log_file'] is None or pp['avg_runs'] >= 16:
             # Force file logging for big runs and when saving cum block probs
             f_name = f"avg-{pp['strat']}"
             pp['log_file'] = f_name

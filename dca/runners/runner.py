@@ -17,10 +17,10 @@ class Runner:
             logging.basicConfig(
                 filename=fname, level=self.pp['log_level'], format='%(message)s')
             self.logger = logging.getLogger('')
+            self.fo_logger = logging.getLogger('file')  # File only
             th = logging.StreamHandler(sys.stdout)
             th.setLevel(self.pp['log_level'])
             self.logger.addHandler(th)  # Log to file + stdout
-            self.fo_logger = logging.getLogger('file')  # File only
         else:
             logging.basicConfig(level=self.pp['log_level'], format='%(message)s')
             self.logger = self.fo_logger = logging.getLogger('')

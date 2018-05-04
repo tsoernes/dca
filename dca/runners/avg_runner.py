@@ -8,10 +8,8 @@ from multiprocessing import Pool
 
 import numpy as np
 
-import plotter
+from plotter import ctypes_short, plot_bps
 from runners.runner import Runner
-
-ctypes = ['New call', 'Hand-offs', 'Total']
 
 
 class AvgRunner(Runner):
@@ -59,7 +57,7 @@ class AvgRunner(Runner):
         if self.pp['save_cum_block_probs']:
             self.save_bps(all_block_probs_cums, self.pp['log_iter'], n_events)
         if self.pp['do_plot']:
-            plotter.plot_ctypes(all_block_probs_cums, self.pp['log_iter'], n_events)
+            plot_bps(all_block_probs_cums, self.pp['log_iter'], n_events)
 
     def save_bps(self, all_block_probs_cum, log_iter, n_events):
         """ Log cumulative block probs, and save to file"""
@@ -69,10 +67,10 @@ class AvgRunner(Runner):
             'n_events': n_events
         }
         for i, block_probs_cums in enumerate(all_block_probs_cum):
-            self.fo_logger.error(f'{ctypes[i]} cum block probs')
+            self.fo_logger.error(f'{ctypes_short[i]} cumulative block probs')
             self.fo_logger.error(block_probs_cums)
-            data[ctypes[i]] = block_probs_cums
-        fname = self.pp['log_file']
+            data[ctypes_short[i]] = block_probs_cums
+        fname = 'bps/' + self.pp['save_cum_block_probs']
         if os.path.isfile(fname + '.pkl'):
             i = 0
             while os.path.isfile(fname + f'.{i}.pkl'):
@@ -80,6 +78,7 @@ class AvgRunner(Runner):
             fname = fname + f'.{i}'
         with open(fname + '.pkl', "wb") as f:
             pickle.dump(data, f)
+        self.logger.error(f"Saved cumulative block probs to {fname}.pkl")
 
 
 def avg_proc(stratclass, pp, pid, reseed=True):
