@@ -190,15 +190,15 @@ class VNetBase(NetStrat):
                 # qvals_dense[i] = np.max(hqvals_dense[t:t + n]) if n > 0 else 0
                 if n > 0:
                     qvals_dense[i] = np.max(hqvals_dense[t:t + n])
-                else:
-                    # To further prioritize hand-offs, set this to 0 instead s.t.
-                    # hand-offs are always accepted if possible.
-                    # Does that entail a penalty to new call block rate?
-                    qvals_dense[i] = 0
-                    # astate = end_astates[i]
-                    # frep = self.feature_rep(astate)
-                    # qvals_dense[i] = self.net.forward(freps=[frep], grids=astate)[0]
                 t += n
+            # Nasty hack for 2-step returns
+            reward = np.count_nonzero(
+                hoff_astates[0])  # All relevant astates have same count
+            if self.pp['target'] == 'avg':
+                qvals_dense += reward - self.avg_reward
+            else:
+                qvals_dense *= self.gamma**2
+                qvals_dense += reward
         else:
             # Not possible to assign HOFF for any reass on END.
             qvals_dense = self.net.forward(freps=freps, grids=end_astates)
