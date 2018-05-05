@@ -70,3 +70,17 @@ Yes:
 Average cumulative block probability over 8 episodes: 0.1491 with standard deviation 0.00111
 Average cumulative handoff block probability 0.0725 with standard deviation 0.00178
 Average cumulative total block probability 0.1405 with standard deviation 0.00107
+
+Switching to 'yes' hereon.
+-------------------------------------------
+
+Use two-step returns on HLA?
+If yes:
+if self.pp['target'] == 'avg':
+    qvals_dense += reward - self.avg_reward
+else:
+    qvals_dense *= self.gamma**2
+    qvals_dense += reward
+
+Yes:
+p3 main.py tftdcsinghnet -phoff 0.15 -hla --avg_runs 8
