@@ -25,6 +25,7 @@ class TFTDCSinghNet(Net):
         self.reward = tf.placeholder(tf.float32, [None], "rewards")
         self.discount = tf.placeholder(tf.float32, [None], "discount")
         self.ph_grad_beta = tf.placeholder(tf.float32, [], "grad_beta")
+        self.imp_weight = tf.placeholder(tf.float32, [], "importance_weight")
 
         frep = tf.cast(self.frep, tf.float32)
         next_frep = tf.cast(self.next_frep, tf.float32)
@@ -60,11 +61,12 @@ class TFTDCSinghNet(Net):
             2 * self.discount * dot) * next_net_inp_cv
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
         self.do_train = trainer.apply_gradients(
-            [(grads, hidden)], global_step=global_step)
+            [(self.imp_weight * grads, hidden)], global_step=global_step)
 
         # Update nn weights before grad corr weights
         with tf.control_dependencies([self.do_train]):
-            diff = (self.ph_grad_beta * (self.loss_grad - dot)) * net_inp_cv
+            diff = (self.ph_grad_beta * self.imp_weight *
+                    (self.loss_grad - dot)) * net_inp_cv
             self.update_weights = self.weights.assign_add(diff)
 
         return None, None
@@ -87,13 +89,15 @@ class TFTDCSinghNet(Net):
                  rewards,
                  next_freps,
                  discount=None,
-                 weights=None,
+                 weights=[1],
                  avg_reward=None,
                  grids=None,
                  next_grids=None,
                  **kwargs):
         assert len(freps) == 1  # Hard coded for one-step
         assert discount is not None or avg_reward is not None
+        assert weights is not None
+        assert weights[0] is not None
         if avg_reward is not None:
             discount = 1
         else:
@@ -105,7 +109,8 @@ class TFTDCSinghNet(Net):
             self.reward: rewards,
             self.discount: [discount],
             self.avg_reward: avg_reward,
-            self.ph_grad_beta: self.grad_beta
+            self.ph_grad_beta: self.grad_beta,
+            self.imp_weight: weights[0]
         }
         if self.grid_inp:
             data[self.grid] = prep_data_grids(grids, self.grid_split)

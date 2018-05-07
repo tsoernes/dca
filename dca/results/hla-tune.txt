@@ -84,3 +84,26 @@ else:
 
 Yes:
 p3 main.py tftdcsinghnet -phoff 0.15 -hla --avg_runs 8
+
+Switching to yes hereon.
+
+-----------------------------------------
+Importance sample or not?
+
+Yes-v1 (boltzmann)
+probs = scaled / np.sum(scaled)
+idx = np.random.choice(range(len(chs)), p=probs)
+if idx == max_idx:
+    p = 1 / probs[idx]
+else:
+    p = 0
+return chs[idx], idx, p
+
+Yes-v2 (boltzmann)
+probs = scaled / np.sum(scaled)
+idx = np.random.choice(range(len(chs)), p=probs)
+if idx == max_idx:
+    p = 1 / probs[idx]
+else:
+    p = 0
+return chs[idx], idx, p
