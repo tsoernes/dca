@@ -147,6 +147,8 @@ def get_pparams(defaults=False):
         help="Run simulation N times, report average block probs",
         default=None)
     parser.add_argument(
+        '--threads', metavar='M', type=int, help="Max threads", default=16)
+    parser.add_argument(
         '--exp_policy_cmp',
         metavar='N',
         type=int,
@@ -544,6 +546,8 @@ def get_pparams(defaults=False):
         default=False)
     parser.add_argument('--gui', action='store_true', default=False)
     parser.add_argument('--plot', action='store_true', dest='do_plot', default=False)
+    parser.add_argument(
+        '--plot_save', action='store_true', help="Save plot, don't show", default=False)
     parser.add_argument(
         '--log_level',
         type=int,

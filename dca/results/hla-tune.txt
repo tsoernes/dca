@@ -74,6 +74,7 @@ Average cumulative total block probability 0.1405 with standard deviation 0.0010
 Switching to 'yes' hereon.
 -------------------------------------------
 
+Date 5.5
 Use two-step returns on HLA?
 If yes:
 if self.pp['target'] == 'avg':
@@ -84,3 +85,9 @@ else:
 
 Yes:
 p3 main.py tftdcsinghnet -phoff 0.15 -hla --avg_runs 8
+verage cumulative block probability over 8 episodes: 0.1488 with standard deviation 0.00082
+Average cumulative handoff block probability 0.0738 with standard deviation 0.00159
+Average cumulative total block probability 0.1403 with standard deviation 0.00086
+
+Switching to 'yes' hereon.
+-------------------------------------------

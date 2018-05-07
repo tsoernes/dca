@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 
@@ -8,7 +10,7 @@ def beta(beta, avg_dt=0.0034):
     gamma_disc = np.exp(-beta * avg_dt)
     reward_disc = (1 - gamma_disc) / beta
     ratio = gamma_disc / (reward_disc + gamma_disc)
-    return gamma_disc, reward_disc, ratio
+    return gamma_disc, reward_disc, 2 * reward_disc, ratio
 
 
 """
@@ -30,3 +32,6 @@ gamma=0.9 (ratio=1/1.9=0.526)
 gamma=1.0 (ratio=1/2)
 2624
 """
+if __name__ == "__main__":
+    res = beta(*map(float, sys.argv[1:]))
+    print(tuple(zip(("Gamma-disc", "Reward-disc", "x2", "G-to-R+G ratio"), res)))

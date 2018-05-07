@@ -21,7 +21,7 @@ class AvgRunner(Runner):
         n_runs = self.pp['avg_runs']
         simproc = partial(avg_proc, self.stratclass, self.pp, reseed=True)
         # Net runs use same np seed for all runs; other strats do not
-        with Pool() as p:
+        with Pool(self.pp['threads']) as p:
             results = p.map(simproc, range(n_runs))
         # Filter out bad results (invalid loss etc)
         results = [r for r in results if r[0][0] != 1 and r[0][0] is not None]
