@@ -90,4 +90,24 @@ Average cumulative handoff block probability 0.0738 with standard deviation 0.00
 Average cumulative total block probability 0.1403 with standard deviation 0.00086
 
 Switching to 'yes' hereon.
--------------------------------------------
+
+-----------------------------------------
+Importance sample or not?
+
+Yes-v1 (boltzmann)
+probs = scaled / np.sum(scaled)
+idx = np.random.choice(range(len(chs)), p=probs)
+if idx == max_idx:
+    p = 1 / probs[idx]
+else:
+    p = 0
+return chs[idx], idx, p
+
+Yes-v2 (boltzmann)
+probs = scaled / np.sum(scaled)
+idx = np.random.choice(range(len(chs)), p=probs)
+if idx == max_idx:
+    p = 1 / probs[idx]
+else:
+    p = 0
+return chs[idx], idx, p

@@ -27,6 +27,8 @@ class TDCSinghNet(ManSinghNet):
                  **kwargs):
         # NOTE can possible take in val, next_val here as theyre already known
         assert len(freps) == 1  # Hard coded for one-step
+        assert weights is not None
+        assert weights[0] is not None
         value, next_value, inp_colvec, next_inp_colvec, _ = self._get_vals_inps(
             freps, next_freps, grids, next_grids)
 
@@ -38,7 +40,7 @@ class TDCSinghNet(ManSinghNet):
         # dot is inner product and therefore a scalar
         dot = np.dot(inp_colvec.T, self.weights)
         grad = -2 * weights[0] * (
-            td_err * inp_colvec + avg_reward - next_inp_colvec * dot)
+            td_err * inp_colvec + avg_reward - discount * next_inp_colvec * dot)
         lr, _ = self.sess.run(
             [self.lr, self.do_train],
             feed_dict={self.grads[0][0]: grad},

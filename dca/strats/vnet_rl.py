@@ -25,6 +25,12 @@ from nets.utils import softmax
 from strats.base import NetStrat
 from strats.exp_policies import BoltzmannGumbel
 
+# On-policy action, off-policy action, importance weight
+Chs = namedtuple('Chs', 'on, off, p')
+Qvals = namedtuple('Qvals', 'on, off')
+# Current, (next) on-policy, (next) off-policy
+Freps = namedtuple('Freps', 'cur, on, off')
+
 
 class VNetBase(NetStrat):
     def __init__(self, *args, **kwargs):
@@ -45,8 +51,10 @@ class VNetBase(NetStrat):
             self.update_qval = self.update_qval_disc
 
     def get_init_action(self, cevent):
-        res = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
-        ch, self.next_qval, self.max_ch, _, self.p, self.frep, self.next_frep, _ = res
+        chs, qvals, freps = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
+        ch, self.max_ch, self.p = chs
+        self.frep, self.next_frep = freps.cur, freps.on
+        self.next_qval = qvals.on
         return ch
 
     def prep_net(self):
@@ -76,7 +84,7 @@ class VNetBase(NetStrat):
         if ch is None:
             frep = next_frep = self.feature_rep(self.grid)
             val = self.net.forward(grids=grid, freps=[frep])[0]
-            self.update_qval(grid, frep, cell, ce_type, ch, self.max_ch, self.p, reward,
+            self.update_qval(grid, frep, cell, ce_type, ch, self.max_ch, 1, reward,
                              self.grid, next_frep, val, discount)
         else:
             self.update_qval(grid, self.frep, cell, ce_type, ch, self.max_ch, self.p,
@@ -85,23 +93,18 @@ class VNetBase(NetStrat):
         # and self.next_val will be the value of executing then 'ch' on then 'grid'
         # i.e. the value of then 'self.grid'
         next_ce_type, next_cell = next_cevent[1:3]
-        res = self.optimal_ch(next_ce_type, next_cell)
-        next_ch, next_val, self.max_ch, next_max_val, p, frep, next_frep, next_max_frep = res
-        # NOTE This looks funny. If imp sampling, is 'p' prob of max ch?
-        # if self.importance_sampl:
-        #     self.p = p
-        # else:
-        #     self.p = 1
-        #     self.next_val = next_val
-        #     self.next_frep = next_frep
-        self.frep = frep
-        self.p = 1
-        # self.p = 1
-        self.next_val = next_val
-        self.next_frep = next_frep
-        # self.next_val = next_max_val
-        # self.next_frep = next_max_frep
-        return next_ch
+        chs, qvals, freps = self.optimal_ch(next_ce_type, next_cell)
+        self.max_ch = chs.off
+        if self.importance_sampl:
+            self.p = chs.p
+            self.next_val = qvals.off
+            self.next_frep = freps.off
+        else:
+            self.p = 1
+            self.next_val = qvals.on
+            self.next_frep = freps.on
+        self.frep = freps.cur
+        return chs.on
 
     def optimal_ch(self, ce_type, cell) -> int:
         """ Select a channel and return selected channel, greedy channel, qval and frep for both,
@@ -109,7 +112,7 @@ class VNetBase(NetStrat):
         if ce_type == CEvent.NEW or ce_type == CEvent.HOFF:
             chs = NGF.get_eligible_chs(self.grid, cell)
             if len(chs) == 0:
-                return (None, ) * 8
+                return Chs(None, None, 1), Qvals(None, None), Freps(None, None, None)
         else:
             chs = np.nonzero(self.grid[cell])[0]
 
@@ -153,8 +156,8 @@ class VNetBase(NetStrat):
             self.epsilon *= self.epsilon_decay
 
         assert ch is not None, f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n"
-        return ch, qvals_dense[idx], max_ch, qvals_dense[max_idx], p, cur_frep, freps[
-            idx], freps[max_idx]
+        return Chs(ch, max_ch, p), Qvals(qvals_dense[idx], qvals_dense[max_idx]), Freps(
+            cur_frep, freps[idx], freps[max_idx])
 
     def get_qvals(self, grid, cell, ce_type, chs):
         cur_frep, freps = self.afterstate_freps(grid, cell, ce_type, chs)
@@ -197,8 +200,8 @@ class VNetBase(NetStrat):
             if self.pp['target'] == 'avg':
                 qvals_dense += reward - self.avg_reward
             else:
-                qvals_dense *= self.gamma**2
-                qvals_dense += reward
+                qvals_dense *= self.pp['gamma']**2
+                qvals_dense += self.pp['gamma'] * reward
         else:
             # Not possible to assign HOFF for any reass on END.
             qvals_dense = self.net.forward(freps=freps, grids=end_astates)

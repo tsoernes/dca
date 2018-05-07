@@ -13,8 +13,6 @@ import strats.fixedstrats  # noqa
 import strats.qnet_rl  # noqa
 import strats.table_rl  # noqa
 import strats.vnet_rl  # noqa
-from runners.avg_runner import AvgRunner
-from runners.exp_pol_runner import ExpPolRunner
 from runners.runner import AnalyzeNetRunner, Runner, ShowRunner, TrainNetRunner
 from strats.exp_policies import exp_pol_funcs
 
@@ -29,8 +27,10 @@ def main():
         from runners.dlib_runner import DlibRunner
         run_cls = DlibRunner
     elif pp['exp_policy_cmp']:
+        from runners.exp_pol_runner import ExpPolRunner
         run_cls = ExpPolRunner
     elif pp['avg_runs']:
+        from runners.avg_runner import AvgRunner
         run_cls = AvgRunner
     elif pp['strat'] == 'show':
         run_cls = ShowRunner
