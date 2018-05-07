@@ -2,6 +2,7 @@
 TAGS
 dca/model/
 dca/db/
+dca/plots/
 dca/logfile.txt
 *.bak
 # Numpy data sets
