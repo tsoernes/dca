@@ -36,7 +36,7 @@ class TDCSinghNet(ManSinghNet):
             avg_reward = 0
         else:
             discount = 1
-        td_err = rewards[0] + discount * next_value - value
+        td_err = rewards[0] - avg_reward + discount * next_value - value
         # dot is inner product and therefore a scalar
         dot = np.dot(inp_colvec.T, self.weights)
         grad = -2 * weights[0] * (

@@ -1,6 +1,5 @@
 import datetime
 import logging
-import os
 import pickle
 import time
 from functools import partial
@@ -8,6 +7,7 @@ from multiprocessing import Pool
 
 import numpy as np
 
+from dataloader import next_filename
 from plotter import ctypes_short, plot_bps
 from runners.runner import Runner
 
@@ -57,7 +57,11 @@ class AvgRunner(Runner):
         if self.pp['save_cum_block_probs']:
             self.save_bps(all_block_probs_cums, self.pp['log_iter'], n_events)
         if self.pp['do_plot']:
-            plot_bps(all_block_probs_cums, self.pp['log_iter'], n_events)
+            plot_bps(
+                all_block_probs_cums,
+                self.pp['log_iter'],
+                n_events,
+                fname=self.pp['plot_save'])
 
     def save_bps(self, all_block_probs_cum, log_iter, n_events):
         """ Log cumulative block probs, and save to file"""
@@ -70,12 +74,7 @@ class AvgRunner(Runner):
             self.fo_logger.error(f'{ctypes_short[i]} cumulative block probs')
             self.fo_logger.error(block_probs_cums)
             data[ctypes_short[i]] = block_probs_cums
-        fname = 'bps/' + self.pp['save_cum_block_probs']
-        if os.path.isfile(fname + '.pkl'):
-            i = 0
-            while os.path.isfile(fname + f'.{i}.pkl'):
-                i += 1
-            fname = fname + f'.{i}'
+        fname = next_filename('bps/' + self.pp['save_cum_block_probs'], '.pkl')
         with open(fname + '.pkl', "wb") as f:
             pickle.dump(data, f)
         self.logger.error(f"Saved cumulative block probs to {fname}.pkl")

@@ -98,10 +98,10 @@ class TFTDCSinghNet(Net):
         assert discount is not None or avg_reward is not None
         assert weights is not None
         assert weights[0] is not None
-        if avg_reward is not None:
-            discount = 1
-        else:
+        if avg_reward is None:
             avg_reward = 0
+        else:
+            discount = 1
 
         data = {
             self.frep: freps,

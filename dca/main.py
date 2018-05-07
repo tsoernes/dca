@@ -547,7 +547,10 @@ def get_pparams(defaults=False):
     parser.add_argument('--gui', action='store_true', default=False)
     parser.add_argument('--plot', action='store_true', dest='do_plot', default=False)
     parser.add_argument(
-        '--plot_save', action='store_true', help="Save plot, don't show", default=False)
+        '--plot_save',
+        type=str,
+        help="Save plot to given file name, don't show",
+        default=None)
     parser.add_argument(
         '--log_level',
         type=int,
@@ -584,6 +587,8 @@ def get_pparams(defaults=False):
     # pp['conv_bias'] = not pp['no_conv_bias']
     # del pp['no_conv_bias']
 
+    if pp['plot_save']:
+        pp['plot'] = True
     if pp['beta'] and not pp['beta_disc']:
         print("Using beta but not beta_disc!")
     assert len(pp['conv_kernel_sizes']) == len(pp['conv_nfilters'])
