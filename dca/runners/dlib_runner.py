@@ -40,8 +40,8 @@ class DlibRunner(Runner):
             'weight_beta_decay': [False, 1e-5, 6e-5],
             'grad_beta': [False, 5e-7, 1e-5],
             'grad_beta_decay': [False, 1e-4, 1e-3],
-            'epsilon': [False, 2, 5],
-            'epsilon_decay': [False, 0.999_5, 0.999_999],
+            'epsilon': [False, 2.5, 5],
+            'epsilon_decay': [False, 0.999_8, 0.999_999],
             'alpha': [False, 0.00001, 0.3],
             'huber_loss': [True, 10, 40]
         }
@@ -193,7 +193,7 @@ def dlib_proc(stratclass, pp, space_params, result_queue, i, space_vals):
 
     np.random.seed()
     strat = stratclass(pp=pp, logger=logger, pid=i)
-    result = strat.simulate()[0]
+    result = strat.simulate()
     res = result[2] if len(result) > 1 else result[0]
     if res is None:
         res = 1

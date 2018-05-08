@@ -185,13 +185,13 @@ def get_pparams(defaults=False):
         dest='epsilon',
         type=float,
         help="(RL) (initial) probability of choosing random action",
-        default=2.10259)
+        default=4.8)
     parser.add_argument(
         '-edec',
         '--epsilon_decay',
         type=float,
         help="(RL) factor by which epsilon is multiplied each iteration",
-        default=0.999_9)
+        default=0.999_995)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
         '--gamma_end', type=float, help="(RL) discount factor at sim end", default=None)

@@ -61,6 +61,16 @@ grad_beta_decay 9e-4
 weight_beta_decay 4.75e-5
 
 --------------------
+date/time  8.5
+Changing default params from:
+epsilon 2.10259
+epsilon_decay 0.999_9
+
+Changing default params to:
+epsilon 4.8
+epsilon_decay 0.999_995
+
+--------------------
 date/time 
 Changing default params from:
 Changing default params to:
