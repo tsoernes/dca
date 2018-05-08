@@ -114,8 +114,10 @@ def get_pparams(defaults=False):
         '-phoff',
         '--p_handoff',
         type=float,
+        nargs='?',
         help="handoff probability. Default: 0.0",
-        default=None)
+        default=None,
+        const=0.15)
     parser.add_argument(
         '--hoff_call_duration',
         type=int,
@@ -192,6 +194,13 @@ def get_pparams(defaults=False):
         type=float,
         help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.999_995)
+    parser.add_argument(
+        '--eps_log_decay', action='store_true', help="(RL) A la Lilith", default=False)
+    parser.add_argument(
+        '--lilith',
+        action='store_true',
+        help="(RL) Lilith hyperparam preset",
+        default=False)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.85)
     parser.add_argument(
         '--gamma_end', type=float, help="(RL) discount factor at sim end", default=None)
@@ -587,10 +596,6 @@ def get_pparams(defaults=False):
     # pp['conv_bias'] = not pp['no_conv_bias']
     # del pp['no_conv_bias']
 
-    if pp['plot_save']:
-        pp['plot'] = True
-    if pp['beta'] and not pp['beta_disc']:
-        print("Using beta but not beta_disc!")
     assert len(pp['conv_kernel_sizes']) == len(pp['conv_nfilters'])
 
     pp['freps'] = pp['qnet_freps'] or pp['qnet_freps_only']
@@ -606,6 +611,17 @@ def get_pparams(defaults=False):
     if not pp['call_rate']:
         pp['call_rate'] = pp['erlangs'] / pp['call_duration']
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
+    if pp['lilith']:
+        pp['alpha'] = 0.05
+        pp['alpha_decay'] = 1
+        pp['eps_log_decay'] = True
+        pp['target'] = 'discount'
+        pp['gamma'] = 0.975
+        pp['epsilon'] = 5
+    if pp['plot_save']:
+        pp['plot'] = True
+    if pp['beta'] and not pp['beta_disc']:
+        print("Using beta but not beta_disc!")
     if pp['target'] != 'discount':
         pp['gamma'] = None
         pp['beta'] = None

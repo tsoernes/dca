@@ -62,8 +62,8 @@ class Strat:
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
-        self.i, t = 0, 0  # Iteration, time
-        while self.continue_sim(self.i, t):
+        self.i, self.t = 0, 0  # Iteration, time
+        while self.continue_sim(self.i, self.t):
             t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
             reward, hreward, discount, next_cevent = self.env.step(ch)

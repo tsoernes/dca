@@ -9,6 +9,7 @@ from utils import prod
 class QTable(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.epsilon0 = self.epsilon
         self.alpha = self.pp['alpha']
         self.alpha_decay = self.pp['alpha_decay']
         self.lmbda = self.pp['lambda']
@@ -16,6 +17,7 @@ class QTable(RLStrat):
             self.logger.error("Using lambda returns")
         if self.pp['target'] != 'discount':
             raise NotImplementedError(self.pp['target'])
+        self.eps_log_decay = self.pp['eps_log_decay']
 
     def load_qvals(self):
         """Load Q-values from file"""
@@ -186,7 +188,10 @@ class HLA_RS_SARSA(QTable):
             qvals_dense = self.get_qvals(
                 cell=cell, n_used=n_used, ce_type=ce_type, chs=chs)
             ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
-            self.epsilon *= self.epsilon_decay
+            if self.eps_log_decay:
+                self.epsilon = self.epsilon0 / np.sqrt(self.t * 60 / 256)
+            else:
+                self.epsilon *= self.epsilon_decay
             amax_idx = np.argmax(qvals_dense)
             max_ch = chs[amax_idx]
 
