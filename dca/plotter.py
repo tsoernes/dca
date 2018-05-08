@@ -1,4 +1,5 @@
 import argparse
+import os
 import pickle
 
 import matplotlib.pyplot as plt
@@ -50,7 +51,7 @@ def plot_bps(all_block_probs_cums,
     plt.plot()
     x = np.arange(log_iter, n_events + 1, log_iter)
     for i, block_probs_cums in enumerate(all_block_probs_cums):
-        # Convert to %
+        # Convert to percent
         y = 100 * np.mean(block_probs_cums, axis=0)
         std_devs = 100 * np.std(block_probs_cums, axis=0)
         ax.errorbar(x, y, yerr=std_devs, fmt='-o', label=labels[i], capsize=5)
@@ -61,13 +62,15 @@ def plot_bps(all_block_probs_cums,
     ax.yaxis.grid(True)
     ax.yaxis.set_major_formatter(PercentFormatter())
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
-    if n_events >= 470000:
+    if n_events >= 400000:
         ax.xaxis.set_major_locator(ticker.MultipleLocator(50000))
     if not fname:
         plt.show()
     else:
         fname = next_filename(fname, '.png')
-        plt.savefig("plots/" + fname + '.png', bbox_inches='tight')
+        if not os.path.exists("plots"):
+            os.makedirs("plots")
+        plt.savefig("plots/" + fname, bbox_inches='tight')
 
 
 def plot_strats(data, labels=None, ctype='new', title='', fname=None):

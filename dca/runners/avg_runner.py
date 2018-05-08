@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import pickle
 import time
 from functools import partial
@@ -75,7 +76,9 @@ class AvgRunner(Runner):
             self.fo_logger.error(block_probs_cums)
             data[ctypes_short[i]] = block_probs_cums
         fname = next_filename('bps/' + self.pp['save_cum_block_probs'], '.pkl')
-        with open(fname + '.pkl', "wb") as f:
+        if not os.path.exists("bps"):
+            os.makedirs("bps")
+        with open(fname, "wb") as f:
             pickle.dump(data, f)
         self.logger.error(f"Saved cumulative block probs to {fname}.pkl")
 
