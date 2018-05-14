@@ -119,8 +119,8 @@ class Strat:
             # Don't want to return actual block prob for incomplete sims when
             # optimizing params, because block prob is much lower at sim start
             if self.invalid_loss:
-                (None, None)
-            return (1, 1)
+                (None, None, None)
+            return (1, 1, 1)
         return (self.env.stats.block_prob_cum, self.env.stats.block_prob_cum_hoff,
                 self.env.stats.block_prob_cum_tot)
 
