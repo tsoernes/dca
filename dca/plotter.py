@@ -9,6 +9,7 @@ from matplotlib.ticker import PercentFormatter
 
 from datahandler import next_filename
 
+# Increase font size, set default figure size
 params = {
     'legend.fontsize': 'x-large',
     'figure.figsize': (13, 11),
@@ -18,6 +19,7 @@ params = {
     'ytick.labelsize': 'x-large'
 }
 plt.rcParams.update(params)
+
 ctypes = ['New call', 'Hand-off', 'Total']
 ctypes_short = ['new', 'hoff', 'tot']
 ctypes_map = dict(zip(ctypes_short, ctypes))
@@ -37,7 +39,7 @@ def plot_bps(all_block_probs_cums,
     cumulative block prob for each log iter [[run1_log1, run1_log2, ..],
     [run2_log1, run2_log2], ..]
 
-    If fname is given, don't show plot but save it
+    If fname is given, save plot to file instead of showing it
     """
     if ylabel is None:
         ylabel = "Cumulative call blocking probability"
@@ -50,11 +52,15 @@ def plot_bps(all_block_probs_cums,
     fig, ax = plt.subplots(1, 1)
     plt.plot()
     x = np.arange(log_iter, n_events + 1, log_iter)
+    # Shift x-axis to avoid overlapping err bars
+    shift_perc = n_events * 0.005
+    x_shift = np.arange(0, len(all_block_probs_cums) + 1) * shift_perc
     for i, block_probs_cums in enumerate(all_block_probs_cums):
         # Convert to percent
         y = 100 * np.mean(block_probs_cums, axis=0)
         std_devs = 100 * np.std(block_probs_cums, axis=0)
-        ax.errorbar(x, y, yerr=std_devs, fmt='-o', label=labels[i], capsize=5)
+        xs = x + x_shift[i]
+        ax.errorbar(xs, y, yerr=std_devs, fmt='-o', label=labels[i], capsize=5)
     ax.legend(loc=loc)
     ax.set_ylabel(ylabel)
     ax.set_xlabel("Call events")
@@ -62,15 +68,18 @@ def plot_bps(all_block_probs_cums,
     ax.yaxis.grid(True)
     ax.yaxis.set_major_formatter(PercentFormatter())
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
-    if n_events >= 400000:
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(50000))
-    if not fname:
-        plt.show()
-    else:
-        fname = next_filename(fname, '.png')
+    if n_events >= 400_000:
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(50_000))
+    elif n_events <= 10_000:
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1_000))
+    if fname:
         if not os.path.exists("plots"):
             os.makedirs("plots")
-        plt.savefig("plots/" + fname, bbox_inches='tight')
+        fname = next_filename("plots/" + fname, '.png')
+        plt.savefig(fname, bbox_inches='tight')
+        print(f"Saved fig to {fname}")
+    else:
+        plt.show()
 
 
 def plot_strats(data, labels=None, ctype='new', title='', fname=None):
@@ -88,7 +97,7 @@ def plot_strats(data, labels=None, ctype='new', title='', fname=None):
         assert log_iter == strat['log_iter'], (log_iter, strat['log_iter'])
         assert n_events == strat['n_events'], (n_events, strat['n_events'])
         print(strat['datetime'])
-    all_block_probs_cums = (d[ctype] for d in data)
+    all_block_probs_cums = [d[ctype] for d in data]
     if labels is None:
         labels = [None] * len(data)
     ylabel = f"{ctypes_map[ctype]} cumulative blocking probability"
@@ -146,7 +155,6 @@ def runner():
             for ctype in args['ctype']:
                 fname = args['plot_save'] + '-ctype'
                 plot_strats(data, labels, ctype, title=title, fname=fname)
-        plot_strats(data, labels, args['ctype'], title=title, fname=fname)
 
 
 if __name__ == '__main__':
