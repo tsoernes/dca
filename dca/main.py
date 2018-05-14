@@ -607,7 +607,7 @@ def get_pparams(defaults=False):
     if pp['n_hours'] is not None:
         # Approximate iters from hours. Only used for calculating
         # log_iter percentages and param decay schedules if log iter is not given
-        pp['n_events'] = 7821 * pp['n_hours'] - 2015
+        pp['n_events'] = int(7821 * pp['n_hours'] - 2015)
     if not pp['call_rate']:
         pp['call_rate'] = pp['erlangs'] / pp['call_duration']
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])

@@ -34,7 +34,11 @@ class AvgRunner(Runner):
         # For each thread, block prob (not cum) during each log iter
         block_probs = np.array([r[1] for r in results])
         # print(cum_block_probs, "\n", block_probs)
-        bprobs = ", ".join("%.4f" % f for f in np.mean(block_probs, axis=0))
+        try:
+            bprobs = ", ".join("%.4f" % f for f in np.mean(block_probs, axis=0))
+        except TypeError:
+            print(block_probs, results)
+            raise
         self.logger.error(
             f"\n{n_runs}x{n_events} events finished with speed"
             f" {(n_runs*n_events)/(time.time()-t):.0f} events/second"

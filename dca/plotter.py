@@ -53,21 +53,31 @@ def plot_bps(all_block_probs_cums,
     plt.plot()
     x = np.arange(log_iter, n_events + 1, log_iter)
     # Shift x-axis to avoid overlapping err bars
-    shift_perc = n_events * 0.005
+    shift_perc = n_events * 0.0025
     x_shift = np.arange(0, len(all_block_probs_cums) + 1) * shift_perc
+    fmts = ['-o', '--o', '-.o', '-x', '--x', '-.x']
+    ys = []
     for i, block_probs_cums in enumerate(all_block_probs_cums):
         # Convert to percent
         y = 100 * np.mean(block_probs_cums, axis=0)
+        ys.append(y)
         std_devs = 100 * np.std(block_probs_cums, axis=0)
         xs = x + x_shift[i]
-        ax.errorbar(xs, y, yerr=std_devs, fmt='-o', label=labels[i], capsize=5)
+        fmt = fmts[i % len(fmts)]
+        ax.errorbar(xs, y, yerr=std_devs, fmt=fmt, label=labels[i], capsize=5)
     ax.legend(loc=loc)
     ax.set_ylabel(ylabel)
     ax.set_xlabel("Call events")
     ax.set_title(title)
     ax.yaxis.grid(True)
-    ax.yaxis.set_major_formatter(PercentFormatter())
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
+    ax.yaxis.set_major_formatter(PercentFormatter(decimals=1))
+
+    ymin, ymax = ax.get_ylim()
+    if ymax - ymin > 20:
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(1.0))
+    else:
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
+    ax.set_ylim(ymin=0)
     if n_events >= 400_000:
         ax.xaxis.set_major_locator(ticker.MultipleLocator(50_000))
     elif n_events <= 10_000:
@@ -101,7 +111,7 @@ def plot_strats(data, labels=None, ctype='new', title='', fname=None):
     if labels is None:
         labels = [None] * len(data)
     ylabel = f"{ctypes_map[ctype]} cumulative blocking probability"
-    plot_bps(all_block_probs_cums, log_iter, n_events, labels, ylabel, title, fname)
+    plot_bps(all_block_probs_cums, log_iter, int(n_events), labels, ylabel, title, fname)
 
 
 def runner():
@@ -143,18 +153,21 @@ def runner():
         assert len(data) == len(labels), (len(data), len(labels))
     title = args['title']
     if len(data) == 1:
-        all_block_probs_cums = (data[0][ctype] for ctype in ctypes_short)
+        all_block_probs_cums = [data[0][ctype] for ctype in ctypes_short]
         plot_bps(
             all_block_probs_cums,
-            data[0]['log_iter'],
-            data[0]['n_events'],
+            log_iter=data[0]['log_iter'],
+            n_events=data[0]['n_events'],
             title=title,
             fname=args['plot_save'])
     else:
         if len(args['ctype']) > 1:
             for ctype in args['ctype']:
-                fname = args['plot_save'] + '-ctype'
+                fname = args['plot_save'] + '-' + ctype
                 plot_strats(data, labels, ctype, title=title, fname=fname)
+        else:
+            plot_strats(
+                data, labels, args['ctype'][0], title=title, fname=args['plot_save'])
 
 
 if __name__ == '__main__':
