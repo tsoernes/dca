@@ -24,25 +24,50 @@ class AvgRunner(Runner):
         # Net runs use same np seed for all runs; other strats do not
         with Pool(self.pp['threads']) as p:
             results = p.map(simproc, range(n_runs))
-        # Filter out bad results (invalid loss etc)
-        results = [r for r in results if r[0][0] != 1 and r[0][0] is not None]
         if not results:
             self.logger.error("NO RESULTS")
             return
+
+        # For each run; for each ctype (new-call/hoff/tot); cumulative block. prob
+        cum_block_probs = []
+        # For each run; newcall block prob (not cum) during each log iter
+        block_probs = []
+        # For each ctype (new-call/hoff/tot); for each run; for each log iter; cumulative b.p.
+        all_block_probs_cums = [[], [], []]
+        # For each run/simulation
+        for run in results:
+            new_call_cum_bp = run[0][0]
+            # Filter out bad results (invalid loss etc)
+            if new_call_cum_bp != 1 and new_call_cum_bp is not None:
+                cum_block_probs.append(np.array(run[0]))
+                assert run[1] is not None and run[1] is not 1
+                block_probs.append(np.array(run[1]))
+                all_block_probs_cums[0].append(np.array(run[2]))
+                all_block_probs_cums[1].append(np.array(run[3]))
+                all_block_probs_cums[2].append(np.array(run[4]))
+
+        cum_block_probs = np.array(cum_block_probs)
+        block_probs = np.array(block_probs)
+        all_block_probs_cums = np.array(all_block_probs_cums)
+
+        all_block_probs_cums2 = [np.array([r[i] for r in results])
+                                 for i in range(2, len(results[0]))]
+        all_block_probs_cums2 = np.array(all_block_probs_cums2)
+
+        assert (all_block_probs_cums2 == all_block_probs_cums).all(), \
+            (all_block_probs_cums.shape, all_block_probs_cums2.shape,
+             all_block_probs_cums, all_block_probs_cums2)
+
         n_events = self.pp['n_events']
-        cum_block_probs = np.array([r[0] for r in results])
-        # For each thread, block prob (not cum) during each log iter
-        block_probs = np.array([r[1] for r in results])
-        # print(cum_block_probs, "\n", block_probs)
         try:
-            bprobs = ", ".join("%.4f" % f for f in np.mean(block_probs, axis=0))
-        except TypeError:
-            print(block_probs, results)
-            raise
+            avgbprobs = ", ".join("%.1f" % (f * 100) for f in np.mean(block_probs, axis=0))
+        except (TypeError, ValueError):
+            self.logger.error("Can't calculate per-logiter mean for incomplete runs")
+            avgbprobs = 0
         self.logger.error(
             f"\n{n_runs}x{n_events} events finished with speed"
             f" {(n_runs*n_events)/(time.time()-t):.0f} events/second"
-            f"\nAverage new call block each log iter: {bprobs}"
+            f"\nAverage new call block (%) each log iter: {avgbprobs}"
             f"\nAverage cumulative block probability over {n_runs} episodes:"
             f" {np.mean(cum_block_probs[:,0]):.4f}"
             f" with standard deviation {np.std(cum_block_probs[:,0]):.5f}"
@@ -54,9 +79,6 @@ class AvgRunner(Runner):
             f" with standard deviation {np.std(cum_block_probs[:,2]):.5f}"
             f"\n{cum_block_probs}")
 
-        # block_probs = np.array([r[2] for r in results])
-        # block_probs_h = np.array([r[3] for r in results])
-        # block_probs_t = np.array([r[4] for r in results])
         all_block_probs_cums = (np.array([r[i] for r in results])
                                 for i in range(2, len(results[0])))
         if self.pp['save_cum_block_probs']:
@@ -97,11 +119,15 @@ def avg_proc(stratclass, pp, pid, reseed=True):
         # Reseeding is wanted for avg runs but not hopt
         np.random.seed()
         seed = np.random.get_state()[1][0]
-        pp['rng_seed'] = seed  # Reseed for tf
+        pp['rng_seed'] = seed  # Reseed for TF
     strat = stratclass(pp, logger=logger, pid=pid)
     result = strat.simulate()
+    # Block prob between each log iter
     block_probs = strat.env.stats.block_probs
+    # Cumulative new call block prob for each log iter
     block_probs_cums = strat.env.stats.block_probs_cum
+    # Cumulative hand-off block prob for each log iter
     block_probs_cums_h = strat.env.stats.block_probs_cum_h
+    # Cumulative total block prob for each log iter
     block_probs_cums_t = strat.env.stats.block_probs_cum_t
     return result, block_probs, block_probs_cums, block_probs_cums_h, block_probs_cums_t
