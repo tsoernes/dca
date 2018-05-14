@@ -80,7 +80,7 @@ class AvgRunner(Runner):
             os.makedirs("bps")
         with open(fname, "wb") as f:
             pickle.dump(data, f)
-        self.logger.error(f"Saved cumulative block probs to {fname}.pkl")
+        self.logger.error(f"Saved cumulative block probs to {fname}")
 
 
 def avg_proc(stratclass, pp, pid, reseed=True):
