@@ -1,0 +1,15 @@
+SMDP
+python3 main.py singhnet --target discount -rtype smdp_callcount --beta_disc --avg_runs 2 --beta 20 -lr 5e-6 
+Average cumulative block probability over 2 episodes: 0.1299 with standard deviation 0.00236
+
+--net_lr 7.14962870129949e-06 --beta 47.0
+Average cumulative block probability over 2 episodes: 0.1342 with standard deviation 0.00098
+
+--beta 25.569630119649283 --net_lr 2.2072432429125095e-05
+Average cumulative block probability over 2 episodes: 0.1503 with standard deviation 0.00153
+
+Resid
+python3 main.py residsinghnet --avg_runs 2 --net_lr 1.5960724306606808e-05
+Average cumulative block probability over 2 episodes: 0.1302 with standard deviation 0.00091
+
+
