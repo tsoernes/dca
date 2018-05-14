@@ -39,9 +39,9 @@ if [ "$targs" = true ] ; then
         python3 main.py singhnet "${runargs[@]}" \
                 -phoff -save_bp targ-mdp --target discount || exit 1
         # MDP Average
-        # TODO tune LR, wbeta, gamma
         python3 main.py singhnet "${runargs[@]}" \
-                -phoff -save_bp targ-avg -lr 5e-7 || exit 1
+                -phoff -save_bp targ-avg -lr 5e-7 \
+                --net_lr 3.43e-06 --gamma 0.8575 --weight_beta 0.00368 || exit 1
     fi
     if [ "$runplot" = true ] ; then
         python3 plotter.py "targ-smdp${ext}" "targ-mdp${ext}" "targ-avg${ext}" \
@@ -52,9 +52,9 @@ if [ "$targs" = true ] ; then
 fi
 
 if [ "$grads" = true ] ; then
-    ## GRADIENTS ##
+    ## GRADIENTS (no hoffs) ##
     if [ "$runsim" = true ] ; then
-        # semi-grad A-MDP
+        # Semi-grad A-MDP
         python3 main.py singhnet "${runargs[@]}" \
                 -save_bp grads-semi  || exit 1
         # residual grad A-MDP
@@ -73,7 +73,6 @@ if [ "$grads" = true ] ; then
                 --labels 'Semi (A-MDP)' 'Residual (A-MDP)' 'TDC (A-MDP)' 'TDC (MDP)' \
                 --title "Gradient comparison (no hand-offs)" \
                 --ctype tot --plot_save grads || exit 1
-        # NOTE do note that hoffs are turned off
     fi
 fi
 
@@ -124,12 +123,13 @@ if [ "$hla" = true ] ; then
 fi
 
 if [ "$finalhoff" = true ] ; then
-    ## Final comparison
+    ## Final comparison ##
+    # VNet and HLA from previous run
     if [ "$runsim" = true ] ; then
         # FCA
         python3 main.py fixedassign "${runargs[@]}" \
                 -save_bp final-fca -phoff || exit 1
-    # RandomAssign
+        # RandomAssign
         python3 main.py randomassign "${runargs[@]}" \
                 -save_bp final-rand -phoff || exit 1
     fi
