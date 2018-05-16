@@ -102,7 +102,7 @@ class DlibRunner(Runner):
             dlib_save(spec, finished_evals, params, eps, noise_mag, pp, fname)
             best_eval = optimizer.get_best_function_eval()
             prms = list(zip(params, list(best_eval[0])))
-            logger.error(f"Saving {len(finished_evals)} trials. "
+            logger.error(f"Saving {len(finished_evals)} trials to {fname}."
                          f"Best eval so far: {best_eval[1]}@{prms}")
 
         def spawn_evals(i):
