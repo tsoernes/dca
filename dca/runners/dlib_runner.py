@@ -31,14 +31,14 @@ class DlibRunner(Runner):
         fname = "dlib-" + pp['hopt_fname'].replace('.pkl', '') + '.pkl'
         space = {
             # parameter: [IsInteger, Low_Bound, High_Bound]
-            'gamma': [False, 0.60, 0.99],
+            'gamma': [False, 0.60, 0.95],
             'lambda': [False, 0.60, 0.99],
-            'net_lr': [False, 9e-7, 6e-6],
+            'net_lr': [False, 9e-7, 6e-5],
             'beta': [True, 10, 3000],
             'net_lr_decay': [False, 0.70, 0.85],
-            'weight_beta': [False, 1e-2, 1e-1],
+            'weight_beta': [False, 1e-3, 1e-1],
             'weight_beta_decay': [False, 1e-5, 6e-5],
-            'grad_beta': [False, 5e-7, 1e-5],
+            'grad_beta': [False, 5e-7, 5e-5],
             'grad_beta_decay': [False, 1e-4, 1e-3],
             'epsilon': [False, 2.5, 5],
             'epsilon_decay': [False, 0.999_8, 0.999_999],
@@ -152,6 +152,7 @@ class DlibRunner(Runner):
         """
 
         logger.error(f"Dlib hopt for {n_sims} sims with {n_concurrent} procs"
+                     f" taking the average of {n_avg} runs"
                      f" on params {space} and s.eps {eps}")
         # Spawn initial processes
         for i in range(n_step):
