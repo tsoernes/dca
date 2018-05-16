@@ -36,12 +36,14 @@ if [ "$targs" = true ] ; then
                 -save_bp targ-smdp --target discount -rtype smdp_callcount \
                 -phoff --beta_disc --beta 20 -lr 5e-6 || exit 1
         # MDP Discount
+        # TODO tune net_lr, gamma. Set found gamma as default so that it is used below.
         python3 main.py singhnet "${runargs[@]}" \
-                -phoff -save_bp targ-mdp --target discount || exit 1
+                -phoff -save_bp targ-mdp --target discount \
+                --net_lr XX  || exit 1
         # MDP Average
         python3 main.py singhnet "${runargs[@]}" \
-                -phoff -save_bp targ-avg -lr 5e-7 \
-                --net_lr 3.43e-06 --gamma 0.8575 --weight_beta 0.00368 || exit 1
+                -phoff -save_bp targ-avg \
+                --net_lr 3.43e-06 --weight_beta 0.00368 || exit 1
     fi
     if [ "$runplot" = true ] ; then
         python3 plotter.py "targ-smdp${ext}" "targ-mdp${ext}" "targ-avg${ext}" \
@@ -54,19 +56,20 @@ fi
 if [ "$grads" = true ] ; then
     ## GRADIENTS (no hoffs) ##
     if [ "$runsim" = true ] ; then
-        # Semi-grad A-MDP
+        # Semi-grad A-MDP (same as 'MDP Average', without hoffs)
         python3 main.py singhnet "${runargs[@]}" \
-                -save_bp grads-semi  || exit 1
-        # residual grad A-MDP
+                -save_bp grads-semi  --net_lr 3.43e-06 --weight_beta 0.00368 || exit 1
+        # Residual grad A-MDP
         python3 main.py residsinghnet "${runargs[@]}" \
                 -save_bp grads-resid --net_lr 1.6e-05 || exit 1
         #  TDC A-MDP
         python3 main.py tftdcsinghnet "${runargs[@]}" \
                 -save_bp grads-tdc || exit 1
-        #  TDC MDP
-        # TODO tune gam lr
+        #  TDC MDP Discount
+        # TODO after gamma is set from 'MDP discount', tune lr, gbeta
         python3 main.py tftdcsinghnet "${runargs[@]}" \
-                -save_bp grads-tdc-gam --target discount --gamma 0.8 -lr 1e-6 || exit 1
+                -save_bp grads-tdc-gam --target discount \
+                --net_lr XX --grad_beta XX || exit 1
     fi
     if [ "$runplot" = true ] ; then
         python3 plotter.py "grads-semi${ext}" "grads-resid${ext}" "grads-tdc${ext}" "grads-tdc-gam${ext}" \
