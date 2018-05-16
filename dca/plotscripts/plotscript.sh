@@ -36,10 +36,9 @@ if [ "$targs" = true ] ; then
                 -save_bp targ-smdp --target discount -rtype smdp_callcount \
                 -phoff --beta_disc --beta 20 -lr 5e-6 || exit 1
         # MDP Discount
-        # TODO tune net_lr, gamma. Set found gamma as default so that it is used below.
         python3 main.py singhnet "${runargs[@]}" \
                 -phoff -save_bp targ-mdp --target discount \
-                --net_lr XX  || exit 1
+                --net_lr 2.02e-7 || exit 1
         # MDP Average
         python3 main.py singhnet "${runargs[@]}" \
                 -phoff -save_bp targ-avg \

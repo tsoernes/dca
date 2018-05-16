@@ -405,8 +405,6 @@ class ExpSinghNetStrat(VNetBase):
         else:
             chs = [ch]
         frep, next_freps = self.afterstate_freps(grid, cell, ce_type, np.array(chs))
-        # gamma = self.gamma_schedule.value(self.i)
-        gamma = discount
         td_err = self.backward(
             grids=grid,
             freps=[frep],
@@ -414,14 +412,14 @@ class ExpSinghNetStrat(VNetBase):
             next_grids=self.grid,
             next_freps=[next_freps[0]],
             weights=[1],
-            discount=gamma).reshape([-1])
+            discount=discount).reshape([-1])
 
         if len(self.exp_buffer) >= 1000:  # self.pp['buffer_size']:
             # Can't backprop before exp store has enough experiences
             data, weights, batch_idxes = self.exp_buffer.sample(
                 self.pp['batch_size'], beta=self.pri_beta_schedule.value(self.i))
             data['weights'] = weights
-            td_errs = self.backward(**data, discount=gamma).reshape([-1])
+            td_errs = self.backward(**data, discount=discount).reshape([-1])
             new_priorities = np.abs(td_errs) + self.prioritized_replay_eps
             self.exp_buffer.update_priorities(batch_idxes, new_priorities)
 

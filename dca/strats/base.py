@@ -39,8 +39,6 @@ class Strat:
                 final_p=1.0)  # original: 1.0
             self.prioritized_replay_eps = float(1e-6)
 
-        self.gamma_schedule = LinearSchedule(
-            self.n_events, initial_p=self.pp['gamma'], final_p=self.pp['gamma_end'])
         self.quit_sim, self.invalid_loss, self.exceeded_bthresh = False, False, False
         self.i = 0
         signal.signal(signal.SIGINT, self.exit_handler)

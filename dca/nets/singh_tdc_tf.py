@@ -53,6 +53,7 @@ class TFTDCSinghNet(Net):
         next_value = tf.matmul(next_net_inp_rv, hidden)
 
         td_err = self.reward - self.avg_reward + self.discount * next_value - self.value
+        # Just return td_err if MSE and not Huber
         self.loss_grad = self.default_loss_grad(td_err)
         dot = tf.matmul(net_inp_rv, self.weights)
         # Multiply by 2 to get equivalent magnitude to MSE
