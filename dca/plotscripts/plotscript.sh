@@ -1,16 +1,16 @@
-# runsim=true
-runsim=false
+runsim=true
+# runsim=false
 runplot=true
 
 
-events=10000
+events=100000
 # events=470000
 
-logiter=1000
+logiter=5000
 # logiter=30000
 
-avg=2
-ext=".0"
+avg=8
+ext=".1"
 logfile="plots/plot-log${ext}"
 
 targs=true
@@ -65,10 +65,9 @@ if [ "$grads" = true ] ; then
         python3 main.py tftdcsinghnet "${runargs[@]}" \
                 -save_bp grads-tdc || exit 1
         #  TDC MDP Discount
-        # TODO after gamma is set from 'MDP discount', tune lr, gbeta
         python3 main.py tftdcsinghnet "${runargs[@]}" \
                 -save_bp grads-tdc-gam --target discount \
-                --net_lr XX --grad_beta XX || exit 1
+                --net_lr 1.91e-06 --grad_beta 5e-09 || exit 1
     fi
     if [ "$runplot" = true ] ; then
         python3 plotter.py "grads-semi${ext}" "grads-resid${ext}" "grads-tdc${ext}" "grads-tdc-gam${ext}" \

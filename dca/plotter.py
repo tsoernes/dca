@@ -50,17 +50,14 @@ def plot_bps(all_block_probs_cums,
         loc = 'lower right'
 
     fig, ax = plt.subplots(1, 1)
-    plt.plot()
     x = np.arange(log_iter, n_events + 1, log_iter)
     # Shift x-axis to avoid overlapping err bars
     shift_perc = n_events * 0.0025
     x_shift = np.arange(0, len(all_block_probs_cums) + 1) * shift_perc
     fmts = ['-o', '--o', '-.o', '-x', '--x', '-.x']
-    ys = []
     for i, block_probs_cums in enumerate(all_block_probs_cums):
         # Convert to percent
         y = 100 * np.mean(block_probs_cums, axis=0)
-        ys.append(y)
         std_devs = 100 * np.std(block_probs_cums, axis=0)
         xs = x + x_shift[i]
         fmt = fmts[i % len(fmts)]
@@ -70,18 +67,20 @@ def plot_bps(all_block_probs_cums,
     ax.set_xlabel("Call events")
     ax.set_title(title)
     ax.yaxis.grid(True)
-    ax.yaxis.set_major_formatter(PercentFormatter(decimals=1))
 
+    ax.set_ylim(ymin=0)
     ymin, ymax = ax.get_ylim()
     if ymax - ymin > 20:
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1.0))
+        ax.yaxis.set_major_formatter(PercentFormatter(decimals=0))
     else:
         ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
-    ax.set_ylim(ymin=0)
+        ax.yaxis.set_major_formatter(PercentFormatter(decimals=1))
     if n_events >= 400_000:
         ax.xaxis.set_major_locator(ticker.MultipleLocator(50_000))
     elif n_events <= 10_000:
         ax.xaxis.set_major_locator(ticker.MultipleLocator(1_000))
+
     if fname:
         if not os.path.exists("plots"):
             os.makedirs("plots")
