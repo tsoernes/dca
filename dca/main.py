@@ -561,7 +561,7 @@ def get_pparams(defaults=False):
     parser.add_argument(
         '--plot_save',
         type=str,
-        help="Save plot to given file name, don't show",
+        help="Save plot to given file name, instead of showing (implies plot)",
         default=None)
     parser.add_argument(
         '--log_level',

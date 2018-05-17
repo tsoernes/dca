@@ -47,7 +47,7 @@ class AvgRunner(Runner):
                 all_block_probs_cums[1].append(np.array(run[3]))
                 all_block_probs_cums[2].append(np.array(run[4]))
 
-        block_probs_cum = np.array(cum_block_probs)
+        block_probs_cum = np.array(block_probs_cum)
         newcall_block_probs = np.array(newcall_block_probs)
         all_block_probs_cums = np.array(all_block_probs_cums)
 
@@ -73,7 +73,7 @@ class AvgRunner(Runner):
             f" with standard deviation {np.std(block_probs_cum[:,2]):.5f}"
             f"\n{block_probs_cum}")
 
-        if self.pp['save_block_probs_cum']:
+        if self.pp['save_cum_block_probs']:
             self.save_bps(all_block_probs_cums, self.pp['log_iter'], n_events)
         if self.pp['do_plot']:
             plot_bps(
@@ -93,7 +93,7 @@ class AvgRunner(Runner):
             self.fo_logger.error(f'{ctypes_short[i]} cumulative block probs')
             self.fo_logger.error(block_probs_cums)
             data[ctypes_short[i]] = block_probs_cums
-        fname = next_filename('bps/' + self.pp['save_block_probs_cum'], '.pkl')
+        fname = next_filename('bps/' + self.pp['save_cum_block_probs'], '.pkl')
         if not os.path.exists("bps"):
             os.makedirs("bps")
         with open(fname, "wb") as f:

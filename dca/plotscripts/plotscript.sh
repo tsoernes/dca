@@ -2,31 +2,29 @@ runsim=true
 # runsim=false
 runplot=true
 
+# events=100000
+events=470000
 
-events=100000
-# events=470000
+# logiter=5000
+logiter=25000
 
-logiter=5000
-# logiter=25000
+avg=16
+ext=".0"
 
-
-avg=8
-ext=".1"
-logfile="plots/plot-log${ext}"
-
-# targs=true
-targs=false
-# grads=true
-grads=false
-# hla=true
-hla=false
+targs=true
+#targs=false
+grads=true
+#grads=false
+hla=true
+#hla=false
 finalhoff=true
-# finalhoff=false
+#finalhoff=false
 finalnohoff=true
-# finalnohoff=false
+#finalnohoff=false
 
 
-runargs=(--log_iter "${logiter}" --log_level 30 --avg_runs "${avg}" -i "${events}" --log_file "${logfile}" --breakout_thresh 0.4)
+runargs=(--log_iter "${logiter}" --log_level 30 --avg_runs "${avg}" -i "${events}" \
+   --log_file "plots/plot-log${ext}" --breakout_thresh 0.4)
 
 ## TARGETS ##
 if [ "$targs" = true ] ; then
