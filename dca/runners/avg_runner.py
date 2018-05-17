@@ -24,43 +24,37 @@ class AvgRunner(Runner):
         # Net runs use same np seed for all runs; other strats do not
         with Pool(self.pp['threads']) as p:
             results = p.map(simproc, range(n_runs))
+        # print(results)
         if not results:
             self.logger.error("NO RESULTS")
             return
 
         # For each run; for each ctype (new-call/hoff/tot); cumulative block. prob
-        cum_block_probs = []
+        block_probs_cum = []
         # For each run; newcall block prob (not cum) during each log iter
-        block_probs = []
-        # For each ctype (new-call/hoff/tot); for each run; for each log iter; cumulative b.p.
+        newcall_block_probs = []
+        # For each ctype; for each run; _for each log iter_; cumulative b.p.
         all_block_probs_cums = [[], [], []]
         # For each run/simulation
         for run in results:
             new_call_cum_bp = run[0][0]
             # Filter out bad results (invalid loss etc)
             if new_call_cum_bp != 1 and new_call_cum_bp is not None:
-                cum_block_probs.append(np.array(run[0]))
+                block_probs_cum.append(np.array(run[0]))
                 assert run[1] is not None and run[1] is not 1
-                block_probs.append(np.array(run[1]))
+                newcall_block_probs.append(np.array(run[1]))
                 all_block_probs_cums[0].append(np.array(run[2]))
                 all_block_probs_cums[1].append(np.array(run[3]))
                 all_block_probs_cums[2].append(np.array(run[4]))
 
-        cum_block_probs = np.array(cum_block_probs)
-        block_probs = np.array(block_probs)
+        block_probs_cum = np.array(cum_block_probs)
+        newcall_block_probs = np.array(newcall_block_probs)
         all_block_probs_cums = np.array(all_block_probs_cums)
-
-        all_block_probs_cums2 = [np.array([r[i] for r in results])
-                                 for i in range(2, len(results[0]))]
-        all_block_probs_cums2 = np.array(all_block_probs_cums2)
-
-        assert (all_block_probs_cums2 == all_block_probs_cums).all(), \
-            (all_block_probs_cums.shape, all_block_probs_cums2.shape,
-             all_block_probs_cums, all_block_probs_cums2)
 
         n_events = self.pp['n_events']
         try:
-            avgbprobs = ", ".join("%.1f" % (f * 100) for f in np.mean(block_probs, axis=0))
+            avgbprobs = ", ".join(
+                "%.1f" % (f * 100) for f in np.mean(newcall_block_probs, axis=0))
         except (TypeError, ValueError):
             self.logger.error("Can't calculate per-logiter mean for incomplete runs")
             avgbprobs = 0
@@ -69,19 +63,17 @@ class AvgRunner(Runner):
             f" {(n_runs*n_events)/(time.time()-t):.0f} events/second"
             f"\nAverage new call block (%) each log iter: {avgbprobs}"
             f"\nAverage cumulative block probability over {n_runs} episodes:"
-            f" {np.mean(cum_block_probs[:,0]):.4f}"
-            f" with standard deviation {np.std(cum_block_probs[:,0]):.5f}"
+            f" {np.mean(block_probs_cum[:,0]):.4f}"
+            f" with standard deviation {np.std(block_probs_cum[:,0]):.5f}"
             f"\nAverage cumulative handoff block probability"
-            f" {np.mean(cum_block_probs[:,1]):.4f}"
-            f" with standard deviation {np.std(cum_block_probs[:,1]):.5f}"
+            f" {np.mean(block_probs_cum[:,1]):.4f}"
+            f" with standard deviation {np.std(block_probs_cum[:,1]):.5f}"
             f"\nAverage cumulative total block probability"
-            f" {np.mean(cum_block_probs[:,2]):.4f}"
-            f" with standard deviation {np.std(cum_block_probs[:,2]):.5f}"
-            f"\n{cum_block_probs}")
+            f" {np.mean(block_probs_cum[:,2]):.4f}"
+            f" with standard deviation {np.std(block_probs_cum[:,2]):.5f}"
+            f"\n{block_probs_cum}")
 
-        all_block_probs_cums = (np.array([r[i] for r in results])
-                                for i in range(2, len(results[0])))
-        if self.pp['save_cum_block_probs']:
+        if self.pp['save_block_probs_cum']:
             self.save_bps(all_block_probs_cums, self.pp['log_iter'], n_events)
         if self.pp['do_plot']:
             plot_bps(
@@ -101,7 +93,7 @@ class AvgRunner(Runner):
             self.fo_logger.error(f'{ctypes_short[i]} cumulative block probs')
             self.fo_logger.error(block_probs_cums)
             data[ctypes_short[i]] = block_probs_cums
-        fname = next_filename('bps/' + self.pp['save_cum_block_probs'], '.pkl')
+        fname = next_filename('bps/' + self.pp['save_block_probs_cum'], '.pkl')
         if not os.path.exists("bps"):
             os.makedirs("bps")
         with open(fname, "wb") as f:

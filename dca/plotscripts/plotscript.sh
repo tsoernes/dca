@@ -13,19 +13,19 @@ avg=8
 ext=".1"
 logfile="plots/plot-log${ext}"
 
-targs=true
-# targs=false
-grads=true
-# grads=false
-hla=true
-# hla=false
+# targs=true
+targs=false
+# grads=true
+grads=false
+# hla=true
+hla=false
 finalhoff=true
 # finalhoff=false
 finalnohoff=true
 # finalnohoff=false
 
 
-runargs=(--log_iter "${logiter}" --avg_runs "${avg}" -i "${events}" --log_file "${logfile}")
+runargs=(--log_iter "${logiter}" --log_level 30 --avg_runs "${avg}" -i "${events}" --log_file "${logfile}" --breakout_thresh 0.4)
 
 ## TARGETS ##
 if [ "$targs" = true ] ; then
@@ -50,6 +50,7 @@ if [ "$targs" = true ] ; then
                 --title "Target comparison (with hand-offs)" \
                 --ctype new hoff tot --plot_save targets || exit 1
     fi
+    echo "Finished targets"
 fi
 
 if [ "$grads" = true ] ; then
@@ -75,6 +76,7 @@ if [ "$grads" = true ] ; then
                 --title "Gradient comparison (no hand-offs)" \
                 --ctype tot --plot_save grads || exit 1
     fi
+    echo "Finished Grads"
 fi
 
 ## Exploration RS-SARSA ##
@@ -121,6 +123,7 @@ if [ "$hla" = true ] ; then
                 --title "Hand-off look-ahead" \
                 --ctype new hoff tot --plot_save hla || exit 1
    fi
+    echo "Finished HLA"
 fi
 
 if [ "$finalhoff" = true ] ; then
@@ -140,6 +143,7 @@ if [ "$finalhoff" = true ] ; then
                 --title "RL vs non-learning agents (with hand-offs)" \
                 --ctype new hoff --plot_save final-whoff || exit 1
     fi
+    echo "Finished Final w/hoff"
 fi
 
 if [ "$finalnohoff" = true ] ; then
@@ -165,5 +169,6 @@ if [ "$finalnohoff" = true ] ; then
                 --title "RL vs non-learning agents (no hand-offs)" \
                 --ctype new --plot_save final-nohoff || exit 1
     fi
-
+    echo "Finished Final wo/hoff"
 fi
+echo "FINISHED ALL"
