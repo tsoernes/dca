@@ -68,8 +68,10 @@ def plot_bps(all_block_probs_cums,
     ax.set_title(title)
     ax.yaxis.grid(True)
 
-    ax.set_ylim(ymin=0)
     ymin, ymax = ax.get_ylim()
+    if ymin < 0:
+        ax.set_ylim(ymin=0)
+        ymin = 0
     if ymax - ymin > 20:
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1.0))
         ax.yaxis.set_major_formatter(PercentFormatter(decimals=0))

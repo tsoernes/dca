@@ -7,7 +7,8 @@ events=100000
 # events=470000
 
 logiter=5000
-# logiter=30000
+# logiter=25000
+
 
 avg=8
 ext=".1"
@@ -71,7 +72,7 @@ if [ "$grads" = true ] ; then
     fi
     if [ "$runplot" = true ] ; then
         python3 plotter.py "grads-semi${ext}" "grads-resid${ext}" "grads-tdc${ext}" "grads-tdc-gam${ext}" \
-                --labels 'Semi (A-MDP)' 'Residual (A-MDP)' 'TDC (A-MDP)' 'TDC (MDP)' \
+                --labels 'Semi-grad. (A-MDP)' 'Residual grad. (A-MDP)' 'TDC (A-MDP)' 'TDC (MDP)' \
                 --title "Gradient comparison (no hand-offs)" \
                 --ctype tot --plot_save grads || exit 1
     fi
@@ -112,7 +113,7 @@ if [ "$hla" = true ] ; then
         python3 main.py rs_sarsa "${runargs[@]}" \
                 -save_bp rssarsa --lilith -phoff || exit 1
         # RS-SARSA HLA
-        python3 main.py rs_sarsa "${runargs[@]}" \
+        python3 main.py hla_rs_sarsa "${runargs[@]}" \
                 -save_bp hla-rssarsa --lilith -phoff -hla || exit 1
     fi
     if [ "$runplot" = true ] ; then
