@@ -32,6 +32,12 @@ gamma=0.9 (ratio=1/1.9=0.526)
 gamma=1.0 (ratio=1/2)
 2624
 """
-if __name__ == "__main__":
-    res = beta(*map(float, sys.argv[1:]))
+
+
+def run(inp):
+    res = beta(*map(float, inp))
     print(tuple(zip(("Gamma-disc", "Reward-disc", "x2", "G-to-R+G ratio"), res)))
+
+
+if __name__ == "__main__":
+    run(sys.argv[1:])

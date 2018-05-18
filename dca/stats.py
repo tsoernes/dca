@@ -73,7 +73,6 @@ class Stats:
 
         niter = self.pp['log_iter']
         if self.i > 0 and self.i % niter == 0:
-            # NOTE excluding handoffs
             block_prob_cum = self.n_rejected / (self.n_incoming + 1)
             block_prob_cum_h = self.n_handoffs_rejected / (self.n_handoffs + 1)
             block_prob_cum_t = (self.n_rejected + self.n_handoffs_rejected) / (

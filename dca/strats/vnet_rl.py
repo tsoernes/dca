@@ -168,7 +168,8 @@ class VNetBase(NetStrat):
         return qvals_dense, cur_frep, freps
 
     def get_hoff_qvals(self, grid, cell, ce_type, chs, h_cell):
-        """ Look ahead for handoffs """
+        """ Look ahead for handoffs
+        h_cell: target hand-off cell """
         end_astates = NGF.afterstates(grid, cell, ce_type, chs)
         hoff_astates = []
         n_hoff_astates = []  # For a given end_astate, how many hoff astates?
@@ -190,13 +191,12 @@ class VNetBase(NetStrat):
             qvals_dense = np.zeros(len(chs))
             t = 0
             for i, n in enumerate(n_hoff_astates):
-                # qvals_dense[i] = np.max(hqvals_dense[t:t + n]) if n > 0 else 0
                 if n > 0:
                     qvals_dense[i] = np.max(hqvals_dense[t:t + n])
                 t += n
             # Nasty hack for 2-step returns
-            reward = np.count_nonzero(
-                hoff_astates[0])  # All relevant astates have same count
+            # All relevant hoff astates have same count
+            reward = np.count_nonzero(hoff_astates[0])
             if self.pp['target'] == 'avg':
                 qvals_dense += reward - self.avg_reward
             else:

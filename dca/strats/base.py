@@ -40,7 +40,7 @@ class Strat:
             self.prioritized_replay_eps = float(1e-6)
 
         self.quit_sim, self.invalid_loss, self.exceeded_bthresh = False, False, False
-        self.i = 0
+        self.i, self.t = 0, 0.1  # Iteration, time
         signal.signal(signal.SIGINT, self.exit_handler)
 
     def exit_handler(self, *args):
@@ -60,7 +60,6 @@ class Strat:
         ch = self.get_init_action(cevent)
 
         # Discrete event simulation
-        self.i, self.t = 0, 0  # Iteration, time
         while self.continue_sim(self.i, self.t):
             self.t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified

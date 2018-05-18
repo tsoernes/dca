@@ -29,6 +29,7 @@ def plot_bps(all_block_probs_cums,
              log_iter,
              n_events,
              labels=None,
+             ymin=None,
              ylabel=None,
              title='',
              fname=None):
@@ -68,10 +69,10 @@ def plot_bps(all_block_probs_cums,
     ax.set_title(title)
     ax.yaxis.grid(True)
 
-    ymin, ymax = ax.get_ylim()
-    if ymin < 0:
-        ax.set_ylim(ymin=0)
+    ymin_, ymax = ax.get_ylim()
+    if ymin is None and ymin_ < 0:
         ymin = 0
+    ax.set_ylim(ymin=ymin)
     if ymax - ymin > 20:
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1.0))
         ax.yaxis.set_major_formatter(PercentFormatter(decimals=0))
@@ -93,7 +94,7 @@ def plot_bps(all_block_probs_cums,
         plt.show()
 
 
-def plot_strats(data, labels=None, ctype='new', title='', fname=None):
+def plot_strats(data, labels=None, ctype='new', ymin=None, title='', fname=None):
     """Plot for each strat, for a specific call type ctype, cumulative
     block prob for each log iter.
 
@@ -112,7 +113,8 @@ def plot_strats(data, labels=None, ctype='new', title='', fname=None):
     if labels is None:
         labels = [None] * len(data)
     ylabel = f"{ctypes_map[ctype]} cumulative blocking probability"
-    plot_bps(all_block_probs_cums, log_iter, int(n_events), labels, ylabel, title, fname)
+    plot_bps(all_block_probs_cums, log_iter, int(n_events), labels, ymin, ylabel, title,
+             fname)
 
 
 def runner():
@@ -130,6 +132,8 @@ def runner():
         nargs='*',
         help="Optional labels for corresponding pickle files",
         default=None)
+    parser.add_argument(
+        '--ymins', type=int, nargs='*', help="Optional ymins, in percent", default=None)
     parser.add_argument(
         '--ctype',
         nargs='*',
@@ -152,6 +156,10 @@ def runner():
     labels = args['labels']
     if labels is not None:
         assert len(data) == len(labels), (len(data), len(labels))
+    plot_ctypes = args['ctype']
+    ymins = args['ymins']
+    if ymins is not None:
+        assert len(plot_ctypes) == len(ymins), (len(plot_ctypes), len(ymins))
     title = args['title']
     if len(data) == 1:
         all_block_probs_cums = [data[0][ctype] for ctype in ctypes_short]
@@ -162,13 +170,18 @@ def runner():
             title=title,
             fname=args['plot_save'])
     else:
-        if len(args['ctype']) > 1:
-            for ctype in args['ctype']:
+        if len(plot_ctypes) > 1:
+            for i, ctype in enumerate(plot_ctypes):
                 fname = args['plot_save'] + '-' + ctype
-                plot_strats(data, labels, ctype, title=title, fname=fname)
+                plot_strats(data, labels, ctype, ymins[i], title=title, fname=fname)
         else:
             plot_strats(
-                data, labels, args['ctype'][0], title=title, fname=args['plot_save'])
+                data,
+                labels,
+                plot_ctypes[0],
+                ymins[0],
+                title=title,
+                fname=args['plot_save'])
 
 
 if __name__ == '__main__':

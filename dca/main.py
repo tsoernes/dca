@@ -644,8 +644,10 @@ def get_pparams(defaults=False):
             pp['n_events'] = 470000
         if pp['log_iter'] is None:
             pp['log_iter'] = int(pp['n_events'] // 8)
-        if pp['log_file'] is None or pp['avg_runs'] >= 16:
-            # Force file logging for big runs and when saving cum block probs
+        if pp['log_file'] is None and (
+            (pp['avg_runs'] is not None and pp['avg_runs'] >= 16)
+                or pp['exp_policy_cmp']):
+            # Force file logging for big runs
             f_name = f"avg-{pp['strat']}"
             pp['log_file'] = f_name
     if pp['exp_policy_cmp']:
