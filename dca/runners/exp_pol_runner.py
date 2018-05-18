@@ -50,19 +50,26 @@ class ExpPolRunner(Runner):
         def print_results():
             for evaluation in results:
                 res = np.array(evaluation['results'])
-                for avg_typ in range(res.shape[1]):
-                    evaluation[avg_descs[avg_typ]] = f"{-np.mean(res[:, avg_typ]):.4f}"
-                evaluation['results'] = list(map(pprint, evaluation['results']))
+                # If the first run with a set of params fails, there won't be any
+                # results and 'res' will be dim 1
+                if len(res.shape) > 1:
+                    for avg_typ in range(res.shape[1]):
+                        evaluation[avg_descs[
+                            avg_typ]] = f"{-np.mean(res[:, avg_typ]):.4f}"
+                    evaluation['results'] = list(map(pprint, evaluation['results']))
+                else:
+                    for avg_typ in avg_descs:
+                        evaluation[avg_typ] = "1"
             params_and_res = [{**p, **r} for p, r in zip(space, results)]
             self.logger.error("\n".join(map(repr, params_and_res)))
             best = min(params_and_res, key=itemgetter('avg'))
-            self.logger.error(f"Best new call:\n{best}")
+            self.logger.error(f"\nBest new call:\n{best}")
             if include_hoffs:
                 best_h = min(params_and_res, key=itemgetter('avg_h'))
                 best_t = sorted(params_and_res, key=itemgetter('avg_t'))
-                self.logger.error(f"Best handoff:\n{best_h}")
+                self.logger.error(f"\nBest handoff:\n{best_h}")
                 best_tot = "\n".join(map(repr, best_t[:5]))
-                self.logger.error(f"Best 5 total:\n{best_tot}")
+                self.logger.error(f"\nBest 5 total:\n{best_tot}")
 
         def spawn_eval(i):
             j = i % len(space)
@@ -104,9 +111,7 @@ def exp_proc(stratclass, pp, result_queue, i, space):
     np.random.seed()
     strat = stratclass(pp=pp, logger=logger, pid=i)
     res = strat.simulate()
-    # if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
-    if strat.quit_sim:
-        # If user quits sim or sim exceeded block thresh, don't store result
+    if strat.quit_sim and not strat.invalid_loss and not strat.exceeded_bthresh:
         res = None
     else:
         assert res is not None and res[0] is not None

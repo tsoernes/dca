@@ -1,0 +1,376 @@
+T0 Testing {'pol': 'boltzmann', 'epsilon': 2.2}
+T1 Testing {'pol': 'boltzmann', 'epsilon': 4}
+T2 Testing {'pol': 'boltzmann', 'epsilon': 6}
+T3 Testing {'pol': 'nom_boltzmann', 'epsilon': 2.2}
+T4 Testing {'pol': 'nom_boltzmann', 'epsilon': 4}
+T5 Testing {'pol': 'nom_boltzmann', 'epsilon': 6}
+T6 Testing {'pol': 'eps_greedy', 'epsilon': 0.0}
+T7 Testing {'pol': 'eps_greedy', 'epsilon': 0.2}
+T8 Testing {'pol': 'eps_greedy', 'epsilon': 0.4}
+T9 Testing {'pol': 'eps_greedy', 'epsilon': 0.7}
+T10 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.0}
+T11 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.2}
+T12 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.4}
+T13 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.7}
+T14 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.0}
+T14 Blocking probability: 0.0000 for new calls
+T15 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T6 Blocking probability: 0.0000 for new calls
+
+T10 Blocking probability: 0.0000 for new calls
+T16 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.4}
+T17 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T8 Blocking probability: 0.1513 for new calls, 0.0753 for handoffs, 0.1427 total
+T18 Testing {'pol': 'nom_greedy', 'epsilon': 0}
+
+T18 Blocking probability: 0.0000 for new calls
+T19 Testing {'pol': 'nom_fixed_greedy', 'epsilon': 0}
+
+T19 Blocking probability: 0.0000 for new calls
+T20 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.0}
+
+T0 Blocking probability: 0.1509 for new calls, 0.0744 for handoffs, 0.1423 total
+T21 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.5}
+
+T9 Blocking probability: 0.1497 for new calls, 0.0738 for handoffs, 0.1412 total
+T22 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.0}
+
+T13 Blocking probability: 0.1479 for new calls, 0.0730 for handoffs, 0.1394 total
+T23 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.5}
+
+T12 Blocking probability: 0.1478 for new calls, 0.0709 for handoffs, 0.1392 total
+T24 Testing {'pol': 'bgumbel', 'exp_policy_param': 6.0}
+
+T5 Blocking probability: 0.1459 for new calls, 0.0726 for handoffs, 0.1375 total
+T25 Testing {'pol': 'boltzmann', 'epsilon': 2.2}
+
+T16 Blocking probability: 0.1507 for new calls, 0.0701 for handoffs, 0.1416 total
+T26 Testing {'pol': 'boltzmann', 'epsilon': 4}
+
+T1 Blocking probability: 0.1525 for new calls, 0.0742 for handoffs, 0.1437 total
+T27 Testing {'pol': 'boltzmann', 'epsilon': 6}
+
+T3 Blocking probability: 0.1470 for new calls, 0.0724 for handoffs, 0.1386 total
+T28 Testing {'pol': 'nom_boltzmann', 'epsilon': 2.2}
+
+T2 Blocking probability: 0.1496 for new calls, 0.0714 for handoffs, 0.1406 total
+T29 Testing {'pol': 'nom_boltzmann', 'epsilon': 4}
+
+T15 Blocking probability: 0.1496 for new calls, 0.0734 for handoffs, 0.1409 total
+T30 Testing {'pol': 'nom_boltzmann', 'epsilon': 6}
+
+T7 Blocking probability: 0.1477 for new calls, 0.0728 for handoffs, 0.1392 total
+T32 Testing {'pol': 'eps_greedy', 'epsilon': 0.2}
+
+T4 Blocking probability: 0.1465 for new calls, 0.0694 for handoffs, 0.1377 total
+T33 Testing {'pol': 'eps_greedy', 'epsilon': 0.4}
+
+T11 Blocking probability: 0.1478 for new calls, 0.0717 for handoffs, 0.1391 total
+T34 Testing {'pol': 'eps_greedy', 'epsilon': 0.7}
+
+T17 Blocking probability: 0.1453 for new calls, 0.0708 for handoffs, 0.1369 total
+T36 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T25 Blocking probability: 0.1488 for new calls, 0.0743 for handoffs, 0.1404 total
+T37 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T20 Blocking probability: 0.1485 for new calls, 0.0720 for handoffs, 0.1399 total
+T38 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T23 Blocking probability: 0.1510 for new calls, 0.0738 for handoffs, 0.1423 total
+T40 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T26 Blocking probability: 0.1508 for new calls, 0.0720 for handoffs, 0.1419 total
+T41 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T21 Blocking probability: 0.1438 for new calls, 0.0681 for handoffs, 0.1352 total
+T42 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T27 Blocking probability: 0.1470 for new calls, 0.0738 for handoffs, 0.1388 total
+T45 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.0}
+
+T22 Blocking probability: 0.1512 for new calls, 0.0752 for handoffs, 0.1426 total
+T46 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.5}
+
+T28 Blocking probability: 0.1515 for new calls, 0.0762 for handoffs, 0.1430 total
+T47 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.0}
+
+T24 Blocking probability: 0.1469 for new calls, 0.0704 for handoffs, 0.1383 total
+T48 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.5}
+
+T29 Blocking probability: 0.1478 for new calls, 0.0713 for handoffs, 0.1392 total
+T49 Testing {'pol': 'bgumbel', 'exp_policy_param': 6.0}
+
+T33 Blocking probability: 0.1481 for new calls, 0.0727 for handoffs, 0.1396 total
+T50 Testing {'pol': 'boltzmann', 'epsilon': 2.2}
+
+T34 Blocking probability: 0.1506 for new calls, 0.0713 for handoffs, 0.1417 total
+T51 Testing {'pol': 'boltzmann', 'epsilon': 4}
+
+T36 Blocking probability: 0.1509 for new calls, 0.0739 for handoffs, 0.1422 total
+T52 Testing {'pol': 'boltzmann', 'epsilon': 6}
+
+T30 Blocking probability: 0.1503 for new calls, 0.0736 for handoffs, 0.1416 total
+T53 Testing {'pol': 'nom_boltzmann', 'epsilon': 2.2}
+
+T32 Blocking probability: 0.1469 for new calls, 0.0683 for handoffs, 0.1380 total
+T54 Testing {'pol': 'nom_boltzmann', 'epsilon': 4}
+
+T37 Blocking probability: 0.1488 for new calls, 0.0737 for handoffs, 0.1404 total
+T55 Testing {'pol': 'nom_boltzmann', 'epsilon': 6}
+
+T38 Blocking probability: 0.1515 for new calls, 0.0752 for handoffs, 0.1429 total
+T57 Testing {'pol': 'eps_greedy', 'epsilon': 0.2}
+
+T46 Blocking probability: 0.1484 for new calls, 0.0766 for handoffs, 0.1403 total
+T58 Testing {'pol': 'eps_greedy', 'epsilon': 0.4}
+
+T42 Blocking probability: 0.1488 for new calls, 0.0725 for handoffs, 0.1402 total
+T59 Testing {'pol': 'eps_greedy', 'epsilon': 0.7}
+
+T49 Blocking probability: 0.1476 for new calls, 0.0719 for handoffs, 0.1391 total
+T61 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T40 Blocking probability: 0.1516 for new calls, 0.0742 for handoffs, 0.1428 total
+T62 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T50 Blocking probability: 0.1478 for new calls, 0.0741 for handoffs, 0.1395 total
+T63 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T41 Blocking probability: 0.1478 for new calls, 0.0719 for handoffs, 0.1392 total
+T65 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T51 Blocking probability: 0.1482 for new calls, 0.0730 for handoffs, 0.1397 total
+T66 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T53 Blocking probability: 0.1478 for new calls, 0.0723 for handoffs, 0.1392 total
+T67 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T48 Blocking probability: 0.1514 for new calls, 0.0758 for handoffs, 0.1429 total
+T70 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.0}
+
+T45 Blocking probability: 0.1449 for new calls, 0.0742 for handoffs, 0.1368 total
+T71 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.5}
+
+T52 Blocking probability: 0.1470 for new calls, 0.0726 for handoffs, 0.1386 total
+T72 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.0}
+
+T47 Blocking probability: 0.1490 for new calls, 0.0703 for handoffs, 0.1401 total
+T73 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.5}
+
+T54 Blocking probability: 0.1499 for new calls, 0.0754 for handoffs, 0.1415 total
+T74 Testing {'pol': 'bgumbel', 'exp_policy_param': 6.0}
+
+T55 Blocking probability: 0.1482 for new calls, 0.0748 for handoffs, 0.1399 total
+T75 Testing {'pol': 'boltzmann', 'epsilon': 2.2}
+
+T66 Blocking probability: 0.1506 for new calls, 0.0721 for handoffs, 0.1418 total
+T76 Testing {'pol': 'boltzmann', 'epsilon': 4}
+
+T57 Blocking probability: 0.1494 for new calls, 0.0729 for handoffs, 0.1409 total
+T77 Testing {'pol': 'boltzmann', 'epsilon': 6}
+
+T58 Blocking probability: 0.1479 for new calls, 0.0703 for handoffs, 0.1392 total
+T78 Testing {'pol': 'nom_boltzmann', 'epsilon': 2.2}
+
+T62 Blocking probability: 0.1512 for new calls, 0.0768 for handoffs, 0.1428 total
+T79 Testing {'pol': 'nom_boltzmann', 'epsilon': 4}
+
+T65 Blocking probability: 0.1486 for new calls, 0.0738 for handoffs, 0.1401 total
+T80 Testing {'pol': 'nom_boltzmann', 'epsilon': 6}
+
+T61 Blocking probability: 0.1507 for new calls, 0.0732 for handoffs, 0.1420 total
+T82 Testing {'pol': 'eps_greedy', 'epsilon': 0.2}
+
+T63 Blocking probability: 0.1517 for new calls, 0.0711 for handoffs, 0.1427 total
+T83 Testing {'pol': 'eps_greedy', 'epsilon': 0.4}
+
+T59 Blocking probability: 0.1480 for new calls, 0.0716 for handoffs, 0.1393 total
+T84 Testing {'pol': 'eps_greedy', 'epsilon': 0.7}
+
+T73 Blocking probability: 0.1510 for new calls, 0.0721 for handoffs, 0.1420 total
+T86 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T72 Blocking probability: 0.1464 for new calls, 0.0726 for handoffs, 0.1380 total
+T87 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T67 Blocking probability: 0.1467 for new calls, 0.0731 for handoffs, 0.1383 total
+T88 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T71 Blocking probability: 0.1466 for new calls, 0.0696 for handoffs, 0.1379 total
+T90 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T70 Blocking probability: 0.1484 for new calls, 0.0757 for handoffs, 0.1401 total
+T91 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T74 Blocking probability: 0.1504 for new calls, 0.0744 for handoffs, 0.1419 total
+T92 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T78 Blocking probability: 0.1500 for new calls, 0.0734 for handoffs, 0.1414 total
+T95 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.0}
+
+T76 Blocking probability: 0.1490 for new calls, 0.0743 for handoffs, 0.1406 total
+T96 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.5}
+
+T75 Blocking probability: 0.1495 for new calls, 0.0758 for handoffs, 0.1412 total
+T97 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.0}
+
+T77 Blocking probability: 0.1476 for new calls, 0.0736 for handoffs, 0.1393 total
+T98 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.5}
+
+T82 Blocking probability: 0.1519 for new calls, 0.0762 for handoffs, 0.1434 total
+T99 Testing {'pol': 'bgumbel', 'exp_policy_param': 6.0}
+
+T79 Blocking probability: 0.1497 for new calls, 0.0755 for handoffs, 0.1413 total
+T100 Testing {'pol': 'boltzmann', 'epsilon': 2.2}
+
+T83 Blocking probability: 0.1473 for new calls, 0.0738 for handoffs, 0.1390 total
+T101 Testing {'pol': 'boltzmann', 'epsilon': 4}
+
+T80 Blocking probability: 0.1492 for new calls, 0.0720 for handoffs, 0.1405 total
+T102 Testing {'pol': 'boltzmann', 'epsilon': 6}
+
+T87 Blocking probability: 0.1479 for new calls, 0.0721 for handoffs, 0.1394 total
+T103 Testing {'pol': 'nom_boltzmann', 'epsilon': 2.2}
+
+T86 Blocking probability: 0.1476 for new calls, 0.0740 for handoffs, 0.1393 total
+T104 Testing {'pol': 'nom_boltzmann', 'epsilon': 4}
+
+T88 Blocking probability: 0.1490 for new calls, 0.0717 for handoffs, 0.1403 total
+T105 Testing {'pol': 'nom_boltzmann', 'epsilon': 6}
+
+T91 Blocking probability: 0.1506 for new calls, 0.0739 for handoffs, 0.1419 total
+T107 Testing {'pol': 'eps_greedy', 'epsilon': 0.2}
+
+T84 Blocking probability: 0.1465 for new calls, 0.0731 for handoffs, 0.1382 total
+T108 Testing {'pol': 'eps_greedy', 'epsilon': 0.4}
+
+T90 Blocking probability: 0.1443 for new calls, 0.0714 for handoffs, 0.1361 total
+T109 Testing {'pol': 'eps_greedy', 'epsilon': 0.7}
+
+T92 Blocking probability: 0.1459 for new calls, 0.0723 for handoffs, 0.1376 total
+T111 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T99 Blocking probability: 0.1492 for new calls, 0.0741 for handoffs, 0.1407 total
+T112 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T97 Blocking probability: 0.1480 for new calls, 0.0732 for handoffs, 0.1395 total
+T113 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T98 Blocking probability: 0.1507 for new calls, 0.0766 for handoffs, 0.1423 total
+T115 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T96 Blocking probability: 0.1502 for new calls, 0.0744 for handoffs, 0.1416 total
+T116 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T95 Blocking probability: 0.1467 for new calls, 0.0724 for handoffs, 0.1383 total
+T117 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T101 Blocking probability: 0.1452 for new calls, 0.0735 for handoffs, 0.1371 total
+T120 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.0}
+
+T108 Blocking probability: 0.1512 for new calls, 0.0724 for handoffs, 0.1423 total
+T121 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.5}
+
+T102 Blocking probability: 0.1492 for new calls, 0.0721 for handoffs, 0.1405 total
+
+T100 Blocking probability: 0.1494 for new calls, 0.0735 for handoffs, 0.1408 total
+T122 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.0}
+T123 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.5}
+
+T103 Blocking probability: 0.1506 for new calls, 0.0742 for handoffs, 0.1420 total
+T124 Testing {'pol': 'bgumbel', 'exp_policy_param': 6.0}
+
+T104 Blocking probability: 0.1483 for new calls, 0.0710 for handoffs, 0.1395 total
+T125 Testing {'pol': 'boltzmann', 'epsilon': 2.2}
+
+T107 Blocking probability: 0.1498 for new calls, 0.0742 for handoffs, 0.1413 total
+T126 Testing {'pol': 'boltzmann', 'epsilon': 4}
+
+T105 Blocking probability: 0.1480 for new calls, 0.0749 for handoffs, 0.1398 total
+T127 Testing {'pol': 'boltzmann', 'epsilon': 6}
+
+T109 Blocking probability: 0.1485 for new calls, 0.0720 for handoffs, 0.1398 total
+T128 Testing {'pol': 'nom_boltzmann', 'epsilon': 2.2}
+
+T111 Blocking probability: 0.1487 for new calls, 0.0734 for handoffs, 0.1403 total
+T129 Testing {'pol': 'nom_boltzmann', 'epsilon': 4}
+
+T116 Blocking probability: 0.1492 for new calls, 0.0762 for handoffs, 0.1409 total
+T130 Testing {'pol': 'nom_boltzmann', 'epsilon': 6}
+
+T117 Blocking probability: 0.1507 for new calls, 0.0777 for handoffs, 0.1425 total
+T132 Testing {'pol': 'eps_greedy', 'epsilon': 0.2}
+
+T121 Blocking probability: 0.1458 for new calls, 0.0736 for handoffs, 0.1376 total
+T133 Testing {'pol': 'eps_greedy', 'epsilon': 0.4}
+
+T113 Blocking probability: 0.1511 for new calls, 0.0735 for handoffs, 0.1423 total
+T134 Testing {'pol': 'eps_greedy', 'epsilon': 0.7}
+
+T120 Blocking probability: 0.1475 for new calls, 0.0711 for handoffs, 0.1388 total
+T136 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.2}
+
+T124 Blocking probability: 0.1480 for new calls, 0.0738 for handoffs, 0.1396 total
+T137 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.4}
+
+T115 Blocking probability: 0.1440 for new calls, 0.0711 for handoffs, 0.1358 total
+T138 Testing {'pol': 'nom_eps_greedy', 'epsilon': 0.7}
+
+T112 Blocking probability: 0.1477 for new calls, 0.0730 for handoffs, 0.1392 total
+T140 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.2}
+
+T125 Blocking probability: 0.1499 for new calls, 0.0733 for handoffs, 0.1413 total
+T141 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.4}
+
+T123 Blocking probability: 0.1484 for new calls, 0.0727 for handoffs, 0.1399 total
+T142 Testing {'pol': 'eps_nom_greedy', 'epsilon': 0.7}
+
+T122 Blocking probability: 0.1475 for new calls, 0.0738 for handoffs, 0.1390 total
+T145 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.0}
+
+T126 Blocking probability: 0.1464 for new calls, 0.0728 for handoffs, 0.1381 total
+T146 Testing {'pol': 'bgumbel', 'exp_policy_param': 4.5}
+
+T127 Blocking probability: 0.1510 for new calls, 0.0738 for handoffs, 0.1423 total
+T147 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.0}
+
+T128 Blocking probability: 0.1489 for new calls, 0.0747 for handoffs, 0.1405 total
+T148 Testing {'pol': 'bgumbel', 'exp_policy_param': 5.5}
+
+T129 Blocking probability: 0.1471 for new calls, 0.0706 for handoffs, 0.1385 total
+T149 Testing {'pol': 'bgumbel', 'exp_policy_param': 6.0}
+T149 Block prob threshold exceeded at 0.1611; breaking out early
+
+T149 Blocking probability: 0.1611 for new calls, 0.0769 for handoffs, 0.1521 total
+T146 Block prob threshold exceeded at 0.1605; breaking out early
+
+T146 Blocking probability: 0.1605 for new calls, 0.0748 for handoffs, 0.1511 total
+
+T130 Blocking probability: 0.1481 for new calls, 0.0734 for handoffs, 0.1396 total
+
+T132 Blocking probability: 0.1507 for new calls, 0.0746 for handoffs, 0.1421 total
+
+T133 Blocking probability: 0.1503 for new calls, 0.0725 for handoffs, 0.1415 total
+
+T141 Blocking probability: 0.1488 for new calls, 0.0764 for handoffs, 0.1406 total
+
+T138 Blocking probability: 0.1491 for new calls, 0.0723 for handoffs, 0.1404 total
+
+T136 Blocking probability: 0.1484 for new calls, 0.0711 for handoffs, 0.1397 total
+
+T140 Blocking probability: 0.1495 for new calls, 0.0699 for handoffs, 0.1405 total
+
+T137 Blocking probability: 0.1470 for new calls, 0.0714 for handoffs, 0.1384 total
+
+T134 Blocking probability: 0.1475 for new calls, 0.0710 for handoffs, 0.1389 total
+
+T142 Blocking probability: 0.1484 for new calls, 0.0715 for handoffs, 0.1397 total
+
+T145 Blocking probability: 0.1493 for new calls, 0.0717 for handoffs, 0.1405 total
+
+T147 Blocking probability: 0.1463 for new calls, 0.0741 for handoffs, 0.1382 total
+
+T148 Blocking probability: 0.1499 for new calls, 0.0766 for handoffs, 0.1417 total
