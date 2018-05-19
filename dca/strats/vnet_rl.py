@@ -97,12 +97,12 @@ class VNetBase(NetStrat):
         self.max_ch = chs.off
         if self.importance_sampl:
             self.p = chs.p
-            self.next_val = qvals.off
-            self.next_frep = freps.off
+            # self.next_val = qvals.off
+            # self.next_frep = freps.off
         else:
             self.p = 1
-            self.next_val = qvals.on
-            self.next_frep = freps.on
+        self.next_val = qvals.on
+        self.next_frep = freps.on
         self.frep = freps.cur
         return chs.on
 
@@ -252,9 +252,9 @@ class VNetBase(NetStrat):
             next_grids=next_grid,
             weights=[p],
             avg_reward=self.avg_reward)
-        if ch is not None and ch == max_ch:
-            self.avg_reward += self.weight_beta * np.mean(err)
-            self.weight_beta *= self.weight_beta_decay
+        # if ch is not None and ch == max_ch:
+        self.avg_reward += self.weight_beta * np.mean(err)
+        self.weight_beta *= self.weight_beta_decay
 
     def update_qval_rsmart(self, grid, frep, cell, ce_type, ch, max_ch, p, reward,
                            next_grid, next_frep, next_val, discount):

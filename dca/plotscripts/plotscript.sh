@@ -75,7 +75,7 @@ if [ -v grads ] ; then
                 --labels 'Semi-grad. (A-MDP)' 'Residual grad. (A-MDP)' \
                 'TDC (A-MDP)' 'TDC (MDP)' \
                 --title "Gradient comparison (no hand-offs)" \
-                --ctype tot --plot_save grads --ymins 5 || exit 1
+                --ctype new --plot_save grads --ymins 5 || exit 1
     fi
     echo "Finished Grads"
 fi
