@@ -90,7 +90,6 @@ def get_init_by_name(name, pp):
         "norm_cols": normalized_columns_initializer,
         "norm_pos": lambda: tf.random_normal_initializer(0., 0.2),  # Try for dense kernel
         "const_pos": lambda: tf.constant_initializer(0.1),  # Try for dense bias
-        "nominal": partial(NominalInitializer, pp['qnom_lo'], pp['qnom_hi'])
     }  # yapf: disable
     return inits[name]
 

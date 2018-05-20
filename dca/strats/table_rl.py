@@ -63,8 +63,7 @@ class QTable(RLStrat):
             self.el_traces[frep][ch] += 1
             self.qvals += self.alpha * td_err * self.el_traces
             self.el_traces *= discount * self.lmbda
-        if self.alpha > self.pp['min_alpha']:
-            self.alpha *= self.alpha_decay
+        self.alpha *= self.alpha_decay
         next_frep = self.feature_rep(next_cell, next_n_used)
         self.logger.debug(
             f"Q[{frep}][{ch}]:{q:.1f} -> {reward:.1f} + Q[{next_frep}][{next_ch}]:{next_qval:.1f}"
@@ -143,8 +142,7 @@ class HLA_RS_SARSA(QTable):
         next_ch, next_max_ch, p, next_qval, next_max_qval = res
         return next_ch
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, hreward, ce_type,
-                   discount) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         res = self.optimal_ch(next_ce_type, next_cell)
         next_ch, next_max_ch, p, next_qval, next_max_qval = res
@@ -291,8 +289,7 @@ class E_RS_SARSA(QTable):
 
         frep = self.feature_rep(cell, n_used)
         self.qvals[frep][ch] += self.alpha * td_err
-        if self.alpha > self.pp['min_alpha']:
-            self.alpha *= self.alpha_decay
+        self.alpha *= self.alpha_decay
 
 
 class ZapQ(RLStrat):
