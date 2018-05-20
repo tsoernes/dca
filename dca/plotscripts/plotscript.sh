@@ -1,5 +1,5 @@
 # Comment out to avoid running
-# runsim=""
+runsim=""
 runplot=""
 
 targs=""
@@ -14,8 +14,8 @@ events=470000
 # logiter=5000
 logiter=25000
 
-avg=16
-ext=".0"
+avg=32
+ext=".2"
 
 
 
@@ -30,10 +30,9 @@ runargs=(--log_iter "${logiter}"
 if [ -v targs ] ; then
     if [ -v runsim ] ; then
         # SMDP Discount
-        # TODO tune beta, lr
         python3 main.py singhnet "${runargs[@]}" \
                 -save_bp targ-smdp --target discount -rtype smdp_callcount \
-                -phoff --beta_disc --beta 20 -lr 5e-6 || exit 1
+                -phoff --beta_disc --beta 21 -lr 5.1e-6 || exit 1
         # MDP Discount
         python3 main.py singhnet "${runargs[@]}" \
                 -phoff -save_bp targ-mdp --target discount \

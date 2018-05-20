@@ -1,10 +1,15 @@
 import pickle
+import sys
 from os import getcwd, listdir
 from os.path import isfile, join
 
 import numpy as np
 
-ext = ".0"
+if len(sys.argv) > 1:
+    ext = "." + sys.argv[-1]
+else:
+    ext = ".0"
+
 if getcwd()[-3:] == 'div':
     fdir = "../bps"
 else:
@@ -25,4 +30,4 @@ for fname in fnames:
         bps = pickle.load(f)
         cum_bps = [f"{np.mean(bps[ct], axis=1)[-1]:.5f}" for ct in ctypes]
         stds = [f"{np.std(bps[ct], axis=1)[-1]:.5f}" for ct in ctypes]
-        print(f"\n {fname} \n {cum_bps} {stds}")
+        print(f"\n mean:{fname} \n std:{cum_bps} {stds}")

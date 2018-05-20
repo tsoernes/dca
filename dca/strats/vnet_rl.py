@@ -96,13 +96,13 @@ class VNetBase(NetStrat):
         chs, qvals, freps = self.optimal_ch(next_ce_type, next_cell)
         self.max_ch = chs.off
         if self.importance_sampl:
-            self.p = chs.p
-            # self.next_val = qvals.off
-            # self.next_frep = freps.off
+            self.p = 1  # chs.p
+            self.next_val = qvals.off
+            self.next_frep = freps.off
         else:
             self.p = 1
-        self.next_val = qvals.on
-        self.next_frep = freps.on
+            self.next_val = qvals.on
+            self.next_frep = freps.on
         self.frep = freps.cur
         return chs.on
 
