@@ -120,7 +120,7 @@ if [ -v hla ] ; then
     fi
     if [ -v runplot ] ; then
         python3 plotter.py "vnet${ext}" "hla-vnet${ext}" "rssarsa${ext}" "hla-rssarsa${ext}" \
-                --labels 'VNet' 'VNet (HLA)' 'RS-SARSA' 'RS-SARSA (HLA)' \
+                --labels 'AA-VNet' 'AA-VNet (HLA)' 'RS-SARSA' 'RS-SARSA (HLA)' \
                 --title "Hand-off look-ahead" \
                 --ctype new hoff tot --plot_save hla --ymins 10 0 10 || exit 1
    fi
@@ -140,7 +140,7 @@ if [ -v finalhoff ] ; then
     fi
     if [ -v runplot ] ; then
         python3 plotter.py "hla-vnet${ext}" "hla-rssarsa${ext}" "final-fca${ext}" "final-rand${ext}" \
-                --labels 'VNet (HLA)' 'RS-SARSA (HLA)' 'FCA' 'Random assignment' \
+                --labels 'AA-VNet (HLA)' 'RS-SARSA (HLA)' 'FCA' 'Random assignment' \
                 --title "RL vs non-learning agents (with hand-offs)" \
                 --ctype new hoff --plot_save final-whoff --ymins 10 0 || exit 1
     fi
@@ -166,7 +166,7 @@ if [ -v finalnohoff ] ; then
     if [ -v runplot ] ; then
         python3 plotter.py "final-nohoff-vnet${ext}" "final-nohoff-rssarsa${ext}" \
                 "final-nohoff-fca${ext}" "final-nohoff-rand${ext}" \
-                --labels 'VNet' 'RS-SARSA' 'FCA' 'Random assignment' \
+                --labels 'AA-VNet' 'RS-SARSA' 'FCA' 'Random assignment' \
                 --title "RL vs non-learning agents (no hand-offs)" \
                 --ctype new --plot_save final-nohoff --ymins 10 || exit 1
     fi
