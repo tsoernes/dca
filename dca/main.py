@@ -83,9 +83,8 @@ def get_pparams(defaults=False):
     ]
     hopt_opts = [
         'epsilon', 'epsilon_decay', 'alpha', 'alpha_decay', 'gamma', 'lambda', 'net_lr',
-        'net_copy_iter', 'net_creep_tau', 'vf_coeff', 'entropy_coeff', 'beta',
-        'net_lr_decay', 'n_step', 'weight_beta', 'weight_beta_decay', 'grad_beta',
-        'grad_beta_decay', 'huber_loss'
+        'net_copy_iter', 'net_creep_tau', 'beta', 'net_lr_decay', 'n_step', 'weight_beta',
+        'weight_beta_decay', 'grad_beta', 'grad_beta_decay', 'huber_loss'
     ]
 
     parser.add_argument('strat', type=str, choices=stratnames, default="rs_sarsa")
@@ -164,11 +163,6 @@ def get_pparams(defaults=False):
         help="(RL/Table) factor by which alpha is multiplied each iteration",
         default=0.999_999_9)
     parser.add_argument(
-        '--wolf',
-        type=float,
-        help="(RL) Win-or-Learn-Fast learning rate multiplier for lose",
-        default=1)
-    parser.add_argument(
         '-epol',
         '--exp_policy',
         type=str,
@@ -195,7 +189,10 @@ def get_pparams(defaults=False):
         help="(RL) factor by which epsilon is multiplied each iteration",
         default=0.999_995)
     parser.add_argument(
-        '--eps_log_decay', action='store_true', help="(RL) A la Lilith", default=False)
+        '--eps_log_decay',
+        action='store_true',
+        help="(RL) Decay epsilon a la Lilith instead of exponentially",
+        default=False)
     parser.add_argument(
         '--lilith',
         action='store_true',
@@ -213,7 +210,6 @@ def get_pparams(defaults=False):
     parser.add_argument('-gbeta', '--grad_beta', type=float, help="(RL)", default=5e-6)
     parser.add_argument(
         '-gbeta_dec', '--grad_beta_decay', type=float, help="(RL)", default=9e-4)
-    parser.add_argument('--hoff_pri', type=float, help="Prioritize hand-offs", default=0)
     parser.add_argument(
         '-rtype',
         '--reward_type',
@@ -250,11 +246,6 @@ def get_pparams(defaults=False):
         type=float,
         help="(RL/Table) lower lambda weighs fewer step returns higher",
         default=None)
-    parser.add_argument(
-        '--min_alpha',
-        type=float,
-        help="(RL) stop decaying alpha beyond this point",
-        default=0.0)
     parser.add_argument(
         '--save_exp_data',
         help="Save experience data to file",
@@ -333,8 +324,6 @@ def get_pparams(defaults=False):
         const=100_000)
     parser.add_argument(
         '--weight_init_conv', choices=weight_initializers, default='glorot_unif')
-    parser.add_argument('--qnom_lo', type=float, default=0.5)
-    parser.add_argument('--qnom_hi', type=float, default=1.5)
     parser.add_argument(
         '--weight_init_dense', choices=weight_initializers, default='zeros')
     parser.add_argument(
@@ -458,11 +447,6 @@ def get_pparams(defaults=False):
     # help="(Net) Prioritized Experience Replay",
     # default=False)
     parser.add_argument(
-        '--bench_batch_size',
-        action='store_true',
-        help="(Net) Benchmark batch size for neural network",
-        default=False)
-    parser.add_argument(
         '--net_copy_iter',
         type=int,
         metavar='N',
@@ -488,16 +472,6 @@ def get_pparams(defaults=False):
         "'tau' ~ 0.1 when 'net_copy_iter' is 5 is good starting point.",
         default=0.12,
         const=0.12)
-    parser.add_argument(
-        '--vf_coeff',
-        type=float,
-        help="(Net/Pol) Value function coefficient in policy gradient loss",
-        default=0.02)
-    parser.add_argument(
-        '--entropy_coeff',
-        type=float,
-        help="(Net/Pol) Entropy coefficient in policy gradient loss",
-        default=10.0)
     parser.add_argument(
         '--train_net',
         type=int,
@@ -649,8 +623,8 @@ def get_pparams(defaults=False):
             pp['log_file'] = f_name
         else:
             if pp['log_file'] is None and (
-                (pp['avg_runs'] is not None and pp['avg_runs'] >= 16)
-                    or pp['exp_policy_cmp']):
+                (pp['avg_runs'] is not None and pp['avg_runs'] >= 16) or
+                    pp['exp_policy_cmp']):  # yapf: disable
                 # Force file logging for big runs
                 f_name = f"avg-{pp['strat']}"
                 pp['log_file'] = f_name
@@ -681,9 +655,6 @@ def get_pparams(defaults=False):
             # Always log hopt runs
             f_name = f"results-{libname}-{pp['strat']}-{pnames}"
             pp['log_file'] = f_name
-    if pp['bench_batch_size']:
-        if pp['log_level'] is None:
-            pp['log_level'] = logging.WARN
     if pp['log_level'] is None:
         pp['log_level'] = logging.INFO
     if pp['p_handoff'] is None:

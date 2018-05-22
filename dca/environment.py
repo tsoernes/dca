@@ -18,7 +18,6 @@ class Env:
         self.gui = gui
 
         self.dt_rewards, self.ccount_rewards, self.nblock_rewards = False, False, False
-        self.hoff_pri = pp['hoff_pri']
         if pp['reward_type'] == 'smdp_callcount':
             self.dt_rewards = True
             self.beta = pp['beta']
@@ -82,12 +81,12 @@ class Env:
             # Generate next incoming call
             self.eventgen.event_new(t, cell)
             if ch is None:
-                reward, hreward = -1, -1
+                reward = -1
                 self.stats.event_new_reject(cell, n_used)
                 if self.gui:
                     self.gui.hgrid.mark_cell(*cell)
             else:
-                reward, hreward = 1, 1
+                reward = 1
                 # With some probability, hand off call instead
                 # of generating the usual END event
                 if np.random.random() < self.p_handoff:
@@ -98,16 +97,16 @@ class Env:
         elif ce_type == CEvent.HOFF:
             self.stats.event_hoff_new()
             if ch is None:
-                reward, hreward = -1, -self.hoff_pri
+                reward = -1
                 self.stats.event_hoff_reject(cell, n_used)
                 if self.gui:
                     self.gui.hgrid.mark_cell(*cell)
             else:
-                reward, hreward = 1, self.hoff_pri
+                reward = 1
                 self.eventgen.event_end_handoff(t, cell, ch)
         elif ce_type == CEvent.END:
             self.stats.event_end()
-            reward, hreward = 0, 0
+            reward = 0
             if ch is None:
                 self.logger.error("No channel assigned for end event")
                 raise Exception
@@ -126,7 +125,7 @@ class Env:
         # Immediate reward, which is the total number of calls
         # currently in progress system-wide
         if self.nblock_rewards:
-            return reward, hreward, self.gamma, self.cevent
+            return reward, self.gamma, self.cevent
         count = np.count_nonzero(self.grid)
         if self.dt_rewards:
             dt = self.cevent[0] - t
@@ -136,10 +135,9 @@ class Env:
             beta_disc = np.exp(-self.beta * dt)
             reward = count * (1 - beta_disc) / self.beta
             discount = beta_disc if self.bdisc else self.gamma
-            return reward, None, discount, self.cevent
+            return reward, discount, self.cevent
         elif self.ccount_rewards:
-            hreward = count + self.hoff_pri * np.count_nonzero(self.hgrid)
-            return count, hreward, self.gamma, self.cevent
+            return count, self.gamma, self.cevent
 
     def execute_action(self, cevent, ch: int):
         """
