@@ -4,6 +4,7 @@ dca/model/
 dca/db/
 dca/plots/
 dca/logfile.txt
+!dca/bps/*
 *.bak
 # Numpy data sets
 *.npy

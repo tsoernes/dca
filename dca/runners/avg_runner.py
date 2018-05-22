@@ -87,7 +87,8 @@ class AvgRunner(Runner):
         data = {
             'datetime': datetime.datetime.now(),
             'log_iter': log_iter,
-            'n_events': n_events
+            'n_events': n_events,
+            'pp': self.pp
         }
         for i, block_probs_cums in enumerate(all_block_probs_cum):
             self.fo_logger.error(f'{ctypes_short[i]} cumulative block probs')

@@ -64,8 +64,8 @@ class Strat:
             self.t, ce_type, cell = cevent[0:3]
             grid = np.copy(self.grid)  # Copy before state is modified
             reward, discount, next_cevent = self.env.step(ch)
-            next_ch = self.get_action(next_cevent, grid, cell, ch, reward
-                                      ce_type, discount)
+            next_ch = self.get_action(next_cevent, grid, cell, ch, reward, ce_type,
+                                      discount)
             # NOTE Could do per-strat saving here, as they save different stuff
             if self.save \
                     and ch is not None \
@@ -133,8 +133,7 @@ class Strat:
         """Return a channel to be (re)assigned in response to 'next_cevent'."""
         raise NotImplementedError
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type,
-                   discount) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         """Return a channel to be (re)assigned in response to 'next_cevent'.
 
         'cell' and 'ch' specify the action that was previously executed on
@@ -175,8 +174,7 @@ class RLStrat(Strat):
         ch, *_ = self.optimal_ch(ce_type=cevent[1], cell=cevent[2])
         return ch
 
-    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type,
-                   discount) -> int:
+    def get_action(self, next_cevent, grid, cell, ch, reward, ce_type, discount) -> int:
         next_ce_type, next_cell = next_cevent[1:3]
         # Choose A' from S'
         next_ch, next_max_ch, p = self.optimal_ch(next_ce_type, next_cell)

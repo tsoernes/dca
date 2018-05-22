@@ -151,7 +151,7 @@ if [ -v finalhoff ] ; then
         python3 plotter.py "hla-vnet${ext}" "hla-rssarsa${ext}" "final-fca${ext}" "final-rand${ext}" \
                 --labels "AA-VNet (HLA)" "RS-SARSA (HLA)" "FCA" "Random assignment" \
                 --title "RL vs non-learning agents (with hand-offs)" \
-                --ctype new hoff --plot_save final-whoff --ymins 10 0 || exit 1
+                --ctype new hoff tot --plot_save final-whoff --ymins 10 0 || exit 1
     fi
     echo "Finished Final w/hoff"
 fi

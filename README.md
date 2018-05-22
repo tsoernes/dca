@@ -1,13 +1,17 @@
 ## Dynamic Channel Allocation with Reinforcement Learning
 Dynamic Channel Allocation using different strategies, such as Fixed Assignment and Reinforcement Learning. 
 
-Example usage, TDC gradient value net on simulation with 10 Erlangs and 15% chance of hand-offs using hand-off look-ahead:
+Example usage, TDC gradient value net with differential returns and hand-off look-ahead (HLA) on simulation
+with 10 Erlangs and 15% chance of hand-off: 
 `python3 main.py tftdcsinghnet --hoff_lookahead --erlangs 10 --p_handoff 0.15`
 
 In general:
 `python3 main.py <agent_name> --long_option_name -short_option_name`
 
-Listed below are some of the features and agent implementations. Run `python3 main.py --help` for comprehensive list.
+To see the options used for the plots the thesis, see `plotscript.sh`.
+
+Listed below are some of the features and agent implementations. Run `python3
+main.py --help` for comprehensive list and default options.
 # Non-learning agents
 See `fixedstrats.py`
 - Fixed Assign (`fixedassign`)
