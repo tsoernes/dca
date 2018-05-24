@@ -4,6 +4,7 @@ import sys
 from os import getcwd, listdir
 from os.path import isfile, join
 
+import datadiff
 import numpy as np
 
 
@@ -56,15 +57,45 @@ else:
 if not fnames:
     fnames = [f for f in listdir(fdir) if isfile(join(fdir, f))]
     fnames = sorted(fnames)
-# print(fnames)
-for i, fname in enumerate(fnames):
+fnames_bps = []
+for fname in fnames:
     if ext is None or fname[-5] == ext:
         with open(ensure_dir(fname), "rb") as f:
-            bps = pickle.load(f)
-            cum_bps = [f"{np.mean(bps[ct], axis=1)[-1]:.5f}" for ct in ctypes]
-            stds = [f"{np.std(bps[ct], axis=1)[-1]:.5f}" for ct in ctypes]
-            print(
-                f" {fname}: {bps['new'].shape[0]} runs, {bps['log_iter']} logiter, shape {bps['new'].shape}"
-                f" \n mean:{cum_bps} std:{stds}")
-            if i < len(fnames) - 1 and fname[:-5] != fnames[i + 1][:-5]:
-                print("\n")
+            bp = pickle.load(f)
+            fnames_bps.append((fname, bp))
+
+
+def diff_filt1(diff_el):
+    return diff_el[0] != 'equal'
+
+
+def diff_filt2(diff_el):
+    return len(
+        diff_el[1]
+    ) > 0 and 'log_file' not in diff_el[1][0] and 'avg_runs' not in diff_el[1][0]
+
+
+for i, (fname1, bp1) in enumerate(fnames_bps[:-1]):
+    fname2, bp2 = fnames_bps[i + 1]
+    if fname1[:-5] == fname2[:-5]:
+        li1 = bp1['log_iter']
+        li2 = bp2['log_iter']
+        if li1 != li2:
+            print(f"{fname1}, {fname2}: Different log iters: {li1}, {li2}")
+        ne1 = bp1['n_events']
+        ne2 = bp2['n_events']
+        if ne1 != ne2:
+            print(f"{fname1}, {fname2}: Different n_events: {ne1}, {ne2}")
+        if 'pp' in bp1:
+            if 'pp' in bp2:
+                ppdiff = datadiff.diff(bp1['pp'], bp2['pp'])
+                filt1 = filter(diff_filt1, ppdiff.diffs)
+                filt2 = filter(diff_filt2, filt1)
+                ppdiff_uneq = list(filt2)
+                if ppdiff_uneq:
+                    print(f"{fname1}, {fname2}: {ppdiff_uneq}")
+                # print(f" {fname}: {bp['log_iter']} logiter")
+        else:
+            print(f"{fname1} has no pp")
+    else:
+        print("\n")

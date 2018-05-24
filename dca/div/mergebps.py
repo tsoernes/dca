@@ -5,7 +5,7 @@ from os.path import isfile, join
 
 import numpy as np
 
-next_ext_ = 3
+next_ext_ = 4
 if len(sys.argv) > 1 and sys.argv[-1] == 'no_dry':
     print("RUNNING WET!")
     dry = False
