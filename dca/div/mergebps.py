@@ -5,7 +5,7 @@ from os.path import isfile, join
 
 import numpy as np
 
-next_ext_ = 4
+next_ext_ = 3
 if len(sys.argv) > 1 and sys.argv[-1] == 'no_dry':
     print("RUNNING WET!")
     dry = False
@@ -48,6 +48,30 @@ incorrect_added = np.where(added != 1)
 assert incorrect_added[0].shape == (0, ), (incorrect_added,
                                            np.array(fnames)[incorrect_added])
 
+
+def merge_uneven(bp1, bp2):
+    """"Merge uneven log_iter"""
+    bl1, bl2 = bp1['log_iter'], bp2['log_iter']
+    assert bl1 != bl2, ("Same log iter: ", bl1, bl2)
+    assert bp1['n_events'] == bp2['n_events'], (bp1['n_events'], bp2['n_events'])
+    if bl1 < bl2:
+        min_li, max_li = bl1, bl2
+        min_bp, max_bp = bp1, bp2
+    else:
+        min_li, max_li = bl2, bl1
+        min_bp, max_bp = bp2, bp1
+    assert max_li % min_li == 0, (min_li, max_li)
+    period = max_li // min_li
+    # print(f"Period: {period}, min/max li: {min_li}, {max_li}")
+    for k, v in max_bp.items():
+        if k in ctypes:
+            # Skip some log steps
+            periodic_bp = min_bp[k][:, period - 1::period]
+            # print(v.shape, min_bp[k].shape, periodic_bp.shape)
+            max_bp[k] = np.vstack((v, periodic_bp))
+    return max_bp
+
+
 # for group in filter(lambda g: len(g) > 1, groups):
 for group in groups:
     next_ext = int(group[-1][-5]) + 1 if next_ext_ is None else next_ext_
@@ -59,11 +83,15 @@ for group in groups:
         with open(join(fdir, fname), "rb") as f:
             bp_dict = pickle.load(f)
             shapes.append(bp_dict['new'].shape)
-            for k, v in bp_dict.items():
-                if k in ctypes:
-                    bps_dict[k] = np.vstack((bps_dict[k], v))
-                else:
-                    bps_dict[k] = v
+            try:
+                for k, v in bp_dict.items():
+                    if k in ctypes:
+                        bps_dict[k] = np.vstack((bps_dict[k], v))
+                    elif k != 'log_iter':
+                        bps_dict[k] = v
+            except ValueError:
+                # print(fname, bps_dict[k].shape, v.shape)
+                bps_dict = merge_uneven(bps_dict, bp_dict)
     next_fname = f"{group[0][:-6]}.{next_ext}.pkl"
     print(f"Merged {len(group)} {group} -> {next_fname}"
           f"\n{shapes} -> {bps_dict['new'].shape}")

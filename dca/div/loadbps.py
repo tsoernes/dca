@@ -63,4 +63,6 @@ for fname in fnames:
             bps = pickle.load(f)
             cum_bps = [f"{np.mean(bps[ct], axis=1)[-1]:.5f}" for ct in ctypes]
             stds = [f"{np.std(bps[ct], axis=1)[-1]:.5f}" for ct in ctypes]
-            print(f"\n {fname}: {bps['new'].shape[0]} runs \n mean:{cum_bps} std:{stds}")
+            print(
+                f"\n {fname}: {bps['new'].shape[0]} runs, {bps['log_iter']} logiter, shape {bps['new'].shape}"
+                f" \n mean:{cum_bps} std:{stds}")

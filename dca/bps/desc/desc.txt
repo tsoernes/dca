@@ -1,0 +1,11 @@
+every-avg (with boltz):
+Average reward is incorrectly updated every iter instead of just on greedy actions
+
+boltz:
+default Boltzmann exploration, 4.8 eps, 0.999_995 eps_dec 
+.4 is merged
+
+sarsas: 
+recreating lilith results
+
+
