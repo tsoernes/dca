@@ -58,7 +58,7 @@ if [ -v targs ]; then
     fi
     if [ -v runplot ]; then
         python3 plotter.py "targ-smdp${ext}" "targ-mdp${ext}" "targ-avg${ext}" \
-                --labels "SMDP discount" "MDP discount" "MDP avg. rewards" \
+                --labels "SMDP discount (SB-VNet)" "MDP discount" "MDP avg. rewards" \
                 --title "Target comparison (with hand-offs)" \
                 --ctype new hoff tot --plot_save targets --ymins 10 5 10 || exit 1
     fi
@@ -86,7 +86,7 @@ if [ -v grads ]; then
         python3 plotter.py "grads-semi${ext}" "grads-resid${ext}" \
                 "grads-tdc${ext}" "grads-tdc-gam${ext}" \
                 --labels "Semi-grad. (A-MDP)" "Residual grad. (A-MDP)" \
-                "TDC (A-MDP)" "TDC (MDP)" \
+                "TDC (A-MDP) (AA-VNet)" "TDC (MDP)" \
                 --title "Gradient comparison (no hand-offs)" \
                 --ctype new --plot_save grads --ymins 5 || exit 1
     fi
