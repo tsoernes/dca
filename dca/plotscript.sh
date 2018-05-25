@@ -1,6 +1,6 @@
 # Comment out to avoid running
-runsim=""
-# runplot=""
+# runsim=""
+runplot=""
 
 # NOTE Current .1 results updates avg reward every iter
 # Should do an additional 16 runs of
@@ -28,8 +28,11 @@ events=470000
 logiter=25000
 
 avg=32
-ext=".3"
+ext=".4"
 
+sarsa_dir="sarsas/"
+fixed_dir="fixed/"
+vnet_dir=""
 
 
 runargs=(--log_iter "${logiter}"
@@ -57,7 +60,7 @@ if [ -v targs ]; then
                 --net_lr 3.43e-06 --weight_beta 0.00368 || exit 1
     fi
     if [ -v runplot ]; then
-        python3 plotter.py "targ-smdp${ext}" "targ-mdp${ext}" "targ-avg${ext}" \
+        python3 plotter.py "${vnet_dir}targ-smdp${ext}" "${vnet_dir}targ-mdp${ext}" "${vnet_dir}targ-avg${ext}" \
                 --labels "SMDP discount (SB-VNet)" "MDP discount" "MDP avg. rewards" \
                 --title "Target comparison (with hand-offs)" \
                 --ctype new hoff tot --plot_save targets --ymins 10 5 10 || exit 1
@@ -83,8 +86,8 @@ if [ -v grads ]; then
                 --net_lr 1.91e-06 --grad_beta 5e-09 || exit 1
     fi
     if [ -v runplot ]; then
-        python3 plotter.py "grads-semi${ext}" "grads-resid${ext}" \
-                "grads-tdc${ext}" "grads-tdc-gam${ext}" \
+        python3 plotter.py "${vnet_dir}grads-semi${ext}" "${vnet_dir}grads-resid${ext}" \
+                "${vnet_dir}grads-tdc${ext}" "${vnet_dir}grads-tdc-gam${ext}" \
                 --labels "Semi-grad. (A-MDP)" "Residual grad. (A-MDP)" \
                 "TDC (A-MDP) (AA-VNet)" "TDC (MDP)" \
                 --title "Gradient comparison (no hand-offs)" \
@@ -118,12 +121,6 @@ fi
 if [ -v hla ]; then
     ## HLA ##
     if [ -v runsim ]; then
-        #  TDC A-MDP
-        python3 main.py tftdcsinghnet "${runargs[@]}" \
-                -save_bp vnet -phoff || exit 1
-        # TDC A-MDP HLA
-        python3 main.py tftdcsinghnet "${runargs[@]}" \
-                -save_bp hla-vnet -hla -phoff || exit 1
         if [ -v nonvnets ]; then
             # # RS-SARSA
             python3 main.py rs_sarsa "${runargs[@]}" \
@@ -132,9 +129,16 @@ if [ -v hla ]; then
             python3 main.py hla_rs_sarsa "${runargs[@]}" \
                     -save_bp hla-rssarsa --lilith -phoff -hla || exit 1
         fi
+        #  TDC A-MDP
+        python3 main.py tftdcsinghnet "${runargs[@]}" \
+                -save_bp vnet -phoff || exit 1
+        # TDC A-MDP HLA
+        python3 main.py tftdcsinghnet "${runargs[@]}" \
+                -save_bp hla-vnet -hla -phoff || exit 1
     fi
     if [ -v runplot ]; then
-        python3 plotter.py "vnet${ext}" "hla-vnet${ext}" "rssarsa${ext}" "hla-rssarsa${ext}" \
+        python3 plotter.py "${vnet_dir}vnet${ext}" "${vnet_dir}hla-vnet${ext}" \
+                "${sarsa_dir}rssarsa${ext}" "${sarsa_dir}hla-rssarsa${ext}" \
                 --labels "AA-VNet" "AA-VNet (HLA)" "RS-SARSA" "RS-SARSA (HLA)" \
                 --title "Hand-off look-ahead" \
                 --ctype new hoff tot --plot_save hla --ymins 10 0 10 || exit 1
@@ -154,10 +158,11 @@ if [ -v finalhoff ]; then
                 -save_bp final-rand -phoff || exit 1
     fi
     if [ -v runplot ]; then
-        python3 plotter.py "hla-vnet${ext}" "hla-rssarsa${ext}" "final-fca${ext}" "final-rand${ext}" \
+        python3 plotter.py "${vnet_dir}hla-vnet${ext}" "${sarsa_dir}hla-rssarsa${ext}" \
+                "${fixed_dir}final-fca${ext}" "${fixed_dir}final-rand${ext}" \
                 --labels "AA-VNet (HLA)" "RS-SARSA (HLA)" "FCA" "Random assignment" \
                 --title "RL vs non-learning agents (with hand-offs)" \
-                --ctype new hoff tot --plot_save final-whoff --ymins 10 0 || exit 1
+                --ctype new hoff tot --plot_save final-whoff --ymins 10 0 10 || exit 1
     fi
     echo "Finished Final w/hoff"
 fi
@@ -165,9 +170,6 @@ fi
 if [ -v finalnohoff ]; then
     ## Final comparison, without hoffs
     if [ -v runsim ]; then
-        # TDC avg.
-        python3 main.py tftdcsinghnet "${runargs[@]}" \
-                -save_bp final-nohoff-vnet || exit 1
         if [ -v nonvnets ] ; then
             # RS-SARSA
             python3 main.py rs_sarsa "${runargs[@]}" \
@@ -179,10 +181,13 @@ if [ -v finalnohoff ]; then
             python3 main.py randomassign "${runargs[@]}" \
                     -save_bp final-nohoff-rand || exit 1
         fi
+        # TDC avg.
+        python3 main.py tftdcsinghnet "${runargs[@]}" \
+                -save_bp final-nohoff-vnet || exit 1
     fi
     if [ -v runplot ]; then
-        python3 plotter.py "final-nohoff-vnet${ext}" "final-nohoff-rssarsa${ext}" \
-                "final-nohoff-fca${ext}" "final-nohoff-rand${ext}" \
+        python3 plotter.py "${vnet_dir}final-nohoff-vnet${ext}" "${sarsa_dir}final-nohoff-rssarsa${ext}" \
+                "${fixed_dir}final-nohoff-fca${ext}" "${fixed_dir}final-nohoff-rand${ext}" \
                 --labels "AA-VNet" "RS-SARSA" "FCA" "Random assignment" \
                 --title "RL vs non-learning agents (no hand-offs)" \
                 --ctype new --plot_save final-nohoff --ymins 10 || exit 1
