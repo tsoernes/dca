@@ -69,8 +69,13 @@ class TFTDCSinghNet(Net):
         # ALTERNATIVE 3: Strict derivation
         grads3 = (-2 * td_err) * net_inp_cv + (2 * dot) * next_net_inp_cv
 
-        # ALTERNATIVE 4: Funky GTD2. If this shows promise, derive funky TDC
-        grads4 = {-2 * dot} * ((3 / 2) * net_inp_cv - (1 / 2) * next_net_inp_cv)
+        # ALTERNATIVE 4: Funky GTD2.
+        grads4 = (-2 * dot) * ((3 / 2) * net_inp_cv - (1 / 2) * next_net_inp_cv)
+        # ALTERNATIVE 4: Funky GTD2.
+        grads4b = (-2 * dot) * ((1 / 2) * net_inp_cv - (3 / 2) * next_net_inp_cv)
+
+        # ALTERNATIVE 4: Funky TDC
+        grads5 = (-2 * dot) * ((1 / 2) * td_err * net_inp_cv - (3 / 2) * next_net_inp_cv)
 
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
         self.do_train = trainer.apply_gradients(
