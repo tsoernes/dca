@@ -53,13 +53,25 @@ class TFTDCSinghNet(Net):
         next_value = tf.matmul(next_net_inp_rv, hidden)
 
         td_err = self.reward - self.avg_reward + self.discount * next_value - self.value
-        # Just return td_err if MSE and not Huber
+        td_err2 = self.reward + next_value - self.value
+        # Just returns td_err if Huber loss is not enabled
         self.loss_grad = self.default_loss_grad(td_err)
         dot = tf.matmul(net_inp_rv, self.weights)
         # Multiply by 2 to get equivalent magnitude to MSE
         # Multiply by -1 because SGD-variants inverts grads
+        # ALTERNATIVE 1: HOME BREW
         grads = (-2 * self.loss_grad) * net_inp_cv - (2 * self.avg_reward) + (
             2 * self.discount * dot) * next_net_inp_cv
+
+        # ALTERNATIVE 2: As discounted, but gamma=1
+        grads2 = (-2 * td_err2) * net_inp_cv + (2 * dot) * next_net_inp_cv
+
+        # ALTERNATIVE 3: Strict derivation
+        grads3 = (-2 * td_err) * net_inp_cv + (2 * dot) * next_net_inp_cv
+
+        # ALTERNATIVE 4: Funky GTD2. If this shows promise, derive funky TDC
+        grads4 = {-2 * dot} * ((3 / 2) * net_inp_cv - (1 / 2) * next_net_inp_cv)
+
         trainer, self.lr, global_step = build_default_trainer(**self.pp)
         self.do_train = trainer.apply_gradients(
             [(self.imp_weight * grads, hidden)], global_step=global_step)
