@@ -63,16 +63,14 @@ class TFTDCSinghNet(Net):
         grads = (-2 * self.loss_grad) * net_inp_cv - (2 * self.avg_reward) + (
             2 * self.discount * dot) * next_net_inp_cv
 
-        # ALTERNATIVE 2: As discounted, but gamma=1
+        # ALTERNATIVE 2: As discounted, but force gamma=1
         grads2 = (-2 * td_err2) * net_inp_cv + (2 * dot) * next_net_inp_cv
 
         # ALTERNATIVE 3: Strict derivation
         grads3 = (-2 * td_err) * net_inp_cv + (2 * dot) * next_net_inp_cv
 
         # ALTERNATIVE 4: Funky GTD2.
-        grads4 = (-2 * dot) * ((3 / 2) * net_inp_cv - (1 / 2) * next_net_inp_cv)
-        # ALTERNATIVE 4: Funky GTD2.
-        grads4b = (-2 * dot) * ((1 / 2) * net_inp_cv - (3 / 2) * next_net_inp_cv)
+        grads4 = (-2 * dot) * ((1 / 2) * net_inp_cv - (3 / 2) * next_net_inp_cv)
 
         # ALTERNATIVE 4: Funky TDC
         grads5 = (-2 * dot) * ((1 / 2) * td_err * net_inp_cv - (3 / 2) * next_net_inp_cv)
