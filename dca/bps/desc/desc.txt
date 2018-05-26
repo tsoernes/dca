@@ -11,3 +11,13 @@ default Boltzmann exploration, 4.8 eps, 0.999_995 eps_dec
 sarsas-recreated: 
 recreating lilith results
 
+
+# FILE NAME FORMAT:
+# {method}-{hoff}-{erlangs}-{ext}
+# FOR VNETS:
+# {method} = gradient-target-{hla}
+# E.g. 'tdc-avg-hla-hoff-e8.3'
+# for the 3rd epoch of running TDC Average rewards with HLA on
+# a simulation with hand-offs and 8 Erlangs
+
+find . -iname "*targ-smdp*" -exec rename targ-smdp semi-smdp-hoff '{}' -v -n \;

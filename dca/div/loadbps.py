@@ -55,7 +55,7 @@ else:
 
 if not fnames:
     fnames = [f for f in listdir(fdir) if isfile(join(fdir, f))]
-    fnames = sorted(fnames)
+fnames = sorted(fnames)
 # print(fnames)
 for i, fname in enumerate(fnames):
     if ext is None or fname[-5] == ext:
