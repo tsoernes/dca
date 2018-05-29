@@ -51,7 +51,7 @@ if [ -v targs ]; then
     fi
     if [ -v runplot ]; then
         python3 plotter.py "${vnet_dir}semi-smdp-hoff" "${vnet_dir}semi-mdp-hoff" "${vnet_dir}semi-avg-hoff" \
-                --labels "SMDP discount (SB-VNet)" "MDP discount" "MDP avg. rewards" \
+                --labels "SMDP discount [SB-VNet]" "MDP discount" "MDP avg. rewards" \
                 --title "Target comparison (with hand-offs)" \
                 --ext $ext --ctype new hoff tot --plot_save targets --ymins 10 5 10 || exit 1
     fi
@@ -79,7 +79,7 @@ if [ -v grads ]; then
         python3 plotter.py "${vnet_dir}semi-avg" "${vnet_dir}resid-avg" \
                 "${vnet_dir}tdc-avg" "${vnet_dir}tdc-mdp" \
                 --labels "Semi-grad. (A-MDP)" "Residual grad. (A-MDP)" \
-                "TDC (A-MDP) (AA-VNet)" "TDC (MDP)" \
+                "TDC (A-MDP) [AA-VNet]" "TDC (MDP)" \
                 --title "Gradient comparison (no hand-offs)" \
                 --ext $ext --ctype new --plot_save grads --ymins 5 || exit 1
     fi
@@ -129,7 +129,7 @@ if [ -v hla ]; then
     if [ -v runplot ]; then
         python3 plotter.py "${vnet_dir}tdc-avg-hoff" "${vnet_dir}tdc-avg-hla-hoff" \
                 "${sarsa_dir}rssarsa-hoff" "${sarsa_dir}rssarsa-hla-hoff" \
-                --labels "AA-VNet" "AA-VNet (HLA)" "RS-SARSA" "RS-SARSA (HLA)" \
+                --labels "TDC (A-MDP)" "TDC (A-MDP) (HLA) [AA-VNet]" "RS-SARSA" "RS-SARSA (HLA)" \
                 --title "Hand-off look-ahead" \
                 --ext $ext --ctype new hoff tot --plot_save hla --ymins 10 0 10 || exit 1
     fi
@@ -187,7 +187,7 @@ if [ -v final ]; then
         #         --erlangs --ext $ext --ctype new --plot_save final-nohoff --ymins 10 || exit 1
         python3 plotter.py "${vnet_dir}tdc-avg-hla-hoff" "${sarsa_dir}rssarsa-hla-hoff" \
                 "${fixed_dir}final-fca" "${fixed_dir}final-rand" \
-                --labels "AA-VNet (HLA)" "RS-SARSA (HLA)" "FCA" "Random assignment" \
+                --labels "TDC (A-MDP) (HLA) [AA-VNet]" "RS-SARSA (HLA)" "FCA" "Random assignment" \
                 --title "RL vs non-learning agents (with hand-offs)" \
                 --erlangs --ext $ext --ctype new hoff tot --plot_save final --ymins 10 0 10 || exit 1
     fi
