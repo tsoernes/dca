@@ -670,6 +670,7 @@ def get_pparams(defaults=False):
     random.seed(pp['rng_seed'])
     np.random.seed(pp['rng_seed'])
 
+    stratclass = None
     for name, cls in stratclasses:
         if pp['strat'].lower() == name.lower():
             stratclass = cls

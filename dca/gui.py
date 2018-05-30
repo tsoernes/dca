@@ -59,8 +59,6 @@ class HexagonGrid(Frame):
                  parent,
                  rows,
                  cols,
-                 labels,
-                 cell_printer,
                  size=80,
                  color="#a1e2a1",
                  marked_color="#000000",
@@ -83,10 +81,8 @@ class HexagonGrid(Frame):
         :param bg: Background color
         '''
         Frame.__init__(self, parent)
-        self.labels = labels
         self.color = color
         self.marked_color = marked_color
-        self.cell_printer = cell_printer
         self.font_size = 28
 
         self.hexagons = []
@@ -120,7 +116,7 @@ class HexagonGrid(Frame):
                     offset = size * sqrt(3) / 2
                 else:
                     offset = 0
-                label = self.labels[r][c]
+                label = GF.labels[r][c]
                 h = Hexagon(
                     self.can,
                     c * (size * 1.5) + self.left_offset,
@@ -145,7 +141,7 @@ class HexagonGrid(Frame):
         for r in range(rows):
             hxs = []
             for c in range(cols):
-                label = self.labels[r][c]
+                label = GF.labels[r][c]
                 h = Hexagon(
                     self.can,
                     c * (size * sqrt(3)) + col_offset + self.left_offset,
@@ -188,7 +184,6 @@ class HexagonGrid(Frame):
         tags = self.can.gettags(clicked)[0]
         # TODO find row, col of clicked hexagon
         self.mark_neighs(int(tags[0]), int(tags[2]))
-        # self.cell_printer(int(tags[0]), int(tags[2]))
         # print(tags)
 
     def mark_cell(self, row, col):
@@ -207,28 +202,19 @@ class HexagonGrid(Frame):
                         self.can.delete(h.shape)
         h = self.hexagons[row][col]
         self.can.itemconfigure(h.tags, fill="#808080")
-        for neigh in GF.neighbors2(row, col):
+        for neigh in GF.neighbors(2, row, col):
             h = self.hexagons[neigh[0]][neigh[1]]
             self.can.itemconfigure(h.tags, fill="#DCDCDC")
-        for neigh in GF.neighbors1(row, col):
+        for neigh in GF.neighbors(1, row, col):
             h = self.hexagons[neigh[0]][neigh[1]]
             self.can.itemconfigure(h.tags, fill="#C0C0C0")
 
 
 class Gui:
-    def __init__(self, dims, exit_handler, cell_printer, shape="rhomb"):
+    def __init__(self, dims, shape="rhomb"):
         self.root = Tk()
         self.hgrid = HexagonGrid(
-            self.root,
-            *dims,
-            cell_printer,
-            show_coords=True,
-            show_labels=False,
-            shape=shape)
-        # Call 'keydown' func for graceful exit on 'q' key
-        # or on window close
-        self.root.bind("q", exit_handler)
-        self.root.protocol("WM_DELETE_WINDOW", exit_handler)
+            self.root, *dims, show_coords=False, show_labels=False, shape=shape)
         self.hgrid.pack()
 
     def step(self):

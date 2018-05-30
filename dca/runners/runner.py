@@ -63,12 +63,10 @@ class ShowRunner(Runner):
         super().__init__(*args, **kwargs)
 
     def run(self):
-        # g = grid.RhombusAxialGrid(logger=self.logger, **self.pp)
-        # gui = Gui(g, self.logger, g.print_neighs, "rhomb")
+        gui = Gui(self.pp['dims'], "rhomb")
         # grid = RectOffGrid(logger=self.logger, **self.pp)
         # gui = Gui(grid, self.logger, grid.print_neighs, "rect")
-        # gui.test()
-        raise NotImplementedError
+        gui.test()
 
 
 class AnalyzeNetRunner(Runner):
