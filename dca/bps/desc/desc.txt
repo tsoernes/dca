@@ -1,5 +1,5 @@
 top:
-.4 is merged
+.5 is merged
 
 every-avg (with boltz):
 Average reward is incorrectly updated every iter instead of just on greedy actions
@@ -10,6 +10,9 @@ default Boltzmann exploration, 4.8 eps, 0.999_995 eps_dec
 
 sarsas-recreated: 
 recreating lilith results
+
+toohighabeta:
+Used 0.00368 as weight beta for singhnet without exploration which is too high
 
 
 # FILE NAME FORMAT:

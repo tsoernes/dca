@@ -45,10 +45,10 @@ if [ -v targs ]; then
         python3 main.py singhnet "${runargs[@]}" \
                 -phoff -save_bp semi-mdp-hoff --target discount \
                 --net_lr 2.02e-7 || exit 1
-        # MDP Average
+        # MDP Average (old, non-greedy wbeta: 0.00368)
         python3 main.py singhnet "${runargs[@]}" \
                 -phoff -save_bp semi-avg-hoff \
-                --net_lr 3.43e-06 --weight_beta 0.00368 || exit 1
+                --net_lr 3.43e-06 --weight_beta 0.003 || exit 1
     fi
     if [ -v runplot ]; then
         python3 plotter.py "${vnet_dir}semi-smdp-hoff" "${vnet_dir}semi-mdp-hoff" "${vnet_dir}semi-avg-hoff" \
@@ -177,18 +177,19 @@ if [ -v final ]; then
                 # # FCA
                 # python3 main.py fixedassign "${runargs[@]}" \
                 #         -save_bp "fca-e${i}" --erlangs $i || exit 1
-                # FCA
-                python3 main.py fixedassign "${runargs[@]}" \
-                        -save_bp "${fixed_dir}fca-hoff-e${i}" -phoff --erlangs $i || exit 1
+                # FCA NOHOFF
+                # python3 main.py fixedassign "${runargs[@]}" \
+                #         -save_bp "${fixed_dir}fca-hoff-e${i}" -phoff --erlangs $i || exit 1
+                echo "pass"
 
                 # # RandomAssign
                 # python3 main.py randomassign "${runargs[@]}" \
                 #         -save_bp "rand-e${i}" --erlangs $i  || exit 1
                 # RandomAssign
-                python3 main.py randomassign "${runargs[@]}" \
-                        -save_bp "${fixed_dir}rand-hoff-e${i}" -phoff --erlangs $i  || exit 1
+                # python3 main.py randomassign "${runargs[@]}" \
+                #         -save_bp "${fixed_dir}rand-hoff-e${i}" -phoff --erlangs $i  || exit 1
 
-                # # RS-SARSA
+                # # RS-SARSA NOHOFF
                 # python3 main.py rs_sarsa "${runargs[@]}" \
                 #         -save_bp "rssarsa-e${i}" --lilith --erlangs $i || exit 1
 
@@ -198,7 +199,7 @@ if [ -v final ]; then
             #         -save_bp "tdc-avg-e${i}" --erlangs $i || exit 1
         done
         # Erlangs = 10 already done in HLA section
-        for i in {8..9}
+        for i in {9..9}
         do
             if [ -v nonvnets ] ; then
                 # RS-SARSA HLA
