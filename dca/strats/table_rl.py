@@ -126,6 +126,7 @@ class RS_SARSA(QTable):
         if self.lmbda is not None:
             # Eligibility traces
             self.el_traces = np.zeros(self.dims)
+        assert not self.pp['hoff_lookahead'], "You should use HLA_RS_SARSA strat"
 
     def feature_rep(self, cell, n_used):
         return cell
@@ -187,7 +188,7 @@ class HLA_RS_SARSA(QTable):
                 cell=cell, n_used=n_used, ce_type=ce_type, chs=chs)
             ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             if self.eps_log_decay:
-                self.epsilon = self.epsilon0 / np.sqrt(self.t * 60 / 256)
+                self.epsilon = self.epsilon0 / np.sqrt(self.t * 60 / self.eps_log_decay)
             else:
                 self.epsilon *= self.epsilon_decay
             amax_idx = np.argmax(qvals_dense)

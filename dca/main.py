@@ -190,13 +190,18 @@ def get_pparams(defaults=False):
         default=0.999_995)
     parser.add_argument(
         '--eps_log_decay',
-        action='store_true',
-        help="(RL) Decay epsilon a la Lilith instead of exponentially",
-        default=False)
+        type=int,
+        help="(RL) Decay epsilon a la Lilith instead of exponentially (give s parameter)",
+        default=0)
     parser.add_argument(
         '--lilith',
         action='store_true',
         help="(RL) Lilith hyperparam preset",
+        default=False)
+    parser.add_argument(
+        '--lilith_noexp',
+        action='store_true',
+        help="(RL) Lilith hyperparam preset (excluding Exploration)",
         default=False)
     parser.add_argument('--gamma', type=float, help="(RL) discount factor", default=0.845)
     parser.add_argument(
@@ -588,12 +593,13 @@ def get_pparams(defaults=False):
     if not pp['call_rate']:
         pp['call_rate'] = pp['erlangs'] / pp['call_duration']
     pp['dims'] = (pp['rows'], pp['cols'], pp['n_channels'])
-    if pp['lilith']:
+    if pp['lilith'] or pp['lilith_noexp']:
         pp['alpha'] = 0.05
         pp['alpha_decay'] = 1
-        pp['eps_log_decay'] = True
         pp['target'] = 'discount'
         pp['gamma'] = 0.975
+    if pp['lilith']:
+        pp['eps_log_decay'] = 256
         pp['epsilon'] = 5
     if pp['plot_save']:
         pp['plot'] = True

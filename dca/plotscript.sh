@@ -9,6 +9,7 @@ nonvnets=""
 # targs=""
 # grads=""
 # hla=""
+# exp=""
 final=""
 
 # events=100000
@@ -86,27 +87,6 @@ if [ -v grads ]; then
     echo "Finished Grads"
 fi
 
-## Exploration RS-SARSA ##
-# if [ -v runsim ]; then
-#     # RS-SARSA 
-#     python3 main.py rs_sarsa --log_iter $logiter --avg_runs $avg $runt \
-#             -save_bp rssarsa-hla-hoff --target discount -phoff 0.15 -hla || exit 1
-# fi
-# python3 plotter.py "exp-rssarsa-greedy" "exp-rssarsa-boltzlo" "exp-rssarsa-boltzhi" \
-#         --labels "RS-SARSA Greedy" "RS-SARSA Boltmann Low" "RS-SARSA Boltmann High" \
-#         --title "Exploration for state-action methods" \
-#         --ctype new hoff --plot_save exp-rssarsa || exit 1
-
-## Exploration VNet ##
-# if [ -v runsim ]; then
-#     # VNet greedy
-#     python3 main.py rs_sarsa --log_iter $logiter --avg_runs $avg $runt \
-#             -save_bp exp-vnet-greedy --target discount -phoff 0.15 -hla || exit 1
-# fi
-# python3 plotter.py "exp-vnet-greedy" "exp-vnet-boltzlo" "exp-vnet-boltzhi" \
-#         --labels "VNet Greedy" "VNet Boltmann Low" "VNet Boltmann High" \
-#         --title "Exploration for state methods" \
-#         --ext $ext --ctype new hoff --plot_save exp-vnet || exit 1
 
 if [ -v hla ]; then
     ## HLA ##
@@ -135,9 +115,61 @@ if [ -v hla ]; then
     fi
     echo "Finished HLA"
 fi
+## Exploration RS-SARSA ##
+# if [ -v runsim ]; then
+#     # RS-SARSA 
+#     python3 main.py rs_sarsa --log_iter $logiter --avg_runs $avg $runt \
+#             -save_bp rssarsa-hla-hoff --target discount -phoff 0.15 -hla || exit 1
+# fi
+# python3 plotter.py "exp-rssarsa-greedy" "exp-rssarsa-boltzlo" "exp-rssarsa-boltzhi" \
+#         --labels "RS-SARSA Greedy" "RS-SARSA Boltmann Low" "RS-SARSA Boltmann High" \
+#         --title "Exploration for state-action methods" \
+#         --ctype new hoff --plot_save exp-rssarsa || exit 1
+
+## Exploration VNet ##
+# if [ -v runsim ]; then
+#     # VNet greedy
+#     python3 main.py rs_sarsa --log_iter $logiter --avg_runs $avg $runt \
+#             -save_bp exp-vnet-greedy --target discount -phoff 0.15 -hla || exit 1
+# fi
+# python3 plotter.py "exp-vnet-greedy" "exp-vnet-boltzlo" "exp-vnet-boltzhi" \
+#         --labels "VNet Greedy" "VNet Boltmann Low" "VNet Boltmann High" \
+#         --title "Exploration for state methods" \
+#         --ext $ext --ctype new hoff --plot_save exp-vnet || exit 1
+
+if [ -v exp ]; then
+    ## Exploration ##
+    if [ -v runsim ]; then
+        if [ -v nonvnets ]; then
+            # RS-SARSA HLA greedy
+            python3 main.py hla_rs_sarsa "${runargs[@]}" \
+                    -save_bp "${sarsa_dir}rssarsa-greedy-hla-hoff" --lilith_noexp -phoff -hla -epol greedy || exit 1
+            # RS-SARSA HLA nom_fixed
+            python3 main.py hla_rs_sarsa "${runargs[@]}" \
+                    -save_bp "${sarsa_dir}rssarsa-nomgreedy-hla-hoff" --lilith_noexp -phoff -hla \
+                    -epol nom_fixed_greedy || exit 1
+            # RS-SARSA HLA greedy
+            # python3 main.py hla_rs_sarsa "${runargs[@]}" \
+                #         -save_bp "${sarsa_dir}rssarsa-hla-hoff" --lilith_noexp -phoff -hla \
+                #         -epol boltzmann --eps_log_decay 512 -eps 7 || exit 1
+        fi
+        # TDC A-MDP HLA nom_fixed
+        python3 main.py tftdcsinghnet "${runargs[@]}" \
+                -save_bp tdc-avg-hla-hoff -hla -phoff -epol nom_fixed_greedy || exit 1
+    fi
+    if [ -v runplot ]; then
+        python3 plotter.py "${vnet_dir}tdc-avg-hoff" "${vnet_dir}tdc-avg-hla-hoff" \
+                "${sarsa_dir}rssarsa-greedy-hoff" "${sarsa_dir}rssarsa-nomgreedy-hla-hoff" \
+                --labels "AA-VNet" "TDC (A-MDP) (HLA) [AA-VNet]" "RS-SARSA" "RS-SARSA (HLA)" \
+                --title "Exploration strategy" \
+                --ext $ext --ctype new hoff tot --plot_save hla --ymins 10 0 10 || exit 1
+    fi
+    echo "Finished HLA"
+fi
 
 if [ -v final ]; then
-    ## Final comparison, without hoffs
+    ## Final comparison, over multiple Erlangs.
+    ## Runs with hoffs are commented out.
     if [ -v runsim ]; then
         for i in {5..10}
         do
@@ -166,7 +198,7 @@ if [ -v final ]; then
             #         -save_bp "tdc-avg-e${i}" --erlangs $i || exit 1
         done
         # Erlangs = 10 already done in HLA section
-        for i in {5..9}
+        for i in {8..9}
         do
             if [ -v nonvnets ] ; then
                 # RS-SARSA HLA

@@ -151,7 +151,10 @@ class VNetBase(NetStrat):
             ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
             max_idx = np.argmax(qvals_dense)
             max_ch = chs[max_idx]
-            self.epsilon *= self.epsilon_decay
+            if self.eps_log_decay:
+                self.epsilon = self.epsilon0 / np.sqrt(self.t * 60 / self.eps_log_decay)
+            else:
+                self.epsilon *= self.epsilon_decay
 
         assert ch is not None, f"ch is none for {ce_type}\n{chs}\n{qvals_dense}\n"
         return Chs(ch, max_ch, p), Qvals(qvals_dense[idx], qvals_dense[max_idx]), Freps(

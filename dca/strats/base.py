@@ -161,6 +161,7 @@ class RLStrat(Strat):
         self.epsilon = pp['epsilon']
         epol = exp_pol_funcs[pp['exp_policy']](c=pp['exp_policy_param'])
         self.exploration_policy = epol.select_action
+        self.eps_log_decay = self.pp['eps_log_decay']
 
         self.epsilon_decay = pp['epsilon_decay']
         self.logger.info(f"NP seed: {np.random.get_state()[1][0]}")
@@ -227,7 +228,10 @@ class RLStrat(Strat):
             p = 1
         else:
             ch, idx, p = self.exploration_policy(self.epsilon, chs, qvals_dense, cell)
-            self.epsilon *= self.epsilon_decay
+            if self.eps_log_decay:
+                self.epsilon = self.epsilon0 / np.sqrt(self.t * 60 / self.eps_log_decay)
+            else:
+                self.epsilon *= self.epsilon_decay
             amax_idx = np.argmax(qvals_dense)
             max_ch = chs[amax_idx]
 
