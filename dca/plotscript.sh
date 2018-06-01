@@ -1,16 +1,16 @@
 #!/bin/bash
 # Comment out to avoid running
-runsim=""
-# runplot=""
+# runsim=""
+runplot=""
 
 # Whether to run non-VNets or not
-nonvnets=""
+# nonvnets=""
 
 # targs=""
 # grads=""
 # hla=""
-# exp=""
-final=""
+exp=""
+# final=""
 
 # events=100000
 events=470000
@@ -19,7 +19,8 @@ events=470000
 logiter=25000
 
 avg=16
-ext=".4"
+# ext=".4"
+ext=".m"
 
 sarsa_dir="sarsas/"
 fixed_dir="fixed/"
@@ -136,19 +137,25 @@ if [ -v exp ]; then
         # TDC A-MDP HLA nom_fixed
         python3 main.py tftdcsinghnet "${runargs[@]}" \
                 -save_bp tdc-avg-nomgreedy-hla-hoff -hla -phoff -epol nom_fixed_greedy || exit 1
-        # TDC A-MDP HLA boltz
+        # TDC A-MDP HLA boltz a la lilith
         python3 main.py tftdcsinghnet "${runargs[@]}" \
                 -save_bp tdc-avg-lboltz-hla-hoff -hla -phoff \
                 -epol boltzmann --eps_log_decay 256 -eps 5 || exit 1
     fi
     if [ -v runplot ]; then
-        python3 plotter.py "${vnet_dir}tdc-avg-hoff" "${vnet_dir}tdc-avg-hla-hoff" \
-                "${sarsa_dir}rssarsa-greedy-hoff" "${sarsa_dir}rssarsa-nomgreedy-hla-hoff" \
-                --labels "AA-VNet" "TDC (A-MDP) (HLA) [AA-VNet]" "RS-SARSA" "RS-SARSA (HLA)" \
+        python3 plotter.py \
+                "${vnet_dir}tdc-avg-hla-hoff" \
+                "${vnet_dir}tdc-avg-lboltz-hla-hoff" \
+                "${vnet_dir}tdc-avg-nomgreedy-hla-hoff" \
+                "${sarsa_dir}rssarsa-greedy-hla-hoff" \
+                "${sarsa_dir}rssarsa-hla-hoff" \
+                "${sarsa_dir}rssarsa-nomgreedy-hla-hoff" \
+                    --labels "AA-VNet greedy" "AA-VNet Boltz." "AA-VNet nom.pref." \
+                    "RS-SARSA (HLA) greedy" "RS-SARSA (HLA) Boltz." "RS-SARSA (HLA) nom.pref."\
                 --title "Exploration strategy" \
-                --ext $ext --ctype new hoff tot --plot_save hla --ymins 10 0 10 || exit 1
+                --ext $ext --ctype new hoff tot --plot_save exp --ymins 10 0 10 || exit 1
     fi
-    echo "Finished HLA"
+    echo "Finished exp"
 fi
 
 if [ -v final ]; then

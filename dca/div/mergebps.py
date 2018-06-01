@@ -5,7 +5,9 @@ from os.path import isfile, join
 
 import numpy as np
 
-next_ext_ = 5
+next_ext_ = 'm'
+do_fixed = True
+do_sarsa = True
 if len(sys.argv) > 1 and sys.argv[-1] == 'no_dry':
     print("RUNNING WET!")
     dry = False
@@ -24,8 +26,15 @@ ctypes = ["new", "hoff", "tot"]
 #     'final-nohoff': ['fca', 'rand', 'rssarsa', 'vnet'],
 #     'hla': ['rssarsa', 'vnet']
 # }
+fdirs = [fdir]
+if do_fixed:
+    fdirs.append(fdir + '/fixed')
+if do_sarsa:
+    fdirs.append(fdir + '/sarsas')
 
-fnames = [f for f in listdir(fdir) if isfile(join(fdir, f))]
+fnames = [
+    join(fdir_, f) for fdir_ in fdirs for f in listdir(fdir_) if isfile(join(fdir_, f))
+]
 fnames = sorted(fnames)
 added = np.zeros_like(fnames, int)
 groups = []
@@ -76,11 +85,13 @@ def merge_uneven(bp1, bp2):
 for group in groups:
     next_ext = int(group[-1][-5]) + 1 if next_ext_ is None else next_ext_
     shapes = []
-    with open(join(fdir, group[0]), "rb") as f:
+    # with open(join(fdir, group[0]), "rb") as f:
+    with open(group[0], "rb") as f:
         bps_dict = pickle.load(f)
         shapes.append(bps_dict['new'].shape)
     for fname in group[1:]:
-        with open(join(fdir, fname), "rb") as f:
+        # with open(join(fdir, fname), "rb") as f:
+        with open(fname, "rb") as f:
             bp_dict = pickle.load(f)
             shapes.append(bp_dict['new'].shape)
             try:
@@ -95,7 +106,9 @@ for group in groups:
     next_fname = f"{group[0][:-6]}.{next_ext}.pkl"
     print(f"Merged {len(group)} {group} -> {next_fname}"
           f"\n{shapes} -> {bps_dict['new'].shape}")
-    next_fname = join(fdir, next_fname)
+    # next_fname = join(fdir, next_fname)
+    if isfile(next_fname):
+        print(f"File name {next_fname} already exists!\n\n")
     if not dry:
         assert not isfile(next_fname), f"File name {next_fname} already exists!"
         with open(next_fname, "wb") as f:

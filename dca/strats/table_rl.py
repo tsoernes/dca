@@ -9,7 +9,6 @@ from utils import prod
 class QTable(RLStrat):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.epsilon0 = self.epsilon
         self.alpha = self.pp['alpha']
         self.alpha_decay = self.pp['alpha_decay']
         self.lmbda = self.pp['lambda']

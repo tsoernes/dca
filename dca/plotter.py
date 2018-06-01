@@ -1,7 +1,7 @@
 import argparse
-from os.path import isfile, join
 import os
 import pickle
+from os.path import isfile, join
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -311,7 +311,7 @@ def runner():
             fname=args['plot_save'])
     else:
         for i, ctype in enumerate(plot_ctypes):
-            fext = + '-' + ctype if len(plot_ctypes) > 1 else ""
+            fext = '-' + ctype if len(plot_ctypes) > 1 else ""
             fname = args['plot_save'] + fext
             if erlangs:
                 plot_erlangs(

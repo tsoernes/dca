@@ -61,8 +61,8 @@ for i, fname in enumerate(fnames):
     if ext is None or fname[-5] == ext:
         with open(ensure_dir(fname), "rb") as f:
             bps = pickle.load(f)
-            cum_bps = [f"{np.mean(bps[ct], axis=1)[-1]:.5f}" for ct in ctypes]
-            stds = [f"{np.std(bps[ct], axis=1)[-1]:.5f}" for ct in ctypes]
+            cum_bps = [f"{np.mean(bps[ct], axis=0)[-1]:.5f}" for ct in ctypes]
+            stds = [f"{np.std(bps[ct], axis=0)[-1]:.5f}" for ct in ctypes]
             print(
                 f" {fname}: {bps['new'].shape[0]} runs, {bps['log_iter']} logiter, shape {bps['new'].shape}"
                 f" \n mean:{cum_bps} std:{stds}")

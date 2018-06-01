@@ -158,7 +158,7 @@ class Strat:
 class RLStrat(Strat):
     def __init__(self, pp, *args, **kwargs):
         super().__init__(pp, *args, **kwargs)
-        self.epsilon = pp['epsilon']
+        self.epsilon = self.epsilon0 = pp['epsilon']
         epol = exp_pol_funcs[pp['exp_policy']](c=pp['exp_policy_param'])
         self.exploration_policy = epol.select_action
         self.eps_log_decay = self.pp['eps_log_decay']
