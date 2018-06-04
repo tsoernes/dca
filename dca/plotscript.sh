@@ -150,8 +150,8 @@ if [ -v exp ]; then
                 "${sarsa_dir}rssarsa-greedy-hla-hoff" \
                 "${sarsa_dir}rssarsa-hla-hoff" \
                 "${sarsa_dir}rssarsa-nomgreedy-hla-hoff" \
-                    --labels "AA-VNet greedy" "AA-VNet Boltz." "AA-VNet nom.pref." \
-                    "RS-SARSA (HLA) greedy" "RS-SARSA (HLA) Boltz." "RS-SARSA (HLA) nom.pref."\
+                    --labels "AA-VNet greedy" "AA-VNet Boltz." "AA-VNet NCP" \
+                    "RS-SARSA (HLA) greedy" "RS-SARSA (HLA) Boltz." "RS-SARSA (HLA) NCP"\
                 --title "Exploration strategy" \
                 --ext $ext --ctype new hoff tot --plot_save exp --ymins 10 0 10 || exit 1
     fi
