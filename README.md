@@ -3,9 +3,11 @@ Dynamic Channel Allocation using different strategies, such as Fixed Assignment 
 
 Example usage, TDC gradient value net with differential returns and hand-off look-ahead (HLA) on simulation
 with 10 Erlangs and 15% chance of hand-off: 
+
 `python3 main.py tftdcsinghnet --hoff_lookahead --erlangs 10 --p_handoff 0.15`
 
 In general:
+
 `python3 main.py <agent_name> --long_option_name -short_option_name`
 
 To see the options used for the plots the thesis, see `plotscript.sh`.
