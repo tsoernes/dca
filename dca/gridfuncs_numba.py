@@ -43,7 +43,7 @@ def _generate_neighbors():
                         if dist == 4:
                             _neighs4o[r1, c1, _n_neighs_o[2, r1, c1]] = (r2, c2)
                             _n_neighs_o[2, r1, c1] += 1
-                        if dist <= 3:
+                        elif dist <= 3:
                             _neighs3[r1, c1, _n_neighs[2, r1, c1]] = (r2, c2)
                             _n_neighs[2, r1, c1] += 1
                             if dist == 3:
@@ -404,11 +404,14 @@ def incremental_freps_big2(grid, frep, cell, ce_type, chs):
         for j in range(len(neighs1o)):
             freps[i, neighs1o[j, 0], neighs1o[j, 1], ch] += n_used_neighs_diff
         for j in range(len(neighs2o)):
-            freps[i, neighs2o[j, 0], neighs2o[j, 1], n_channels + ch] += n_used_neighs_diff
+            freps[i, neighs2o[j, 0], neighs2o[j, 1],
+                  n_channels + ch] += n_used_neighs_diff
         for j in range(len(neighs3o)):
-            freps[i, neighs3o[j, 0], neighs3o[j, 1], n_channels * 2 + ch] += n_used_neighs_diff
+            freps[i, neighs3o[j, 0], neighs3o[j, 1],
+                  n_channels * 2 + ch] += n_used_neighs_diff
         for j in range(len(neighs4o)):
-            freps[i, neighs4o[j, 0], neighs4o[j, 1], n_channels * 3 + ch] += n_used_neighs_diff
+            freps[i, neighs4o[j, 0], neighs4o[j, 1],
+                  n_channels * 3 + ch] += n_used_neighs_diff
 
         for j in range(len(neighs2)):
             r2, c2 = neighs2[j, 0], neighs2[j, 1]

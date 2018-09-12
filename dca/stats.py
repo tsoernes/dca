@@ -17,11 +17,11 @@ class Stats:
         self.pid_str = "" if pid is "" else f"T{pid} "
         self.start_time = time.time()
 
-        self.n_rejected = 0  # Number of rejected calls
+        self.n_rejected = 0  # Number of rejected calls. Does not include handoffs
         self.n_ended = 0  # Number of ended calls
         self.n_handoffs = 0  # Number of handoff events
         self.n_handoffs_rejected = 0  # Number of rejected handoff calls
-        # Number of incoming (not necessarily accepted) calls
+        # Number of incoming (not necessarily accepted) calls. Does not include handoffs
         self.n_incoming = 0
         # Number of channels in use at a cell when call is blocked
         self.n_inuse_rej = 0

@@ -65,6 +65,7 @@ class HexagonGrid(Frame):
                  bg="#ffffff",
                  show_coords=True,
                  show_labels=False,
+                 color_labels=True,
                  shape="rhomb",
                  *args,
                  **kwargs):
@@ -100,7 +101,7 @@ class HexagonGrid(Frame):
             # width = sqrt(3) * size * (rows + cols / 2)
             height = (rows + 1 / 2) * 1.5 * size + self.top_offset
             self.can = Canvas(self, width=width, height=height, bg=bg)
-            self.init_grid_rhomb(rows, cols, size, show_coords, show_labels)
+            self.init_grid_rhomb(rows, cols, size, show_coords, show_labels, color_labels)
         else:
             print(f"Invalid shape {shape}")
             raise Exception
@@ -136,18 +137,25 @@ class HexagonGrid(Frame):
                         text=coords)
             self.hexagons.append(hxs)
 
-    def init_grid_rhomb(self, rows, cols, size, show_coords, show_labels=False):
+    def init_grid_rhomb(self,
+                        rows,
+                        cols,
+                        size,
+                        show_coords,
+                        show_labels=False,
+                        color_labels=True):
         col_offset = 0
         for r in range(rows):
             hxs = []
             for c in range(cols):
                 label = GF.labels[r][c]
+                lc = label_colors[label] if color_labels else "#C0C0C0"
                 h = Hexagon(
                     self.can,
                     c * (size * sqrt(3)) + col_offset + self.left_offset,
                     (r * (size * 1.5)) + self.top_offset,
                     size,
-                    color=label_colors[label],
+                    color=lc,
                     top="pointy",
                     tags="{},{}-{}".format(r, c, label))
                 hxs.append(h)
@@ -164,6 +172,18 @@ class HexagonGrid(Frame):
                         c * (size * sqrt(3)) + size + col_offset,
                         (r * (size * 1.5)) + size,
                         text=label,
+                        font=("Times", self.font_size))
+                if (r, c) == (3, 4):
+                    self.can.create_text(
+                        c * (size * sqrt(3)) + size + col_offset,
+                        (r * (size * 1.5)) + size,
+                        text="D",
+                        font=("Times", self.font_size))
+                if (r, c) == (3, 3):
+                    self.can.create_text(
+                        c * (size * sqrt(3)) + size + col_offset,
+                        (r * (size * 1.5)) + size,
+                        text="A",
                         font=("Times", self.font_size))
             col_offset += size * sqrt(3) / 2
             self.hexagons.append(hxs)
@@ -193,29 +213,45 @@ class HexagonGrid(Frame):
         h = self.hexagons[row][col]
         self.can.itemconfigure(h.tags, fill=h.color)
 
-    def mark_neighs(self, row, col, delete_other=False):
-        if delete_other:
-            neighs = GF.neighbors2(row, col)
-            for r, li in enumerate(self.hexagons):
-                for c, h in enumerate(li):
-                    if (r, c) not in neighs:
-                        self.can.delete(h.shape)
+    def mark_neighs(self, row, col, c1="#808080", c2="#DCDCDC", c3="#C0C0C0"):
+        # if delete_other:
+        #     neighs = GF.neighbors2(row, col)
+        #     for r, li in enumerate(self.hexagons):
+        #         for c, h in enumerate(li):
+        #             if (r, c) not in neighs:
+        #                 self.can.delete(h.shape)
         h = self.hexagons[row][col]
-        self.can.itemconfigure(h.tags, fill="#808080")
+        self.can.itemconfigure(h.tags, fill=c1)
         for neigh in GF.neighbors(2, row, col):
             h = self.hexagons[neigh[0]][neigh[1]]
-            self.can.itemconfigure(h.tags, fill="#DCDCDC")
+            self.can.itemconfigure(h.tags, fill=c2)
         for neigh in GF.neighbors(1, row, col):
             h = self.hexagons[neigh[0]][neigh[1]]
-            self.can.itemconfigure(h.tags, fill="#C0C0C0")
+            self.can.itemconfigure(h.tags, fill=c3)
+
+    def hoff_illu(self):
+        c1 = '#FFD800'
+        self.mark_neighs(3, 3, c1, c1, c1)
+        c2 = '#00FF68'
+        self.mark_neighs(3, 4, c2, c2, c2)
+        # d1 = '#00FFFF'
+        # d2 = '#00FE00'
+        # h = self.hexagons[3][3]
+        # self.can.itemconfigure(h.tags, fill=d1)
 
 
 class Gui:
     def __init__(self, dims, shape="rhomb"):
         self.root = Tk()
         self.hgrid = HexagonGrid(
-            self.root, *dims, show_coords=False, show_labels=False, shape=shape)
+            self.root,
+            *dims,
+            show_coords=False,
+            show_labels=False,
+            color_labels=False,
+            shape=shape)
         self.hgrid.pack()
+        self.hgrid.hoff_illu()
 
     def step(self):
         self.root.update_idletasks()
