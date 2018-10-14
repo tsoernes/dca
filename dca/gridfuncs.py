@@ -231,8 +231,8 @@ class GridFuncs(metaclass=Singleton):
         if ce_type == CEvent.END:
             # One less channel will be in use
             n_used_neighs_diff = -1
-            # The ch was not eligible for neighs2 of 'cell'
-            # since it was in use at 'cell', but it MIGHT become
+            # Any ch in 'chs' was not eligible for any neigh2 of 'cell',
+            # since the ch was in use at 'cell', but it MIGHT become
             # eligible if, for a given neigh2, its neighs2 or itself
             # does not use it.
             # Temporarily modify grid and check if that's the case

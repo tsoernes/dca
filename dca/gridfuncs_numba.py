@@ -70,7 +70,7 @@ _n_neighs.setflags(write=False)
 
 
 @njit(Array(int32, 2, 'C', readonly=True)
-      (int32, int32, int32, optional(boolean)), cache=True)  # yapf: disable
+     (int32, int32, int32, optional(boolean)), cache=True)  # yapf: disable
 def neighbors_np(dist, row, col, include_self=False):
     """np array of 2-dim np arrays"""
     start = 0 if include_self else 1
@@ -312,8 +312,7 @@ def incremental_freps(grid, frep, cell, ce_type, chs):
     else:
         n_used_neighs_diff = 1
         n_elig_self_diff = -1
-    for i in range(len(chs)):
-        ch = chs[i]
+    for i, ch in enumerate(chs):
         for j in range(len(neighs4)):
             freps[i, neighs4[j, 0], neighs4[j, 1], ch] += n_used_neighs_diff
         for j in range(len(neighs2)):
@@ -325,7 +324,7 @@ def incremental_freps(grid, frep, cell, ce_type, chs):
             if not not_eligible:
                 # For END: ch is in use at 'cell', but will become eligible
                 # For NEW: ch is eligible at given neighs2, but will be taken in use
-                freps[i, neighs2[j, 0], neighs2[j, 1], -1] += n_elig_self_diff
+                freps[i, r2, c2, -1] += n_elig_self_diff
     if ce_type == CEvent.END:
         grid[cell][chs] = 1
     return freps
