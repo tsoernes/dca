@@ -1,8 +1,28 @@
-## Dynamic Channel Allocation with Reinforcement Learning
-Dynamic Channel Allocation using different strategies, such as Fixed Assignment and Reinforcement Learning. 
+# Dynamic Channel Allocation in cellular radio networks
 
-Example usage, TDC gradient value net with differential returns and hand-off look-ahead (HLA) on simulation
-with 10 Erlangs and 15% chance of hand-off: 
+This project implements a large variety of so-called agents for doing channel
+allocation in cellular radio networks. In cellular networks, each base station
+must choose (from a limited set) which radio channel to use for each service request. 
+A channel cannot be in simultanous use at two nearby base stations without causing 
+interference. If a mobile caller requests service from a base station but there
+are no channels that can be used without interference,
+then the call must be blocked.
+The objective of the channel allocation policy (henceforth "agent") is to 
+minimize the number of blocked calls.
+![A 7x7 grid of cells](docs/axial-rhombus-grid.png)
+
+See also the version written in [Rust](https://github.com/tsoernes/rustdca)
+and [Haskell](https://github.com/tsoernes/haskelldca).
+
+## Example usage
+
+The agent presented in 
+[Torstein Sørnes 2018](
+https://brage.bibsys.no/xmlui/bitstream/handle/11250/2562774/19523_FULLTEXT.pdf),
+provides state-of-the-art results for cellular networks with a centralized agent.
+It uses TDC gradients with a state-value linear neural network with differential returns 
+and hand-off look-ahead (HLA). To run it, with 10 Erlangs call traffic 
+and 15% chance of hand-off:
 
 `python3 main.py tftdcsinghnet --hoff_lookahead --erlangs 10 --p_handoff 0.15`
 
@@ -10,18 +30,18 @@ In general:
 
 `python3 main.py <agent_name> --long_option_name -short_option_name`
 
-To see the options used for the plots the thesis, see `plotscript.sh`.
+To see the options used for the plots in the thesis above, see `plotscript.sh`.
 
 Listed below are some of the features and agent implementations. Run `python3
 main.py --help` for comprehensive list and default options.
-# Non-learning agents
+## Non-learning agents
 See `fixedstrats.py`
 - Fixed Assign (`fixedassign`)
 - Random Assign (`randomassign`)
 - Fixed channel preference, random if none available (`fixedrandomassign`)
 
 ## RL agents
-# Features and implementations
+### Features and implementations
 Target types: 
 - MDP Average reward (e.g. `-target avg -wbeta 0.01`)
 - MDP Discounted reward (e.g. `-target discount --gamma 0.8`)

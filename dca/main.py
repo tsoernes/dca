@@ -110,6 +110,11 @@ def get_pparams(defaults=False):
     parser.add_argument('--call_rate', type=int, help="in calls per minute", default=None)
     parser.add_argument('--call_duration', type=int, help="in minutes", default=3)
     parser.add_argument(
+        '--hoff_call_duration',
+        type=int,
+        help="handoff call duration, in minutes",
+        default=1)
+    parser.add_argument(
         '-phoff',
         '--p_handoff',
         type=float,
@@ -117,11 +122,6 @@ def get_pparams(defaults=False):
         help="handoff probability. Default: 0.0",
         default=None,
         const=0.15)
-    parser.add_argument(
-        '--hoff_call_duration',
-        type=int,
-        help="handoff call duration, in minutes",
-        default=1)
     parser.add_argument(
         '--n_events',
         '-i',

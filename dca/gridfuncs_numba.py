@@ -70,7 +70,7 @@ _n_neighs.setflags(write=False)
 
 
 @njit(Array(int32, 2, 'C', readonly=True)
-     (int32, int32, int32, optional(boolean)), cache=True)  # yapf: disable
+      (int32, int32, int32, optional(boolean)), cache=True)  # yapf: disable
 def neighbors_np(dist, row, col, include_self=False):
     """np array of 2-dim np arrays"""
     start = 0 if include_self else 1
@@ -300,7 +300,7 @@ def incremental_freps(grid, frep, cell, ce_type, chs):
     and a set of actions specified by cell, event type and a list of channels,
     derive feature representations for the afterstates of grid
     """
-    r, c = cell
+    r, c = cell  # The focal cell
     neighs4 = neighbors_np(4, r, c, countself)
     neighs2 = neighbors_np(2, r, c, True)
     freps = np.zeros((len(chs), intp(rows), intp(cols), n_channels + 1), dtype=int32)
@@ -317,13 +317,19 @@ def incremental_freps(grid, frep, cell, ce_type, chs):
             freps[i, neighs4[j, 0], neighs4[j, 1], ch] += n_used_neighs_diff
         for j in range(len(neighs2)):
             r2, c2 = neighs2[j, 0], neighs2[j, 1]
+            # The neighborhood of a neighbor of the focal cell
             neighs = neighbors_np(2, r2, c2, False)
             not_eligible = grid[r2, c2, ch]
             for k in range(len(neighs)):
                 not_eligible = not_eligible or grid[neighs[k, 0], neighs[k, 1], ch]
             if not not_eligible:
-                # For END: ch is in use at 'cell', but will become eligible
-                # For NEW: ch is eligible at given neighs2, but will be taken in use
+                # For END: ch is in use at focal cell (since END event),
+                # and is thus ineligible at (r2, c2),
+                # but will become eligible (since this if-case triggered),
+                # so increment by 1.
+                # For NEW/HOFF: ch is eligible at focal cell,
+                # but will be taken in use, thus if ch is currently eligible
+                # at (r2, c2) then it will become ineligible and we subtract 1.
                 freps[i, r2, c2, -1] += n_elig_self_diff
     if ce_type == CEvent.END:
         grid[cell][chs] = 1

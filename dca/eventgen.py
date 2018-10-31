@@ -146,7 +146,6 @@ class EventGen:
         self.handoff_call_duration = hoff_call_duration
         self.logger = logger
         self.intertime_sched = self.presets(traffic_preset, call_rate, logger)
-        print(call_duration, 1 / call_rate)
 
         # min-heap of event timestamps
         self.event_times = []
