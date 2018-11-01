@@ -14,7 +14,7 @@ is to minimize the probability of blocking calls.
 
 Highlights include ...
 - A state-value network with a novel loss function that provides state-of-the-art results.
-- Demonstrations of several techniques for which example code is hard to find, e.g.
+- Demonstrations of several techniques for which example code does not exist at the time of writing, e.g.
 Zap-Q, TDC, TDC for non-linear networks, and Boltzmann-Gumbel exploration.
 - Depth-wise separable, locally connected convolutional networks.
 - A tree-search like approach for reassigning channels on call hand-off.
