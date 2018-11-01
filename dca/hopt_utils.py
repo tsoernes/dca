@@ -1,3 +1,8 @@
+"""
+A set of utilities for Hyperparameter OPTimisation performed with either
+Dlib or Hyperopt, some of which aremeant to run standalone from the command line.
+"""
+
 import argparse
 import pickle
 import sys
@@ -53,8 +58,10 @@ def mongo_connect():
 
 class MongoConn(MongoTrials):
     """
-    NOTE For some reason, 'db.col.someFunc' is not the same as
-    'col = db['colname']; col.someFunc'. The latter seem to work, the former does not.
+    NOTE For some reason,
+    'db.col.someFunc' is not the same as
+    'col = db['colname']; col.someFunc'.
+    The latter seem to work, the former does not.
     """
 
     def __init__(self, fname, server='localhost', port=1234):

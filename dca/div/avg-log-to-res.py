@@ -1,3 +1,8 @@
+"""
+Read a log file, parse the results and save to pickle file.
+Useful if computer crashes during run.
+"""
+
 import pickle
 from operator import itemgetter
 

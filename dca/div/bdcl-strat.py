@@ -1,3 +1,7 @@
+"""
+An incomplete implementation of BDCL: Borrow with Directional Channel Locking
+"""
+
 class Direction(Enum):
     NE = 0
     SE = 1
