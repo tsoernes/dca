@@ -29,7 +29,7 @@ The cellular network simulator, along with the best-performing agent, has been p
 ## Example usage
 
 The agent presented in
-[Torstein Sørnes 2018: Contributions to centralized dynamic channel allocation agents](https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2562774),
+[Torstein Sørnes 2018: Contributions to centralized dynamic channel allocation agents](https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2562774) ([PDF](https://ntnuopen.ntnu.no/ntnu-xmlui/bitstream/handle/11250/2562774/19523_FULLTEXT.pdf?sequence=1)), 
 provides state-of-the-art results for cellular networks with a centralized agent.
 It uses TDC gradients with a state-value linear neural network with differential returns
 (i.e. optimizing for average reward) and hand-off look-ahead (HLA).
